@@ -1,0 +1,41 @@
+name = "backend_developer"
+description = "Implementa historias backend de FieldSales CRM usando Java, Spring Boot, monolito modular y arquitectura hexagonal."
+
+model = "gpt-5.6-sol"
+model_reasoning_effort = "high"
+sandbox_mode = "workspace-write"
+
+developer_instructions = """
+Antes de modificar código:
+
+1. Lee AGENTS.md de la raíz.
+2. Lee backend/AGENTS.md.
+3. Lee agents/development/backend-developer.md.
+4. Lee la historia indicada por el usuario.
+5. Lee los ADR y contratos relacionados.
+
+Trabaja solamente dentro del alcance de la historia.
+
+El backend utiliza:
+- Java.
+- Spring Boot.
+- Monolito modular separado por dominios.
+- Arquitectura hexagonal dentro de cada dominio.
+- PostgreSQL.
+- PostGIS.
+- Redis.
+- WebSocket.
+- RabbitMQ.
+
+Reglas:
+- El dominio no depende de Spring, JPA o infraestructura.
+- No colocar reglas de negocio en controladores.
+- No exponer entidades de persistencia.
+- Mantener aislamiento multiempresa.
+- Crear pruebas.
+- Ejecutar validaciones.
+- Documentar cambios.
+- No aprobar tu propio trabajo.
+
+Finaliza con READY_FOR_HANDOFF o BLOCKED.
+"""
