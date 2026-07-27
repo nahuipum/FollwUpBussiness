@@ -1,0 +1,127 @@
+openapi: 3.1.0
+info:
+  title: FieldSales CRM API
+  version: 0.1.0
+servers:
+  - url: http://localhost:8080/api/v1
+paths:
+  /auth/login:
+    post:
+      summary: Iniciar sesión
+      responses:
+        '200': { description: Sesión iniciada }
+        '401': { description: Credenciales inválidas }
+  /sellers:
+    get:
+      summary: Listar vendedores
+      responses:
+        '200': { description: Resultado paginado }
+    post:
+      summary: Crear vendedor
+      responses:
+        '201': { description: Vendedor creado }
+  /customers:
+    get:
+      summary: Listar clientes
+      responses:
+        '200': { description: Resultado paginado }
+    post:
+      summary: Crear cliente
+      responses:
+        '201': { description: Cliente creado }
+  /customers/imports:
+    post:
+      summary: Importar clientes
+      responses:
+        '202': { description: Proceso aceptado }
+  /routes:
+    get:
+      summary: Consultar rutas
+      responses:
+        '200': { description: Rutas }
+    post:
+      summary: Crear ruta manual
+      responses:
+        '201': { description: Ruta creada }
+  /routes/optimize:
+    post:
+      summary: Proponer ruta automática
+      responses:
+        '200': { description: Propuesta }
+  /routes/{routeId}/publish:
+    post:
+      summary: Publicar ruta
+      parameters:
+        - name: routeId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Publicada }
+  /journeys/start:
+    post:
+      summary: Iniciar jornada
+      responses:
+        '201': { description: Jornada iniciada }
+  /journeys/{journeyId}/locations:
+    post:
+      summary: Enviar ubicaciones
+      parameters:
+        - name: journeyId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '202': { description: Aceptadas }
+  /journeys/{journeyId}/close:
+    post:
+      summary: Cerrar jornada
+      parameters:
+        - name: journeyId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Jornada cerrada }
+  /visits/check-in:
+    post:
+      summary: Iniciar visita
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '201': { description: Visita iniciada }
+        '422': { description: Geocerca o ubicación inválida }
+  /visits/{visitId}/check-out:
+    post:
+      summary: Finalizar visita
+      parameters:
+        - name: visitId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200': { description: Visita finalizada }
+  /sales:
+    get:
+      summary: Consultar ventas
+      responses:
+        '200': { description: Ventas }
+    post:
+      summary: Registrar venta
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '201': { description: Venta registrada }
+  /reports/daily-dashboard:
+    get:
+      summary: Dashboard diario
+      responses:
+        '200': { description: Indicadores }
+components:
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: { type: string, format: uuid }

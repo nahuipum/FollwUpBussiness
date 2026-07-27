@@ -1,0 +1,19 @@
+events:
+  - name: route.published
+    version: 1
+    owner: routing
+  - name: seller.location.updated
+    version: 1
+    owner: tracking
+  - name: visit.started
+    version: 1
+    owner: visits
+  - name: visit.completed
+    version: 1
+    owner: visits
+  - name: sale.created
+    version: 1
+    owner: sales
+  - name: journey.closed
+    version: 1
+    owner: journeys

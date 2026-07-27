@@ -1,0 +1,44 @@
+{
+  "project": "FollowupBussiness CRM",
+  "version": "1.0",
+  "agents": [
+    {
+      "id": "backend-dev",
+      "file": "agents/01_backend_developer.md"
+    },
+    {
+      "id": "frontend-dev",
+      "file": "agents/02_frontend_developer.md"
+    },
+    {
+      "id": "mobile-dev",
+      "file": "agents/03_mobile_developer.md"
+    },
+    {
+      "id": "backend-qa",
+      "file": "agents/04_backend_qa.md"
+    },
+    {
+      "id": "frontend-qa",
+      "file": "agents/05_frontend_qa.md"
+    },
+    {
+      "id": "mobile-qa",
+      "file": "agents/06_mobile_qa.md"
+    },
+    {
+      "id": "dof",
+      "file": "agents/07_definition_of_finished.md"
+    },
+    {
+      "id": "security",
+      "file": "agents/08_cybersecurity_reviewer.md"
+    }
+  ],
+  "source_of_truth": "00_CONTRATO_FUNCIONAL.md",
+  "shared_context": [
+    "shared/PROJECT_CONTEXT.md",
+    "shared/ENGINEERING_RULES.md",
+    "shared/TEAM_WORKFLOW.md"
+  ]
+}
