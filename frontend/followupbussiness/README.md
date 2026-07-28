@@ -1,75 +1,81 @@
-# React + TypeScript + Vite
+# Frontend — FieldSales CRM
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Esqueleto del panel administrativo de FieldSales CRM, ubicado en
+`frontend/followupbussiness` dentro del monorepo. Contiene únicamente la
+inicialización React, el componente raíz, estilos globales y la configuración
+de calidad para los incrementos posteriores.
 
-Currently, two official plugins are available:
+## Requisitos
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Node.js: `^20.19.0 || >=22.12.0`. La configuración se validó con Node.js
+  24.16.0.
+- npm: gestor de paquetes del proyecto. El bloqueo reproducible es
+  `package-lock.json` (lockfile v3).
 
-## React Compiler
+## Instalación y ejecución
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Desde este directorio:
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+npm ci
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Vite mostrará la URL local para abrir la aplicación. Para previsualizar una
+compilación de producción, ejecutar `npm run preview` después de `npm run build`.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Variables de entorno
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Solo se permiten variables públicas de Vite con el prefijo `VITE_`. Nunca se
+deben incluir secretos, tokens ni credenciales en variables expuestas al
+navegador. Los archivos `.env` y `.env.*` están ignorados; cuando se requieran
+variables documentadas, añadir un `.env.example` sin valores sensibles.
 
+## Validaciones
+
+```bash
+npm run typecheck
+npm run lint
+npm run test
+npm run build
 ```
+
+- `typecheck` ejecuta los proyectos TypeScript referenciados sin emitir archivos.
+- `lint` ejecuta ESLint sobre los archivos TypeScript y TSX.
+- `test` ejecuta las pruebas de componente con Vitest, React Testing Library y
+  jsdom.
+- `build` comprueba los tipos y crea el bundle de producción en `dist/`.
+
+## Estructura actual y crecimiento
+
+```text
+src/
+├── app/          # componente raíz de la aplicación
+├── styles/       # estilos globales
+└── main.tsx      # punto de entrada React
+```
+
+No se incluyen rutas, estado global, cliente HTTP, WebSocket, mapas, librería
+de UI ni reglas de negocio. Cuando exista código de producto, crear
+`src/features/<feature>/` para la funcionalidad y `src/shared/` únicamente para
+código transversal reutilizable. Las features no deben acoplarse mediante
+imports internos entre sí; sus límites se definirán con APIs públicas explícitas.
+
+Los tipos REST deberán derivarse de `../../docs/api/openapi.yaml`. El contrato
+actual no define esquemas suficientes y este esqueleto no consume endpoints.
+
+## TypeScript estricto
+
+Los proyectos de aplicación y configuración habilitan `strict: true` y además:
+
+- `noUncheckedIndexedAccess`
+- `exactOptionalPropertyTypes`
+- `noImplicitOverride`
+- `noImplicitReturns`
+- `noFallthroughCasesInSwitch`
+- `noUnusedLocals`
+- `noUnusedParameters`
+- `forceConsistentCasingInFileNames`
+
+`skipLibCheck` se mantiene para no validar declaraciones de dependencias de
+terceros; no excluye la comprobación estricta del código fuente propio.
