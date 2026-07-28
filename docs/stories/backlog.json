@@ -47,6 +47,37 @@
   },
   {
     "area": "Backend",
+    "id": "BE-057",
+    "epic": "Identidad",
+    "title": "Provisionar administrador inicial de empresa",
+    "actor": "superadministrador de plataforma",
+    "want": "provisionar el administrador inicial de una empresa activa",
+    "value": "habilitar la administración de la empresa",
+    "scope": "Crear un usuario de acceso asociado a una empresa activa con el rol base COMPANY_ADMIN y contraseña almacenada mediante hash seguro.",
+    "acceptance": [
+      "Solo un superadministrador autorizado puede provisionarlo.",
+      "Usuario asociado a empresa activa y rol COMPANY_ADMIN.",
+      "Correo o nombre de usuario único dentro de la empresa.",
+      "Contraseña con hash seguro y sin exposición.",
+      "Operación auditable sin datos sensibles.",
+      "No permite roles de plataforma, arbitrarios ni empresa ajena."
+    ],
+    "refs": [
+      "Tipos de usuario 6.1 y 6.4",
+      "RF-AUT-003",
+      "RF-AUT-005",
+      "RN-001",
+      "RN-002",
+      "RNF-005",
+      "RNF-006",
+      "RNF-008"
+    ],
+    "priority": "Must Have",
+    "phase": "MVP",
+    "type": "Historia de usuario"
+  },
+  {
+    "area": "Backend",
     "id": "BE-003",
     "epic": "Identidad",
     "title": "Autenticar usuario",

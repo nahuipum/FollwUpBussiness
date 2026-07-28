@@ -16,6 +16,13 @@
 
     Implementar login seguro.
 
+    ## Dependencias
+
+    - EN-010 — Configurar Spring Security y gestión local de secretos.
+    - EN-011 — Definir catálogo de roles base.
+    - EN-012 — Bootstrap controlado del superadministrador de plataforma.
+    - BE-057 — Provisionar administrador inicial de empresa, cuando se valide el flujo de una empresa cliente.
+
     ## Criterios de aceptación
 
     1. Credenciales válidas crean sesión.

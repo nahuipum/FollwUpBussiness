@@ -16,6 +16,7 @@
 	<properties>
 		<java.version>21</java.version>
 		<archunit.version>1.4.2</archunit.version>
+		<tomcat.version>11.0.24</tomcat.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -24,7 +25,16 @@
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-test</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -40,6 +50,28 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+			<plugin>
+				<groupId>org.cyclonedx</groupId>
+				<artifactId>cyclonedx-maven-plugin</artifactId>
+				<version>${cyclonedx-maven-plugin.version}</version>
+				<executions>
+					<execution>
+						<id>default</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>makeAggregateBom</goal>
+						</goals>
+						<configuration>
+							<projectType>application</projectType>
+							<outputDirectory>${project.build.directory}/sbom</outputDirectory>
+							<outputFormat>json</outputFormat>
+							<outputName>application.cdx</outputName>
+							<outputTimestamp>2026-07-27T00:00:00Z</outputTimestamp>
+							<includeBomSerialNumber>false</includeBomSerialNumber>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>

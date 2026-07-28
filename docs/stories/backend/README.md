@@ -1,11 +1,12 @@
 # Historias — Backend
 
-Total: **56**
+Total: **57**
 
 | ID | Épica | Historia | Prioridad | Fase |
 |---|---|---|---|---|
 | [BE-001](./BE-001-crear-una-empresa.md) | Base SaaS | Crear una empresa | Must Have | MVP |
 | [BE-002](./BE-002-suspender-y-reactivar-empresa.md) | Base SaaS | Suspender y reactivar empresa | Must Have | MVP |
+| [BE-057](./BE-057-provisionar-administrador-inicial-de-empresa.md) | Identidad | Provisionar administrador inicial de empresa | Must Have | MVP |
 | [BE-003](./BE-003-autenticar-usuario.md) | Identidad | Autenticar usuario | Must Have | MVP |
 | [BE-004](./BE-004-renovar-sesion.md) | Identidad | Renovar sesión | Must Have | MVP |
 | [BE-005](./BE-005-cerrar-y-revocar-sesion.md) | Identidad | Cerrar y revocar sesión | Must Have | MVP |

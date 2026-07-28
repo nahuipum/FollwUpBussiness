@@ -16,6 +16,14 @@
 
     Implementar roles y autorización por recurso.
 
+    ## Dependencias
+
+    - EN-010 — Configurar Spring Security y gestión local de secretos.
+    - EN-011 — Definir catálogo de roles base.
+    - BE-003 — Autenticar usuario.
+    - BE-008 — Crear vendedor, para validar el alcance propio del vendedor.
+    - BE-011 — Asignar supervisor, para validar el alcance del equipo del supervisor.
+
     ## Criterios de aceptación
 
     1. Endpoint valida permiso.

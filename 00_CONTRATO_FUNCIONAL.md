@@ -1045,6 +1045,23 @@ La primera versión estará disponible en español.
 
 ## ÉPICA 1. Acceso y usuarios
 
+### HU-000. Provisionar administrador inicial de empresa
+
+**Como** superadministrador de plataforma<br>
+**Quiero** provisionar el administrador inicial de una empresa activa<br>
+**Para** que la empresa pueda administrar sus usuarios y su operación.
+
+**Criterios de aceptación:**
+
+1. El administrador inicial queda asociado a una empresa activa y al rol Administrador.
+2. Solo un superadministrador autorizado puede realizar la provisión.
+3. La contraseña se almacena exclusivamente mediante hash seguro.
+4. La operación es auditable sin exponer secretos ni datos personales completos.
+
+**Nota de dependencia:** el catálogo de roles debe existir antes de crear usuarios. El bootstrap del primer superadministrador se realiza mediante un enabler y ADR con procedimiento controlado; no se expone como registro público.
+
+---
+
 ### HU-001. Iniciar sesión
 
 **Como** usuario registrado  

@@ -1,6 +1,7 @@
 ﻿ID,Área,Épica,Título,Tipo,Prioridad,Fase,Actor,Quiero,Para,Referencias
 BE-001,Backend,Base SaaS,Crear una empresa,Historia de usuario,Must Have,MVP,superadministrador,crear una empresa con configuración inicial,habilitar un nuevo tenant,Empresa 14.1 | RN-001 | RN-002
 BE-002,Backend,Base SaaS,Suspender y reactivar empresa,Historia de usuario,Must Have,MVP,superadministrador,suspender o reactivar una empresa,controlar el acceso,Tipos de usuario 6.4
+BE-057,Backend,Identidad,Provisionar administrador inicial de empresa,Historia de usuario,Must Have,MVP,superadministrador de plataforma,provisionar el administrador inicial de una empresa activa,habilitar la administración de la empresa,Tipos de usuario 6.1 y 6.4 | RF-AUT-003 | RF-AUT-005 | RNF-005 | RNF-006
 BE-003,Backend,Identidad,Autenticar usuario,Historia de usuario,Must Have,MVP,usuario registrado,autenticarme,acceder según mi rol,RF-AUT-001 | RNF-005
 BE-004,Backend,Identidad,Renovar sesión,Historia de usuario,Must Have,MVP,usuario autenticado,renovar mi sesión,continuar trabajando,RF-AUT-004
 BE-005,Backend,Identidad,Cerrar y revocar sesión,Historia de usuario,Must Have,MVP,usuario autenticado,cerrar mi sesión,evitar reutilización,RF-AUT-004 | RF-AUT-005
