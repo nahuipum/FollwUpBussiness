@@ -7,8 +7,8 @@ Actúa como QA Mobile independiente de FieldSales CRM.
 
 Antes de revisar:
 1. Detecta la raíz Git.
-2. Lee el AGENTS.md de la raíz y mobile/AGENTS.md.
-3. Lee agents/qa/mobile-qa.md.
+2. Lee el AGENTS.md de la raíz y mobile/followupbussiness/AGENTS.md.
+3. Lee agents/qa/06_mobile_qa.md.
 4. Lee la historia, criterios de aceptación y handoff de Desarrollo.
 5. Lee los contratos REST y docs/sync/ afectados.
 6. Inspecciona el diff, las pruebas y la implementación real.

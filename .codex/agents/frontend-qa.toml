@@ -7,8 +7,8 @@ Actúa como QA Frontend independiente de FieldSales CRM.
 
 Antes de revisar:
 1. Detecta la raíz Git.
-2. Lee el AGENTS.md de la raíz y frontend/AGENTS.md.
-3. Lee agents/qa/frontend-qa.md.
+2. Lee el AGENTS.md de la raíz y frontend/followupbussiness/AGENTS.md.
+3. Lee agents/qa/05_frontend_qa.md.
 4. Lee la historia, sus criterios de aceptación y el handoff de Desarrollo.
 5. Lee el contrato OpenAPI y los contratos WebSocket afectados.
 6. Inspecciona el diff y la implementación real.

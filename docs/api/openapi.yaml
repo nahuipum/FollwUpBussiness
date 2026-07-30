@@ -1200,8 +1200,12 @@ paths:
       tags: [Routes]
       operationId: optimizeRoute
       summary: Generar propuesta de ruta automática básica
+      description: |
+        Genera una propuesta versionada y no publicada para un vendedor, fecha
+        y territorio del tenant autenticado. El proveedor de matriz recibe solo
+        coordenadas; no recibe tenant, vendedor, territorio ni clientes.
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
-      x-story-ids: [BE-022, FE-016, INT-008]
+      x-story-ids: [EN-018, BE-022, FE-016, INT-008]
       requestBody:
         required: true
         content:
@@ -1215,7 +1219,9 @@ paths:
               schema: { $ref: '#/components/schemas/OptimizeRouteResponse' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/UnprocessableEntity' }
+        '503': { $ref: '#/components/responses/RouteOptimizationUnavailable' }
 
   /routes/{routeId}/points/order:
     parameters:
@@ -2535,6 +2541,21 @@ components:
       content:
         application/problem+json:
           schema: { $ref: '#/components/schemas/ErrorResponse' }
+    RouteOptimizationUnavailable:
+      description: Motor o proveedor de matriz temporalmente no disponible
+      x-error-codes:
+        - PROVIDER_UNCONFIGURED
+        - PROVIDER_UNAUTHORIZED
+        - PROVIDER_RATE_LIMITED
+        - PROVIDER_TIMEOUT
+        - SOLVER_TIME_LIMIT
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+        Retry-After:
+          schema: { type: integer, minimum: 1 }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
     Gone:
       description: Recurso expirado por política de retención
       headers:
@@ -3322,28 +3343,124 @@ components:
     OptimizeRouteRequest:
       type: object
       additionalProperties: false
-      required: [date, sellerId, customerIds]
+      required:
+        - routeId
+        - date
+        - sellerId
+        - territoryId
+        - startLocation
+        - endLocation
+        - availability
+        - baseRouteVersion
+        - visits
       properties:
+        routeId: { type: string, format: uuid }
         date: { type: string, format: date }
         sellerId: { type: string, format: uuid }
+        territoryId:
+          type: string
+          format: uuid
+          description: Zona autorizada; debe pertenecer al tenant autenticado.
         startLocation: { $ref: '#/components/schemas/GeoPoint' }
         endLocation: { $ref: '#/components/schemas/GeoPoint' }
-        customerIds:
+        availability: { $ref: '#/components/schemas/TimeWindow' }
+        baseRouteVersion:
+          type: integer
+          minimum: 1
+          description: Versión base usada para detectar edición concurrente.
+        visits:
           type: array
           minItems: 1
-          maxItems: 500
+          maxItems: 9
           uniqueItems: true
-          items: { type: string, format: uuid }
+          description: Los customerId deben ser únicos y pertenecer al mismo tenant y territorio.
+          items: { $ref: '#/components/schemas/OptimizeRouteVisitRequest' }
+    TimeWindow:
+      type: object
+      additionalProperties: false
+      required: [start, end]
+      properties:
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+          description: Debe ser posterior a start; el backend valida la zona operativa.
+    OptimizeRouteVisitRequest:
+      type: object
+      additionalProperties: false
+      required: [customerId, serviceDurationSeconds, priority]
+      properties:
+        customerId: { type: string, format: uuid }
+        serviceDurationSeconds:
+          type: integer
+          minimum: 1
+        priority:
+          type: integer
+          minimum: 1
+          description: Una prioridad mayor aplica mayor penalización por no atender.
+        windows:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          description: Ventanas duras; no se relajan silenciosamente.
+          items: { $ref: '#/components/schemas/TimeWindow' }
     OptimizeRouteResponse:
       type: object
       additionalProperties: false
-      required: [orderedCustomerIds, estimatedDistanceMeters, estimatedDurationSeconds]
+      required:
+        - routeId
+        - proposalVersion
+        - baseRouteVersion
+        - published
+        - orderedVisits
+        - unassignedVisits
+        - totalTravelSeconds
+        - totalServiceSeconds
+        - totalDistanceMeters
+        - optimality
+        - generatedAt
       properties:
-        orderedCustomerIds:
+        routeId: { type: string, format: uuid }
+        proposalVersion: { type: integer, minimum: 1, readOnly: true }
+        baseRouteVersion: { type: integer, minimum: 1 }
+        published:
+          type: boolean
+          const: false
+          readOnly: true
+          description: Optimizar nunca publica una ruta.
+        orderedVisits:
           type: array
-          items: { type: string, format: uuid }
-        estimatedDistanceMeters: { type: integer, minimum: 0 }
-        estimatedDurationSeconds: { type: integer, minimum: 0 }
+          items: { $ref: '#/components/schemas/OptimizedRouteVisit' }
+        unassignedVisits:
+          type: array
+          items: { $ref: '#/components/schemas/UnassignedRouteVisit' }
+        totalTravelSeconds: { type: integer, minimum: 0 }
+        totalServiceSeconds: { type: integer, minimum: 0 }
+        totalDistanceMeters: { type: integer, minimum: 0 }
+        optimality:
+          type: string
+          enum: [FEASIBLE, OPTIMAL, TIME_LIMIT]
+        generatedAt: { type: string, format: date-time, readOnly: true }
+    OptimizedRouteVisit:
+      type: object
+      additionalProperties: false
+      required: [customerId, sequence, plannedArrivalAt, plannedDepartureAt]
+      properties:
+        customerId: { type: string, format: uuid }
+        sequence: { type: integer, minimum: 1 }
+        plannedArrivalAt: { type: string, format: date-time }
+        plannedDepartureAt: { type: string, format: date-time }
+    UnassignedRouteVisit:
+      type: object
+      additionalProperties: false
+      required: [customerId, reason]
+      properties:
+        customerId: { type: string, format: uuid }
+        reason:
+          type: string
+          enum: [OUTSIDE_SHIFT, TIME_WINDOW_CONFLICT, UNREACHABLE, LIMIT_EXCEEDED]
     ReorderRoutePointsRequest:
       type: object
       additionalProperties: false

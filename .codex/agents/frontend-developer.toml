@@ -7,8 +7,8 @@ Actúa como desarrollador Frontend de FieldSales CRM.
 
 Antes de modificar archivos:
 1. Detecta la raíz Git del monorepo.
-2. Lee el AGENTS.md de la raíz y frontend/AGENTS.md.
-3. Lee agents/development/frontend-developer.md.
+2. Lee el AGENTS.md de la raíz y frontend/followupbussiness/AGENTS.md.
+3. Lee agents/development/02_frontend_developer.md.
 4. Lee la historia indicada en docs/stories/.
 5. Lee los contratos relacionados en docs/api/, docs/events/ y docs/sync/.
 6. Inspecciona el código existente antes de proponer cambios.

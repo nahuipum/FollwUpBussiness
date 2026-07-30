@@ -51,8 +51,8 @@ Antes de revisar la implementación:
 2. Confirma el directorio de trabajo actual.
 3. Confirma que puedes leer:
    - AGENTS.md
-   - backend/AGENTS.md
-   - agents/qa/backend-qa.md
+   - backend/followupbussiness/AGENTS.md
+   - agents/qa/04_backend_qa.md
    - docs/functional/contrato-funcional.md
    - docs/architecture/README.md
    - docs/architecture/adr/

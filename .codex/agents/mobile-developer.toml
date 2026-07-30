@@ -7,8 +7,8 @@ Actúa como desarrollador Mobile de FieldSales CRM.
 
 Antes de modificar archivos:
 1. Detecta la raíz Git del monorepo.
-2. Lee el AGENTS.md de la raíz y mobile/AGENTS.md.
-3. Lee agents/development/mobile-developer.md.
+2. Lee el AGENTS.md de la raíz y mobile/followupbussiness/AGENTS.md.
+3. Lee agents/development/03_mobile_developer.md.
 4. Lee la historia indicada en docs/stories/.
 5. Lee los contratos relacionados en docs/api/, docs/events/ y especialmente docs/sync/.
 6. Inspecciona el código Flutter existente.

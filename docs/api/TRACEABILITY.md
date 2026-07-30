@@ -14,7 +14,7 @@ capacidad; el archivo OpenAPI es la fuente exacta para una operación concreta.
 | Territorios y vendedores | `/territories*`, `/sellers*` | BE-008..012, BE-059, BE-062, FE-005..007, FE-037, INT-004, INT-033 |
 | Clientes y cartera | `/customers*`, `/customer-assignments/batch` | BE-013..017, BE-060, FE-008..011, FE-036, INT-005, INT-034 |
 | Importación | `/customers/import-template`, `/customer-imports*` | BE-018..020, FE-012..013, INT-006 |
-| Rutas | `/routes*` | BE-021..027, BE-053, BE-061, FE-014..019, MOB-004..005, MOB-029, INT-007..009, INT-039 |
+| Rutas | `/routes*` | EN-018, BE-021..027, BE-053, BE-061, FE-014..019, MOB-004..005, MOB-029, INT-007..009, INT-039 |
 | Jornada y tracking | `/journeys*`, `/tracking/active-sellers` | BE-028..033, FE-020..022, MOB-007..010, MOB-024..026, INT-010..012, INT-023 |
 | Visitas y geocerca | `/visits*` | BE-034..040, FE-023..025, FE-038, MOB-011..018, INT-013..016, INT-036 |
 | Catálogo | `/products*` | BE-041, FE-035, MOB-019, INT-035 |
