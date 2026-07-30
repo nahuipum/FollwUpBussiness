@@ -16,6 +16,8 @@ info:
     - Importes usan decimal; el servidor recalcula totales.
     - Comandos mobile sensibles requieren idempotencia.
     - Un `correlationId` se devuelve tanto en éxito como en error.
+    - Auth WEB usa refresh solo en cookie HttpOnly; MOBILE usa body solo fuera
+      de contexto navegador. El canal nunca concede identidad, tenant o rol.
   contact:
     name: FieldSales CRM Engineering
   license:
@@ -24,6 +26,8 @@ info:
   x-contract-status: READY_FOR_HANDOFF
   x-source-of-truth:
     - ../../00_CONTRATO_FUNCIONAL.md
+    - ../stories/enablers/EN-013-definir-autenticacion-sesiones-y-recuperacion.md
+    - ../architecture/adr/ADR-008-autenticacion-sesiones.md
     - ../stories/BACKLOG_REFINEMENT.md
     - ../stories/dependency-map.md
 servers:
@@ -82,9 +86,16 @@ paths:
       tags: [Authentication]
       operationId: login
       summary: Iniciar sesión
-      description: Respuesta neutral ante credenciales inválidas o cuenta no utilizable.
+      description: |
+        Respuesta neutral ante credenciales inválidas o cuenta no utilizable.
+        WEB requiere un Origin permitido y recibe el refresh exclusivamente en
+        cookie HttpOnly. MOBILE solo se admite sin contexto de navegador y
+        recibe el refresh en el cuerpo. El header de canal no concede autoridad.
       security: []
-      x-story-ids: [BE-003, FE-001, MOB-001, INT-002, INT-003]
+      x-story-ids: [EN-013, BE-003, FE-001, MOB-001, INT-002, INT-003]
+      parameters:
+        - $ref: '#/components/parameters/AuthClient'
+        - $ref: '#/components/parameters/ClientInstanceId'
       requestBody:
         required: true
         content:
@@ -93,15 +104,24 @@ paths:
               $ref: '#/components/schemas/LoginRequest'
       responses:
         '200':
-          description: Sesión iniciada
+          description: Sesión iniciada por el canal solicitado y validado
           headers:
             X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+            Cache-Control: { $ref: '#/components/headers/NoStore' }
+            Pragma: { $ref: '#/components/headers/NoCache' }
+            Set-Cookie: { $ref: '#/components/headers/WebRefreshSetCookie' }
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthenticationResponse'
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '429': { $ref: '#/components/responses/RateLimited' }
+                oneOf:
+                  - $ref: '#/components/schemas/WebAuthenticationResponse'
+                  - $ref: '#/components/schemas/MobileAuthenticationResponse'
+                discriminator:
+                  propertyName: channel
+        '400': { $ref: '#/components/responses/AuthRequestInvalid' }
+        '401': { $ref: '#/components/responses/LoginFailed' }
+        '429': { $ref: '#/components/responses/AuthRateLimited' }
+        '503': { $ref: '#/components/responses/AuthRateLimiterUnavailable' }
         '500': { $ref: '#/components/responses/InternalError' }
 
   /auth/refresh:
@@ -109,34 +129,64 @@ paths:
       tags: [Authentication]
       operationId: refreshSession
       summary: Renovar una sesión
-      security: []
-      x-story-ids: [BE-004, FE-003, MOB-002, INT-002, INT-003]
+      description: |
+        Rota exactamente una vez el refresh de la familia. WEB usa únicamente
+        la cookie HttpOnly y X-CSRF-Token; el body debe estar ausente. MOBILE
+        exige el token opaco del body, ausencia de contexto navegador y no puede
+        canjear una cookie web. Origin o Sec-Fetch con MOBILE se rechaza antes
+        de leer credenciales.
+      security:
+        - webRefreshCookie: []
+        - {}
+      x-story-ids: [EN-013, BE-004, FE-003, MOB-002, INT-002, INT-003]
+      parameters:
+        - $ref: '#/components/parameters/AuthClient'
+        - $ref: '#/components/parameters/ClientInstanceId'
+        - $ref: '#/components/parameters/WebCsrfToken'
       requestBody:
-        required: true
+        description: Obligatorio solo para MOBILE y prohibido para WEB.
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RefreshSessionRequest'
+              $ref: '#/components/schemas/MobileRefreshSessionRequest'
       responses:
         '200':
           description: Sesión renovada y refresh token rotado
           headers:
             X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+            Cache-Control: { $ref: '#/components/headers/NoStore' }
+            Pragma: { $ref: '#/components/headers/NoCache' }
+            Set-Cookie: { $ref: '#/components/headers/WebRefreshSetCookie' }
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthenticationResponse'
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '409': { $ref: '#/components/responses/Conflict' }
-        '429': { $ref: '#/components/responses/RateLimited' }
+                oneOf:
+                  - $ref: '#/components/schemas/WebAuthenticationResponse'
+                  - $ref: '#/components/schemas/MobileAuthenticationResponse'
+                discriminator:
+                  propertyName: channel
+        '400': { $ref: '#/components/responses/AuthRequestInvalid' }
+        '401': { $ref: '#/components/responses/RefreshRejected' }
+        '403': { $ref: '#/components/responses/CsrfRejected' }
+        '409': { $ref: '#/components/responses/RefreshAlreadyRotated' }
+        '429': { $ref: '#/components/responses/AuthRateLimited' }
+        '503': { $ref: '#/components/responses/AuthRateLimiterUnavailable' }
 
   /auth/logout:
     post:
       tags: [Authentication]
       operationId: logout
-      summary: Cerrar y revocar la sesión actual
+      summary: Revocar la sesión actual o todas las sesiones
+      description: |
+        Con allSessions=false revoca idempotentemente la familia de sid. Con
+        true revoca todas las familias de la misma cuenta y tenant. WEB exige
+        CSRF y siempre elimina la cookie; MOBILE elimina sus secretos locales.
       x-required-roles: [PLATFORM_SUPERADMIN, COMPANY_ADMIN, SUPERVISOR, SELLER]
-      x-story-ids: [BE-005, FE-003, MOB-002, INT-002, INT-003]
+      x-story-ids: [EN-013, BE-005, FE-003, MOB-002, INT-002, INT-003]
+      parameters:
+        - $ref: '#/components/parameters/AuthClient'
+        - $ref: '#/components/parameters/ClientInstanceId'
+        - $ref: '#/components/parameters/WebCsrfToken'
       requestBody:
         content:
           application/json:
@@ -144,19 +194,30 @@ paths:
               $ref: '#/components/schemas/LogoutRequest'
       responses:
         '204':
-          description: Sesión revocada
+          description: Revocación completada o ya aplicada
           headers:
             X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+            Cache-Control: { $ref: '#/components/headers/NoStore' }
+            Set-Cookie: { $ref: '#/components/headers/WebRefreshClearCookie' }
+        '400': { $ref: '#/components/responses/AuthRequestInvalid' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/CsrfRejected' }
+        '429': { $ref: '#/components/responses/AuthRateLimited' }
 
   /auth/password-recovery-requests:
     post:
       tags: [Authentication]
       operationId: requestPasswordRecovery
       summary: Solicitar activación o recuperación de contraseña
-      description: Siempre responde 202 para evitar enumeración de cuentas.
+      description: |
+        Siempre responde el mismo 202 para entrada válida, exista o no una
+        cuenta utilizable. No devuelve token ni estado de cuenta; EN-017 define
+        el proveedor de entrega.
       security: []
-      x-story-ids: [BE-006, BE-057, FE-002]
+      x-story-ids: [EN-013, BE-006, BE-057, FE-002]
+      parameters:
+        - $ref: '#/components/parameters/AuthClient'
+        - $ref: '#/components/parameters/ClientInstanceId'
       requestBody:
         required: true
         content:
@@ -168,19 +229,29 @@ paths:
           description: Solicitud aceptada, exista o no la cuenta
           headers:
             X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+            Cache-Control: { $ref: '#/components/headers/NoStore' }
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/AcceptedResponse'
-        '429': { $ref: '#/components/responses/RateLimited' }
+        '400': { $ref: '#/components/responses/AuthRequestInvalid' }
+        '429': { $ref: '#/components/responses/AuthRateLimited' }
+        '503': { $ref: '#/components/responses/AuthRateLimiterUnavailable' }
 
   /auth/password-resets:
     post:
       tags: [Authentication]
       operationId: resetPassword
-      summary: Establecer una contraseña con token de un solo uso
+      summary: Activar una cuenta o restablecer contraseña con token de un uso
+      description: |
+        El propósito se deriva del token persistido, nunca del cliente. Un reset
+        exitoso revoca todas las sesiones web/mobile de la cuenta. El token
+        opaco no asigna tenant ni rol.
       security: []
-      x-story-ids: [BE-006, BE-057, FE-002]
+      x-story-ids: [EN-013, BE-006, BE-057, FE-002]
+      parameters:
+        - $ref: '#/components/parameters/AuthClient'
+        - $ref: '#/components/parameters/ClientInstanceId'
       requestBody:
         required: true
         content:
@@ -189,13 +260,15 @@ paths:
               $ref: '#/components/schemas/PasswordResetRequest'
       responses:
         '204':
-          description: Contraseña establecida y token consumido
+          description: Contraseña establecida, token consumido y sesiones revocadas
           headers:
             X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '409': { $ref: '#/components/responses/Conflict' }
+            Cache-Control: { $ref: '#/components/headers/NoStore' }
+        '400': { $ref: '#/components/responses/PasswordResetInvalid' }
+        '410': { $ref: '#/components/responses/PasswordResetExpired' }
         '422': { $ref: '#/components/responses/UnprocessableEntity' }
-        '429': { $ref: '#/components/responses/RateLimited' }
+        '429': { $ref: '#/components/responses/AuthRateLimited' }
+        '503': { $ref: '#/components/responses/AuthRateLimiterUnavailable' }
 
   /me:
     get:
@@ -2177,7 +2250,13 @@ components:
     bearerAuth:
       type: http
       scheme: bearer
-      description: Token de acceso de corta duración emitido por el servicio de autenticación.
+      bearerFormat: JWT
+      description: JWT RS256 de acceso, 10 minutos, transportado solo en Authorization; nunca en cookie.
+    webRefreshCookie:
+      type: apiKey
+      in: cookie
+      name: __Host-fs-refresh
+      description: Cookie refresh exclusiva de WEB; Secure, HttpOnly, SameSite=Strict y Path=/.
 
   headers:
     CorrelationId:
@@ -2186,8 +2265,52 @@ components:
         type: string
         minLength: 1
         maxLength: 100
+    NoStore:
+      description: Impide almacenar respuestas que contienen o alteran credenciales.
+      schema: { type: string, const: no-store }
+    NoCache:
+      description: Compatibilidad HTTP/1.0 para respuestas de credenciales.
+      schema: { type: string, const: no-cache }
+    WebRefreshSetCookie:
+      description: |
+        Solo WEB. Contiene el refresh opaco; nunca es legible desde JavaScript ni
+        se incluye en el JSON. Ausente para MOBILE.
+      schema:
+        type: string
+        example: __Host-fs-refresh=<opaque>; Path=/; Secure; HttpOnly; SameSite=Strict
+    WebRefreshClearCookie:
+      description: Solo WEB. Elimina la cookie incluso si la familia ya estaba revocada.
+      schema:
+        type: string
+        example: __Host-fs-refresh=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Strict
 
   parameters:
+    AuthClient:
+      name: X-Auth-Client
+      in: header
+      required: true
+      description: |
+        Selecciona transporte, no autoridad. WEB requiere Origin allowlisted.
+        MOBILE requiere ausencia de Origin y Sec-Fetch; un navegador no puede
+        declarar MOBILE para obtener un refresh en el body.
+      schema:
+        type: string
+        enum: [WEB, MOBILE]
+    ClientInstanceId:
+      name: X-Client-Instance-Id
+      in: header
+      required: true
+      description: UUID estable de instalación/perfil; no autentica ni concede tenant o rol.
+      schema: { type: string, format: uuid }
+    WebCsrfToken:
+      name: X-CSRF-Token
+      in: header
+      required: false
+      description: Obligatorio para WEB en refresh/logout; prohibido como sustituto de una credencial.
+      schema:
+        type: string
+        minLength: 43
+        maxLength: 128
     Page:
       name: page
       in: query
@@ -2298,8 +2421,94 @@ components:
       content:
         application/problem+json:
           schema: { $ref: '#/components/schemas/ErrorResponse' }
+    AuthRequestInvalid:
+      description: Canal/origen de autenticación incompatible o solicitud mal formada
+      x-error-codes: [AUTH_CLIENT_CHANNEL_INVALID, VALIDATION_FAILED]
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+        Cache-Control: { $ref: '#/components/headers/NoStore' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    LoginFailed:
+      description: Credenciales o estado de cuenta/empresa no utilizables; respuesta neutral
+      x-error-codes: [AUTHENTICATION_FAILED]
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+        Cache-Control: { $ref: '#/components/headers/NoStore' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    RefreshRejected:
+      description: Refresh expirado, inválido/revocado o reutilizado
+      x-error-codes: [REFRESH_TOKEN_EXPIRED, REFRESH_TOKEN_INVALID, REFRESH_TOKEN_REUSED]
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+        Cache-Control: { $ref: '#/components/headers/NoStore' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    CsrfRejected:
+      description: Token CSRF web ausente o inválido; no consume el refresh
+      x-error-codes: [CSRF_TOKEN_INVALID]
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+        Cache-Control: { $ref: '#/components/headers/NoStore' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    RefreshAlreadyRotated:
+      description: El mismo refresh ya ganó una rotación concurrente controlada; no se reemite el sucesor
+      x-error-codes: [REFRESH_ALREADY_ROTATED]
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+        Cache-Control: { $ref: '#/components/headers/NoStore' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    PasswordResetInvalid:
+      description: Token malformado, desconocido, consumido o de propósito incompatible
+      x-error-codes: [PASSWORD_RESET_TOKEN_INVALID, AUTH_CLIENT_CHANNEL_INVALID, VALIDATION_FAILED]
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+        Cache-Control: { $ref: '#/components/headers/NoStore' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    PasswordResetExpired:
+      description: Token de activación/recuperación reconocido pero expirado
+      x-error-codes: [PASSWORD_RESET_TOKEN_EXPIRED]
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+        Cache-Control: { $ref: '#/components/headers/NoStore' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    AuthRateLimited:
+      description: Límite temporal de autenticación excedido sin revelar existencia de cuenta
+      x-error-codes: [AUTH_RATE_LIMITED]
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+        Cache-Control: { $ref: '#/components/headers/NoStore' }
+        Retry-After:
+          schema: { type: integer, minimum: 1 }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    AuthRateLimiterUnavailable:
+      description: Operación cerrada temporalmente porque no puede aplicarse el control de abuso
+      x-error-codes: [AUTH_RATE_LIMIT_UNAVAILABLE]
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+        Cache-Control: { $ref: '#/components/headers/NoStore' }
+        Retry-After:
+          schema: { type: integer, minimum: 1 }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
     Unauthorized:
       description: Identidad ausente, inválida o sesión revocada
+      x-error-codes: [ACCESS_TOKEN_EXPIRED, ACCESS_TOKEN_INVALID, SESSION_REVOKED]
       headers:
         X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
       content:
@@ -2351,15 +2560,6 @@ components:
       description: Solicitud sintácticamente válida que incumple reglas de negocio
       headers:
         X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
-      content:
-        application/problem+json:
-          schema: { $ref: '#/components/schemas/ErrorResponse' }
-    RateLimited:
-      description: Límite temporal excedido
-      headers:
-        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
-        Retry-After:
-          schema: { type: integer, minimum: 1 }
       content:
         application/problem+json:
           schema: { $ref: '#/components/schemas/ErrorResponse' }
@@ -2450,19 +2650,27 @@ components:
           description: Correo electrónico o nombre de usuario.
         password: { type: string, minLength: 8, maxLength: 200, writeOnly: true }
         deviceName: { type: string, maxLength: 120 }
-    RefreshSessionRequest:
+    MobileRefreshSessionRequest:
       type: object
       additionalProperties: false
       required: [refreshToken]
+      description: Solo MOBILE. WEB debe omitir por completo el body.
       properties:
-        refreshToken: { type: string, minLength: 20, maxLength: 4096, writeOnly: true }
+        refreshToken:
+          type: string
+          minLength: 43
+          maxLength: 43
+          pattern: '^[A-Za-z0-9_-]{43}$'
+          writeOnly: true
+          description: Refresh opaco almacenado en secure storage; nunca acepta una cookie web.
     LogoutRequest:
       type: object
       additionalProperties: false
-      required: [refreshToken]
       properties:
-        refreshToken: { type: string, minLength: 20, maxLength: 4096, writeOnly: true }
-        allSessions: { type: boolean, default: false }
+        allSessions:
+          type: boolean
+          default: false
+          description: False revoca sid; true revoca todas las familias de la cuenta/tenant autenticados.
     PasswordRecoveryRequest:
       type: object
       additionalProperties: false
@@ -2474,23 +2682,62 @@ components:
       additionalProperties: false
       required: [token, newPassword]
       properties:
-        token: { type: string, minLength: 20, maxLength: 4096, writeOnly: true }
-        newPassword: { type: string, minLength: 8, maxLength: 200, writeOnly: true }
-    TokenPair:
+        token:
+          type: string
+          minLength: 43
+          maxLength: 43
+          pattern: '^[A-Za-z0-9_-]{43}$'
+          writeOnly: true
+          description: Token opaco de activación (24 h) o recuperación (30 min), de un solo uso.
+        newPassword:
+          type: string
+          minLength: 8
+          maxLength: 72
+          writeOnly: true
+          description: Debe cumplir la política vigente y ocupar como máximo 72 bytes UTF-8 para BCrypt.
+    AccessCredentials:
       type: object
       additionalProperties: false
-      required: [accessToken, refreshToken, expiresIn]
+      required: [accessToken, tokenType, expiresIn]
       properties:
-        accessToken: { type: string, writeOnly: true }
-        refreshToken: { type: string, writeOnly: true }
+        accessToken:
+          type: string
+          minLength: 1
+          maxLength: 4096
+          description: JWT RS256 para mantener solo en memoria.
         tokenType: { type: string, const: Bearer }
-        expiresIn: { type: integer, minimum: 1, description: Segundos hasta expirar el token de acceso. }
-    AuthenticationResponse:
+        expiresIn: { type: integer, const: 600, description: Segundos hasta expirar el access token. }
+    WebAuthenticationResponse:
       type: object
       additionalProperties: false
-      required: [tokens, user]
+      required: [channel, credentials, csrfToken, user]
       properties:
-        tokens: { $ref: '#/components/schemas/TokenPair' }
+        channel: { type: string, const: WEB }
+        credentials: { $ref: '#/components/schemas/AccessCredentials' }
+        csrfToken:
+          type: string
+          minLength: 43
+          maxLength: 128
+          description: Rotado con la familia; enviar en X-CSRF-Token. No es el refresh.
+        user: { $ref: '#/components/schemas/CurrentUser' }
+    MobileAuthenticationResponse:
+      type: object
+      additionalProperties: false
+      required: [channel, credentials, refreshToken, refreshExpiresIn, user]
+      properties:
+        channel: { type: string, const: MOBILE }
+        credentials: { $ref: '#/components/schemas/AccessCredentials' }
+        refreshToken:
+          type: string
+          minLength: 43
+          maxLength: 43
+          pattern: '^[A-Za-z0-9_-]{43}$'
+          description: Secreto opaco para secure storage móvil; nunca se entrega a WEB.
+        refreshExpiresIn:
+          type: integer
+          minimum: 1
+          maximum: 2592000
+          description: Segundos restantes hasta el límite absoluto de 30 días de la familia.
         user: { $ref: '#/components/schemas/CurrentUser' }
     UserSummary:
       type: object

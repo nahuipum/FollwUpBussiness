@@ -8,7 +8,7 @@ capacidad; el archivo OpenAPI es la fuente exacta para una operación concreta.
 
 | Capacidad | Operaciones principales | HUs cubiertas |
 |---|---|---|
-| Autenticación e identidad | `/auth/*`, `/me` | BE-003..007, FE-001..004, MOB-001..002, INT-002..003 |
+| Autenticación e identidad | `/auth/*`, `/me` | EN-013, BE-003..007, FE-001..004, MOB-001..002, INT-002..003 |
 | Onboarding de empresa | `/platform/companies*` | BE-001..002, BE-057, INT-001, INT-038 |
 | Usuarios y configuración | `/company/users*`, `/company/settings` | BE-007, BE-054, BE-058, FE-004, FE-033, INT-033 |
 | Territorios y vendedores | `/territories*`, `/sellers*` | BE-008..012, BE-059, BE-062, FE-005..007, FE-037, INT-004, INT-033 |
@@ -48,6 +48,13 @@ contrato o mediante criterios no funcionales:
 6. Los errores siguen `application/problem+json` e incluyen `correlationId`.
 7. Importes se representan como decimal y se recalculan en el servidor.
 8. Fechas usan ISO 8601 y la fecha operativa usa la zona horaria de la empresa.
+9. EN-013 fija access JWT RS256 de 10 minutos y familias refresh opacas de 30
+   días con rotación, detección de reutilización y revocación inmediata.
+10. Auth WEB entrega refresh solo mediante cookie `__Host-fs-refresh` HttpOnly y
+    exige CSRF; MOBILE lo entrega/recibe solo en body fuera de contexto
+    navegador. `X-Auth-Client` nunca es autoridad y no permite downgrade.
+11. Reset/activación usa token opaco de un uso; la solicitud es neutral y un
+    reset exitoso revoca todas las familias de la cuenta.
 
 ## Puertas pendientes
 

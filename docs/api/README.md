@@ -20,6 +20,11 @@ La relación entre capacidades, operaciones e historias está en
   esquemas tipados, errores comunes y `x-story-ids`.
 - La autorización concreta se declara mediante `x-required-roles`; el servidor
   además valida pertenencia al tenant, equipo y recurso.
+- EN-013 define dos canales de autenticación sin downgrade: WEB conserva el
+  refresh exclusivamente en cookie HttpOnly con CSRF; MOBILE lo usa en body
+  únicamente fuera de contexto navegador y lo almacena en secure storage.
+- Los códigos de error de auth distinguen expiración, rotación/reutilización y
+  reset inválido sin revelar si una cuenta existe.
 
 ## Validación
 
