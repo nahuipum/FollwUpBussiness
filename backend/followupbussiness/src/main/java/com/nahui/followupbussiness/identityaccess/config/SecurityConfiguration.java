@@ -2,6 +2,7 @@ package com.nahui.followupbussiness.identityaccess.config;
 
 import com.nahui.followupbussiness.identityaccess.adapter.in.security.RestAccessDeniedHandler;
 import com.nahui.followupbussiness.identityaccess.adapter.in.security.RestAuthenticationEntryPoint;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,6 +16,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 
 @Configuration(proxyBeanMethods = false)
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @EnableConfigurationProperties(LocalSecuritySecretsProperties.class)
 public class SecurityConfiguration {
 

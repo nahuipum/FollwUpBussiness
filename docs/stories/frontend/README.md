@@ -1,6 +1,6 @@
-# Historias — Frontend
+﻿# Historias — Frontend
 
-Total: **34**
+Total: **38**
 
 | ID | Épica | Historia | Prioridad | Fase |
 |---|---|---|---|---|
@@ -21,11 +21,11 @@ Total: **34**
 | [FE-015](./FE-015-crear-ruta-manual.md) | Rutas | Crear ruta manual | Must Have | MVP |
 | [FE-016](./FE-016-generar-ruta-automatica.md) | Rutas | Generar ruta automática | Must Have | MVP |
 | [FE-017](./FE-017-publicar-ruta.md) | Rutas | Publicar ruta | Must Have | MVP |
-| [FE-018](./FE-018-reasignar-ruta.md) | Rutas | Reasignar ruta | Must Have | MVP |
-| [FE-019](./FE-019-comparar-ruta-planificada-y-ejecutada.md) | Rutas | Comparar ruta planificada y ejecutada | Must Have | MVP |
+| [FE-018](./FE-018-reasignar-ruta.md) | Rutas | Reasignar ruta | Should Have | MVP condicionado por operación del piloto |
+| [FE-019](./FE-019-comparar-ruta-planificada-y-ejecutada.md) | Rutas | Comparar ruta planificada y ejecutada | Should Have | MVP ampliado |
 | [FE-020](./FE-020-mapa-en-tiempo-real.md) | Tracking | Mapa en tiempo real | Must Have | MVP |
 | [FE-021](./FE-021-detalle-de-vendedor-activo.md) | Tracking | Detalle de vendedor activo | Must Have | MVP |
-| [FE-022](./FE-022-historial-de-recorrido.md) | Tracking | Historial de recorrido | Must Have | MVP |
+| [FE-022](./FE-022-historial-de-recorrido.md) | Tracking | Historial de recorrido | Should Have | MVP ampliado |
 | [FE-023](./FE-023-listado-de-visitas.md) | Visitas | Listado de visitas | Must Have | MVP |
 | [FE-024](./FE-024-detalle-de-visita.md) | Visitas | Detalle de visita | Must Have | MVP |
 | [FE-025](./FE-025-corregir-visita.md) | Visitas | Corregir visita | Must Have | MVP |
@@ -38,3 +38,7 @@ Total: **34**
 | [FE-032](./FE-032-consulta-de-auditoria.md) | Auditoría | Consulta de auditoría | Must Have | MVP |
 | [FE-033](./FE-033-configurar-geocerca-y-tracking.md) | Configuración | Configurar geocerca y tracking | Must Have | MVP |
 | [FE-034](./FE-034-manejo-global-de-errores-y-permisos.md) | Experiencia | Manejo global de errores y permisos | Must Have | MVP |
+| [FE-035](./FE-035-gestionar-catalogo-de-productos.md) | Catálogo | Gestionar catálogo de productos | Should Have | MVP condicionado al modelo de venta detallada |
+| [FE-036](./FE-036-asignar-cartera-de-clientes.md) | Clientes | Asignar cartera de clientes | Must Have | MVP |
+| [FE-037](./FE-037-gestionar-zonas-y-territorios.md) | Vendedores | Gestionar zonas y territorios | Must Have | MVP |
+| [FE-038](./FE-038-autorizar-excepcion-de-geocerca.md) | Visitas | Autorizar excepción de geocerca | Should Have | MVP condicionado |

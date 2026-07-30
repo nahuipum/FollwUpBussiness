@@ -28,7 +28,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest(properties = "field-sales.security.local-secret=TEST_ONLY_NON_SECRET_012345678901234567890123456789")
+@SpringBootTest(properties = {
+        "field-sales.security.local-secret=TEST_ONLY_NON_SECRET_012345678901234567890123456789",
+        "spring.autoconfigure.exclude=org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration"
+})
 @AutoConfigureMockMvc
 @Import(SecurityConfigurationTest.TestOnlyController.class)
 class SecurityConfigurationTest {
@@ -89,6 +92,10 @@ class SecurityConfigurationTest {
                 Arguments.of(HttpMethod.POST, "/auth/login"),
                 Arguments.of(HttpMethod.POST, "/auth/refresh"),
                 Arguments.of(HttpMethod.POST, "/auth/logout"),
+                Arguments.of(HttpMethod.POST, "/roles"),
+                Arguments.of(HttpMethod.PUT, "/roles/SELLER"),
+                Arguments.of(HttpMethod.PATCH, "/roles/PLATFORM_SUPERADMIN"),
+                Arguments.of(HttpMethod.POST, "/platform/superadmins/bootstrap"),
                 Arguments.of(HttpMethod.GET, "/sellers"),
                 Arguments.of(HttpMethod.POST, "/sellers"),
                 Arguments.of(HttpMethod.GET, "/customers"),

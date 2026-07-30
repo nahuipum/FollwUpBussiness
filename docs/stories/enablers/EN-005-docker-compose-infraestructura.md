@@ -1,4 +1,4 @@
-# EN-005 — Configurar Docker Compose con PostGIS, Redis y RabbitMQ
+﻿# EN-005 — Configurar Docker Compose con PostGIS, Redis y RabbitMQ
 
 **Tipo:** Enabler técnico
 
@@ -84,3 +84,46 @@ No incluye contenedores ni Dockerfiles de las aplicaciones, integración con
 Spring Boot, migraciones o tablas de negocio, topología funcional de RabbitMQ,
 datos de negocio, Kubernetes, Helm, Terraform, CI/CD, observabilidad, proxy,
 TLS, alta disponibilidad ni configuración de producción.
+
+<!-- delivery-traceability:start -->
+## Secuencia de entrega y trazabilidad
+
+- **Sprint objetivo:** Sprint 0 — Fundaciones y decisiones.
+- **Predecesoras obligatorias:** No tiene sucesora directa; su cierre alimenta la regresión y el DoF del MVP.
+- **Historias consecuentes que habilita:** `BE-055` — Implementar outbox transaccional; `BE-056` — Gestionar reintentos y DLQ; `EN-010` — Configurar Spring Security y gestión local de secretos; `EN-014` — Definir proveedor de mapas, geocodificación y navegación; `INT-029` — Backup y restore probado
+- **Validación vertical:** `INT-029` — Backup y restore probado
+
+## Contratos y superficies
+
+- **Debe estar listo antes de desarrollar:** ADR o contrato indicado por el enabler.
+- El contrato no puede modificarse silenciosamente para acomodar una
+  implementación; Backend, consumidores y QA de contrato deben revisarlo.
+
+## Datos, reglas y casos límite
+
+- **Datos mínimos de la capacidad:** Identificadores, tenant/propietario, estado, timestamps de negocio y auditoría aplicables.
+- El modelo persistente, cache, mensajes, almacenamiento local y sus consultas
+  deben conservar `tenantId`/propiedad de empresa cuando aplique.
+- El backend es autoridad de reglas; web y mobile solo anticipan validaciones
+  para experiencia de usuario.
+- Casos mínimos adicionales: sin datos, sin permiso, recurso inactivo,
+  petición repetida o concurrente, dependencia degradada y cambio de tenant o
+  usuario.
+
+## Riesgos conocidos
+
+- QA y Seguridad deben cubrir: permisos, aislamiento multiempresa, concurrencia, recuperación y observabilidad.
+
+## Fuera de alcance
+
+- capacidades no descritas en el alcance y cambios de arquitectura sin ADR.
+
+## Puerta de Ready para esta historia
+
+- Dependencias anteriores terminadas o con contrato estable y mock acordado.
+- Reglas, datos, permisos y estados definidos; no se acepta una pantalla cuyo
+  único resultado posible sea vacío por falta de una historia productora.
+- Contrato actualizado antes del handoff y matriz criterio → prueba preparada.
+- Si una decisión de arquitectura o producto sigue abierta, la historia queda
+  fuera del sprint hasta cerrar el enabler correspondiente.
+<!-- delivery-traceability:end -->

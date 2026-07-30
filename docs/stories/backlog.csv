@@ -1,155 +1,173 @@
-﻿ID,Área,Épica,Título,Tipo,Prioridad,Fase,Actor,Quiero,Para,Referencias
-BE-001,Backend,Base SaaS,Crear una empresa,Historia de usuario,Must Have,MVP,superadministrador,crear una empresa con configuración inicial,habilitar un nuevo tenant,Empresa 14.1 | RN-001 | RN-002
-BE-002,Backend,Base SaaS,Suspender y reactivar empresa,Historia de usuario,Must Have,MVP,superadministrador,suspender o reactivar una empresa,controlar el acceso,Tipos de usuario 6.4
-BE-057,Backend,Identidad,Provisionar administrador inicial de empresa,Historia de usuario,Must Have,MVP,superadministrador de plataforma,provisionar el administrador inicial de una empresa activa,habilitar la administración de la empresa,Tipos de usuario 6.1 y 6.4 | RF-AUT-003 | RF-AUT-005 | RNF-005 | RNF-006
-BE-003,Backend,Identidad,Autenticar usuario,Historia de usuario,Must Have,MVP,usuario registrado,autenticarme,acceder según mi rol,RF-AUT-001 | RNF-005
-BE-004,Backend,Identidad,Renovar sesión,Historia de usuario,Must Have,MVP,usuario autenticado,renovar mi sesión,continuar trabajando,RF-AUT-004
-BE-005,Backend,Identidad,Cerrar y revocar sesión,Historia de usuario,Must Have,MVP,usuario autenticado,cerrar mi sesión,evitar reutilización,RF-AUT-004 | RF-AUT-005
-BE-006,Backend,Identidad,Recuperar contraseña,Historia de usuario,Must Have,MVP,usuario registrado,restablecer mi contraseña,recuperar acceso,RF-AUT-002
-BE-007,Backend,Identidad,Gestionar roles y permisos,Historia de usuario,Must Have,MVP,administrador,asignar roles y permisos,restringir funciones,RF-AUT-003 | RNF-006
-BE-008,Backend,Workforce,Crear vendedor,Historia de usuario,Must Have,MVP,administrador,crear un vendedor,asignarle rutas,RF-VEN-001 | HU-002
-BE-009,Backend,Workforce,Editar vendedor,Historia de usuario,Must Have,MVP,administrador,actualizar un vendedor,mantener datos,RF-VEN-002
-BE-010,Backend,Workforce,Activar o inactivar vendedor,Historia de usuario,Must Have,MVP,administrador,cambiar estado,controlar acceso,RF-VEN-003 | RN-013
-BE-011,Backend,Workforce,Asignar supervisor,Historia de usuario,Must Have,MVP,administrador,asignar supervisor,organizar equipos,RF-VEN-004
-BE-012,Backend,Workforce,Asignar territorios,Historia de usuario,Must Have,MVP,administrador,asignar zonas,organizar cobertura,RF-VEN-005
-BE-013,Backend,Clientes,Registrar cliente,Historia de usuario,Must Have,MVP,administrador,crear un cliente geolocalizado,incluirlo en rutas,RF-CLI-001 | RF-CLI-002 | HU-010
-BE-014,Backend,Clientes,Editar cliente y ubicación,Historia de usuario,Must Have,MVP,administrador,corregir cliente,mantener precisión,RF-CLI-005 | RF-AUD-001
-BE-015,Backend,Clientes,Detectar clientes duplicados,Historia de usuario,Must Have,MVP,administrador,recibir candidatos duplicados,evitar registros repetidos,RN-015
-BE-016,Backend,Clientes,Listar y filtrar clientes,Historia de usuario,Must Have,MVP,administrador o supervisor,filtrar clientes,encontrar cartera,RF-CLI-007
-BE-017,Backend,Clientes,Consultar historial de cliente,Historia de usuario,Must Have,MVP,administrador o supervisor,ver visitas y ventas,analizar cliente,RF-CLI-008 | HU-012
-BE-018,Backend,Importaciones,Generar plantilla de clientes,Historia de usuario,Must Have,MVP,administrador,descargar plantilla,preparar importación,RF-CLI-004
-BE-019,Backend,Importaciones,Procesar importación de clientes,Historia de usuario,Must Have,MVP,administrador,importar CSV o Excel,evitar carga manual,RF-CLI-004 | HU-011
-BE-020,Backend,Importaciones,Descargar errores de importación,Historia de usuario,Must Have,MVP,administrador,descargar errores,corregir registros,RF-CLI-004
-BE-021,Backend,Rutas,Crear ruta manual,Historia de usuario,Must Have,MVP,administrador,crear ruta manual,programar visitas,RF-RUT-001 | HU-020
-BE-022,Backend,Rutas,Generar ruta automática básica,Historia de usuario,Must Have,MVP,administrador,obtener secuencia eficiente,reducir planificación,RF-RUT-002 | RF-RUT-003 | HU-021
-BE-023,Backend,Rutas,Reordenar puntos de ruta,Historia de usuario,Must Have,MVP,administrador,modificar secuencia,ajustar operación,RF-RUT-004
-BE-024,Backend,Rutas,Publicar ruta,Historia de usuario,Must Have,MVP,administrador,publicar ruta,hacerla disponible,RF-RUT-005 | RF-RUT-006 | RF-RUT-007
-BE-025,Backend,Rutas,Reasignar ruta,Historia de usuario,Must Have,MVP,administrador,reasignar ruta,resolver cambios,RF-RUT-009 | RN-019 | HU-022
-BE-026,Backend,Rutas,Duplicar ruta,Historia de usuario,Must Have,MVP,administrador,copiar ruta,reutilizar planificación,RF-RUT-010
-BE-027,Backend,Rutas,Sugerir clientes por frecuencia,Historia de usuario,Must Have,MVP,administrador,recibir clientes pendientes,cumplir frecuencia,RF-RUT-011
-BE-028,Backend,Jornadas,Iniciar jornada,Historia de usuario,Must Have,MVP,vendedor,iniciar jornada,habilitar seguimiento,RF-UBI-001 | HU-030
-BE-029,Backend,Tracking,Recibir ubicaciones,Historia de usuario,Must Have,MVP,vendedor,enviar ubicaciones periódicas,permitir seguimiento,RF-UBI-002 | RF-UBI-003 | 15.1
-BE-030,Backend,Tracking,Mantener última ubicación en Redis,Historia de usuario,Must Have,MVP,sistema,mantener presencia reciente,servir baja latencia,RF-UBI-004 | RN-016
-BE-031,Backend,Tracking,Publicar ubicación por WebSocket,Historia de usuario,Must Have,MVP,supervisor,recibir cambios de ubicación,supervisar jornada,RF-UBI-004 | RN-016
-BE-032,Backend,Tracking,Consultar historial de recorrido,Historia de usuario,Must Have,MVP,supervisor,consultar recorrido,comparar ejecución,RF-UBI-006 | HU-032
-BE-033,Backend,Jornadas,Cerrar jornada,Historia de usuario,Must Have,MVP,vendedor,cerrar jornada,finalizar tracking,RF-UBI-007 | RF-UBI-008 | RN-020
-BE-034,Backend,Visitas,Validar proximidad,Historia de usuario,Must Have,MVP,vendedor,saber si estoy en geocerca,marcar visita,RF-VIS-001 | RN-005 | RN-006
-BE-035,Backend,Visitas,Iniciar visita,Historia de usuario,Must Have,MVP,vendedor,iniciar visita,registrar atención,RF-VIS-002 | RF-VIS-003 | RF-VIS-004 | HU-040
-BE-036,Backend,Visitas,Finalizar visita,Historia de usuario,Must Have,MVP,vendedor,cerrar visita,registrar resultado,RF-VIS-005 | RF-VIS-010 | HU-041
-BE-037,Backend,Visitas,Registrar visita fuera de ruta,Historia de usuario,Must Have,MVP,vendedor autorizado,registrar visita no planificada,aprovechar oportunidad,RF-VIS-007
-BE-038,Backend,Visitas,Autorizar excepción de geocerca,Historia de usuario,Must Have,MVP,administrador autorizado,autorizar excepción,resolver caso justificado,RN-007
-BE-039,Backend,Visitas,Corregir visita,Historia de usuario,Must Have,MVP,administrador autorizado,corregir visita,resolver error,RF-VIS-008
-BE-040,Backend,Visitas,Consultar visitas y pendientes,Historia de usuario,Must Have,MVP,administrador o supervisor,filtrar visitas,controlar cumplimiento,RF-VIS-009 | HU-043
-BE-041,Backend,Catálogo,Gestionar productos,Historia de usuario,Must Have,MVP,administrador,mantener productos,registrar ventas,RF-VTA-003 | Modelo Producto
-BE-042,Backend,Ventas,Registrar venta,Historia de usuario,Must Have,MVP,vendedor,registrar venta,actualizar gestión,RF-VTA-001 | RF-VTA-002 | RF-VTA-005 | HU-050
-BE-043,Backend,Ventas,Editar venta dentro de ventana,Historia de usuario,Must Have,MVP,vendedor autorizado,editar venta reciente,corregir información,RN-012
-BE-044,Backend,Ventas,Anular venta,Historia de usuario,Must Have,MVP,usuario autorizado,anular venta,corregir operación,RF-VTA-010 | RN-013
-BE-045,Backend,Ventas,Consultar ventas del día,Historia de usuario,Must Have,MVP,administrador,consultar ventas diarias,seguir resultados,RF-VTA-006 | HU-051
-BE-046,Backend,Ventas,Consultar histórico de ventas,Historia de usuario,Must Have,MVP,administrador o supervisor,consultar ventas históricas,analizar comportamiento,RF-VTA-007 | RF-VTA-008 | RF-VTA-009 | HU-052 | HU-053
-BE-047,Backend,Reportes,Calcular dashboard diario,Historia de usuario,Must Have,MVP,administrador,consultar indicadores,conocer operación,RF-REP-001 | HU-060
-BE-048,Backend,Reportes,Reporte por vendedor,Historia de usuario,Must Have,MVP,supervisor,consultar desempeño,medir productividad,RF-REP-002
-BE-049,Backend,Reportes,Reporte por cliente,Historia de usuario,Must Have,MVP,supervisor,consultar desempeño del cliente,entender recurrencia,RF-REP-003
-BE-050,Backend,Reportes,Exportar reportes,Historia de usuario,Must Have,MVP,administrador,exportar datos,analizar externamente,RF-REP-005 | RF-VTA-011
-BE-051,Backend,Auditoría,Registrar acciones críticas,Historia de usuario,Must Have,MVP,auditor,tener trazabilidad,investigar cambios,RF-AUD-001 | RF-AUD-002
-BE-052,Backend,Auditoría,Consultar auditoría,Historia de usuario,Must Have,MVP,administrador autorizado,filtrar auditoría,supervisar cambios,RF-AUD-002
-BE-053,Backend,Notificaciones,Notificar ruta publicada o modificada,Historia de usuario,Must Have,MVP,vendedor,recibir aviso,conocer cambios,RF-RUT-007
-BE-054,Backend,Configuración,Configurar geocerca y tracking,Historia de usuario,Must Have,MVP,administrador,ajustar radio y frecuencia,adaptar operación,RN-006 | RF-UBI-003
-BE-055,Backend,Resiliencia,Implementar outbox transaccional,Historia de usuario,Must Have,MVP,sistema,publicar eventos consistentemente,evitar pérdida,RNF-013 | RNF-014
-BE-056,Backend,Resiliencia,Gestionar reintentos y DLQ,Historia de usuario,Must Have,MVP,operador,controlar mensajes fallidos,evitar pérdida silenciosa,RNF-014
-FE-001,Frontend,Acceso,Pantalla de inicio de sesión,Historia de usuario,Must Have,MVP,usuario,iniciar sesión desde la web,acceder al panel,RF-AUT-001
-FE-002,Frontend,Acceso,Recuperación de contraseña,Historia de usuario,Must Have,MVP,usuario,solicitar recuperación,recuperar acceso,RF-AUT-002
-FE-003,Frontend,Acceso,Gestión de sesión,Historia de usuario,Must Have,MVP,usuario,mantener y cerrar sesión,trabajar seguro,RF-AUT-004
-FE-004,Frontend,Usuarios,Gestión de usuarios y roles,Historia de usuario,Must Have,MVP,administrador,administrar usuarios,controlar accesos,RF-AUT-003 | RF-AUT-005
-FE-005,Frontend,Vendedores,Listado de vendedores,Historia de usuario,Must Have,MVP,administrador,consultar vendedores,gestionar equipo,RF-VEN-001..005
-FE-006,Frontend,Vendedores,Formulario de vendedor,Historia de usuario,Must Have,MVP,administrador,crear o editar vendedor,mantener datos,RF-VEN-001 | RF-VEN-002
-FE-007,Frontend,Vendedores,Activar o inactivar vendedor,Historia de usuario,Must Have,MVP,administrador,cambiar estado,controlar acceso,RF-VEN-003
-FE-008,Frontend,Clientes,Listado y filtros de clientes,Historia de usuario,Must Have,MVP,administrador o supervisor,consultar clientes,encontrar cartera,RF-CLI-007
-FE-009,Frontend,Clientes,Formulario de cliente y mapa,Historia de usuario,Must Have,MVP,administrador,registrar o editar cliente,mantener puntos,RF-CLI-001 | RF-CLI-002 | RF-CLI-005
-FE-010,Frontend,Clientes,Mapa de clientes,Historia de usuario,Must Have,MVP,administrador,ver clientes en mapa,analizar cobertura,RF-CLI-006
-FE-011,Frontend,Clientes,Historial de cliente,Historia de usuario,Must Have,MVP,administrador o supervisor,ver historial,analizar visitas y compras,RF-CLI-008
-FE-012,Frontend,Importaciones,Carga de clientes,Historia de usuario,Must Have,MVP,administrador,importar archivo,acelerar configuración,RF-CLI-004
-FE-013,Frontend,Importaciones,Resultado de importación,Historia de usuario,Must Have,MVP,administrador,ver resultado,corregir datos,RF-CLI-004
-FE-014,Frontend,Rutas,Listado de rutas,Historia de usuario,Must Have,MVP,administrador o supervisor,consultar rutas,controlar planificación,RF-RUT-001..010
-FE-015,Frontend,Rutas,Crear ruta manual,Historia de usuario,Must Have,MVP,administrador,crear ruta,programar visitas,RF-RUT-001 | HU-020
-FE-016,Frontend,Rutas,Generar ruta automática,Historia de usuario,Must Have,MVP,administrador,solicitar propuesta,reducir trabajo,RF-RUT-002 | RF-RUT-003 | HU-021
-FE-017,Frontend,Rutas,Publicar ruta,Historia de usuario,Must Have,MVP,administrador,publicar ruta,enviarla al vendedor,RF-RUT-006 | RF-RUT-007
-FE-018,Frontend,Rutas,Reasignar ruta,Historia de usuario,Must Have,MVP,administrador,cambiar vendedor,resolver ausencia,RF-RUT-009 | HU-022
-FE-019,Frontend,Rutas,Comparar ruta planificada y ejecutada,Historia de usuario,Must Have,MVP,supervisor,comparar secuencias,detectar desvíos,RF-RUT-008
-FE-020,Frontend,Tracking,Mapa en tiempo real,Historia de usuario,Must Have,MVP,administrador o supervisor,ver vendedores activos,supervisar jornada,RF-UBI-004 | HU-031
-FE-021,Frontend,Tracking,Detalle de vendedor activo,Historia de usuario,Must Have,MVP,supervisor,ver estado y ruta,entender situación,RF-UBI-004 | RF-UBI-005
-FE-022,Frontend,Tracking,Historial de recorrido,Historia de usuario,Must Have,MVP,supervisor,consultar recorrido,analizar ejecución,RF-UBI-006 | HU-032
-FE-023,Frontend,Visitas,Listado de visitas,Historia de usuario,Must Have,MVP,administrador o supervisor,consultar visitas,validar cumplimiento,RF-VIS-009 | HU-043
-FE-024,Frontend,Visitas,Detalle de visita,Historia de usuario,Must Have,MVP,administrador o supervisor,ver evidencia,auditar visita,RF-VIS-003 | RF-VIS-005 | RF-VIS-008
-FE-025,Frontend,Visitas,Corregir visita,Historia de usuario,Must Have,MVP,administrador autorizado,corregir visita,resolver error,RF-VIS-008
-FE-026,Frontend,Ventas,Ventas del día,Historia de usuario,Must Have,MVP,administrador,ver ventas diarias,seguir resultados,RF-VTA-006 | HU-051
-FE-027,Frontend,Ventas,Histórico de ventas,Historia de usuario,Must Have,MVP,administrador o supervisor,consultar históricos,analizar tendencias,RF-VTA-007 | HU-052
-FE-028,Frontend,Ventas,Resultados por vendedor,Historia de usuario,Must Have,MVP,supervisor,comparar vendedores,medir desempeño,RF-VTA-009 | HU-053
-FE-029,Frontend,Ventas,Anular venta,Historia de usuario,Must Have,MVP,usuario autorizado,anular venta,corregir operación,RF-VTA-010
-FE-030,Frontend,Dashboard,Dashboard diario,Historia de usuario,Must Have,MVP,administrador,ver resumen,conocer operación,RF-REP-001 | HU-060
-FE-031,Frontend,Reportes,Reportes y exportaciones,Historia de usuario,Must Have,MVP,administrador o supervisor,generar reportes,analizar resultados,RF-REP-002..005
-FE-032,Frontend,Auditoría,Consulta de auditoría,Historia de usuario,Must Have,MVP,administrador autorizado,consultar cambios,tener trazabilidad,RF-AUD-002
-FE-033,Frontend,Configuración,Configurar geocerca y tracking,Historia de usuario,Must Have,MVP,administrador,ajustar parámetros,adaptar operación,RN-006 | RF-UBI-003
-FE-034,Frontend,Experiencia,Manejo global de errores y permisos,Historia de usuario,Must Have,MVP,usuario web,recibir mensajes claros,saber qué hacer,RNF-002 | RNF-006
-MOB-001,Mobile,Acceso,Iniciar sesión móvil,Historia de usuario,Must Have,MVP,vendedor,iniciar sesión,acceder a mi jornada,RF-AUT-001
-MOB-002,Mobile,Acceso,Renovar y cerrar sesión,Historia de usuario,Must Have,MVP,vendedor,mantener o cerrar sesión,trabajar seguro,RF-AUT-004 | RN-020
-MOB-003,Mobile,Permisos,Solicitar permiso de ubicación,Historia de usuario,Must Have,MVP,vendedor,autorizar ubicación,usar jornada y visitas,17.2 | RF-UBI-001
-MOB-004,Mobile,Ruta,Descargar ruta del día,Historia de usuario,Must Have,MVP,vendedor,descargar mi ruta,trabajar sin internet,RF-RUT-007 | RF-UBI-001
-MOB-005,Mobile,Ruta,Ver clientes pendientes y visitados,Historia de usuario,Must Have,MVP,vendedor,ver estado de mi ruta,organizar trabajo,Módulo vendedor MVP
-MOB-006,Mobile,Ruta,Abrir navegación al cliente,Historia de usuario,Must Have,MVP,vendedor,navegar al cliente,llegar al punto,Módulo vendedor MVP
-MOB-007,Mobile,Jornada,Iniciar jornada,Historia de usuario,Must Have,MVP,vendedor,iniciar jornada,activar seguimiento,RF-UBI-001 | HU-030
-MOB-008,Mobile,Tracking,Capturar ubicación en segundo plano,Historia de usuario,Must Have,MVP,vendedor,enviar ubicación,permitir supervisión,RF-UBI-002 | RF-UBI-003 | RF-UBI-008
-MOB-009,Mobile,Tracking,Encolar ubicaciones sin conexión,Historia de usuario,Must Have,MVP,vendedor,guardar ubicaciones,evitar huecos,RNF-012 | RNF-013
-MOB-010,Mobile,Tracking,Mostrar conectividad y sincronización,Historia de usuario,Must Have,MVP,vendedor,saber si se enviaron datos,tener confianza,RF-VTA-012 | HU-042
-MOB-011,Mobile,Geocerca,Calcular proximidad local,Historia de usuario,Must Have,MVP,vendedor,saber si estoy cerca,preparar marcaje,RF-VIS-001 | RF-VIS-002
-MOB-012,Mobile,Geocerca,Habilitar flag de visita,Historia de usuario,Must Have,MVP,vendedor,habilitar botón dentro de geocerca,registrar visita,RF-VIS-002 | HU-040
-MOB-013,Mobile,Visitas,Iniciar visita online,Historia de usuario,Must Have,MVP,vendedor,iniciar visita,registrar atención,RF-VIS-003 | RF-VIS-004
-MOB-014,Mobile,Visitas,Iniciar visita offline,Historia de usuario,Must Have,MVP,vendedor,registrar sin internet,continuar trabajo,HU-042 | RNF-012 | RNF-013
-MOB-015,Mobile,Visitas,Recuperar visita activa tras reinicio,Historia de usuario,Must Have,MVP,vendedor,recuperar visita,no perder contexto,RF-VIS-004
-MOB-016,Mobile,Visitas,Finalizar visita,Historia de usuario,Must Have,MVP,vendedor,cerrar visita,registrar resultado,RF-VIS-005 | HU-041
-MOB-017,Mobile,Visitas,Registrar motivo de no venta,Historia de usuario,Must Have,MVP,vendedor,indicar motivo,mejorar análisis,RN-010 | RN-017
-MOB-018,Mobile,Visitas,Registrar visita fuera de ruta,Historia de usuario,Must Have,MVP,vendedor autorizado,visitar cliente no planificado,aprovechar oportunidad,RF-VIS-007
-MOB-019,Mobile,Ventas,Consultar catálogo offline,Historia de usuario,Must Have,MVP,vendedor,ver productos,registrar ventas,RF-VTA-003
-MOB-020,Mobile,Ventas,Registrar venta simple,Historia de usuario,Must Have,MVP,vendedor,registrar concepto y monto,capturar venta MVP,RF-VTA-004 | HU-050
-MOB-021,Mobile,Ventas,Registrar venta detallada,Historia de usuario,Must Have,MVP,vendedor,agregar productos,capturar detalle,RF-VTA-002 | RF-VTA-005
-MOB-022,Mobile,Ventas,Sincronizar venta idempotente,Historia de usuario,Must Have,MVP,vendedor,sincronizar venta offline,evitar pérdida o duplicado,RF-VTA-012 | RNF-013
-MOB-023,Mobile,Ventas,Consultar ventas propias del día,Historia de usuario,Must Have,MVP,vendedor,ver mis ventas,revisar gestión,Módulo vendedor MVP
-MOB-024,Mobile,Jornada,Cerrar jornada,Historia de usuario,Must Have,MVP,vendedor,cerrar jornada,finalizar tracking,RF-UBI-007 | RF-UBI-008
-MOB-025,Mobile,Jornada,Resolver cierre con pendientes,Historia de usuario,Must Have,MVP,vendedor,gestionar datos pendientes,evitar pérdida,RF-UBI-007
-MOB-026,Mobile,Privacidad,Mostrar indicador de rastreo,Historia de usuario,Must Have,MVP,vendedor,saber cuándo se usa ubicación,tener transparencia,RN-004 | RF-UBI-008
-MOB-027,Mobile,Seguridad,Proteger datos locales,Historia de usuario,Must Have,MVP,vendedor,mantener datos protegidos,evitar exposición,RNF-004 | RNF-007
-MOB-028,Mobile,Resiliencia,Recuperar cola tras cierre forzado,Historia de usuario,Must Have,MVP,vendedor,recuperar pendientes,no perder operaciones,15.3 | RNF-012 | RNF-013
-MOB-029,Mobile,Notificaciones,Recibir ruta asignada o modificada,Historia de usuario,Must Have,MVP,vendedor,recibir notificación,enterarme de cambios,RF-RUT-007
-MOB-030,Mobile,Experiencia,Manejar batería y servicios desactivados,Historia de usuario,Must Have,MVP,vendedor,recibir avisos técnicos,corregir problemas,R-001 | R-002
-MOB-031,Mobile,Resumen,Consultar resumen diario,Historia de usuario,Must Have,MVP,vendedor,ver mi resumen,confirmar actividad,12.6 | 18.1..18.3
-INT-001,Integración,Onboarding,Onboarding completo de empresa,Historia de integración E2E,Must Have,MVP,superadministrador,crear empresa y administrador,habilitar operación,Flujo 12.1
-INT-002,Integración,Acceso,Autenticación web completa,Historia de integración E2E,Must Have,MVP,administrador,iniciar y cerrar sesión web,usar panel,HU-001 | RF-AUT
-INT-003,Integración,Acceso,Autenticación móvil completa,Historia de integración E2E,Must Have,MVP,vendedor,iniciar sesión móvil,usar aplicación,RF-AUT
-INT-004,Integración,Workforce,Alta de vendedor disponible en mobile,Historia de integración E2E,Must Have,MVP,administrador,crear vendedor y acceso,incorporarlo,HU-002
-INT-005,Integración,Clientes,Cliente visible en mapa,Historia de integración E2E,Must Have,MVP,administrador,crear punto de cliente,usarlo en rutas,HU-010
-INT-006,Integración,Clientes,Importación completa de clientes,Historia de integración E2E,Must Have,MVP,administrador,importar cartera,configurar masivamente,HU-011
-INT-007,Integración,Rutas,Creación manual E2E,Historia de integración E2E,Must Have,MVP,administrador,crear y publicar ruta,enviarla al vendedor,HU-020
-INT-008,Integración,Rutas,Generación automática E2E,Historia de integración E2E,Must Have,MVP,administrador,generar ruta,reducir planificación,HU-021
-INT-009,Integración,Rutas,Reasignación E2E,Historia de integración E2E,Must Have,MVP,administrador,reasignar ruta,resolver cambios,HU-022
-INT-010,Integración,Jornada,Inicio de jornada y presencia,Historia de integración E2E,Must Have,MVP,vendedor,iniciar jornada,ser visible,HU-030
-INT-011,Integración,Tracking,Ubicación en tiempo real E2E,Historia de integración E2E,Must Have,MVP,supervisor,ver ubicación reciente,supervisar vendedores,HU-031
-INT-012,Integración,Tracking,Recorrido histórico E2E,Historia de integración E2E,Must Have,MVP,supervisor,consultar recorrido,comparar ejecución,HU-032
-INT-013,Integración,Visitas,Check-in por geocerca E2E,Historia de integración E2E,Must Have,MVP,vendedor,marcar visita,validar presencia,HU-040
-INT-014,Integración,Visitas,Check-out E2E,Historia de integración E2E,Must Have,MVP,vendedor,cerrar visita,registrar resultado,HU-041
-INT-015,Integración,Offline,Visita offline sincronizada,Historia de integración E2E,Must Have,MVP,vendedor,registrar sin red,continuar trabajo,HU-042
-INT-016,Integración,Visitas,Consulta administrativa de visitas,Historia de integración E2E,Must Have,MVP,administrador,ver visitas,controlar cumplimiento,HU-043
-INT-017,Integración,Ventas,Venta durante visita E2E,Historia de integración E2E,Must Have,MVP,vendedor,registrar venta,actualizar gestión,HU-050
-INT-018,Integración,Offline,Venta offline sincronizada,Historia de integración E2E,Must Have,MVP,vendedor,registrar venta sin red,no perder operación,RF-VTA-012
-INT-019,Integración,Ventas,Ventas del día E2E,Historia de integración E2E,Must Have,MVP,administrador,ver ventas actualizadas,seguir resultados,HU-051
-INT-020,Integración,Ventas,Histórico por cliente E2E,Historia de integración E2E,Must Have,MVP,supervisor,ver historial,analizar compras,HU-052
-INT-021,Integración,Ventas,Resultados por vendedor E2E,Historia de integración E2E,Must Have,MVP,supervisor,ver desempeño,gestionar equipo,HU-053
-INT-022,Integración,Dashboard,Dashboard diario E2E,Historia de integración E2E,Must Have,MVP,administrador,ver operación consolidada,tomar decisiones,HU-060
-INT-023,Integración,Jornada,Cierre de jornada y detención de tracking,Historia de integración E2E,Must Have,MVP,vendedor,cerrar jornada,finalizar seguimiento,RF-UBI-007 | RF-UBI-008
-INT-024,Integración,Seguridad,Aislamiento multiempresa E2E,Historia de integración E2E,Must Have,MVP,empresa,mantener datos aislados,proteger información,RN-001 | RN-002
-INT-025,Integración,Auditoría,Auditoría transversal,Historia de integración E2E,Must Have,MVP,administrador autorizado,consultar acciones,tener trazabilidad,RF-AUD-001 | RF-AUD-002
-INT-026,Integración,Resiliencia,Operación ante caída de Redis,Historia de integración E2E,Must Have,MVP,operador,mantener modo degradado,evitar pérdida,RNF-001 | ADR-004
-INT-027,Integración,Resiliencia,Reintentos y DLQ E2E,Historia de integración E2E,Must Have,MVP,operador,gestionar procesos fallidos,evitar pérdida silenciosa,ADR-005 | RNF-014
-INT-028,Integración,Observabilidad,Correlation ID E2E,Historia de integración E2E,Must Have,MVP,soporte,seguir operación,diagnosticar errores,RNF-014
-INT-029,Integración,Recuperación,Backup y restore probado,Historia de integración E2E,Must Have,MVP,operador,restaurar información,recuperar servicio,RNF-009 | RNF-010
-INT-030,Integración,Rendimiento,Validación de rendimiento MVP,Historia de integración E2E,Must Have,MVP,producto,validar tiempos,asegurar uso aceptable,RNF-002 | RNF-003
-INT-031,Integración,Privacidad,Retención y eliminación lógica E2E,Historia de integración E2E,Must Have,MVP,administrador,aplicar retención,cumplir privacidad,RN-013 | 17.3
-INT-032,Integración,Seguridad,Revisión de seguridad del flujo crítico,Historia de integración E2E,Must Have,MVP,producto,validar seguridad,reducir riesgo,23.3 | 17
+﻿"ID","Área","Épica","Título","Tipo","Prioridad","Fase","Actor","Quiero","Para","Referencias"
+"BE-001","Backend","Base SaaS","Crear una empresa","Historia de usuario","Must Have","MVP","superadministrador","crear una empresa con configuración inicial","habilitar un nuevo tenant","Empresa 14.1 | RN-001 | RN-002"
+"BE-002","Backend","Base SaaS","Suspender y reactivar empresa","Historia de usuario","Must Have","MVP","superadministrador","suspender o reactivar una empresa","controlar el acceso","Tipos de usuario 6.4"
+"BE-003","Backend","Identidad","Autenticar usuario","Historia de usuario","Must Have","MVP","usuario registrado","autenticarme","acceder según mi rol","RF-AUT-001 | RNF-005"
+"BE-004","Backend","Identidad","Renovar sesión","Historia de usuario","Must Have","MVP","usuario autenticado","renovar mi sesión","continuar trabajando","RF-AUT-004"
+"BE-005","Backend","Identidad","Cerrar y revocar sesión","Historia de usuario","Must Have","MVP","usuario autenticado","cerrar mi sesión","evitar reutilización","RF-AUT-004 | RF-AUT-005"
+"BE-006","Backend","Identidad","Recuperar contraseña","Historia de usuario","Must Have","MVP","usuario registrado","restablecer mi contraseña","recuperar acceso","RF-AUT-002"
+"BE-007","Backend","Identidad","Gestionar roles y permisos","Historia de usuario","Must Have","MVP","administrador","asignar roles y permisos","restringir funciones","RF-AUT-003 | RNF-006"
+"BE-008","Backend","Workforce","Crear vendedor","Historia de usuario","Must Have","MVP","administrador","crear un vendedor","asignarle rutas","RF-VEN-001 | HU-002"
+"BE-009","Backend","Workforce","Editar vendedor","Historia de usuario","Must Have","MVP","administrador","actualizar un vendedor","mantener datos","RF-VEN-002"
+"BE-010","Backend","Workforce","Activar o inactivar vendedor","Historia de usuario","Must Have","MVP","administrador","cambiar estado","controlar acceso","RF-VEN-003 | RN-013"
+"BE-011","Backend","Workforce","Asignar supervisor","Historia de usuario","Must Have","MVP","administrador","asignar supervisor","organizar equipos","RF-VEN-004"
+"BE-012","Backend","Workforce","Asignar territorios","Historia de usuario","Must Have","MVP","administrador","asignar zonas","organizar cobertura","RF-VEN-005"
+"BE-013","Backend","Clientes","Registrar cliente","Historia de usuario","Must Have","MVP","administrador","crear un cliente geolocalizado","incluirlo en rutas","RF-CLI-001 | RF-CLI-002 | HU-010"
+"BE-014","Backend","Clientes","Editar cliente y ubicación","Historia de usuario","Must Have","MVP","administrador","corregir cliente","mantener precisión","RF-CLI-005 | RF-AUD-001"
+"BE-015","Backend","Clientes","Detectar clientes duplicados","Historia de usuario","Must Have","MVP","administrador","recibir candidatos duplicados","evitar registros repetidos","RN-015"
+"BE-016","Backend","Clientes","Listar y filtrar clientes","Historia de usuario","Must Have","MVP","administrador o supervisor","filtrar clientes","encontrar cartera","RF-CLI-007"
+"BE-017","Backend","Clientes","Consultar historial de cliente","Historia de usuario","Must Have","MVP","administrador o supervisor","ver visitas y ventas","analizar cliente","RF-CLI-008 | HU-012"
+"BE-018","Backend","Importaciones","Generar plantilla de clientes","Historia de usuario","Must Have","MVP","administrador","descargar plantilla","preparar importación","RF-CLI-004"
+"BE-019","Backend","Importaciones","Procesar importación de clientes","Historia de usuario","Must Have","MVP","administrador","importar CSV o Excel","evitar carga manual","RF-CLI-004 | HU-011"
+"BE-020","Backend","Importaciones","Descargar errores de importación","Historia de usuario","Must Have","MVP","administrador","descargar errores","corregir registros","RF-CLI-004"
+"BE-021","Backend","Rutas","Crear ruta manual","Historia de usuario","Must Have","MVP","administrador","crear ruta manual","programar visitas","RF-RUT-001 | HU-020"
+"BE-022","Backend","Rutas","Generar ruta automática básica","Historia de usuario","Must Have","MVP","administrador","obtener secuencia eficiente","reducir planificación","RF-RUT-002 | RF-RUT-003 | HU-021"
+"BE-023","Backend","Rutas","Reordenar puntos de ruta","Historia de usuario","Must Have","MVP","administrador","modificar secuencia","ajustar operación","RF-RUT-004"
+"BE-024","Backend","Rutas","Publicar ruta","Historia de usuario","Must Have","MVP","administrador","publicar ruta","hacerla disponible","RF-RUT-005 | RF-RUT-006 | RF-RUT-007"
+"BE-025","Backend","Rutas","Reasignar ruta","Historia de usuario","Should Have","MVP condicionado por operación del piloto","administrador","reasignar ruta","resolver cambios","RF-RUT-009 | RN-019 | HU-022"
+"BE-026","Backend","Rutas","Duplicar ruta","Historia de usuario","Must Have","MVP","administrador","copiar ruta","reutilizar planificación","RF-RUT-010"
+"BE-027","Backend","Rutas","Sugerir clientes por frecuencia","Historia de usuario","Must Have","MVP","administrador","recibir clientes pendientes","cumplir frecuencia","RF-RUT-011"
+"BE-028","Backend","Jornadas","Iniciar jornada","Historia de usuario","Must Have","MVP","vendedor","iniciar jornada","habilitar seguimiento","RF-UBI-001 | HU-030"
+"BE-029","Backend","Tracking","Recibir ubicaciones","Historia de usuario","Must Have","MVP","vendedor","enviar ubicaciones periódicas","permitir seguimiento","RF-UBI-002 | RF-UBI-003 | 15.1"
+"BE-030","Backend","Tracking","Mantener última ubicación en Redis","Historia de usuario","Must Have","MVP","sistema","mantener presencia reciente","servir baja latencia","RF-UBI-004 | RN-016"
+"BE-031","Backend","Tracking","Publicar ubicación por WebSocket","Historia de usuario","Must Have","MVP","supervisor","recibir cambios de ubicación","supervisar jornada","RF-UBI-004 | RN-016"
+"BE-032","Backend","Tracking","Consultar historial de recorrido","Historia de usuario","Should Have","MVP ampliado","supervisor","consultar recorrido","comparar ejecución","RF-UBI-006 | HU-032"
+"BE-033","Backend","Jornadas","Cerrar jornada","Historia de usuario","Must Have","MVP","vendedor","cerrar jornada","finalizar tracking","RF-UBI-007 | RF-UBI-008 | RN-020"
+"BE-034","Backend","Visitas","Validar proximidad","Historia de usuario","Must Have","MVP","vendedor","saber si estoy en geocerca","marcar visita","RF-VIS-001 | RN-005 | RN-006"
+"BE-035","Backend","Visitas","Iniciar visita","Historia de usuario","Must Have","MVP","vendedor","iniciar visita","registrar atención","RF-VIS-002 | RF-VIS-003 | RF-VIS-004 | HU-040"
+"BE-036","Backend","Visitas","Finalizar visita","Historia de usuario","Must Have","MVP","vendedor","cerrar visita","registrar resultado","RF-VIS-005 | RF-VIS-010 | HU-041"
+"BE-037","Backend","Visitas","Registrar visita fuera de ruta","Historia de usuario","Should Have","MVP condicionado por configuración de empresa","vendedor autorizado","registrar visita no planificada","aprovechar oportunidad","RF-VIS-007"
+"BE-038","Backend","Visitas","Autorizar excepción de geocerca","Historia de usuario","Should Have","MVP condicionado; deshabilitado por defecto","administrador autorizado","autorizar excepción","resolver caso justificado","RN-007"
+"BE-039","Backend","Visitas","Corregir visita","Historia de usuario","Must Have","MVP","administrador autorizado","corregir visita","resolver error","RF-VIS-008"
+"BE-040","Backend","Visitas","Consultar visitas y pendientes","Historia de usuario","Must Have","MVP","administrador o supervisor","filtrar visitas","controlar cumplimiento","RF-VIS-009 | HU-043"
+"BE-041","Backend","Catálogo","Gestionar productos","Historia de usuario","Should Have","MVP condicionado al modelo de venta detallada","administrador","mantener productos","registrar ventas","RF-VTA-003 | Modelo Producto"
+"BE-042","Backend","Ventas","Registrar venta","Historia de usuario","Must Have","MVP","vendedor","registrar venta","actualizar gestión","RF-VTA-001 | RF-VTA-002 | RF-VTA-005 | HU-050"
+"BE-043","Backend","Ventas","Editar venta dentro de ventana","Historia de usuario","Should Have","MVP condicionado; anulación auditada permanece como flujo base","vendedor autorizado","editar venta reciente","corregir información","RN-012"
+"BE-044","Backend","Ventas","Anular venta","Historia de usuario","Must Have","MVP","usuario autorizado","anular venta","corregir operación","RF-VTA-010 | RN-013"
+"BE-045","Backend","Ventas","Consultar ventas del día","Historia de usuario","Must Have","MVP","administrador","consultar ventas diarias","seguir resultados","RF-VTA-006 | HU-051"
+"BE-046","Backend","Ventas","Consultar histórico de ventas","Historia de usuario","Must Have","MVP","administrador o supervisor","consultar ventas históricas","analizar comportamiento","RF-VTA-007 | RF-VTA-008 | RF-VTA-009 | HU-052 | HU-053"
+"BE-047","Backend","Reportes","Calcular dashboard diario","Historia de usuario","Must Have","MVP","administrador","consultar indicadores","conocer operación","RF-REP-001 | HU-060"
+"BE-048","Backend","Reportes","Reporte por vendedor","Historia de usuario","Must Have","MVP","supervisor","consultar desempeño","medir productividad","RF-REP-002"
+"BE-049","Backend","Reportes","Reporte por cliente","Historia de usuario","Must Have","MVP","supervisor","consultar desempeño del cliente","entender recurrencia","RF-REP-003"
+"BE-050","Backend","Reportes","Exportar reportes","Historia de usuario","Must Have","MVP","administrador","exportar datos","analizar externamente","RF-REP-005 | RF-VTA-011"
+"BE-051","Backend","Auditoría","Registrar acciones críticas","Historia de usuario","Must Have","MVP","auditor","tener trazabilidad","investigar cambios","RF-AUD-001 | RF-AUD-002"
+"BE-052","Backend","Auditoría","Consultar auditoría","Historia de usuario","Must Have","MVP","administrador autorizado","filtrar auditoría","supervisar cambios","RF-AUD-002"
+"BE-053","Backend","Notificaciones","Notificar ruta publicada o modificada","Historia de usuario","Must Have","MVP","vendedor","recibir aviso","conocer cambios","RF-RUT-007"
+"BE-054","Backend","Configuración","Configurar geocerca y tracking","Historia de usuario","Must Have","MVP","administrador","ajustar radio y frecuencia","adaptar operación","RN-006 | RF-UBI-003"
+"BE-055","Backend","Resiliencia","Implementar outbox transaccional","Historia de usuario","Must Have","MVP","sistema","publicar eventos consistentemente","evitar pérdida","RNF-013 | RNF-014"
+"BE-056","Backend","Resiliencia","Gestionar reintentos y DLQ","Historia de usuario","Must Have","MVP","operador","controlar mensajes fallidos","evitar pérdida silenciosa","RNF-014"
+"BE-057","Backend","Identidad","Provisionar administrador inicial de empresa","Historia de usuario","Must Have","MVP","superadministrador de plataforma","provisionar el administrador inicial de una empresa activa","que la empresa pueda administrar sus usuarios y su operación","Tipos de usuario 6.1 y 6.4 | RF-AUT-003 | RF-AUT-005 | RN-001 | RN-002 | RNF-005 | RNF-006 | RNF-008"
+"BE-058","Backend","Identidad","Gestionar usuarios de empresa","Historia de usuario","Must Have","MVP","administrador de empresa","listar, invitar, editar, bloquear y reactivar usuarios de mi empresa","administrar supervisores y administradores sin intervención de plataforma","RF-AUT-003 | RF-AUT-005 | RN-001 | RN-002"
+"BE-059","Backend","Workforce","Listar y consultar vendedores","Historia de usuario","Must Have","MVP","administrador o supervisor","listar y consultar vendedores autorizados","gestionar el equipo y seleccionar vendedores en rutas, clientes y reportes","RF-VEN-002 | RF-VEN-003 | RN-001 | RN-002"
+"BE-060","Backend","Clientes","Asignar cartera de clientes","Historia de usuario","Must Have","MVP","administrador","asignar o reasignar clientes a un vendedor","definir la cartera sobre la que se planifican rutas y se mide cobertura","Flujo 12.1 | RF-CLI-001 | RN-002 | RN-013"
+"BE-061","Backend","Rutas","Consultar rutas y ruta del día","Historia de usuario","Must Have","MVP","usuario autorizado","consultar rutas y su detalle","planificar desde el panel y ejecutar mi ruta vigente desde el móvil","RF-RUT-005 | RF-RUT-006 | RF-RUT-007 | RN-014"
+"BE-062","Backend","Workforce","Gestionar zonas y territorios","Historia de usuario","Must Have","MVP","administrador","crear, editar, listar e inactivar zonas de mi empresa","asignar vendedores y clientes usando un catálogo consistente","RF-VEN-005 | RF-CLI-007 | RN-013"
+"FE-001","Frontend","Acceso","Pantalla de inicio de sesión","Historia de usuario","Must Have","MVP","usuario","iniciar sesión desde la web","acceder al panel","RF-AUT-001"
+"FE-002","Frontend","Acceso","Recuperación de contraseña","Historia de usuario","Must Have","MVP","usuario","solicitar recuperación","recuperar acceso","RF-AUT-002"
+"FE-003","Frontend","Acceso","Gestión de sesión","Historia de usuario","Must Have","MVP","usuario","mantener y cerrar sesión","trabajar seguro","RF-AUT-004"
+"FE-004","Frontend","Usuarios","Gestión de usuarios y roles","Historia de usuario","Must Have","MVP","administrador","administrar usuarios","controlar accesos","RF-AUT-003 | RF-AUT-005"
+"FE-005","Frontend","Vendedores","Listado de vendedores","Historia de usuario","Must Have","MVP","administrador","consultar vendedores","gestionar equipo","RF-VEN-001..005"
+"FE-006","Frontend","Vendedores","Formulario de vendedor","Historia de usuario","Must Have","MVP","administrador","crear o editar vendedor","mantener datos","RF-VEN-001 | RF-VEN-002"
+"FE-007","Frontend","Vendedores","Activar o inactivar vendedor","Historia de usuario","Must Have","MVP","administrador","cambiar estado","controlar acceso","RF-VEN-003"
+"FE-008","Frontend","Clientes","Listado y filtros de clientes","Historia de usuario","Must Have","MVP","administrador o supervisor","consultar clientes","encontrar cartera","RF-CLI-007"
+"FE-009","Frontend","Clientes","Formulario de cliente y mapa","Historia de usuario","Must Have","MVP","administrador","registrar o editar cliente","mantener puntos","RF-CLI-001 | RF-CLI-002 | RF-CLI-005"
+"FE-010","Frontend","Clientes","Mapa de clientes","Historia de usuario","Must Have","MVP","administrador","ver clientes en mapa","analizar cobertura","RF-CLI-006"
+"FE-011","Frontend","Clientes","Historial de cliente","Historia de usuario","Must Have","MVP","administrador o supervisor","ver historial","analizar visitas y compras","RF-CLI-008"
+"FE-012","Frontend","Importaciones","Carga de clientes","Historia de usuario","Must Have","MVP","administrador","importar archivo","acelerar configuración","RF-CLI-004"
+"FE-013","Frontend","Importaciones","Resultado de importación","Historia de usuario","Must Have","MVP","administrador","ver resultado","corregir datos","RF-CLI-004"
+"FE-014","Frontend","Rutas","Listado de rutas","Historia de usuario","Must Have","MVP","administrador o supervisor","consultar rutas","controlar planificación","RF-RUT-001..010"
+"FE-015","Frontend","Rutas","Crear ruta manual","Historia de usuario","Must Have","MVP","administrador","crear ruta","programar visitas","RF-RUT-001 | HU-020"
+"FE-016","Frontend","Rutas","Generar ruta automática","Historia de usuario","Must Have","MVP","administrador","solicitar propuesta","reducir trabajo","RF-RUT-002 | RF-RUT-003 | HU-021"
+"FE-017","Frontend","Rutas","Publicar ruta","Historia de usuario","Must Have","MVP","administrador","publicar ruta","enviarla al vendedor","RF-RUT-006 | RF-RUT-007"
+"FE-018","Frontend","Rutas","Reasignar ruta","Historia de usuario","Should Have","MVP condicionado por operación del piloto","administrador","cambiar vendedor","resolver ausencia","RF-RUT-009 | HU-022"
+"FE-019","Frontend","Rutas","Comparar ruta planificada y ejecutada","Historia de usuario","Should Have","MVP ampliado","supervisor","comparar secuencias","detectar desvíos","RF-RUT-008"
+"FE-020","Frontend","Tracking","Mapa en tiempo real","Historia de usuario","Must Have","MVP","administrador o supervisor","ver vendedores activos","supervisar jornada","RF-UBI-004 | HU-031"
+"FE-021","Frontend","Tracking","Detalle de vendedor activo","Historia de usuario","Must Have","MVP","supervisor","ver estado y ruta","entender situación","RF-UBI-004 | RF-UBI-005"
+"FE-022","Frontend","Tracking","Historial de recorrido","Historia de usuario","Should Have","MVP ampliado","supervisor","consultar recorrido","analizar ejecución","RF-UBI-006 | HU-032"
+"FE-023","Frontend","Visitas","Listado de visitas","Historia de usuario","Must Have","MVP","administrador o supervisor","consultar visitas","validar cumplimiento","RF-VIS-009 | HU-043"
+"FE-024","Frontend","Visitas","Detalle de visita","Historia de usuario","Must Have","MVP","administrador o supervisor","ver evidencia","auditar visita","RF-VIS-003 | RF-VIS-005 | RF-VIS-008"
+"FE-025","Frontend","Visitas","Corregir visita","Historia de usuario","Must Have","MVP","administrador autorizado","corregir visita","resolver error","RF-VIS-008"
+"FE-026","Frontend","Ventas","Ventas del día","Historia de usuario","Must Have","MVP","administrador","ver ventas diarias","seguir resultados","RF-VTA-006 | HU-051"
+"FE-027","Frontend","Ventas","Histórico de ventas","Historia de usuario","Must Have","MVP","administrador o supervisor","consultar históricos","analizar tendencias","RF-VTA-007 | HU-052"
+"FE-028","Frontend","Ventas","Resultados por vendedor","Historia de usuario","Must Have","MVP","supervisor","comparar vendedores","medir desempeño","RF-VTA-009 | HU-053"
+"FE-029","Frontend","Ventas","Anular venta","Historia de usuario","Must Have","MVP","usuario autorizado","anular venta","corregir operación","RF-VTA-010"
+"FE-030","Frontend","Dashboard","Dashboard diario","Historia de usuario","Must Have","MVP","administrador","ver resumen","conocer operación","RF-REP-001 | HU-060"
+"FE-031","Frontend","Reportes","Reportes y exportaciones","Historia de usuario","Must Have","MVP","administrador o supervisor","generar reportes","analizar resultados","RF-REP-002..005"
+"FE-032","Frontend","Auditoría","Consulta de auditoría","Historia de usuario","Must Have","MVP","administrador autorizado","consultar cambios","tener trazabilidad","RF-AUD-002"
+"FE-033","Frontend","Configuración","Configurar geocerca y tracking","Historia de usuario","Must Have","MVP","administrador","ajustar parámetros","adaptar operación","RN-006 | RF-UBI-003"
+"FE-034","Frontend","Experiencia","Manejo global de errores y permisos","Historia de usuario","Must Have","MVP","usuario web","recibir mensajes claros","saber qué hacer","RNF-002 | RNF-006"
+"FE-035","Frontend","Catálogo","Gestionar catálogo de productos","Historia de usuario","Should Have","MVP condicionado al modelo de venta detallada","administrador","administrar el catálogo de productos","que los vendedores registren ventas con opciones vigentes","RF-VTA-003 | RN-013"
+"FE-036","Frontend","Clientes","Asignar cartera de clientes","Historia de usuario","Must Have","MVP","administrador","asignar clientes a un vendedor","mantener la cartera operativa antes de planificar rutas","Flujo 12.1 | RF-CLI-007"
+"FE-037","Frontend","Vendedores","Gestionar zonas y territorios","Historia de usuario","Must Have","MVP","administrador","administrar las zonas de mi empresa","usarlas al organizar vendedores, clientes y rutas","RF-VEN-005 | RF-CLI-007"
+"FE-038","Frontend","Visitas","Autorizar excepción de geocerca","Historia de usuario","Should Have","MVP condicionado","administrador con permiso de excepción","autorizar de forma limitada un check-in fuera de geocerca","resolver una incidencia real sin ocultar la ubicación original","RN-007 | RF-VIS-008"
+"MOB-001","Mobile","Acceso","Iniciar sesión móvil","Historia de usuario","Must Have","MVP","vendedor","iniciar sesión","acceder a mi jornada","RF-AUT-001"
+"MOB-002","Mobile","Acceso","Renovar y cerrar sesión","Historia de usuario","Must Have","MVP","vendedor","mantener o cerrar sesión","trabajar seguro","RF-AUT-004 | RN-020"
+"MOB-003","Mobile","Permisos","Solicitar permiso de ubicación","Historia de usuario","Must Have","MVP","vendedor","autorizar ubicación","usar jornada y visitas","17.2 | RF-UBI-001"
+"MOB-004","Mobile","Ruta","Descargar ruta del día","Historia de usuario","Must Have","MVP","vendedor","descargar mi ruta","trabajar sin internet","RF-RUT-007 | RF-UBI-001"
+"MOB-005","Mobile","Ruta","Ver clientes pendientes y visitados","Historia de usuario","Must Have","MVP","vendedor","ver estado de mi ruta","organizar trabajo","Módulo vendedor MVP"
+"MOB-006","Mobile","Ruta","Abrir navegación al cliente","Historia de usuario","Must Have","MVP","vendedor","navegar al cliente","llegar al punto","Módulo vendedor MVP"
+"MOB-007","Mobile","Jornada","Iniciar jornada","Historia de usuario","Must Have","MVP","vendedor","iniciar jornada","activar seguimiento","RF-UBI-001 | HU-030"
+"MOB-008","Mobile","Tracking","Capturar ubicación en segundo plano","Historia de usuario","Must Have","MVP","vendedor","enviar ubicación","permitir supervisión","RF-UBI-002 | RF-UBI-003 | RF-UBI-008"
+"MOB-009","Mobile","Tracking","Encolar ubicaciones sin conexión","Historia de usuario","Must Have","MVP","vendedor","guardar ubicaciones","evitar huecos","RNF-012 | RNF-013"
+"MOB-010","Mobile","Tracking","Mostrar conectividad y sincronización","Historia de usuario","Must Have","MVP","vendedor","saber si se enviaron datos","tener confianza","RF-VTA-012 | HU-042"
+"MOB-011","Mobile","Geocerca","Calcular proximidad local","Historia de usuario","Must Have","MVP","vendedor","saber si estoy cerca","preparar marcaje","RF-VIS-001 | RF-VIS-002"
+"MOB-012","Mobile","Geocerca","Habilitar flag de visita","Historia de usuario","Must Have","MVP","vendedor","habilitar botón dentro de geocerca","registrar visita","RF-VIS-002 | HU-040"
+"MOB-013","Mobile","Visitas","Iniciar visita online","Historia de usuario","Must Have","MVP","vendedor","iniciar visita","registrar atención","RF-VIS-003 | RF-VIS-004"
+"MOB-014","Mobile","Visitas","Iniciar visita offline","Historia de usuario","Must Have","MVP","vendedor","registrar sin internet","continuar trabajo","HU-042 | RNF-012 | RNF-013"
+"MOB-015","Mobile","Visitas","Recuperar visita activa tras reinicio","Historia de usuario","Must Have","MVP","vendedor","recuperar visita","no perder contexto","RF-VIS-004"
+"MOB-016","Mobile","Visitas","Finalizar visita","Historia de usuario","Must Have","MVP","vendedor","cerrar visita","registrar resultado","RF-VIS-005 | HU-041"
+"MOB-017","Mobile","Visitas","Registrar motivo de no venta","Historia de usuario","Must Have","MVP","vendedor","indicar motivo","mejorar análisis","RN-010 | RN-017"
+"MOB-018","Mobile","Visitas","Registrar visita fuera de ruta","Historia de usuario","Should Have","MVP condicionado por configuración de empresa","vendedor autorizado","visitar cliente no planificado","aprovechar oportunidad","RF-VIS-007"
+"MOB-019","Mobile","Ventas","Consultar catálogo offline","Historia de usuario","Should Have","MVP condicionado al modelo de venta detallada","vendedor","ver productos","registrar ventas","RF-VTA-003"
+"MOB-020","Mobile","Ventas","Registrar venta simple","Historia de usuario","Must Have","MVP","vendedor","registrar concepto y monto","capturar venta MVP","RF-VTA-004 | HU-050"
+"MOB-021","Mobile","Ventas","Registrar venta detallada","Historia de usuario","Should Have","MVP condicionado; MOB-020 es la venta mínima obligatoria","vendedor","agregar productos","capturar detalle","RF-VTA-002 | RF-VTA-005"
+"MOB-022","Mobile","Ventas","Sincronizar venta idempotente","Historia de usuario","Must Have","MVP","vendedor","sincronizar venta offline","evitar pérdida o duplicado","RF-VTA-012 | RNF-013"
+"MOB-023","Mobile","Ventas","Consultar ventas propias del día","Historia de usuario","Must Have","MVP","vendedor","ver mis ventas","revisar gestión","Módulo vendedor MVP"
+"MOB-024","Mobile","Jornada","Cerrar jornada","Historia de usuario","Must Have","MVP","vendedor","cerrar jornada","finalizar tracking","RF-UBI-007 | RF-UBI-008"
+"MOB-025","Mobile","Jornada","Resolver cierre con pendientes","Historia de usuario","Must Have","MVP","vendedor","gestionar datos pendientes","evitar pérdida","RF-UBI-007"
+"MOB-026","Mobile","Privacidad","Mostrar indicador de rastreo","Historia de usuario","Must Have","MVP","vendedor","saber cuándo se usa ubicación","tener transparencia","RN-004 | RF-UBI-008"
+"MOB-027","Mobile","Seguridad","Proteger datos locales","Historia de usuario","Must Have","MVP","vendedor","mantener datos protegidos","evitar exposición","RNF-004 | RNF-007"
+"MOB-028","Mobile","Resiliencia","Recuperar cola tras cierre forzado","Historia de usuario","Must Have","MVP","vendedor","recuperar pendientes","no perder operaciones","15.3 | RNF-012 | RNF-013"
+"MOB-029","Mobile","Notificaciones","Recibir ruta asignada o modificada","Historia de usuario","Must Have","MVP","vendedor","recibir notificación","enterarme de cambios","RF-RUT-007"
+"MOB-030","Mobile","Experiencia","Manejar batería y servicios desactivados","Historia de usuario","Must Have","MVP","vendedor","recibir avisos técnicos","corregir problemas","R-001 | R-002"
+"MOB-031","Mobile","Resumen","Consultar resumen diario","Historia de usuario","Must Have","MVP","vendedor","ver mi resumen","confirmar actividad","12.6 | 18.1..18.3"
+"MOB-032","Mobile","Ventas","Editar venta dentro de ventana","Historia de usuario","Should Have","MVP condicionado","vendedor autorizado","corregir una venta dentro del periodo permitido","subsanar un error sin perder trazabilidad","RN-012 | RF-VTA-005"
+"INT-001","Integración","Onboarding","Onboarding completo de empresa","Historia de integración E2E","Must Have","MVP","superadministrador","crear empresa y administrador","habilitar operación","Flujo 12.1"
+"INT-002","Integración","Acceso","Autenticación web completa","Historia de integración E2E","Must Have","MVP","administrador","iniciar y cerrar sesión web","usar panel","HU-001 | RF-AUT"
+"INT-003","Integración","Acceso","Autenticación móvil completa","Historia de integración E2E","Must Have","MVP","vendedor","iniciar sesión móvil","usar aplicación","RF-AUT"
+"INT-004","Integración","Workforce","Alta de vendedor disponible en mobile","Historia de integración E2E","Must Have","MVP","administrador","crear vendedor y acceso","incorporarlo","HU-002"
+"INT-005","Integración","Clientes","Cliente visible en mapa","Historia de integración E2E","Must Have","MVP","administrador","crear punto de cliente","usarlo en rutas","HU-010"
+"INT-006","Integración","Clientes","Importación completa de clientes","Historia de integración E2E","Must Have","MVP","administrador","importar cartera","configurar masivamente","HU-011"
+"INT-007","Integración","Rutas","Creación manual E2E","Historia de integración E2E","Must Have","MVP","administrador","crear y publicar ruta","enviarla al vendedor","HU-020"
+"INT-008","Integración","Rutas","Generación automática E2E","Historia de integración E2E","Must Have","MVP","administrador","generar ruta","reducir planificación","HU-021"
+"INT-009","Integración","Rutas","Reasignación E2E","Historia de integración E2E","Should Have","MVP condicionado por operación del piloto","administrador","reasignar ruta","resolver cambios","HU-022"
+"INT-010","Integración","Jornada","Inicio de jornada y presencia","Historia de integración E2E","Must Have","MVP","vendedor","iniciar jornada","ser visible","HU-030"
+"INT-011","Integración","Tracking","Ubicación en tiempo real E2E","Historia de integración E2E","Must Have","MVP","supervisor","ver ubicación reciente","supervisar vendedores","HU-031"
+"INT-012","Integración","Tracking","Recorrido histórico E2E","Historia de integración E2E","Should Have","MVP ampliado","supervisor","consultar recorrido","comparar ejecución","HU-032"
+"INT-013","Integración","Visitas","Check-in por geocerca E2E","Historia de integración E2E","Must Have","MVP","vendedor","marcar visita","validar presencia","HU-040"
+"INT-014","Integración","Visitas","Check-out E2E","Historia de integración E2E","Must Have","MVP","vendedor","cerrar visita","registrar resultado","HU-041"
+"INT-015","Integración","Offline","Visita offline sincronizada","Historia de integración E2E","Must Have","MVP","vendedor","registrar sin red","continuar trabajo","HU-042"
+"INT-016","Integración","Visitas","Consulta administrativa de visitas","Historia de integración E2E","Must Have","MVP","administrador","ver visitas","controlar cumplimiento","HU-043"
+"INT-017","Integración","Ventas","Venta durante visita E2E","Historia de integración E2E","Must Have","MVP","vendedor","registrar venta","actualizar gestión","HU-050"
+"INT-018","Integración","Offline","Venta offline sincronizada","Historia de integración E2E","Must Have","MVP","vendedor","registrar venta sin red","no perder operación","RF-VTA-012"
+"INT-019","Integración","Ventas","Ventas del día E2E","Historia de integración E2E","Must Have","MVP","administrador","ver ventas actualizadas","seguir resultados","HU-051"
+"INT-020","Integración","Ventas","Histórico por cliente E2E","Historia de integración E2E","Must Have","MVP","supervisor","ver historial","analizar compras","HU-052"
+"INT-021","Integración","Ventas","Resultados por vendedor E2E","Historia de integración E2E","Must Have","MVP","supervisor","ver desempeño","gestionar equipo","HU-053"
+"INT-022","Integración","Dashboard","Dashboard diario E2E","Historia de integración E2E","Must Have","MVP","administrador","ver operación consolidada","tomar decisiones","HU-060"
+"INT-023","Integración","Jornada","Cierre de jornada y detención de tracking","Historia de integración E2E","Must Have","MVP","vendedor","cerrar jornada","finalizar seguimiento","RF-UBI-007 | RF-UBI-008"
+"INT-024","Integración","Seguridad","Aislamiento multiempresa E2E","Historia de integración E2E","Must Have","MVP","empresa","mantener datos aislados","proteger información","RN-001 | RN-002"
+"INT-025","Integración","Auditoría","Auditoría transversal","Historia de integración E2E","Must Have","MVP","administrador autorizado","consultar acciones","tener trazabilidad","RF-AUD-001 | RF-AUD-002"
+"INT-026","Integración","Resiliencia","Operación ante caída de Redis","Historia de integración E2E","Must Have","MVP","operador","mantener modo degradado","evitar pérdida","RNF-001 | ADR-004"
+"INT-027","Integración","Resiliencia","Reintentos y DLQ E2E","Historia de integración E2E","Must Have","MVP","operador","gestionar procesos fallidos","evitar pérdida silenciosa","ADR-005 | RNF-014"
+"INT-028","Integración","Observabilidad","Correlation ID E2E","Historia de integración E2E","Must Have","MVP","soporte","seguir operación","diagnosticar errores","RNF-014"
+"INT-029","Integración","Recuperación","Backup y restore probado","Historia de integración E2E","Must Have","MVP","operador","restaurar información","recuperar servicio","RNF-009 | RNF-010"
+"INT-030","Integración","Rendimiento","Validación de rendimiento MVP","Historia de integración E2E","Must Have","MVP","producto","validar tiempos","asegurar uso aceptable","RNF-002 | RNF-003"
+"INT-031","Integración","Privacidad","Retención y eliminación lógica E2E","Historia de integración E2E","Must Have","MVP","administrador","aplicar retención","cumplir privacidad","RN-013 | 17.3"
+"INT-032","Integración","Seguridad","Revisión de seguridad del flujo crítico","Historia de integración E2E","Must Have","MVP","producto","validar seguridad","reducir riesgo","23.3 | 17"
+"INT-033","Integración","Workforce","Gestión de supervisores y equipo E2E","Historia de integración E2E","Must Have","MVP","administrador","crear un supervisor y asignarle vendedores","delegar la supervisión sin exponer otros equipos",""
+"INT-034","Integración","Clientes","Asignación de cartera E2E","Historia de integración E2E","Must Have","MVP","administrador","asignar clientes a un vendedor y comprobar el resultado","planificar rutas sobre una cartera confiable",""
+"INT-035","Integración","Ventas","Catálogo disponible en venta E2E","Historia de integración E2E","Should Have","MVP condicionado al modelo de venta detallada","administrador y vendedor","publicar un catálogo y usarlo offline en una venta","registrar ventas con productos vigentes y trazables",""
+"INT-036","Integración","Visitas","Excepción de geocerca E2E","Historia de integración E2E","Should Have","MVP condicionado","empresa que habilita excepciones","autorizar y consumir una excepción controlada","atender incidencias sin debilitar la validación normal",""
+"INT-037","Integración","Ventas","Edición de venta E2E","Historia de integración E2E","Should Have","MVP condicionado","vendedor autorizado","editar una venta dentro de la ventana","corregirla sin duplicarla ni alterar su auditoría",""
+"INT-038","Integración","Onboarding","Suspensión y reactivación de empresa E2E","Historia de integración E2E","Must Have","MVP","superadministrador de plataforma","suspender y reactivar una empresa","controlar el acceso sin perder su información",""
+"INT-039","Integración","Rutas","Ruta planificada vs. ejecutada E2E","Historia de integración E2E","Should Have","MVP ampliado","supervisor","comparar la ruta publicada con la ejecución real","identificar visitados, omitidos y visitas fuera de ruta",""
+"INT-040","Integración","Reportes","Exportación de reportes E2E","Historia de integración E2E","Must Have","MVP","administrador o supervisor","generar y descargar un reporte filtrado","analizar la operación fuera del panel sin exponer datos ajenos",""

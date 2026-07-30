@@ -1,6 +1,6 @@
-# Historias — Integración
+﻿# Historias — Integración
 
-Total: **32**
+Total: **40**
 
 | ID | Épica | Historia | Prioridad | Fase |
 |---|---|---|---|---|
@@ -12,10 +12,10 @@ Total: **32**
 | [INT-006](./INT-006-importacion-completa-de-clientes.md) | Clientes | Importación completa de clientes | Must Have | MVP |
 | [INT-007](./INT-007-creacion-manual-e2e.md) | Rutas | Creación manual E2E | Must Have | MVP |
 | [INT-008](./INT-008-generacion-automatica-e2e.md) | Rutas | Generación automática E2E | Must Have | MVP |
-| [INT-009](./INT-009-reasignacion-e2e.md) | Rutas | Reasignación E2E | Must Have | MVP |
+| [INT-009](./INT-009-reasignacion-e2e.md) | Rutas | Reasignación E2E | Should Have | MVP condicionado por operación del piloto |
 | [INT-010](./INT-010-inicio-de-jornada-y-presencia.md) | Jornada | Inicio de jornada y presencia | Must Have | MVP |
 | [INT-011](./INT-011-ubicacion-en-tiempo-real-e2e.md) | Tracking | Ubicación en tiempo real E2E | Must Have | MVP |
-| [INT-012](./INT-012-recorrido-historico-e2e.md) | Tracking | Recorrido histórico E2E | Must Have | MVP |
+| [INT-012](./INT-012-recorrido-historico-e2e.md) | Tracking | Recorrido histórico E2E | Should Have | MVP ampliado |
 | [INT-013](./INT-013-check-in-por-geocerca-e2e.md) | Visitas | Check-in por geocerca E2E | Must Have | MVP |
 | [INT-014](./INT-014-check-out-e2e.md) | Visitas | Check-out E2E | Must Have | MVP |
 | [INT-015](./INT-015-visita-offline-sincronizada.md) | Offline | Visita offline sincronizada | Must Have | MVP |
@@ -36,3 +36,11 @@ Total: **32**
 | [INT-030](./INT-030-validacion-de-rendimiento-mvp.md) | Rendimiento | Validación de rendimiento MVP | Must Have | MVP |
 | [INT-031](./INT-031-retencion-y-eliminacion-logica-e2e.md) | Privacidad | Retención y eliminación lógica E2E | Must Have | MVP |
 | [INT-032](./INT-032-revision-de-seguridad-del-flujo-critico.md) | Seguridad | Revisión de seguridad del flujo crítico | Must Have | MVP |
+| [INT-033](./INT-033-gestion-de-supervisores-y-equipo-e2e.md) | Workforce | Gestión de supervisores y equipo E2E | Must Have | MVP |
+| [INT-034](./INT-034-asignacion-de-cartera-e2e.md) | Clientes | Asignación de cartera E2E | Must Have | MVP |
+| [INT-035](./INT-035-catalogo-disponible-en-venta-e2e.md) | Ventas | Catálogo disponible en venta E2E | Should Have | MVP condicionado al modelo de venta detallada |
+| [INT-036](./INT-036-excepcion-de-geocerca-e2e.md) | Visitas | Excepción de geocerca E2E | Should Have | MVP condicionado |
+| [INT-037](./INT-037-edicion-de-venta-e2e.md) | Ventas | Edición de venta E2E | Should Have | MVP condicionado |
+| [INT-038](./INT-038-suspension-de-empresa-e2e.md) | Onboarding | Suspensión y reactivación de empresa E2E | Must Have | MVP |
+| [INT-039](./INT-039-ruta-planificada-vs-ejecutada-e2e.md) | Rutas | Ruta planificada vs. ejecutada E2E | Should Have | MVP ampliado |
+| [INT-040](./INT-040-exportacion-de-reportes-e2e.md) | Reportes | Exportación de reportes E2E | Must Have | MVP |

@@ -131,7 +131,7 @@ firebase-adminsdk*.json
 *.iws
 
 .idea_modules/
-out/
+/out/
 
 # IntelliJ generated
 **/.idea/**/workspace.xml

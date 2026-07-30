@@ -2,8 +2,8 @@
 ## Plataforma de gestión de vendedores de campo, rutas, visitas y ventas
 
 **Nombre provisional del producto:** FieldSales CRM  
-**Versión del documento:** 1.0  
-**Estado:** Borrador funcional para planificación y desarrollo  
+**Versión del documento:** 1.1
+**Estado:** Backlog funcional refinado; decisiones de enablers pendientes
 **Tipo de documento:** Contrato funcional, especificación de requerimientos y base de producto  
 **Fecha:** 27 de julio de 2026  
 
@@ -395,6 +395,19 @@ El sistema deberá cerrar o renovar sesiones de manera segura.
 
 El administrador deberá poder bloquear un usuario sin eliminar su historial.
 
+### RF-AUT-006. Gestión de usuarios de empresa
+
+El administrador de empresa deberá poder listar, invitar, editar, bloquear y
+reactivar administradores y supervisores de su propia empresa.
+
+Reglas:
+
+- No existirá registro público.
+- No podrá asignar roles de plataforma.
+- La activación inicial utilizará un mecanismo temporal de un solo uso.
+- Bloquear un usuario conservará historial y revocará su acceso.
+- Una empresa activa no podrá quedar sin un administrador utilizable.
+
 ---
 
 ## 8.2 Gestión de vendedores
@@ -430,6 +443,17 @@ Cada vendedor podrá estar asociado a un supervisor.
 ### RF-VEN-005. Asignación de territorio
 
 Cada vendedor podrá tener una o más zonas asignadas.
+
+### RF-VEN-006. Catálogo de zonas y territorios
+
+La empresa deberá poder crear, listar, editar e inactivar zonas con código,
+nombre y estado. El MVP no exige polígonos geográficos.
+
+### RF-VEN-007. Consulta de vendedores
+
+Administradores y supervisores deberán poder consultar vendedores de forma
+paginada y filtrar por estado, supervisor y zona. El supervisor solo verá su
+equipo.
 
 ---
 
@@ -519,6 +543,13 @@ La ficha del cliente deberá mostrar:
 - Observaciones.
 - Incidencias.
 - Próxima visita, cuando corresponda.
+
+### RF-CLI-009. Asignación de cartera
+
+El administrador deberá poder asignar o reasignar clientes a un vendedor,
+individual o masivamente, conservando responsable anterior, nuevo responsable,
+fecha y actor. La reasignación no modificará visitas, ventas ni rutas
+históricas.
 
 ---
 
@@ -613,6 +644,13 @@ Ejemplos:
 - Quincenal.
 - Mensual.
 - Personalizado.
+
+### RF-RUT-012. Consulta y versión de ruta
+
+El panel deberá poder listar y consultar rutas autorizadas. El vendedor deberá
+consultar su ruta publicada para la fecha operativa de la empresa. Cada
+publicación o modificación tendrá una versión que permita detectar una copia
+móvil desactualizada.
 
 ---
 
@@ -1055,8 +1093,10 @@ La primera versión estará disponible en español.
 
 1. El administrador inicial queda asociado a una empresa activa y al rol Administrador.
 2. Solo un superadministrador autorizado puede realizar la provisión.
-3. La contraseña se almacena exclusivamente mediante hash seguro.
-4. La operación es auditable sin exponer secretos ni datos personales completos.
+3. La cuenta se activa mediante un token temporal de un solo uso; no existe
+   contraseña predeterminada.
+4. La contraseña final se almacena exclusivamente mediante hash seguro.
+5. La operación es auditable sin exponer secretos ni datos personales completos.
 
 **Nota de dependencia:** el catálogo de roles debe existir antes de crear usuarios. El bootstrap del primer superadministrador se realiza mediante un enabler y ADR con procedimiento controlado; no se expone como registro público.
 
@@ -1093,6 +1133,42 @@ La primera versión estará disponible en español.
 2. El correo o usuario no podrá repetirse dentro de la misma empresa.
 3. El vendedor deberá quedar activo o inactivo según selección.
 4. La creación deberá registrarse en auditoría.
+
+---
+
+### HU-003. Gestionar usuarios de empresa
+
+**Como** administrador de empresa<br>
+**Quiero** invitar, editar, bloquear y reactivar administradores y supervisores<br>
+**Para** delegar la operación sin depender del soporte de plataforma.
+
+**Prioridad:** Must Have
+
+**Criterios de aceptación:**
+
+1. Solo podrá gestionar usuarios de su empresa.
+2. No podrá asignar roles de plataforma.
+3. El invitado activará su cuenta mediante un enlace de un solo uso.
+4. El bloqueo revocará acceso y conservará historial.
+5. No podrá dejar a la empresa sin ningún administrador utilizable.
+6. Las acciones quedarán auditadas.
+
+---
+
+### HU-004. Gestionar zonas y equipo
+
+**Como** administrador<br>
+**Quiero** crear zonas y asignar supervisores/vendedores<br>
+**Para** organizar la operación antes de registrar carteras y rutas.
+
+**Prioridad:** Must Have
+
+**Criterios de aceptación:**
+
+1. Podrá crear, editar e inactivar zonas sin borrar referencias históricas.
+2. Podrá consultar vendedores por supervisor, zona y estado.
+3. Un supervisor solo podrá acceder a los vendedores de su equipo.
+4. Todas las relaciones pertenecerán a la misma empresa.
 
 ---
 
@@ -1150,6 +1226,24 @@ La primera versión estará disponible en español.
 
 ---
 
+### HU-013. Asignar cartera de clientes
+
+**Como** administrador<br>
+**Quiero** asignar o reasignar clientes a un vendedor<br>
+**Para** planificar rutas y medir cobertura sobre una cartera vigente.
+
+**Prioridad:** Must Have
+
+**Criterios de aceptación:**
+
+1. Cliente y vendedor deberán pertenecer a la misma empresa.
+2. La operación individual y masiva informará rechazos o conflictos.
+3. Se conservará el historial de responsable anterior y nuevo.
+4. Visitas, ventas y rutas históricas no cambiarán de propietario.
+5. Los filtros y sugerencias usarán la asignación vigente.
+
+---
+
 ## ÉPICA 3. Rutas
 
 ### HU-020. Crear ruta manual
@@ -1202,6 +1296,26 @@ La primera versión estará disponible en español.
 2. El vendedor anterior y el nuevo deberán quedar registrados.
 3. El nuevo vendedor deberá recibir una notificación.
 4. Las visitas ya realizadas no deberán perderse.
+
+---
+
+### HU-023. Consultar ruta y detectar actualizaciones
+
+**Como** usuario autorizado<br>
+**Quiero** consultar una ruta y su versión vigente<br>
+**Para** planificar desde el panel o ejecutar desde el móvil sin usar una copia
+desactualizada.
+
+**Prioridad:** Must Have
+
+**Criterios de aceptación:**
+
+1. Administrador y supervisor verán únicamente rutas autorizadas.
+2. El vendedor solo verá sus rutas publicadas.
+3. La fecha del día usará la zona horaria de la empresa.
+4. El detalle incluirá estado, versión y secuencia completa.
+5. La aplicación detectará una modificación o reasignación posterior a la
+   descarga.
 
 ---
 
@@ -1334,7 +1448,43 @@ La primera versión estará disponible en español.
 
 ---
 
+### HU-044. Autorizar excepción de geocerca
+
+**Como** administrador con permiso especial<br>
+**Quiero** autorizar una excepción limitada<br>
+**Para** atender una incidencia sin alterar la evidencia original.
+
+**Prioridad:** Should Have — deshabilitada por defecto
+
+**Criterios de aceptación:**
+
+1. La empresa deberá tener la capacidad habilitada.
+2. La autorización quedará limitada a vendedor, cliente y ventana temporal.
+3. Exigirá motivo y conservará ubicación, distancia y precisión originales.
+4. Será de un solo uso y rechazará replay o expiración.
+5. La operación completa quedará auditada.
+
+---
+
 ## ÉPICA 6. Ventas
+
+### HU-049. Gestionar catálogo de productos
+
+**Como** administrador<br>
+**Quiero** mantener un catálogo de productos<br>
+**Para** habilitar el registro detallado de ventas cuando la empresa lo use.
+
+**Prioridad:** Should Have — MVP condicionado
+
+**Criterios de aceptación:**
+
+1. Código y precio serán válidos y tenant-bound.
+2. Un producto usado se inactivará lógicamente.
+3. Mobile podrá sincronizar una versión disponible offline.
+4. Un producto inactivo no se usará en ventas nuevas y seguirá visible en el
+   histórico.
+
+---
 
 ### HU-050. Registrar venta
 
@@ -1352,6 +1502,10 @@ La primera versión estará disponible en español.
 4. Se calculará el total.
 5. La venta podrá guardarse sin internet.
 6. El administrador podrá verla después de la sincronización.
+
+**Decisión de alcance:** MOB-020 (venta simple) es el flujo Must Have. Catálogo
+y venta detallada son Should Have hasta que Producto confirme el modelo
+comercial.
 
 ---
 
@@ -1495,14 +1649,18 @@ La primera versión estará disponible en español.
 
 ## 12.1 Configuración inicial
 
-1. Se crea la empresa.
-2. Se crea el administrador.
-3. El administrador configura parámetros.
-4. Se registran supervisores.
-5. Se registran vendedores.
-6. Se registran o importan clientes.
-7. Se verifican coordenadas.
-8. Se asignan zonas y clientes.
+1. El operador ejecuta el bootstrap controlado del superadministrador.
+2. El superadministrador inicia sesión.
+3. Se crea la empresa.
+4. Se invita al administrador inicial.
+5. El administrador activa su cuenta e inicia sesión.
+6. El administrador configura parámetros.
+7. Se crean zonas.
+8. Se invitan supervisores.
+9. Se registran vendedores.
+10. Se registran o importan clientes.
+11. Se verifican coordenadas.
+12. Se asignan zonas, equipo y cartera de clientes.
 
 ## 12.2 Planificación de ruta
 
@@ -1512,7 +1670,8 @@ La primera versión estará disponible en español.
 4. El sistema propone el orden.
 5. El administrador revisa y modifica.
 6. Publica la ruta.
-7. El vendedor recibe la asignación.
+7. El vendedor recibe la notificación.
+8. La aplicación consulta y descarga la versión publicada.
 
 ## 12.3 Inicio de jornada
 
@@ -1625,12 +1784,13 @@ La primera versión estará disponible en español.
 ## 14.2 Usuario
 
 - id
-- empresa_id
+- empresa_id, nulo únicamente para `PLATFORM_SUPERADMIN`
 - rol_id
 - nombre
 - correo
 - contraseña_hash
 - estado
+- activación_expira_en
 - último_acceso
 
 ## 14.3 Vendedor
@@ -1642,7 +1802,6 @@ La primera versión estará disponible en español.
 - código
 - documento
 - teléfono
-- zona
 - estado
 
 ## 14.4 Cliente
@@ -1671,6 +1830,7 @@ La primera versión estará disponible en español.
 - fecha
 - estado
 - origen
+- versión
 - punto_inicio
 - punto_fin
 - distancia_estimada
@@ -1707,7 +1867,9 @@ La primera versión estará disponible en español.
 - longitud
 - precisión
 - velocidad
-- fecha_hora
+- capturada_en
+- recibida_en
+- identificador_dispositivo
 - origen
 - estado_sincronización
 
@@ -1730,6 +1892,7 @@ La primera versión estará disponible en español.
 - observación
 - estado
 - fuera_de_ruta
+- excepción_geocerca_id
 
 ## 14.10 Venta
 
@@ -1746,6 +1909,7 @@ La primera versión estará disponible en español.
 - observación
 - estado
 - identificador_dispositivo
+- editada_en
 
 ## 14.11 VentaDetalle
 
@@ -1782,6 +1946,34 @@ La primera versión estará disponible en español.
 - ip
 - dispositivo
 
+## 14.14 ZonaTerritorio
+
+- id
+- empresa_id
+- código
+- nombre
+- descripción
+- estado
+
+## 14.15 VendedorZona
+
+- vendedor_id
+- zona_id
+- vigente_desde
+- vigente_hasta
+
+## 14.16 AsignaciónCliente
+
+- id
+- empresa_id
+- cliente_id
+- vendedor_id
+- responsable_anterior_id
+- vigente_desde
+- vigente_hasta
+- actor_id
+- motivo
+
 ---
 
 # 15. Validaciones importantes
@@ -1796,9 +1988,9 @@ La primera versión estará disponible en español.
 
 ## 15.2 Geocerca
 
-La distancia podrá calcularse inicialmente con fórmula Haversine.
-
-Para mayor precisión y escalabilidad se podrá utilizar soporte geoespacial de base de datos.
+El backend calculará y validará distancia/geocerca con PostGIS, SRID y unidades
+documentadas. Mobile podrá usar Haversine únicamente como ayuda de UX offline;
+el cálculo local no sustituye la validación del servidor al sincronizar.
 
 ## 15.3 Sincronización
 
@@ -2051,100 +2243,64 @@ Los supervisores solo deberán acceder a vendedores bajo su responsabilidad.
 
 # 20. Propuesta de sprints
 
-La duración puede ser de dos semanas por sprint.
+La duración sugerida es de dos semanas. El orden detallado, IDs, dependencias y
+criterios de salida se mantienen en `docs/stories/sprint-map.md` y
+`docs/stories/dependency-map.md`.
 
-## Sprint 0. Preparación
+## Sprint 0. Fundaciones y decisiones
 
-- Refinamiento del alcance.
-- Arquitectura.
-- Repositorios.
-- CI/CD.
-- Ambientes.
-- Modelo de datos inicial.
-- Diseño base.
-- Convenciones.
-- Definición de Done.
+- Infraestructura local, seguridad base, roles y bootstrap.
+- ADR de autenticación, mapas, offline, privacidad, notificaciones y rutas.
+- Outbox, reintentos y DLQ.
 
-## Sprint 1. Seguridad y empresas
+## Sprint 1. Empresa, identidad y acceso utilizable
 
-- Autenticación.
-- Empresa.
-- Roles.
-- Usuarios.
-- Sesiones.
-- Auditoría inicial.
+- Login de plataforma.
+- Empresa, activación del administrador y gestión de usuarios.
+- Login/sesión web y móvil.
+- Auditoría base, suspensión y aislamiento.
 
-## Sprint 2. Vendedores y clientes
+## Sprint 2. Equipo, zonas, clientes y cartera
 
-- CRUD vendedores.
-- CRUD clientes.
-- Coordenadas.
-- Mapa.
-- Filtros básicos.
+- Zonas, supervisores y vendedores.
+- Consulta de equipo.
+- Clientes, coordenadas, duplicados y cartera.
 
-## Sprint 3. Importación y asignaciones
+## Sprint 3. Importación y configuración operativa
 
-- Plantilla de importación.
-- Validación.
-- Errores.
-- Zonas.
-- Asignación de clientes.
-- Supervisores.
+- Geocerca/tracking configurables antes del trabajo de campo.
+- Plantilla, proceso asíncrono, resultado y errores de importación.
 
-## Sprint 4. Rutas
+## Sprint 4. Planificación y entrega de rutas
 
-- Ruta manual.
-- Orden de clientes.
-- Publicación.
-- Estados.
-- Ruta automática básica.
+- Borrador, consulta, copia, sugerencias y optimización.
+- Publicación, reasignación, notificación y descarga móvil versionada.
 
-## Sprint 5. Aplicación móvil y jornada
+## Sprint 5. Jornada y tracking en vivo
 
-- Login móvil.
-- Ruta del día.
-- Inicio y cierre de jornada.
-- Captura de ubicación.
-- Almacenamiento local.
+- Permisos, inicio/cierre, captura, cola local y presencia.
+- Mapa en vivo, estado stale y degradación ante Redis/red.
 
-## Sprint 6. Geocerca y visitas
+## Sprint 6. Recorrido histórico
 
-- Distancia.
-- Flag.
-- Inicio de visita.
-- Cierre.
-- Resultados.
-- Visita offline.
+- Persistencia, consulta y visualización de una jornada como histórico.
 
-## Sprint 7. Ventas
+## Sprint 7. Visitas y ejecución de ruta
 
-- Productos.
-- Registro de venta.
-- Detalle.
-- Cálculos.
-- Venta offline.
-- Histórico básico.
+- Geocerca, check-in/check-out, resultados y offline.
+- Pendientes, consulta, corrección y comparación planificada/ejecutada.
+- Fuera de ruta y excepción de geocerca solo si se habilitan.
 
-## Sprint 8. Supervisión
+## Sprint 8. Ventas e histórico comercial
 
-- Mapa en tiempo real.
-- Última ubicación.
-- Estado del vendedor.
-- Visitas.
-- Pendientes.
-- Ruta ejecutada.
+- Venta simple, sync, anulación y consultas como alcance base.
+- Catálogo/venta detallada y edición dentro de ventana como alcance condicionado.
+- Histórico por cliente y resultados por vendedor.
 
-## Sprint 9. Reportes y estabilización
+## Sprint 9. Dashboard, reportes y estabilización
 
-- Dashboard.
-- Ventas por vendedor.
-- Histórico por cliente.
-- Exportaciones.
-- Auditoría.
-- Pruebas.
-- Seguridad.
-- Rendimiento.
-- Corrección de incidencias.
+- Dashboard, resumen móvil, exportaciones y consulta de auditoría.
+- Backup/restore, retención, rendimiento, resiliencia, seguridad y regresión.
 
 ---
 
@@ -2301,31 +2457,54 @@ Cualquier requerimiento nuevo deberá registrar:
 
 Ningún cambio se considerará incluido automáticamente por haber sido mencionado en una reunión o conversación informal.
 
+## CR-001. Refinamiento secuencial del backlog
+
+- **Solicitante:** Cliente/propietario del producto.
+- **Descripción:** Corregir dependencias, capacidades sin consumidor y orden de
+  sprints; completar onboarding, usuarios, zonas, cartera, consulta de rutas y
+  pruebas E2E faltantes.
+- **Justificación:** Evitar sprints con pantallas vacías o flujos que no pueden
+  ser utilizados de extremo a extremo.
+- **Impacto funcional:** Se agregan HUs de soporte al flujo ya declarado y se
+  hacen condicionadas las variantes de venta detallada, excepción y edición.
+- **Impacto técnico:** Nuevos contratos/ADR antes de implementar consumidores.
+- **Impacto en costos/fechas:** Debe reestimarse con el backlog de 172 HUs y 10
+  enablers; no implica compromiso automático de fecha.
+- **Prioridad:** Must Have para el flujo base.
+- **Decisión:** Aprobado para refinamiento; enablers pendientes requieren su
+  aprobación específica.
+- **Versión objetivo:** 1.1 / MVP.
+
 ---
 
 # 26. Criterios de aceptación del MVP
 
 El MVP se considerará funcional cuando una empresa pueda completar el siguiente flujo:
 
-1. Crear vendedores.
-2. Registrar o importar clientes.
-3. Ubicar clientes en mapa.
-4. Crear automáticamente una ruta.
-5. Asignar la ruta.
-6. Iniciar jornada desde el móvil.
-7. Enviar ubicaciones durante la jornada.
-8. Visualizar al vendedor en el panel.
-9. Llegar a un cliente.
-10. Habilitar el flag dentro de geocerca.
-11. Iniciar y finalizar la visita.
-12. Registrar una venta.
-13. Sincronizar los datos.
-14. Visualizar la visita desde administración.
-15. Visualizar la venta del día.
-16. Consultar histórico por cliente.
-17. Consultar resultados por vendedor.
-18. Cerrar jornada.
-19. Detener el seguimiento después del cierre.
+1. Iniciar desde una instalación sin usuarios de negocio.
+2. Autenticar al superadministrador provisionado de forma controlada.
+3. Crear una empresa e invitar a su administrador inicial.
+4. Activar la cuenta e iniciar sesión como administrador.
+5. Crear zonas, supervisor y vendedores.
+6. Asignar equipo y cartera de clientes sin cruce de tenant.
+7. Registrar o importar clientes.
+8. Ubicar clientes en mapa.
+9. Crear automáticamente una ruta.
+10. Publicar y descargar la versión vigente de la ruta.
+11. Iniciar jornada desde el móvil.
+12. Enviar ubicaciones durante la jornada.
+13. Visualizar al vendedor en el panel con hora de actualización.
+14. Llegar a un cliente.
+15. Habilitar el flag dentro de geocerca.
+16. Iniciar y finalizar la visita.
+17. Registrar y sincronizar una venta simple sin duplicarla.
+18. Visualizar la visita desde administración.
+19. Visualizar la venta del día.
+20. Consultar histórico por cliente.
+21. Consultar resultados por vendedor.
+22. Revisar el resumen y cerrar jornada.
+23. Detener el seguimiento después del cierre.
+24. Demostrar aislamiento, auditoría, recuperación y seguridad del flujo.
 
 ---
 
@@ -2370,24 +2549,30 @@ Antes de iniciar desarrollo deberán definirse:
 
 1. Nombre final del producto.
 2. Sectores objetivo.
-3. Cantidad estimada de vendedores por empresa.
+3. Cantidad estimada de vendedores por empresa para volumen y rendimiento.
 4. Países iniciales.
-5. Plataforma móvil.
-6. Proveedor de mapas.
-7. Radio de geocerca.
-8. Frecuencia de ubicación.
+5. Distribución Android/iOS del piloto; la aplicación se implementa en Flutter.
+6. Proveedor de mapas, geocodificación y navegación — EN-014.
+7. Radio, precisión y antigüedad de geocerca — EN-016.
+8. Frecuencia y política de ubicación — EN-016.
 9. Datos obligatorios del cliente.
-10. Modelo exacto de venta.
-11. Si existirán productos y precios.
-12. Si se permitirá venta sin visita.
-13. Si se permitirán visitas fuera de ruta.
+10. Si el piloto habilita venta detallada; la venta simple es el mínimo
+    obligatorio.
+11. Si el piloto habilita catálogo/productos/precios — historias condicionadas.
+12. Si se permitirá venta sin visita; por defecto no.
+13. Si se permitirán visitas fuera de ruta o excepciones; por defecto no.
 14. Si se requerirá fotografía o firma.
-15. Tiempo de retención de ubicaciones.
-16. Política de corrección y anulación.
-17. Diseño de roles.
-18. Métricas del dashboard.
+15. Tiempo de retención de ubicaciones — EN-016.
+16. Si el piloto habilita edición de venta; la anulación auditada sigue siendo
+    el flujo base.
+17. Permisos finos sobre los roles base definidos en EN-011.
+18. Definiciones y timestamp de corte de métricas del dashboard.
 19. Modelo comercial.
 20. Alcance del piloto.
+
+Las decisiones de arquitectura asociadas no se resolverán dentro de una HU de
+implementación: deben cerrar su enabler/ADR antes de planificar la historia
+dependiente.
 
 ---
 

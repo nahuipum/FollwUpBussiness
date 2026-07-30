@@ -61,6 +61,31 @@ class RepositorySecretsPolicyTest {
     }
 
     @Test
+    void hexagonalOutputPackagesAreNotIgnoredByGit() throws Exception {
+        Path root = repositoryRoot();
+        List<String> expectedVersionablePaths = List.of(
+                "backend/followupbussiness/src/main/java/com/nahui/followupbussiness/"
+                        + "identityaccess/application/port/out/PasswordHashingPort.java",
+                "backend/followupbussiness/src/main/java/com/nahui/followupbussiness/"
+                        + "identityaccess/adapter/out/security/BCryptPasswordHashingAdapter.java");
+
+        Process process = new ProcessBuilder("git", "check-ignore", "--no-index", "--stdin")
+                .directory(root.toFile())
+                .start();
+        process.getOutputStream().write(String.join("\n", expectedVersionablePaths)
+                .concat("\n")
+                .getBytes(StandardCharsets.UTF_8));
+        process.getOutputStream().close();
+
+        List<String> ignoredPaths = process.inputReader(StandardCharsets.UTF_8).lines().toList();
+        String errorOutput = process.errorReader(StandardCharsets.UTF_8).lines()
+                .collect(Collectors.joining("\n"));
+
+        assertEquals(1, process.waitFor(), errorOutput);
+        assertThat(ignoredPaths).isEmpty();
+    }
+
+    @Test
     void environmentExampleContainsOnlyDocumentedNonSecretPlaceholders() throws IOException {
         List<String> lines = Files.readAllLines(repositoryRoot().resolve(".env.example"), StandardCharsets.UTF_8);
         Map<String, String> properties = lines.stream()
@@ -71,13 +96,23 @@ class RepositorySecretsPolicyTest {
 
         assertThat(properties)
                 .containsEntry("FIELD_SALES_SECURITY_LOCAL_SECRET",
-                        "replace_with_32_plus_random_local_characters");
+                        "replace_with_32_plus_random_local_characters")
+                .containsEntry("FIELD_SALES_BOOTSTRAP_SUPERADMIN_IDENTITY", "")
+                .containsEntry("FIELD_SALES_BOOTSTRAP_SUPERADMIN_PASSWORD", "");
 
         properties.forEach((name, value) -> {
             if (isSecretVariable(name)) {
-                assertThat(value)
-                        .as("%s must contain a deliberate development-only placeholder", name)
-                        .isIn("change_me_local_only", "replace_with_32_plus_random_local_characters");
+                if (name.equals("FIELD_SALES_BOOTSTRAP_SUPERADMIN_PASSWORD")) {
+                    assertThat(value)
+                            .as("%s must remain empty in the public template", name)
+                            .isEmpty();
+                } else {
+                    assertThat(value)
+                            .as("%s must contain a deliberate development-only placeholder", name)
+                            .isIn(
+                                    "change_me_local_only",
+                                    "replace_with_32_plus_random_local_characters");
+                }
             }
         });
     }

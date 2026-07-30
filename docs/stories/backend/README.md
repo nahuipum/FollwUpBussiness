@@ -1,12 +1,11 @@
-# Historias — Backend
+﻿# Historias — Backend
 
-Total: **57**
+Total: **62**
 
 | ID | Épica | Historia | Prioridad | Fase |
 |---|---|---|---|---|
 | [BE-001](./BE-001-crear-una-empresa.md) | Base SaaS | Crear una empresa | Must Have | MVP |
 | [BE-002](./BE-002-suspender-y-reactivar-empresa.md) | Base SaaS | Suspender y reactivar empresa | Must Have | MVP |
-| [BE-057](./BE-057-provisionar-administrador-inicial-de-empresa.md) | Identidad | Provisionar administrador inicial de empresa | Must Have | MVP |
 | [BE-003](./BE-003-autenticar-usuario.md) | Identidad | Autenticar usuario | Must Have | MVP |
 | [BE-004](./BE-004-renovar-sesion.md) | Identidad | Renovar sesión | Must Have | MVP |
 | [BE-005](./BE-005-cerrar-y-revocar-sesion.md) | Identidad | Cerrar y revocar sesión | Must Have | MVP |
@@ -29,25 +28,25 @@ Total: **57**
 | [BE-022](./BE-022-generar-ruta-automatica-basica.md) | Rutas | Generar ruta automática básica | Must Have | MVP |
 | [BE-023](./BE-023-reordenar-puntos-de-ruta.md) | Rutas | Reordenar puntos de ruta | Must Have | MVP |
 | [BE-024](./BE-024-publicar-ruta.md) | Rutas | Publicar ruta | Must Have | MVP |
-| [BE-025](./BE-025-reasignar-ruta.md) | Rutas | Reasignar ruta | Must Have | MVP |
+| [BE-025](./BE-025-reasignar-ruta.md) | Rutas | Reasignar ruta | Should Have | MVP condicionado por operación del piloto |
 | [BE-026](./BE-026-duplicar-ruta.md) | Rutas | Duplicar ruta | Must Have | MVP |
 | [BE-027](./BE-027-sugerir-clientes-por-frecuencia.md) | Rutas | Sugerir clientes por frecuencia | Must Have | MVP |
 | [BE-028](./BE-028-iniciar-jornada.md) | Jornadas | Iniciar jornada | Must Have | MVP |
 | [BE-029](./BE-029-recibir-ubicaciones.md) | Tracking | Recibir ubicaciones | Must Have | MVP |
 | [BE-030](./BE-030-mantener-ultima-ubicacion-en-redis.md) | Tracking | Mantener última ubicación en Redis | Must Have | MVP |
 | [BE-031](./BE-031-publicar-ubicacion-por-websocket.md) | Tracking | Publicar ubicación por WebSocket | Must Have | MVP |
-| [BE-032](./BE-032-consultar-historial-de-recorrido.md) | Tracking | Consultar historial de recorrido | Must Have | MVP |
+| [BE-032](./BE-032-consultar-historial-de-recorrido.md) | Tracking | Consultar historial de recorrido | Should Have | MVP ampliado |
 | [BE-033](./BE-033-cerrar-jornada.md) | Jornadas | Cerrar jornada | Must Have | MVP |
 | [BE-034](./BE-034-validar-proximidad.md) | Visitas | Validar proximidad | Must Have | MVP |
 | [BE-035](./BE-035-iniciar-visita.md) | Visitas | Iniciar visita | Must Have | MVP |
 | [BE-036](./BE-036-finalizar-visita.md) | Visitas | Finalizar visita | Must Have | MVP |
-| [BE-037](./BE-037-registrar-visita-fuera-de-ruta.md) | Visitas | Registrar visita fuera de ruta | Must Have | MVP |
-| [BE-038](./BE-038-autorizar-excepcion-de-geocerca.md) | Visitas | Autorizar excepción de geocerca | Must Have | MVP |
+| [BE-037](./BE-037-registrar-visita-fuera-de-ruta.md) | Visitas | Registrar visita fuera de ruta | Should Have | MVP condicionado por configuración de empresa |
+| [BE-038](./BE-038-autorizar-excepcion-de-geocerca.md) | Visitas | Autorizar excepción de geocerca | Should Have | MVP condicionado; deshabilitado por defecto |
 | [BE-039](./BE-039-corregir-visita.md) | Visitas | Corregir visita | Must Have | MVP |
 | [BE-040](./BE-040-consultar-visitas-y-pendientes.md) | Visitas | Consultar visitas y pendientes | Must Have | MVP |
-| [BE-041](./BE-041-gestionar-productos.md) | Catálogo | Gestionar productos | Must Have | MVP |
+| [BE-041](./BE-041-gestionar-productos.md) | Catálogo | Gestionar productos | Should Have | MVP condicionado al modelo de venta detallada |
 | [BE-042](./BE-042-registrar-venta.md) | Ventas | Registrar venta | Must Have | MVP |
-| [BE-043](./BE-043-editar-venta-dentro-de-ventana.md) | Ventas | Editar venta dentro de ventana | Must Have | MVP |
+| [BE-043](./BE-043-editar-venta-dentro-de-ventana.md) | Ventas | Editar venta dentro de ventana | Should Have | MVP condicionado; anulación auditada permanece como flujo base |
 | [BE-044](./BE-044-anular-venta.md) | Ventas | Anular venta | Must Have | MVP |
 | [BE-045](./BE-045-consultar-ventas-del-dia.md) | Ventas | Consultar ventas del día | Must Have | MVP |
 | [BE-046](./BE-046-consultar-historico-de-ventas.md) | Ventas | Consultar histórico de ventas | Must Have | MVP |
@@ -61,3 +60,9 @@ Total: **57**
 | [BE-054](./BE-054-configurar-geocerca-y-tracking.md) | Configuración | Configurar geocerca y tracking | Must Have | MVP |
 | [BE-055](./BE-055-implementar-outbox-transaccional.md) | Resiliencia | Implementar outbox transaccional | Must Have | MVP |
 | [BE-056](./BE-056-gestionar-reintentos-y-dlq.md) | Resiliencia | Gestionar reintentos y DLQ | Must Have | MVP |
+| [BE-057](./BE-057-provisionar-administrador-inicial-de-empresa.md) | Identidad | Provisionar administrador inicial de empresa | Must Have | MVP |
+| [BE-058](./BE-058-gestionar-usuarios-de-empresa.md) | Identidad | Gestionar usuarios de empresa | Must Have | MVP |
+| [BE-059](./BE-059-listar-vendedores.md) | Workforce | Listar y consultar vendedores | Must Have | MVP |
+| [BE-060](./BE-060-asignar-cartera-de-clientes.md) | Clientes | Asignar cartera de clientes | Must Have | MVP |
+| [BE-061](./BE-061-consultar-rutas-y-ruta-del-dia.md) | Rutas | Consultar rutas y ruta del día | Must Have | MVP |
+| [BE-062](./BE-062-gestionar-zonas-y-territorios.md) | Workforce | Gestionar zonas y territorios | Must Have | MVP |

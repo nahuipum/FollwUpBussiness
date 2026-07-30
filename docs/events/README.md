@@ -1,5 +1,9 @@
 # Catálogo de eventos
 
+**Estado actual:** `CHANGES_REQUIRED`. La tabla describe eventos previstos,
+pero cada evento debe incorporarse a `event-catalog.yaml` con versión, owner,
+payload, productores, consumidores e idempotencia antes de ser contrato.
+
 ## Envelope común
 
 ```json
