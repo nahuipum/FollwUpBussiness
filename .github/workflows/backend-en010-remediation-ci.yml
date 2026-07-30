@@ -28,8 +28,6 @@ jobs:
     name: JDK 21 / Maven verify / SCA
     runs-on: ubuntu-24.04
     timeout-minutes: 45
-    env:
-      FIELD_SALES_SECURITY_LOCAL_SECRET: CI_ONLY_NON_SECRET_012345678901234567890123456789
     defaults:
       run:
         working-directory: backend/followupbussiness
