@@ -1,6 +1,8 @@
 # ADR-010 — Línea base de seguridad y secretos locales
 
-**Estado:** Propuesto
+**Estado:** Aceptado
+**Aprobado por:** Luis Siancas — Owner
+**Fecha de aceptación:** 2026-07-30
 
 ## Contexto
 
@@ -112,11 +114,26 @@ módulos en el classpath y el empaquetado se verifica para impedir la
 reintroducción de `11.0.22`.
 
 La fase Maven `verify` genera con CycloneDX Maven Plugin 2.9.1 un inventario
-CycloneDX 1.6 en `target/sbom/application.cdx.json`. Se fija el timestamp de
-salida y se omite un serial aleatorio para que el artefacto sea reproducible
-con el mismo código y resolución de dependencias. El SBOM documenta componentes;
-no constituye un análisis de vulnerabilidades y EN-010 no afirma evidencia de
-SCA ni de CI.
+CycloneDX 1.6 en `target/sbom/application.cdx.json`. El JAR y el SBOM comparten
+un `project.build.outputTimestamp` fijo, y el SBOM omite un serial aleatorio,
+para que ambos entregables sean reproducibles con el mismo código y resolución
+de dependencias.
+
+La remediación DoF de EN-010 incorpora el workflow dedicado
+`.github/workflows/backend-en010-remediation-ci.yml`. El candidato se valida
+en Ubuntu 24.04 con Temurin JDK 21 y Maven Wrapper 3.9.16 mediante
+`clean verify`; las pruebas ArchUnit también se ejecutan de forma explícita.
+El workflow genera JAR, SBOM, reportes Surefire, inventario SHA-256 del
+snapshot y manifiesto de entregables del mismo commit.
+
+Trivy 0.70.0 consume el SBOM como herramienta SCA mantenida. Su acción se fija
+por SHA inmutable a la revisión segura 0.36.0, posterior al incidente de cadena
+de suministro de marzo de 2026. La política falla ante cualquier hallazgo
+`HIGH` o `CRITICAL`, tenga o no corrección disponible; no existe archivo de
+excepciones. El reporte completo y el resultado de la política se conservan
+con el resto de evidencia del candidato durante un máximo de 30 días. El SBOM
+continúa siendo un inventario; la evidencia SCA es el resultado separado de
+Trivy sobre ese inventario.
 
 ## Alternativas
 
@@ -143,6 +160,8 @@ SCA ni de CI.
 - La terminación HTTPS pertenece al entorno de despliegue y queda fuera de
   EN-010; Spring Security conserva la base para exigir transporte seguro
   cuando se defina dicho entorno.
+- Cada cambio del candidato EN-010 debe superar `clean verify`, las reglas
+  arquitectónicas y el gate SCA antes de entregarse a revisión independiente.
 
 ## Riesgos
 
@@ -157,15 +176,17 @@ SCA ni de CI.
 - El override de Tomcat debe revisarse y elevarse cuando se publiquen nuevas
   correcciones compatibles; la prueba fija únicamente el mínimo conocido de
   esta entrega.
-- El SBOM no detecta vulnerabilidades por sí mismo y deberá consumirse por una
-  herramienta SCA en un incremento posterior.
+- La disponibilidad y actualidad de las bases de vulnerabilidades de Trivy son
+  dependencias del gate. Si no pueden actualizarse o consultarse, el workflow
+  falla y no se interpreta como un escaneo aprobado.
 
 ## Reversión
 
 Para revertir EN-010 se eliminan la dependencia de Spring Security, el override
-`tomcat.version`, la ejecución CycloneDX, la configuración y sus pruebas, la
-propiedad obligatoria y su documentación. También se revierte la variable
-añadida a `.env.example` y las reglas nuevas de `.gitignore` si no son
-utilizadas por otro incremento. La reversión deja el backend sin protección
+`tomcat.version`, la ejecución CycloneDX, el workflow dedicado, la política
+SCA, la configuración y sus pruebas, la propiedad obligatoria y su
+documentación. También se revierte la variable añadida a `.env.example` y las
+reglas nuevas de `.gitignore` si no son utilizadas por otro incremento. Esta
+reversión elimina el gate de vulnerabilidades y deja el backend sin protección
 HTTP, por lo que solo es segura si se revierte también cualquier endpoint
 introducido después de EN-010 y el servicio no se expone.

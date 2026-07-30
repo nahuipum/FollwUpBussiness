@@ -1,0 +1,152 @@
+name: Backend EN-010 Remediation CI
+
+on:
+  push:
+    branches: [remediation/EN-010-dof-blockers]
+    paths:
+      - .github/workflows/backend-en010-remediation-ci.yml
+      - backend/followupbussiness/**
+      - docs/architecture/adr/ADR-010-linea-base-seguridad-secretos-locales.md
+      - docs/security/EN-010-sca-policy.md
+  pull_request:
+    paths:
+      - .github/workflows/backend-en010-remediation-ci.yml
+      - backend/followupbussiness/**
+      - docs/architecture/adr/ADR-010-linea-base-seguridad-secretos-locales.md
+      - docs/security/EN-010-sca-policy.md
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-en010-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-and-sca:
+    name: JDK 21 / Maven verify / SCA
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      FIELD_SALES_SECURITY_LOCAL_SECRET: CI_ONLY_NON_SECRET_012345678901234567890123456789
+    defaults:
+      run:
+        working-directory: backend/followupbussiness
+        shell: bash
+    steps:
+      - name: Checkout candidate snapshot
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Set up Temurin JDK 21
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          cache-dependency-path: backend/followupbussiness/pom.xml
+
+      - name: Record toolchain
+        run: |
+          java -version
+          ./mvnw --version
+
+      - name: Clean verify with Maven Wrapper
+        run: ./mvnw --batch-mode --no-transfer-progress clean verify
+
+      - name: Re-run architecture boundary tests explicitly
+        run: >-
+          ./mvnw --batch-mode --no-transfer-progress
+          -Dtest=HexagonalArchitectureTest,ModuleBoundaryTest test
+
+      - name: Prepare candidate evidence
+        run: |
+          set -euo pipefail
+          mkdir -p target/ci-evidence
+          test -f target/followupbussiness-0.0.1-SNAPSHOT.jar
+          test -f target/sbom/application.cdx.json
+          {
+            printf 'candidate_commit=%s\n' "$GITHUB_SHA"
+            printf 'workflow_run_id=%s\n' "$GITHUB_RUN_ID"
+            printf 'workflow_run_attempt=%s\n' "$GITHUB_RUN_ATTEMPT"
+            printf 'workflow_run_url=https://github.com/%s/actions/runs/%s\n' "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"
+            printf 'runner_os=%s\n' "$RUNNER_OS"
+            printf 'runner_arch=%s\n' "$RUNNER_ARCH"
+            printf 'build_command=./mvnw --batch-mode --no-transfer-progress clean verify\n'
+            printf 'sca_tool=Trivy v0.70.0\n'
+            printf 'sca_policy=fail on any HIGH or CRITICAL vulnerability, fixed or unfixed\n'
+            uname -a
+            java -version 2>&1
+            ./mvnw --version
+          } > target/ci-evidence/ci-environment.txt
+
+      - name: Inventory tracked candidate files
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          git ls-files -z | LC_ALL=C sort -z | xargs -0 sha256sum > backend/followupbussiness/target/ci-evidence/source-files.sha256
+
+      - name: SCA full JSON report from CycloneDX SBOM
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: v0.70.0
+          scan-type: sbom
+          scan-ref: backend/followupbussiness/target/sbom/application.cdx.json
+          scanners: vuln
+          format: json
+          output: backend/followupbussiness/target/ci-evidence/trivy-sca.json
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+          ignore-unfixed: "false"
+          exit-code: "0"
+          timeout: 15m
+
+      - name: SCA policy gate for High and Critical vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: v0.70.0
+          skip-setup-trivy: "true"
+          scan-type: sbom
+          scan-ref: backend/followupbussiness/target/sbom/application.cdx.json
+          scanners: vuln
+          format: table
+          output: backend/followupbussiness/target/ci-evidence/trivy-policy.txt
+          severity: HIGH,CRITICAL
+          ignore-unfixed: "false"
+          exit-code: "1"
+          timeout: 15m
+
+      - name: Hash candidate deliverables and reports
+        if: always()
+        run: |
+          set -euo pipefail
+          files=(target/followupbussiness-0.0.1-SNAPSHOT.jar target/sbom/application.cdx.json target/ci-evidence/ci-environment.txt target/ci-evidence/source-files.sha256 target/ci-evidence/trivy-sca.json target/ci-evidence/trivy-policy.txt)
+          for file in "${files[@]}"; do test -f "$file"; done
+          sha256sum "${files[@]}" > target/ci-evidence/deliverables.sha256
+
+      - name: Publish minimized candidate evidence
+        if: always()
+        id: evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: backend-en010-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 30
+          path: |
+            backend/followupbussiness/target/followupbussiness-0.0.1-SNAPSHOT.jar
+            backend/followupbussiness/target/sbom/application.cdx.json
+            backend/followupbussiness/target/surefire-reports/**
+            backend/followupbussiness/target/ci-evidence/**
+
+      - name: Summarize evidence
+        if: always()
+        working-directory: ${{ github.workspace }}
+        run: |
+          {
+            printf '## EN-010 candidate evidence\n\n'
+            printf -- '- Commit: `%s`\n' "$GITHUB_SHA"
+            printf -- '- Run: `%s` (attempt `%s`)\n' "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT"
+            printf -- '- Artifact ID: `%s`\n' "${{ steps.evidence.outputs.artifact-id }}"
+            printf -- '- Artifact SHA-256: `%s`\n' "${{ steps.evidence.outputs.artifact-digest }}"
+            printf -- '- Build: Maven Wrapper `clean verify` on Temurin JDK 21\n'
+            printf -- '- SCA gate: Trivy 0.70.0; fail on HIGH or CRITICAL, including unfixed findings\n'
+          } >> "$GITHUB_STEP_SUMMARY"

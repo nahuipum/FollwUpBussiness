@@ -129,7 +129,7 @@ class AuthenticationContractPolicyTest {
 
     private static Path repositoryRoot() {
         Path candidate = Path.of("").toAbsolutePath();
-        while (candidate != null && !Files.isDirectory(candidate.resolve(".git"))) {
+        while (candidate != null && !Files.exists(candidate.resolve(".git"))) {
             candidate = candidate.getParent();
         }
         if (candidate == null) {
