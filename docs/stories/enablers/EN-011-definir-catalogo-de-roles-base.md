@@ -1,4 +1,4 @@
-﻿# EN-011 — Definir catálogo de roles base
+# EN-011 — Definir catálogo de roles base
 
 **Área:** Backend  
 **Tipo:** Enabler técnico  
@@ -42,6 +42,23 @@ Disponer de un catálogo estable de roles base antes de provisionar usuarios, si
 - Tipos de usuario 6.1 a 6.4
 - RF-AUT-003
 - RNF-006
+- ADR-011, opción A, aceptada el 2026-07-30 por autorización explícita del
+  Product Owner en la orquestación.
+- Política SCA de cierre:
+  `docs/security/EN-011-sca-policy.md`.
+- Manifiesto reproducible:
+  `docs/handoffs/backend/EN-011-closure-remediation-manifest.md`.
+- Handoff de remediación de cierre:
+  `docs/handoffs/backend/EN-011-closure-remediation-handoff.md`.
+
+## Estado de evidencia de cierre
+
+La aceptación de ADR-011 y la nueva configuración CI/SCA modifican el
+snapshot previamente revisado. Los handoffs históricos de QA y Ciberseguridad
+no validan este candidato y deben repetirse sobre el manifiesto nuevo. El
+workflow prepara y conserva durante 30 días una evidencia de allowlist cerrada;
+solo una ejecución real sobre el commit candidato puede aportar estado CI/SCA,
+versión/fecha de la base Trivy y resultado del gate High/Critical.
 
 ## Seguridad y privacidad
 

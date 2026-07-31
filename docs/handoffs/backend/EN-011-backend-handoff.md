@@ -1,5 +1,13 @@
 # Backend Handoff — EN-011
 
+> **Trazabilidad sustituida el 2026-07-30.** ADR-011 fue aceptado conforme a la
+> opción A y se añadió el cierre CI/SCA. Los hashes y resultados históricos de
+> este documento describen un snapshot anterior y no validan el candidato
+> actual. La referencia vigente es
+> `docs/handoffs/backend/EN-011-closure-remediation-handoff.md`; el workflow
+> conserva 30 días la evidencia técnica allowlisted, y QA/Ciberseguridad deben
+> repetirse sobre su manifiesto y el SHA ejecutado.
+
 ## Trazabilidad
 
 - Historia:
@@ -39,8 +47,9 @@ OpenAPI. Tampoco se implementó alcance de EN-012, BE-057, BE-003 o BE-007.
 
 ## ADR
 
-`docs/architecture/adr/ADR-011-catalogo-roles-base.md` permanece en estado
-`Propuesto` y documenta:
+`docs/architecture/adr/ADR-011-catalogo-roles-base.md` está `Aceptado` desde
+2026-07-30 por decisión explícita del Product Owner en la orquestación,
+conforme a la opción A, y documenta:
 
 - PostgreSQL y Flyway como persistencia e inicialización;
 - códigos estables y ámbitos de plataforma/empresa;

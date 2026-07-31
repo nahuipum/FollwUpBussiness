@@ -1,6 +1,10 @@
 # ADR-011 — Catálogo de roles base
 
-**Estado:** Propuesto
+**Estado:** Aceptado
+**Responsable de la decisión:** Product Owner, mediante autorización explícita
+del usuario en la orquestación
+**Fecha de aceptación:** 2026-07-30
+**Historia:** EN-011
 
 ## Contexto
 
@@ -16,6 +20,10 @@ empresa, usuario, rol y permisos. EN-011 solo aporta el vocabulario estable y
 persistente; no declara cumplidas esas validaciones funcionales.
 
 ## Decisión
+
+Se acepta la opción A: un catálogo global, cerrado, versionado y persistido por
+el servidor. Esta aceptación estabiliza los cuatro códigos y sus ámbitos; no
+aprueba asignaciones de rol, autenticación ni autorización por recurso.
 
 ### Códigos y ámbitos
 
@@ -112,8 +120,15 @@ tenant, rol, permiso y recurso con independencia del DTO.
 - EN-011 no ofrece una forma de autenticarse ni de asignar roles.
 - Cambiar o agregar códigos exige una nueva migración, actualización del
   dominio, pruebas y revisión de compatibilidad.
+- EN-012, BE-057, BE-003 y BE-007 pueden consumir estos códigos como
+  referencias estables, pero deben aprobar y probar sus propios controles de
+  identidad, tenant, asignación y autorización.
+- Cada candidato que modifique EN-011 debe ejecutar la validación Backend y el
+  gate SCA del árbol resuelto antes de una revisión independiente. Su evidencia
+  técnica autorizada se conserva 30 días mediante un artefacto de allowlist
+  cerrada, sin secretos, variables de entorno ni payloads de negocio.
 
-## Riesgos
+## Riesgos residuales
 
 - Un código renombrado rompería referencias posteriores. Se mitiga tratándolo
   como contrato estable y probándolo literalmente.
@@ -126,6 +141,33 @@ tenant, rol, permiso y recurso con independencia del DTO.
 - Los overrides coordinados deben revisarse al actualizar Spring Boot para
   adoptar su nueva línea administrada o una versión corregida posterior; no
   deben degradarse silenciosamente ni fragmentarse en pins individuales.
+- El catálogo global no aporta aislamiento a futuras asignaciones. Esas
+  relaciones deberán incluir tenant y autorización por objeto, con pruebas
+  negativas de acceso cruzado.
+- La aceptación del ADR no sustituye la repetición de QA y Ciberseguridad sobre
+  el snapshot que incorpora esta decisión y la evidencia CI/SCA.
+- El SBOM es solo inventario. La conclusión de vulnerabilidades requiere el
+  reporte separado de la herramienta SCA y una base de datos disponible y
+  fechada.
+
+## Condiciones para un ADR sustituto
+
+Debe proponerse y aceptarse un ADR sustituto antes de:
+
+- agregar, eliminar o renombrar un código de rol base;
+- cambiar un rol entre ámbito `PLATFORM` y `COMPANY`;
+- reemplazar el catálogo global por catálogos por tenant o roles
+  personalizables;
+- trasladar el ownership fuera de `identityaccess`;
+- habilitar creación, edición, asignación o elevación de roles mediante una
+  superficie externa;
+- cambiar PostgreSQL/Flyway como fuente persistente e inicialización
+  versionada.
+
+El ADR sustituto deberá identificar compatibilidad con referencias existentes,
+migración forward-only, aislamiento multiempresa, autorización, auditoría,
+rollback y repetición de QA/Ciberseguridad. Mientras no sea aceptado, los
+códigos y ámbitos de esta decisión permanecen inmutables.
 
 ## Reversión
 
