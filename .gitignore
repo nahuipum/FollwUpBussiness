@@ -519,6 +519,9 @@ failsafe-reports/
 .agents/logs/
 .agents/tmp/
 
+# Grafo local de Graphify: se regenera por máquina y puede contener un índice grande.
+graphify-out/
+
 
 # ============================================================
 # 20. ARCHIVOS DE IDE O WORKSPACE PERSONALES
