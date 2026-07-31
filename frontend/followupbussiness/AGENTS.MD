@@ -1,55 +1,26 @@
 # Frontend — Instrucciones locales
 
-## Contexto obligatorio
+## Contexto
 
-Antes de modificar el frontend, revisar:
+- Aplicar `../../AGENTS.MD`.
+- Leer completa la historia Frontend indicada.
+- Abrir solo los fragmentos OpenAPI y contratos WebSocket afectados.
+- Inspeccionar primero el diff, la feature y sus pruebas.
 
-- `../AGENTS.md`
-- `../00_CONTRATO_FUNCIONAL.md`
-- `../shared/PROJECT_CONTEXT.md`
-- `../shared/ENGINEERING_RULES.md`
-- La historia correspondiente en `../docs/stories/`
-- `../docs/api/openapi.yaml`
+## Invariantes
 
-Roles relacionados:
+- Usar React y TypeScript estricto; evitar `any` sin justificación.
+- Derivar tipos del contrato cuando el proyecto lo permita.
+- Organizar por features y no duplicar reglas de negocio del backend.
+- La autorización visual no sustituye la autorización del servidor.
+- Cubrir carga, vacío, error, falta de permiso y datos desactualizados.
+- Mostrar la última actualización; nunca presentar ubicación antigua como actual.
+- Proveer reconexión/fallback para WebSocket y alternativa accesible al mapa.
+- Limpiar estado y caché al cerrar sesión o cambiar de empresa.
+- No guardar tokens en mecanismos inseguros ni registrar datos personales.
 
-- Desarrollo: `../agents/development/frontend-developer.md`
-- QA: `../agents/qa/frontend-qa.md`
-- Seguridad: `../agents/security/cybersecurity-reviewer.md`
-- DoF: `../agents/governance/definition-of-finished.md`
+## Verificación
 
-## Stack
-
-- React
-- TypeScript estricto
-- REST
-- WebSocket
-- Mapas
-
-## Reglas obligatorias
-
-- No utilizar `any` sin justificación.
-- Consumir tipos derivados del contrato OpenAPI.
-- Organizar el código por funcionalidades.
-- No duplicar reglas de negocio del backend.
-- La autorización visual no reemplaza la autorización backend.
-- Toda pantalla debe manejar:
-  - carga;
-  - vacío;
-  - error;
-  - falta de permisos;
-  - datos desactualizados.
-- Toda ubicación debe mostrar la última actualización.
-- WebSocket debe tener reconexión y fallback.
-- El mapa no debe ser la única forma de consultar información.
-- No almacenar secretos ni tokens en mecanismos inseguros.
-- Limpiar caché y estado al cerrar sesión.
-
-## Comandos
-
-```bash
-npm install
-npm run dev
-npm run test
-npm run lint
-npm run build
+Ejecutar pruebas dirigidas y type-check primero. Ejecutar lint y build completos
+cuando el cambio, el gate o un fallo lo justifique. Reportar resultados de forma
+resumida.
