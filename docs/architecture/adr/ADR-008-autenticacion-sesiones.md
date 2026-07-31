@@ -114,6 +114,20 @@ ni admite `allSessions=true`; su pérdida puede causar como máximo un logout
 idempotente de la propia familia. Un timeout, error de red o respuesta no
 exitosa nunca conserva access/refresh ni reanuda rastreo.
 
+El cierre MOBILE pendiente también revoca inmediatamente las vinculaciones de
+push de instalación asociadas a esa familia mediante el puerto público de
+`notifications` definido en ADR-017. `identityaccess` resuelve el HMAC del
+ticket y entrega al puerto solo `sessionFamilyId` y ámbito técnico derivado; no
+transmite el ticket, access, refresh, token push, tenant o usuario declarados
+por el cliente. El resultado sigue siendo un cierre idempotente de la propia
+familia y no habilita una operación de dispositivo autónoma con el ticket.
+
+La entrega de activación/recuperación mediante `IdentityNotificationPort` sigue
+ADR-017: trabajo durable cifrado y de acceso mínimo, `expiresAt` no posterior
+al token, latest-wins por tenant+cuenta+propósito, reintento sin superar la
+expiración y crypto-erase al resolver. La respuesta neutral no depende de
+creación, cuota, fallo o entrega del trabajo.
+
 El servidor envía `Cache-Control: no-store` y `Pragma: no-cache` en toda respuesta que contenga o rote credenciales.
 
 ### CSRF y CORS

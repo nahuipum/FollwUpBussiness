@@ -184,9 +184,12 @@ paths:
         X-Logout-Intent: PENDING y Origin allowlisted: no recibe credenciales y
         el servidor elimina la cookie. El preflight CORS permite
         X-Logout-Intent solo para ese Origin y POST /auth/logout. MOBILE pendiente usa exclusivamente
-        X-Session-Revocation-Ticket para la familia, sin allSessions. Limpieza
-        local y detención de rastreo preceden a la respuesta remota. La
-        revocación no se rechaza por rate limit.
+        X-Session-Revocation-Ticket para la familia, sin allSessions. Al
+        resolverlo, el servidor revoca también las vinculaciones de dispositivo
+        MOBILE de esa familia por el puerto interno de notificaciones, sin
+        transportar ticket, access, refresh ni token push a dicho puerto.
+        Limpieza local y detención de rastreo preceden a la respuesta remota.
+        La revocación no se rechaza por rate limit.
       security:
         - bearerAuth: []
         - webRefreshCookie: []
@@ -2232,9 +2235,8 @@ paths:
       x-story-ids: [MOB-002, MOB-029]
       responses:
         '204':
-          description: Dispositivo revocado
+          description: Resuelve atómicamente tenant+usuario derivados+deviceId y devuelve 204 con resultado/tiempo indistinguibles para dispositivo propio, ajeno, revocado o inexistente; no revela pertenencia. Autenticación y rol se validan antes.
         '403': { $ref: '#/components/responses/Forbidden' }
-        '404': { $ref: '#/components/responses/NotFound' }
 
   /mobile/bootstrap:
     get:
