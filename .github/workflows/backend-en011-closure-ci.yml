@@ -1,0 +1,348 @@
+name: Backend EN-011 Closure CI
+
+on:
+  push:
+    paths:
+      - .github/workflows/backend-en011-closure-ci.yml
+      - backend/followupbussiness/**
+      - docs/architecture/adr/ADR-011-catalogo-roles-base.md
+      - docs/security/EN-011-sca-policy.md
+      - docs/stories/enablers/EN-011-definir-catalogo-de-roles-base.md
+      - docs/handoffs/backend/EN-011-closure-remediation-*.md
+  pull_request:
+    paths:
+      - .github/workflows/backend-en011-closure-ci.yml
+      - backend/followupbussiness/**
+      - docs/architecture/adr/ADR-011-catalogo-roles-base.md
+      - docs/security/EN-011-sca-policy.md
+      - docs/stories/enablers/EN-011-definir-catalogo-de-roles-base.md
+      - docs/handoffs/backend/EN-011-closure-remediation-*.md
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-en011-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-and-sca:
+    name: JDK 21 / Maven verify / EN-011 SCA
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: backend/followupbussiness
+        shell: bash
+    steps:
+      - name: Checkout candidate snapshot
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Set up Temurin JDK 21
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          cache-dependency-path: backend/followupbussiness/pom.xml
+
+      - name: Record toolchain
+        run: |
+          java -version
+          ./mvnw --version
+
+      - name: Clean verify with Maven Wrapper
+        run: ./mvnw --batch-mode --no-transfer-progress clean verify
+
+      - name: Re-run EN-011 domain, Testcontainers and security tests
+        run: >-
+          ./mvnw --batch-mode --no-transfer-progress
+          -Dtest=BaseRoleTest,BaseRoleCatalogMigrationTest,SecurityConfigurationTest,DependencySecurityPolicyTest
+          test
+
+      - name: Re-run architecture boundary tests explicitly
+        run: >-
+          ./mvnw --batch-mode --no-transfer-progress
+          -Dtest=HexagonalArchitectureTest,ModuleBoundaryTest test
+
+      - name: Prepare reproducibility evidence
+        run: |
+          set -euo pipefail
+          mkdir -p target/ci-evidence
+          test -f target/followupbussiness-0.0.1-SNAPSHOT.jar
+          test -f target/sbom/application.cdx.json
+          ./mvnw --batch-mode --no-transfer-progress help:effective-pom \
+            -Doutput=target/ci-evidence/effective-pom-en011.xml
+          ./mvnw --batch-mode --no-transfer-progress dependency:tree \
+            -Dverbose \
+            -DoutputFile=target/ci-evidence/dependency-tree-en011.txt
+          {
+            printf 'candidate_commit=%s\n' "$GITHUB_SHA"
+            printf 'workflow_run_id=%s\n' "$GITHUB_RUN_ID"
+            printf 'workflow_run_attempt=%s\n' "$GITHUB_RUN_ATTEMPT"
+            printf 'workflow_run_url=https://github.com/%s/actions/runs/%s\n' "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"
+            printf 'build_command=./mvnw --batch-mode --no-transfer-progress clean verify\n'
+            printf 'sca_tool=Trivy 0.70.0\n'
+            printf 'sca_input=aggregate CycloneDX SBOM for the resolved Maven dependency tree\n'
+            printf 'sca_policy=fail on any HIGH or CRITICAL vulnerability, fixed or unfixed\n'
+            printf 'sast_status=SAST_CONFIG_MISSING\n'
+            date -u '+observed_at_utc=%Y-%m-%dT%H:%M:%SZ'
+            java -version 2>&1
+            ./mvnw --version
+          } > target/ci-evidence/candidate-manifest.txt
+          printf 'SAST_CONFIG_MISSING\n' > target/ci-evidence/sast-status.txt
+
+      - name: SCA full resolved dependency tree report
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: v0.70.0
+          cache-dir: ${{ github.workspace }}/.cache/trivy
+          scan-type: sbom
+          scan-ref: backend/followupbussiness/target/sbom/application.cdx.json
+          scanners: vuln
+          format: json
+          output: backend/followupbussiness/target/ci-evidence/trivy-sca-full.json
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+          ignore-unfixed: "false"
+          exit-code: "0"
+          timeout: 15m
+
+      - name: Record SCA tool, database and observation time
+        env:
+          TRIVY_CACHE_DIR: ${{ github.workspace }}/.cache/trivy
+        run: |
+          set -euo pipefail
+          cache_db="$TRIVY_CACHE_DIR/db/trivy.db"
+          cache_metadata="$TRIVY_CACHE_DIR/db/metadata.json"
+          test -f "$cache_db"
+          test -f "$cache_metadata"
+          trivy --version --format json \
+            > target/ci-evidence/trivy-version-db.json
+          date -u '+%Y-%m-%dT%H:%M:%SZ' \
+            > target/ci-evidence/sca-observed-at.txt
+          jq -e '.Version == "0.70.0"' \
+            target/ci-evidence/trivy-version-db.json
+          observed_at="$(cat target/ci-evidence/sca-observed-at.txt)"
+          db_sha256="$(sha256sum "$cache_db" | awk '{print $1}')"
+          metadata_sha256="$(sha256sum "$cache_metadata" | awk '{print $1}')"
+          db_size_bytes="$(stat --format='%s' "$cache_db")"
+          metadata_size_bytes="$(stat --format='%s' "$cache_metadata")"
+          db_updated_at="$(jq -r 'if (.VulnerabilityDB.UpdatedAt? | type) == "string" then .VulnerabilityDB.UpdatedAt else empty end' target/ci-evidence/trivy-version-db.json)"
+          if [[ -n "$db_updated_at" ]]; then
+            test "$(date --date="$db_updated_at" '+%s')" -le \
+              "$(date --date="$observed_at" '+%s')"
+          fi
+          jq -n --arg observedAt "$observed_at" --arg updatedAt "$db_updated_at" \
+            --arg cacheDirectory "$TRIVY_CACHE_DIR" \
+            --arg dbSha256 "$db_sha256" --arg metadataSha256 "$metadata_sha256" \
+            --argjson dbSizeBytes "$db_size_bytes" --argjson metadataSizeBytes "$metadata_size_bytes" \
+            '{observedAt: $observedAt, cacheDirectory: $cacheDirectory, files: [
+              {path: "db/trivy.db", sha256: $dbSha256, sizeBytes: $dbSizeBytes},
+              {path: "db/metadata.json", sha256: $metadataSha256, sizeBytes: $metadataSizeBytes}
+            ]} | if $updatedAt == "" then . else . + {updatedAt: $updatedAt} end' \
+            > target/ci-evidence/trivy-db-evidence.json
+          jq -e '(.observedAt | type == "string" and length > 0) and
+            (.files | length == 2) and all(.files[];
+              (.sha256 | test("^[0-9a-f]{64}$")) and
+              (.sizeBytes | type == "number" and . > 0))' \
+            target/ci-evidence/trivy-db-evidence.json
+
+      - name: SCA policy gate for High and Critical vulnerabilities
+        id: trivy_gate
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: v0.70.0
+          cache-dir: ${{ github.workspace }}/.cache/trivy
+          skip-setup-trivy: "true"
+          scan-type: sbom
+          scan-ref: backend/followupbussiness/target/sbom/application.cdx.json
+          scanners: vuln
+          format: table
+          output: backend/followupbussiness/target/ci-evidence/trivy-policy-high-critical.txt
+          severity: HIGH,CRITICAL
+          ignore-unfixed: "false"
+          exit-code: "1"
+          timeout: 15m
+
+      - name: Record High and Critical gate result
+        env:
+          TRIVY_GATE_OUTCOME: ${{ steps.trivy_gate.outcome }}
+        run: |
+          set -euo pipefail
+          case "$TRIVY_GATE_OUTCOME" in
+            success)
+              printf 'TRIVY_GATE_HIGH_CRITICAL=PASS\n' \
+                > target/ci-evidence/trivy-gate-status.txt
+              ;;
+            failure)
+              printf 'TRIVY_GATE_HIGH_CRITICAL=FAIL\n' \
+                > target/ci-evidence/trivy-gate-status.txt
+              ;;
+            *)
+              printf 'Unexpected Trivy gate outcome: %s\n' "$TRIVY_GATE_OUTCOME" >&2
+              exit 1
+              ;;
+          esac
+
+      - name: Stage only the authorized artifact payload
+        run: |
+          set -euo pipefail
+          artifact_root=target/en011-artifact
+          rm -rf "$artifact_root"
+          mkdir -p \
+            "$artifact_root/build" \
+            "$artifact_root/dependencies" \
+            "$artifact_root/tests" \
+            "$artifact_root/sca" \
+            "$artifact_root/manifests"
+
+          install -m 0644 target/followupbussiness-0.0.1-SNAPSHOT.jar \
+            "$artifact_root/build/followupbussiness-0.0.1-SNAPSHOT.jar"
+          install -m 0644 target/sbom/application.cdx.json \
+            "$artifact_root/dependencies/application.cdx.json"
+          install -m 0644 target/ci-evidence/effective-pom-en011.xml \
+            "$artifact_root/dependencies/effective-pom-en011.xml"
+          install -m 0644 target/ci-evidence/dependency-tree-en011.txt \
+            "$artifact_root/dependencies/dependency-tree-en011.txt"
+          mkdir -p "$artifact_root/tests/surefire-reports"
+          find target/surefire-reports -maxdepth 1 -type f \
+            \( -name 'TEST-*.xml' -o -name '*.txt' \) \
+            -exec install -m 0644 {} "$artifact_root/tests/surefire-reports/" \;
+          test -n "$(find "$artifact_root/tests/surefire-reports" -type f -print -quit)"
+          if [[ -d target/failsafe-reports ]]; then
+            mkdir -p "$artifact_root/tests/failsafe-reports"
+            find target/failsafe-reports -maxdepth 1 -type f \
+              \( -name 'TEST-*.xml' -o -name '*.txt' \) \
+              -exec install -m 0644 {} "$artifact_root/tests/failsafe-reports/" \;
+          fi
+          install -m 0644 target/ci-evidence/trivy-sca-full.json \
+            "$artifact_root/sca/trivy-sca-full.json"
+          install -m 0644 target/ci-evidence/trivy-policy-high-critical.txt \
+            "$artifact_root/sca/trivy-policy-high-critical.txt"
+          install -m 0644 target/ci-evidence/trivy-gate-status.txt \
+            "$artifact_root/sca/trivy-gate-status.txt"
+          install -m 0644 target/ci-evidence/trivy-version-db.json \
+            "$artifact_root/sca/trivy-version-db.json"
+          install -m 0644 target/ci-evidence/trivy-db-evidence.json \
+            "$artifact_root/sca/trivy-db-evidence.json"
+          install -m 0644 target/ci-evidence/sca-observed-at.txt \
+            "$artifact_root/sca/sca-observed-at.txt"
+          install -m 0644 target/ci-evidence/sast-status.txt \
+            "$artifact_root/sca/sast-status.txt"
+          install -m 0644 target/ci-evidence/candidate-manifest.txt \
+            "$artifact_root/manifests/candidate-manifest.txt"
+
+      - name: Enforce artifact path allowlist and secret exclusion
+        run: |
+          set -euo pipefail
+          artifact_root=target/en011-artifact
+          test -d "$artifact_root"
+
+          if find "$artifact_root" -type l -print -quit | grep -q .; then
+            printf 'Symbolic links are forbidden in the EN-011 artifact\n' >&2
+            exit 1
+          fi
+
+          while IFS= read -r file; do
+            relative_path="${file#"$artifact_root"/}"
+            case "$relative_path" in
+              build/followupbussiness-0.0.1-SNAPSHOT.jar|\
+              dependencies/application.cdx.json|\
+              dependencies/effective-pom-en011.xml|\
+              dependencies/dependency-tree-en011.txt|\
+              tests/surefire-reports/TEST-*.xml|\
+              tests/surefire-reports/*.txt|\
+              tests/failsafe-reports/TEST-*.xml|\
+              tests/failsafe-reports/*.txt|\
+              sca/trivy-sca-full.json|\
+              sca/trivy-policy-high-critical.txt|\
+              sca/trivy-gate-status.txt|\
+              sca/trivy-version-db.json|\
+              sca/trivy-db-evidence.json|\
+              sca/sca-observed-at.txt|\
+              sca/sast-status.txt|\
+              manifests/candidate-manifest.txt)
+                ;;
+              *)
+                printf 'Unauthorized artifact path: %s\n' "$relative_path" >&2
+                exit 1
+                ;;
+            esac
+          done < <(find "$artifact_root" -type f -print | LC_ALL=C sort)
+
+          if find "$artifact_root" -type f \
+              \( -iname '.env' -o -iname '.env.*' -o -iname '*.pem' \
+                 -o -iname '*.key' -o -iname 'id_rsa*' \
+                 -o -iname 'credentials.json' -o -iname 'secrets.json' \) \
+              -print -quit | grep -q .; then
+            printf 'Forbidden sensitive filename in the EN-011 artifact\n' >&2
+            exit 1
+          fi
+
+          secret_pattern='-----BEGIN ([A-Z0-9 ]+ )?PRIVATE KEY-----|AKIA[0-9A-Z]{16}|github_pat_[A-Za-z0-9_]{20,}|gh[pousr]_[A-Za-z0-9]{20,}|xox[baprs]-[A-Za-z0-9-]{10,}|Bearer[[:space:]]+[A-Za-z0-9._~+/-]{16,}|(password|passwd|client[_-]?secret|api[_-]?key|access[_-]?token)[[:space:]]*[:=][[:space:]]*[^$<{[:space:]][^[:space:]]{7,}'
+          if grep -I -R -n -E -i -e "$secret_pattern" "$artifact_root" \
+              --exclude='*.jar'; then
+            printf 'Potential secret detected in the EN-011 artifact\n' >&2
+            exit 1
+          fi
+
+          jar_scan_dir="$(mktemp -d)"
+          trap 'rm -rf "$jar_scan_dir"' EXIT
+          unzip -qq "$artifact_root/build/followupbussiness-0.0.1-SNAPSHOT.jar" \
+            -d "$jar_scan_dir"
+          if find "$jar_scan_dir" -type f \
+              \( -iname '.env' -o -iname '.env.*' -o -iname '*.pem' \
+                 -o -iname '*.key' -o -iname 'id_rsa*' \
+                 -o -iname 'credentials.json' -o -iname 'secrets.json' \) \
+              -print -quit | grep -q .; then
+            printf 'Forbidden sensitive filename packaged in the JAR\n' >&2
+            exit 1
+          fi
+          if grep -I -R -n -E -i -e "$secret_pattern" "$jar_scan_dir"; then
+            printf 'Potential secret packaged in the JAR\n' >&2
+            exit 1
+          fi
+
+      - name: Hash and verify authorized artifact payload
+        run: |
+          set -euo pipefail
+          artifact_root=target/en011-artifact
+          (
+            cd "$artifact_root"
+            find build dependencies tests sca manifests -type f \
+              ! -path 'manifests/deliverables.sha256' -print0 \
+              | LC_ALL=C sort -z \
+              | xargs -0 sha256sum > manifests/deliverables.sha256
+            sha256sum --check manifests/deliverables.sha256
+          )
+
+      - name: Upload authorized EN-011 evidence for 30 days
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: backend-en011-closure-${{ github.sha }}-${{ github.run_attempt }}
+          path: backend/followupbussiness/target/en011-artifact
+          if-no-files-found: error
+          retention-days: 30
+          include-hidden-files: false
+
+      - name: Summarize published evidence
+        working-directory: ${{ github.workspace }}
+        run: |
+          {
+            printf '## EN-011 closure candidate evidence\n\n'
+            printf -- '- Commit: `%s`\n' "$GITHUB_SHA"
+            printf -- '- Run: `%s` (attempt `%s`)\n' "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT"
+            printf -- '- Build: Maven Wrapper `clean verify` on Temurin JDK 21\n'
+            printf -- '- SCA: Trivy 0.70.0 over the aggregate resolved dependency tree\n'
+            printf -- '- Gate: fail on HIGH or CRITICAL, including unfixed findings\n'
+            printf -- '- Evidence: allowlisted, secret-scanned, hashed and retained as a GitHub artifact for 30 days\n'
+            printf -- '- SAST: `SAST_CONFIG_MISSING`\n'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Enforce High and Critical gate after evidence upload
+        if: steps.trivy_gate.outcome != 'success'
+        run: |
+          printf 'Trivy found a HIGH/CRITICAL vulnerability or the gate failed\n' >&2
+          exit 1
