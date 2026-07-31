@@ -1465,7 +1465,7 @@ paths:
       tags: [Journeys, Mobile]
       operationId: appendJourneyLocations
       summary: Recibir un lote ordenado de ubicaciones
-      description: Cada muestra tiene clientEventId propio; los duplicados se aceptan sin crear registros nuevos.
+      description: Cada muestra tiene clientEventId propio. La guarda de lote precede a la guarda por muestra y vincula Idempotency-Key+batchId al tenant/owner derivados, jornada, deviceId y fingerprint del conjunto ordenado. Replay exacto devuelve el acuse original semánticamente idéntico, incluidos statuses originales, sin reprocesar muestras; no convierte ACCEPTED en DUPLICATE. Binding igual con contexto/fingerprint/orden distinto devuelve 409 LOCATION_BATCH_IDEMPOTENCY_CONFLICT sin mutación. Solo un lote lógico nuevo aplica guardas por muestra y puede devolver DUPLICATE por clientEventId previamente aceptado. ADR-016 exige jornada activa, máximo una aceptada por ventana UTC de capturedAt de 60 s, precisión <=50 m, antigüedad <=5 min y adelanto servidor <=2 min. Una inválida se rechaza individualmente sin efectos.
       x-required-roles: [SELLER]
       x-story-ids: [BE-029, BE-030, BE-031, MOB-008, MOB-009, INT-011]
       parameters:
@@ -1477,15 +1477,16 @@ paths:
             schema: { $ref: '#/components/schemas/LocationBatchRequest' }
       responses:
         '200':
-          description: Resultado por muestra
+          description: Acuse con exactamente un resultado por cada clientEventId recibido, en el mismo orden y sin resultados adicionales.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/LocationBatchResponse' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
-        '409': { $ref: '#/components/responses/Conflict' }
+        '409': { $ref: '#/components/responses/LocationBatchConflict' }
         '422': { $ref: '#/components/responses/UnprocessableEntity' }
+        '429': { $ref: '#/components/responses/LocationRateLimited' }
 
   /journeys/{journeyId}/track:
     parameters:
@@ -1494,8 +1495,22 @@ paths:
       tags: [Tracking]
       operationId: getJourneyTrack
       summary: Consultar el recorrido histórico de una jornada
+      description: Contrato futuro BE-032/FE-022. La jornada debe corresponder al vendedor y fecha solicitados. Devuelve solo puntos aceptados, no vencidos y paginados en secuencia temporal. Los puntos de visita se consultan de forma paginada en GET /visits con journeyId.
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
       x-story-ids: [BE-032, FE-022, INT-012]
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: sellerId
+          in: query
+          required: true
+          description: Debe pertenecer al tenant; para SUPERVISOR debe estar en su equipo vigente.
+          schema: { type: string, format: uuid }
+        - name: businessDate
+          in: query
+          required: true
+          description: Fecha operativa usada por el filtro FE-022; debe coincidir con la jornada.
+          schema: { type: string, format: date }
       responses:
         '200':
           description: Recorrido
@@ -1537,6 +1552,7 @@ paths:
       tags: [Tracking]
       operationId: listActiveSellers
       summary: Listar vendedores activos y su última ubicación
+      description: El tenant siempre se deriva de sesión. SUPERVISOR recibe únicamente su equipo vigente y no puede ampliar alcance con supervisorId. COMPANY_ADMIN recibe vendedores de su tenant y puede filtrar por un supervisor del mismo tenant. Un filtro no autorizado devuelve 403, nunca datos parciales de otro ámbito.
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
       x-story-ids: [BE-030, BE-031, FE-020, FE-021, INT-011]
       parameters:
@@ -1544,6 +1560,7 @@ paths:
         - $ref: '#/components/parameters/PageSize'
         - name: supervisorId
           in: query
+          description: Filtro opcional solo para COMPANY_ADMIN; para SUPERVISOR se omite o debe coincidir con su identidad, sin ampliar su equipo.
           schema: { type: string, format: uuid }
       responses:
         '200':
@@ -1589,6 +1606,10 @@ paths:
         - $ref: '#/components/parameters/DateTo'
         - name: sellerId
           in: query
+          schema: { type: string, format: uuid }
+        - name: journeyId
+          in: query
+          description: Filtro futuro para marcadores paginados de FE-022; se valida contra tenant, vendedor y equipo autorizado.
           schema: { type: string, format: uuid }
         - name: customerId
           in: query
@@ -2232,7 +2253,7 @@ paths:
       summary: Sincronizar comandos offline idempotentes en lote
       description: El orden de entrada se conserva. Cada comando se confirma o rechaza de forma independiente.
       x-required-roles: [SELLER]
-      x-story-ids: [MOB-009, MOB-010, MOB-014, MOB-022, MOB-025, MOB-028, INT-015, INT-018]
+      x-story-ids: [MOB-010, MOB-014, MOB-022, MOB-025, MOB-028, INT-015, INT-018]
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
@@ -2541,6 +2562,24 @@ components:
       content:
         application/problem+json:
           schema: { $ref: '#/components/schemas/ErrorResponse' }
+    LocationBatchConflict:
+      description: Idempotency-Key o batchId reutilizado con contexto, deviceId, conjunto u orden diferente; no se procesa ninguna muestra.
+      x-error-codes: [LOCATION_BATCH_IDEMPOTENCY_CONFLICT]
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    LocationRateLimited:
+      description: Presupuesto de ubicación por tenant, usuario y jornada excedido, agregado entre dispositivos.
+      x-error-codes: [LOCATION_RATE_LIMITED]
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+        Retry-After:
+          schema: { type: integer, minimum: 1 }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
     RouteOptimizationUnavailable:
       description: Motor o proveedor de matriz temporalmente no disponible
       x-error-codes:
@@ -2792,9 +2831,9 @@ components:
       properties:
         timezone: { type: string, maxLength: 100, example: America/Lima }
         currency: { type: string, pattern: '^[A-Z]{3}$', example: PEN }
-        geofenceRadiusMeters: { type: integer, minimum: 10, maximum: 5000 }
-        trackingIntervalSeconds: { type: integer, minimum: 10, maximum: 3600 }
-        locationRetentionDays: { type: integer, minimum: 1, maximum: 3650 }
+        geofenceRadiusMeters: { type: integer, const: 100, description: 'ADR-016: valor fijo del MVP; cambios requieren ADR sustituto.' }
+        trackingIntervalSeconds: { type: integer, const: 60, description: 'ADR-016: valor fijo del MVP; cambios requieren ADR sustituto.' }
+        locationRetentionDays: { type: integer, const: 90, description: 'ADR-016: purga física al vencer; cambios requieren ADR sustituto.' }
         saleEditWindowMinutes: { type: integer, minimum: 0, maximum: 10080 }
     UpdateCompanySettingsRequest:
       type: object
@@ -2803,9 +2842,9 @@ components:
       properties:
         timezone: { type: string, maxLength: 100 }
         currency: { type: string, pattern: '^[A-Z]{3}$' }
-        geofenceRadiusMeters: { type: integer, minimum: 10, maximum: 5000 }
-        trackingIntervalSeconds: { type: integer, minimum: 10, maximum: 3600 }
-        locationRetentionDays: { type: integer, minimum: 1, maximum: 3650 }
+        geofenceRadiusMeters: { type: integer, const: 100, description: 'ADR-016: no modificable durante MVP.' }
+        trackingIntervalSeconds: { type: integer, const: 60, description: 'ADR-016: no modificable durante MVP.' }
+        locationRetentionDays: { type: integer, const: 90, description: 'ADR-016: no modificable durante MVP.' }
         saleEditWindowMinutes: { type: integer, minimum: 0, maximum: 10080 }
     Company:
       type: object
@@ -3564,19 +3603,20 @@ components:
       required: [clientEventId, capturedAt, location, accuracyMeters]
       properties:
         clientEventId: { type: string, format: uuid }
-        capturedAt: { type: string, format: date-time }
+        capturedAt: { type: string, format: date-time, description: 'Regla servidor: máximo 5 min de antigüedad y máximo 2 min en el futuro.' }
         location: { $ref: '#/components/schemas/GeoPoint' }
-        accuracyMeters: { type: number, minimum: 0, maximum: 10000 }
+        accuracyMeters: { type: number, minimum: 0, maximum: 10000, description: 'Rango estructural seguro del transporte. El servidor evalúa la regla de negocio: >50 m produce REJECTED/LOCATION_ACCURACY_EXCEEDED para esta muestra, sin invalidar las demás del lote ni persistirla como ubicación.' }
         altitudeMeters: { type: number }
         speedMetersPerSecond: { type: number, minimum: 0 }
         headingDegrees: { type: number, minimum: 0, maximum: 360 }
         batteryPercent: { type: integer, minimum: 0, maximum: 100 }
-        mocked: { type: boolean }
+        mocked: { type: boolean, description: 'true implica LOCATION_MOCKED; ausente implica integridad UNKNOWN y no habilita visita.' }
     LocationBatchRequest:
       type: object
       additionalProperties: false
-      required: [deviceId, samples]
+      required: [batchId, deviceId, samples]
       properties:
+        batchId: { type: string, format: uuid, description: 'Idempotencia estable del lote lógico; no sustituye clientEventId por muestra.' }
         deviceId: { type: string, format: uuid }
         samples:
           type: array
@@ -3584,41 +3624,88 @@ components:
           maxItems: 500
           items: { $ref: '#/components/schemas/LocationSample' }
     LocationResult:
+      description: Unión discriminada por status; ninguna variante contiene coordenadas.
+      oneOf:
+        - $ref: '#/components/schemas/AcceptedLocationResult'
+        - $ref: '#/components/schemas/DuplicateLocationResult'
+        - $ref: '#/components/schemas/RejectedLocationResult'
+      discriminator:
+        propertyName: status
+        mapping:
+          ACCEPTED: '#/components/schemas/AcceptedLocationResult'
+          DUPLICATE: '#/components/schemas/DuplicateLocationResult'
+          REJECTED: '#/components/schemas/RejectedLocationResult'
+    AcceptedLocationResult:
       type: object
       additionalProperties: false
-      required: [clientEventId, status]
+      required: [clientEventId, status, serverId, integrityStatus]
       properties:
         clientEventId: { type: string, format: uuid }
-        status: { type: string, enum: [ACCEPTED, DUPLICATE, REJECTED] }
+        status: { type: string, const: ACCEPTED }
         serverId: { type: string, format: uuid }
-        errorCode: { type: string, maxLength: 80 }
+        integrityStatus: { $ref: '#/components/schemas/LocationIntegrityStatus' }
+    DuplicateLocationResult:
+      type: object
+      additionalProperties: false
+      required: [clientEventId, status, serverId, integrityStatus]
+      properties:
+        clientEventId: { type: string, format: uuid }
+        status: { type: string, const: DUPLICATE }
+        serverId: { type: string, format: uuid, description: 'Referencia de la ubicación previamente aceptada con igual fingerprint.' }
+        integrityStatus: { $ref: '#/components/schemas/LocationIntegrityStatus' }
+    RejectedLocationResult:
+      type: object
+      additionalProperties: false
+      required: [clientEventId, status, errorCode]
+      properties:
+        clientEventId: { type: string, format: uuid }
+        status: { type: string, const: REJECTED }
+        errorCode:
+          type: string
+          enum: [LOCATION_ACCURACY_EXCEEDED, LOCATION_TOO_OLD, LOCATION_TIMESTAMP_IN_FUTURE, LOCATION_FREQUENCY_EXCEEDED, LOCATION_MOCKED, TRACKING_INACTIVE, LOCATION_UNAVAILABLE, IDEMPOTENCY_CONFLICT]
+          description: Código estable y sanitizado; nunca contiene coordenadas. Repetir una muestra inválida conserva REJECTED.
     LocationBatchResponse:
       type: object
       additionalProperties: false
-      required: [results, serverTime]
+      description: results conserva el orden del request y contiene exactamente un elemento por cada samples[].clientEventId, sin omisiones, duplicados ni extras.
+      required: [batchId, results, serverTime]
       properties:
+        batchId: { type: string, format: uuid }
         results:
           type: array
+          minItems: 1
+          maxItems: 500
           items: { $ref: '#/components/schemas/LocationResult' }
         serverTime: { type: string, format: date-time }
     TrackPoint:
       type: object
       additionalProperties: false
-      required: [capturedAt, location, accuracyMeters]
+      description: Solo representa una muestra aceptada, con accuracyMeters <=50 y aún dentro de la retención de 90 días. Nunca contiene rechazos ni telemetría degradada.
+      required: [capturedAt, receivedAt, location, accuracyMeters, integrityStatus]
       properties:
         capturedAt: { type: string, format: date-time }
+        receivedAt: { type: string, format: date-time, description: 'Instante de recepción servidor usado para mostrar última actualización.' }
         location: { $ref: '#/components/schemas/GeoPoint' }
-        accuracyMeters: { type: number, minimum: 0 }
+        accuracyMeters: { type: number, minimum: 0, maximum: 50 }
+        integrityStatus: { $ref: '#/components/schemas/LocationIntegrityStatus' }
+    LocationIntegrityStatus:
+      type: string
+      description: Señal declarada; no constituye prueba antifraude ni causa sanción automática.
+      enum: [DECLARED_NOT_MOCKED, UNKNOWN]
     JourneyTrack:
       type: object
       additionalProperties: false
-      required: [journeyId, sellerId, points]
+      required: [journeyId, sellerId, businessDate, points, page]
       properties:
         journeyId: { type: string, format: uuid }
         sellerId: { type: string, format: uuid }
+        businessDate: { type: string, format: date }
         points:
           type: array
+          maxItems: 200
+          description: Página ordenada por capturedAt y desempate estable del servidor.
           items: { $ref: '#/components/schemas/TrackPoint' }
+        page: { $ref: '#/components/schemas/PageInfo' }
     CloseJourneyRequest:
       type: object
       additionalProperties: false
@@ -3679,7 +3766,8 @@ components:
         customerId: { type: string, format: uuid }
         capturedAt: { type: string, format: date-time }
         location: { $ref: '#/components/schemas/GeoPoint' }
-        accuracyMeters: { type: number, minimum: 0, maximum: 10000 }
+        accuracyMeters: { type: number, minimum: 0, maximum: 10000, description: 'Rango estructural. >50 m es baja precisión de negocio y produce eligible=false/reasonCode=LOW_ACCURACY, sin geocerca.' }
+        mocked: { type: boolean, description: 'true rechaza geocerca; ausente produce integridad UNKNOWN y no habilita visita.' }
     ProximityValidationResponse:
       type: object
       additionalProperties: false
@@ -3689,7 +3777,7 @@ components:
         distanceMeters: { type: number, minimum: 0 }
         allowedRadiusMeters: { type: integer, minimum: 1 }
         requiresException: { type: boolean }
-        reasonCode: { type: string, enum: [WITHIN_RADIUS, OUTSIDE_RADIUS, LOW_ACCURACY] }
+        reasonCode: { type: string, enum: [WITHIN_RADIUS, OUTSIDE_RADIUS, LOW_ACCURACY, LOCATION_MOCKED, LOCATION_INTEGRITY_UNKNOWN] }
     Visit:
       type: object
       additionalProperties: false
@@ -3753,7 +3841,8 @@ components:
         routePointId: { type: string, format: uuid }
         startedAt: { type: string, format: date-time }
         location: { $ref: '#/components/schemas/GeoPoint' }
-        accuracyMeters: { type: number, minimum: 0, maximum: 10000 }
+        accuracyMeters: { type: number, minimum: 0, maximum: 10000, description: 'Rango estructural. >50 m se rechaza como regla de negocio (422) y no inicia visita ni geocerca.' }
+        mocked: { type: boolean, description: 'true implica 422 LOCATION_MOCKED; ausente implica 422 LOCATION_INTEGRITY_UNKNOWN.' }
         outOfRouteReason: { type: string, maxLength: 500 }
         geofenceExceptionId: { type: string, format: uuid }
     VisitCheckOutRequest:
@@ -4138,7 +4227,6 @@ components:
       type: string
       enum:
         - START_JOURNEY
-        - APPEND_LOCATIONS
         - CHECK_IN_VISIT
         - CHECK_OUT_VISIT
         - CREATE_SALE
@@ -4160,7 +4248,6 @@ components:
           description: Debe cumplir el esquema del endpoint equivalente según `type`.
           oneOf:
             - $ref: '#/components/schemas/StartJourneyRequest'
-            - $ref: '#/components/schemas/LocationBatchRequest'
             - $ref: '#/components/schemas/VisitCheckInRequest'
             - $ref: '#/components/schemas/VisitCheckOutRequest'
             - $ref: '#/components/schemas/CreateSaleRequest'

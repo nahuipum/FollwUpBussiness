@@ -2,6 +2,14 @@
 **Estado:** Propuesto para revisión independiente
 **Fecha:** 2026-07-31
 
+## Relación con ADR-016
+
+ADR-016 es la autoridad de privacidad, frecuencia, validez, acceso y retención
+de ubicaciones. Este ADR solo define persistencia local y confirmación: la cola
+de ubicación permanece cifrada y segregada hasta confirmación o resolución
+autorizada, no conserva muestras inválidas según ADR-016 ni sustituye la purga
+física remota de 90 días. No duplica ni modifica dicha política.
+
 ## Contexto
 
 EN-015 necesita una base local durable para operación offline-first. Las visitas,

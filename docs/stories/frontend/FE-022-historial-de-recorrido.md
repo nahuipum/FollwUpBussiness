@@ -59,6 +59,11 @@
 ## Contratos y superficies
 
 - **Debe estar listo antes de desarrollar:** OpenAPI de ubicaciones; evento `seller.location.updated`; contrato WebSocket.
+- Contrato futuro acordado: `GET /journeys/{journeyId}/track` exige
+  `sellerId`, `businessDate`, `page` y `pageSize`, y devuelve puntos aceptados
+  paginados con `capturedAt`/`receivedAt`. Los puntos de visita se obtienen con
+  `GET /visits?journeyId=...&page=...&pageSize=...`; ambos recursos aplican la
+  misma autorización de tenant/equipo y la retención vigente.
 - El contrato no puede modificarse silenciosamente para acomodar una
   implementación; Backend, consumidores y QA de contrato deben revisarlo.
 

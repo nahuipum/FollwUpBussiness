@@ -12,6 +12,15 @@ Cerrar las decisiones de consentimiento, horario de rastreo, frecuencia,
 precisión, retención, acceso y eliminación de ubicaciones antes de implementar
 la jornada y el seguimiento.
 
+## Decisión cerrada
+
+Decisiones D1-D12 opción A, aceptadas el 2026-07-31 por Luis Siancas en
+Producto, Legal/Privacidad y Seguridad. La fuente de implementación es
+`docs/architecture/adr/ADR-016-privacidad-retencion-y-rastreo.md`; la evidencia
+preparatoria es `docs/qa/EN-016-matriz-criterio-evidencia.md`. Esta aceptación
+no sustituye las revisiones independientes de Legal, Seguridad, QA y DoF sobre
+las historias que la implementen.
+
 ## Criterios de aceptación
 
 1. Se define política de rastreo exclusivamente durante jornada activa.
