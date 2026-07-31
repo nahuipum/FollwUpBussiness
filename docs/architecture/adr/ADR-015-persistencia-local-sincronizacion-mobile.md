@@ -1,6 +1,14 @@
 # ADR-015 — Persistencia local y sincronización móvil
-**Estado:** Propuesto para revisión independiente
+**Estado:** Aceptado
 **Fecha:** 2026-07-31
+
+## Aceptación
+
+- **Decisión:** A — aceptar ADR-015 y `mobile-sync/v1` como contrato estable de EN-015.
+- **Responsable humano de Arquitectura:** Luis Siancas — Owner.
+- **Fecha de aceptación:** 2026-07-31 (America/Lima).
+- **Confirmaciones técnicas:** Mobile, Backend y QA Mobile `PASS`, registradas en los handoffs de consumibilidad EN-015 para EN-017.
+- **Alcance:** estabiliza persistencia local y sincronización móvil para sus historias dependientes, incluida la validación de dependencia de EN-017. No implementa endpoints, almacenamiento Flutter ni proveedores de notificación.
 
 ## Relación con ADR-016
 

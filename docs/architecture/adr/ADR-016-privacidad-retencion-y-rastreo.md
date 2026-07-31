@@ -17,6 +17,15 @@ efímero y la cola local no puede perder una muestra pendiente.
 Esta decisión fija la política del MVP; no crea endpoints, jobs, tablas,
 pantallas ni captura en segundo plano.
 
+## Alineación con ADR-015
+
+Por instrucción de Luis Siancas — Owner, el ciclo de vida local de comandos
+pendientes se homologa a ADR-015. ADR-016 conserva la autoridad sobre
+privacidad, validez, frecuencia y retención de ubicaciones; ADR-015 define el
+flujo operativo de sincronización, exportación autorizada y limpieza de un
+ámbito local. Esta alineación no autoriza descartar pendientes ni altera la
+purga física de ubicaciones aceptadas.
+
 ## Decisión
 
 ### D1 — Calidad y uso geográfico (opción A)
@@ -192,11 +201,12 @@ MOB-026, MOB-030 e INT-031. Cada historia conserva sus pruebas de autorización,
 tenant, permisos, offline, degradación y contrato.
 
 Al logout o cambio de tenant/usuario, Mobile detiene la captura, invalida el
-contexto de clave y limpia cache/datos/cola del ámbito anterior conforme
-ADR-015. Esto no autoriza descartar un pendiente: antes de limpiar debe lograrse
-confirmación o resolución autorizada. Si el usuario no puede o no autoriza esa
-resolución, el ámbito queda bloqueado en estado seguro, sin captura ni acceso a
-sus datos, hasta que el flujo autorizado termine; no hay borrado silencioso.
+contexto de clave y trata cache, datos y cola del ámbito anterior conforme
+ADR-015: antes de limpiar ofrece sincronización o exportación únicamente por
+un flujo autorizado. La limpieza requiere que ese flujo termine con una
+disposición autorizada y trazable del pendiente; nunca se descarta de forma
+silenciosa. Si no puede completarse, el ámbito queda bloqueado en estado seguro,
+sin captura ni acceso a sus datos, hasta completar el flujo autorizado.
 
 Retención de **visitas y ventas**: fuera de EN-016; responsable Luis Siancas,
 cierre **2026-08-14**. Política detallada de auditoría y contador D6: fuera de

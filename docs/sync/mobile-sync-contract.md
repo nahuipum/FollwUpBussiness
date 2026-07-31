@@ -1,8 +1,16 @@
 # Contrato `mobile-sync/v1`
 
 **Versión:** `1.0.0`
-**Estado:** Propuesto para revisión de Backend, Mobile y QA
+**Estado:** Aceptado
 **Fuente:** EN-015; no representa endpoints implementados.
+
+## Aceptación
+
+- **Decisión:** A — contrato estable de EN-015 junto con ADR-015.
+- **Responsable humano de Arquitectura:** Luis Siancas — Owner.
+- **Fecha de aceptación:** 2026-07-31 (America/Lima).
+- **Confirmaciones técnicas:** Mobile, Backend y QA Mobile `PASS`; referencias en `docs/handoffs/governance/EN-015-acceptance.md`.
+- **Límite:** el contrato sigue siendo transporte-neutral; INT-015 e INT-018 deben publicar sus rutas y payloads compatibles antes de habilitar productores.
 
 ## Alcance y envelope
 
