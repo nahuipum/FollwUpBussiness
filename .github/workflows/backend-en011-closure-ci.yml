@@ -116,8 +116,15 @@ jobs:
             > target/ci-evidence/sca-observed-at.txt
           jq -e '.Version == "0.70.0"' \
             target/ci-evidence/trivy-version-db.json
-          jq -e '.VulnerabilityDB.UpdatedAt != null and .VulnerabilityDB.DownloadedAt != null' \
-            target/ci-evidence/trivy-version-db.json
+          db_updated_at="$(
+            jq -er '.VulnerabilityDB.UpdatedAt |
+              select(type == "string" and length > 0)' \
+              target/ci-evidence/trivy-version-db.json
+          )"
+          observed_at="$(cat target/ci-evidence/sca-observed-at.txt)"
+          db_updated_epoch="$(date --date="$db_updated_at" '+%s')"
+          observed_epoch="$(date --date="$observed_at" '+%s')"
+          test "$db_updated_epoch" -le "$observed_epoch"
 
       - name: SCA policy gate for High and Critical vulnerabilities
         id: trivy_gate

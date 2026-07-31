@@ -5,9 +5,12 @@
 - Historia: `EN-011`.
 - Autorización: opción A de ADR-011, 2026-07-30.
 - Commit base previo: `df18774c1b15fb0fed3a421258ba9032ae81ffc3`.
-- Candidato autorizado: rama `feature/en-011-closure`; el SHA definitivo es el commit único que contiene exclusivamente los ocho archivos de remediación.
+- Candidato autorizado: rama `feature/en-011-closure`; commit de remediación
+  `a2607e4abbec50735664449bb3fc4a534f1194ff` más un commit adicional que
+  corrige exclusivamente la validación temporal Trivy, su prueba de política y
+  esta trazabilidad. El SHA definitivo se registra desde Git/GitHub Actions.
 - Digest lógico SHA-256:
-  `e1ddcfc0fcc07ed6b106490a26689c9d2d6bbf624502db1a6b4bf9a24c8e0a86`.
+  `e23d03c1a071944473a9da1fabaa24e704d0b2b39eeb98e48dffdb7a6bc9062e`.
 
 ## Fuentes materiales
 

@@ -26,9 +26,15 @@ EN-011 y las reglas de arquitectura para que su evidencia sea identificable.
 - Entrada: SBOM CycloneDX agregado producido por Maven sobre el árbol completo
   de dependencias resueltas, incluidas transitivas.
 - Base: Trivy Vulnerability Database descargada durante la ejecución.
-- Fecha: el workflow conserva el instante UTC del escaneo y
-  `trivy --version --format json`, que incluye versión y metadatos temporales
-  de la base consultada.
+- Fecha propia de la base: `VulnerabilityDB.UpdatedAt`, conservada desde
+  `trivy --version --format json`.
+- Fecha de adquisición/observación: instante UTC registrado por el workflow en
+  `sca-observed-at.txt`, después de descargar y consultar la base.
+
+El workflow valida que ambas fechas sean identificables y que
+`VulnerabilityDB.UpdatedAt` no sea posterior al instante de observación. No
+interpreta `UpdatedAt` como fecha de descarga ni exige un campo `DownloadedAt`
+que Trivy 0.70.0 no incluye en este JSON.
 
 Si la base no se puede descargar, actualizar, consultar o identificar, el job
 falla y no existe resultado SCA válido.
