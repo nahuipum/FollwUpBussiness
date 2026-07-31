@@ -6,11 +6,12 @@
 - Autorización: opción A de ADR-011, 2026-07-30.
 - Commit base previo: `df18774c1b15fb0fed3a421258ba9032ae81ffc3`.
 - Candidato autorizado: rama `feature/en-011-closure`; commit de remediación
-  `a2607e4abbec50735664449bb3fc4a534f1194ff` más un commit adicional que
-  corrige exclusivamente la validación temporal Trivy, su prueba de política y
-  esta trazabilidad. El SHA definitivo se registra desde Git/GitHub Actions.
+  `a2607e4abbec50735664449bb3fc4a534f1194ff`, corrección temporal
+  `77d1c2c8687e4a0d212a5149e683693887a82b95` y un tercer commit limitado al
+  cache y evidencia material de Trivy, su prueba de política, política SCA y
+  este manifiesto. El SHA definitivo se registra desde Git/GitHub Actions.
 - Digest lógico SHA-256:
-  `e23d03c1a071944473a9da1fabaa24e704d0b2b39eeb98e48dffdb7a6bc9062e`.
+  `8062754176a5fbc837ddeea1f36636cd4814e1b85a837bd896066d2217f28db6`.
 
 ## Fuentes materiales
 
@@ -70,6 +71,7 @@ target/en011-artifact/sca/trivy-sca-full.json
 target/en011-artifact/sca/trivy-policy-high-critical.txt
 target/en011-artifact/sca/trivy-gate-status.txt
 target/en011-artifact/sca/trivy-version-db.json
+target/en011-artifact/sca/trivy-db-evidence.json
 target/en011-artifact/sca/sca-observed-at.txt
 target/en011-artifact/sca/sast-status.txt
 target/en011-artifact/manifests/candidate-manifest.txt
@@ -82,6 +84,9 @@ hashes y publica el staging con `actions/upload-artifact` fijada por SHA y
 retención de 30 días. No publica `.env`, secretos, variables de entorno, logs
 no revisados ni payloads de negocio.
 
-El SHA candidato, URL/ID del run, metadatos reales de la base Trivy y resultado
-del gate se registran desde Git/GitHub Actions sin modificar el commit después
-de su creación.
+El reporte integral, el gate y la consulta de metadatos reutilizan el cache
+`$GITHUB_WORKSPACE/.cache/trivy`. `trivy-db-evidence.json` registra
+`observedAt` obligatorio, SHA-256 y tamaño en bytes de `db/trivy.db` y
+`db/metadata.json`; solo incluye `updatedAt` cuando Trivy lo expone. El SHA
+candidato, URL/ID del run y resultado del gate se registran desde Git/GitHub
+Actions sin modificar el commit después de su creación.

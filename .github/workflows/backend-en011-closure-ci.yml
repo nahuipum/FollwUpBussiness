@@ -97,6 +97,7 @@ jobs:
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           version: v0.70.0
+          cache-dir: ${{ github.workspace }}/.cache/trivy
           scan-type: sbom
           scan-ref: backend/followupbussiness/target/sbom/application.cdx.json
           scanners: vuln
@@ -108,23 +109,44 @@ jobs:
           timeout: 15m
 
       - name: Record SCA tool, database and observation time
+        env:
+          TRIVY_CACHE_DIR: ${{ github.workspace }}/.cache/trivy
         run: |
           set -euo pipefail
+          cache_db="$TRIVY_CACHE_DIR/db/trivy.db"
+          cache_metadata="$TRIVY_CACHE_DIR/db/metadata.json"
+          test -f "$cache_db"
+          test -f "$cache_metadata"
           trivy --version --format json \
             > target/ci-evidence/trivy-version-db.json
           date -u '+%Y-%m-%dT%H:%M:%SZ' \
             > target/ci-evidence/sca-observed-at.txt
           jq -e '.Version == "0.70.0"' \
             target/ci-evidence/trivy-version-db.json
-          db_updated_at="$(
-            jq -er '.VulnerabilityDB.UpdatedAt |
-              select(type == "string" and length > 0)' \
-              target/ci-evidence/trivy-version-db.json
-          )"
           observed_at="$(cat target/ci-evidence/sca-observed-at.txt)"
-          db_updated_epoch="$(date --date="$db_updated_at" '+%s')"
-          observed_epoch="$(date --date="$observed_at" '+%s')"
-          test "$db_updated_epoch" -le "$observed_epoch"
+          db_sha256="$(sha256sum "$cache_db" | awk '{print $1}')"
+          metadata_sha256="$(sha256sum "$cache_metadata" | awk '{print $1}')"
+          db_size_bytes="$(stat --format='%s' "$cache_db")"
+          metadata_size_bytes="$(stat --format='%s' "$cache_metadata")"
+          db_updated_at="$(jq -r 'if (.VulnerabilityDB.UpdatedAt? | type) == "string" then .VulnerabilityDB.UpdatedAt else empty end' target/ci-evidence/trivy-version-db.json)"
+          if [[ -n "$db_updated_at" ]]; then
+            test "$(date --date="$db_updated_at" '+%s')" -le \
+              "$(date --date="$observed_at" '+%s')"
+          fi
+          jq -n --arg observedAt "$observed_at" --arg updatedAt "$db_updated_at" \
+            --arg cacheDirectory "$TRIVY_CACHE_DIR" \
+            --arg dbSha256 "$db_sha256" --arg metadataSha256 "$metadata_sha256" \
+            --argjson dbSizeBytes "$db_size_bytes" --argjson metadataSizeBytes "$metadata_size_bytes" \
+            '{observedAt: $observedAt, cacheDirectory: $cacheDirectory, files: [
+              {path: "db/trivy.db", sha256: $dbSha256, sizeBytes: $dbSizeBytes},
+              {path: "db/metadata.json", sha256: $metadataSha256, sizeBytes: $metadataSizeBytes}
+            ]} | if $updatedAt == "" then . else . + {updatedAt: $updatedAt} end' \
+            > target/ci-evidence/trivy-db-evidence.json
+          jq -e '(.observedAt | type == "string" and length > 0) and
+            (.files | length == 2) and all(.files[];
+              (.sha256 | test("^[0-9a-f]{64}$")) and
+              (.sizeBytes | type == "number" and . > 0))' \
+            target/ci-evidence/trivy-db-evidence.json
 
       - name: SCA policy gate for High and Critical vulnerabilities
         id: trivy_gate
@@ -132,6 +154,7 @@ jobs:
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           version: v0.70.0
+          cache-dir: ${{ github.workspace }}/.cache/trivy
           skip-setup-trivy: "true"
           scan-type: sbom
           scan-ref: backend/followupbussiness/target/sbom/application.cdx.json
@@ -202,6 +225,8 @@ jobs:
             "$artifact_root/sca/trivy-gate-status.txt"
           install -m 0644 target/ci-evidence/trivy-version-db.json \
             "$artifact_root/sca/trivy-version-db.json"
+          install -m 0644 target/ci-evidence/trivy-db-evidence.json \
+            "$artifact_root/sca/trivy-db-evidence.json"
           install -m 0644 target/ci-evidence/sca-observed-at.txt \
             "$artifact_root/sca/sca-observed-at.txt"
           install -m 0644 target/ci-evidence/sast-status.txt \
@@ -235,6 +260,7 @@ jobs:
               sca/trivy-policy-high-critical.txt|\
               sca/trivy-gate-status.txt|\
               sca/trivy-version-db.json|\
+              sca/trivy-db-evidence.json|\
               sca/sca-observed-at.txt|\
               sca/sast-status.txt|\
               manifests/candidate-manifest.txt)

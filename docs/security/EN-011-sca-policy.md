@@ -25,19 +25,23 @@ EN-011 y las reglas de arquitectura para que su evidencia sea identificable.
   `ed142fd0673e97e23eac54620cfb913e5ce36c25`.
 - Entrada: SBOM CycloneDX agregado producido por Maven sobre el árbol completo
   de dependencias resueltas, incluidas transitivas.
-- Base: Trivy Vulnerability Database descargada durante la ejecución.
-- Fecha propia de la base: `VulnerabilityDB.UpdatedAt`, conservada desde
-  `trivy --version --format json`.
-- Fecha de adquisición/observación: instante UTC registrado por el workflow en
-  `sca-observed-at.txt`, después de descargar y consultar la base.
+- Base: Trivy Vulnerability Database descargada durante la ejecución. El
+  reporte integral, el gate y la consulta de metadatos reutilizan
+  explícitamente el mismo cache `$GITHUB_WORKSPACE/.cache/trivy`.
+- Identidad material de la base: SHA-256 y tamaño en bytes de los archivos
+  efectivamente usados `db/trivy.db` y `db/metadata.json`.
+- Fecha de adquisición/observación: `observedAt` es obligatorio y registra el
+  instante UTC posterior a la descarga y primera consulta. Se conserva tanto
+  en `trivy-db-evidence.json` como en `sca-observed-at.txt`.
+- Fecha propia de la base: `updatedAt` se conserva en
+  `trivy-db-evidence.json` únicamente cuando Trivy expone
+  `VulnerabilityDB.UpdatedAt` como texto no vacío. Si está presente, no puede
+  ser posterior a `observedAt`.
 
-El workflow valida que ambas fechas sean identificables y que
-`VulnerabilityDB.UpdatedAt` no sea posterior al instante de observación. No
-interpreta `UpdatedAt` como fecha de descarga ni exige un campo `DownloadedAt`
-que Trivy 0.70.0 no incluye en este JSON.
-
-Si la base no se puede descargar, actualizar, consultar o identificar, el job
-falla y no existe resultado SCA válido.
+El workflow no interpreta `UpdatedAt` como fecha de descarga ni exige un campo
+`DownloadedAt` que Trivy 0.70.0 no incluye en este JSON. Si la base o sus
+metadatos no se pueden descargar, consultar, identificar, hashear o medir, el
+job falla y no existe resultado SCA válido.
 
 El SBOM es inventario y no se declara como resultado SCA. Los resultados SCA
 son exclusivamente `trivy-sca-full.json` y `trivy-policy-high-critical.txt`,
@@ -82,7 +86,9 @@ El workflow genera, valida y hashea en el workspace efímero del runner:
 - POM efectivo y árbol completo de dependencias Maven;
 - reportes Surefire y Failsafe, cuando estos últimos existan;
 - reporte SCA integral, tabla y estado del gate High/Critical;
-- versión de Trivy, metadatos de la base y fecha UTC del escaneo;
+- versión de Trivy, metadatos de la base, `observedAt` obligatorio,
+  `updatedAt` opcional, SHA-256 y tamaño en bytes de `trivy.db` y
+  `metadata.json`;
 - estado SAST explícito;
 - hashes SHA-256 de los entregables publicados;
 - manifiesto del commit, run y comandos reproducibles.
