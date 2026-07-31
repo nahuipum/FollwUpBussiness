@@ -2,12 +2,32 @@
 
 ## Estado
 
-`BLOCKED`
+`READY_FOR_HANDOFF`
 
-La implementación y las validaciones locales están completas. El cierre no
-puede quedar `READY_FOR_HANDOFF` porque no existe ejecución GitHub Actions del
-candidato ni SCA integral con Trivy y base fechada. Trivy no está instalado
-localmente. El SBOM generado no se presenta como SCA.
+La ejecución remota del candidato autorizado cerró la evidencia pendiente de
+CI/SCA. Quedan QA y Ciberseguridad independientes; este handoff no los
+sustituye.
+
+## Evidencia remota de cierre
+
+- Run GitHub Actions:
+  [30601633807](https://github.com/nahuipum/FollwUpBussiness/actions/runs/30601633807),
+  attempt `2`, job `91072356994`, concluido `success`.
+- Candidato: `7f8a2717a5aa70d101affec202bba0e767add057` en
+  `feature/en-011-closure`; digest lógico recalculado:
+  `8062754176a5fbc837ddeea1f36636cd4814e1b85a837bd896066d2217f28db6`.
+- Artefacto:
+  `backend-en011-closure-7f8a2717a5aa70d101affec202bba0e767add057-2.zip`,
+  SHA-256
+  `C2D06BCC78982EF409453587405582B86CBBA8DFF56891061C65DB77358D892C`;
+  descargado en `backend/followupbussiness/target/`.
+- Integridad independiente: `deliverables.sha256` verificó `64/64` hashes;
+  allowlist cerrada `65/65`, sin rutas ajenas. Retención configurada: 30 días.
+- Surefire: 26 reportes, `129` pruebas, `0` fallos, `0` errores y `5`
+  omitidas opt-in. SBOM CycloneDX: `58` componentes.
+- SCA: Trivy `0.70.0`, base `UpdatedAt`
+  `2026-07-31T01:16:01.565726584Z`, observada
+  `2026-07-31T04:23:59Z`; `0` vulnerabilidades y gate High/Critical `PASS`.
 
 ## Alcance implementado
 
@@ -21,7 +41,7 @@ localmente. El SBOM generado no se presenta como SCA.
 - Artefacto GitHub de staging cerrado con retención de 30 días, action fijada
   por SHA, allowlist de rutas, secret scan y manifiesto SHA-256.
 - SCA Trivy 0.70.0 separado del inventario SBOM, con metadatos de base, fecha
-  UTC, reporte integral y gate High/Critical.
+  UTC, reporte integral y gate High/Critical ejecutados remotamente.
 - Estado literal `SAST_CONFIG_MISSING` porque no existe configuración SAST.
 - Manifiesto reproducible del snapshot lógico nuevo.
 
@@ -101,40 +121,39 @@ base/fecha, gate, evidencia, ausencia de secretos, ausencia de `.trivyignore`,
   token ficticio.
   Resultado: `STRICT_ARTIFACT_POLICY_SIMULATION_OK`; ruta no autorizada y
   secreto ficticio rechazados.
-- Comando: `trivy --version` / SCA integral.
-  Resultado: `NOT_EXECUTED`; Trivy no está instalado localmente.
+- Evidencia remota: GitHub Actions run `30601633807`, attempt `2`, job
+  `91072356994`, sobre el SHA candidato. Resultado: `success`; Trivy 0.70.0
+  encontró 0 vulnerabilidades y el gate High/Critical finalizó `PASS`.
+- Verificación local de evidencia: hash del ZIP, `deliverables.sha256`,
+  allowlist, XML Surefire, SBOM y reportes Trivy. Resultado: hash coincidente;
+  `64/64` hashes y `65/65` rutas permitidas; los metadatos del run son
+  coherentes con el manifiesto del artefacto.
 
 ## Criterios de aceptación
 
 | Criterio | Implementación | Evidencia | Estado |
 |---|---|---|---|
 | ADR-011 aceptado según opción A | Metadatos, decisión y límites explícitos | ADR-011 | Implementado |
-| Snapshot anterior sustituido | Historia, handoff histórico y manifiesto nuevo | Digest `e1ddcfc0...c8e0a86` | Implementado |
-| CI usa JDK 21, Wrapper y `clean verify` | Workflow dedicado | Prueba de política; Maven local | Implementado |
-| ArchUnit/Testcontainers ejecutables | Suites explícitas | 47/47 focalizadas | Implementado |
-| SBOM CycloneDX reproducible | Fase Maven verify | 58 componentes | Implementado |
-| SCA integral con herramienta/base/fecha/gate | Trivy 0.70.0 configurado | Sin run real | Bloqueado |
+| Snapshot anterior sustituido | Historia, handoff histórico y manifiesto nuevo | Digest `80627541...6d2217f28db6` | Implementado |
+| CI usa JDK 21, Wrapper y `clean verify` | Workflow dedicado | Run `30601633807` exitoso | Implementado |
+| ArchUnit/Testcontainers ejecutables | Suites explícitas | Run remoto y 129 pruebas sin fallos/errores | Implementado |
+| SBOM CycloneDX reproducible | Fase Maven verify | 58 componentes verificados | Implementado |
+| SCA integral con herramienta/base/fecha/gate | Trivy 0.70.0 ejecutado en CI | Base fechada, 0 vulnerabilidades, gate High/Critical PASS | Implementado |
 | SAST no inventado | `SAST_CONFIG_MISSING` | Política y workflow | Implementado |
-| Evidencia persistente descargable | Upload allowlisted fijado por SHA, 30 días | Prueba de política; pendiente run real | Implementado |
+| Evidencia persistente descargable | Upload allowlisted fijado por SHA, 30 días | Artefacto descargado; 64/64 hashes y 65/65 rutas | Implementado |
 | Sin cambios funcionales EN-012/013 | Diff limitado a cierre EN-011 | `git status`/diff | Implementado |
 
 ## Riesgos residuales
 
-- El workflow no ha sido ejecutado y podría revelar un defecto de sintaxis o
-  comportamiento solo observable en GitHub Actions.
-- No hay conclusión SCA del árbol completo ni gate High/Critical ejecutado.
-- La sintaxis y comportamiento del upload/secret scan deben confirmarse en el
-  run real; la evidencia autorizada quedará retenida 30 días.
-- Los PASS históricos de QA/Seguridad no aplican al digest nuevo.
+- QA y Ciberseguridad deben repetir revisión sobre este SHA/digest y el
+  artefacto remoto; los PASS históricos no aplican al snapshot nuevo.
+- La evidencia remota expira conforme a la retención de 30 días; conservar la
+  referencia del run y el ZIP verificado para trazabilidad.
 
 ## Pendientes conocidos
 
-1. Crear commit/PR por el flujo autorizado del repositorio.
-2. Ejecutar `.github/workflows/backend-en011-closure-ci.yml` sobre ese SHA.
-3. Registrar URL/ID del run, versión/base/fecha Trivy y resultado del gate.
-4. Descargar el artefacto del run y verificar `deliverables.sha256`, allowlist y
-   retención de 30 días.
-5. Repetir QA y Ciberseguridad; luego solicitar DoF.
+1. Repetir QA y Ciberseguridad sobre el SHA/digest y evidencia remota; luego
+   solicitar DoF.
 
 ## Instrucciones de reproducción
 
@@ -143,14 +162,14 @@ base/fecha, gate, evidencia, ausencia de secretos, ausencia de `.trivyignore`,
    `.\mvnw.cmd --batch-mode --no-transfer-progress clean verify`.
 3. Ejecutar la suite focalizada declarada en el workflow.
 4. Recalcular el digest con el algoritmo del manifiesto.
-5. Ejecutar el workflow en el commit candidato y comprobar que Trivy identifica
-   su base, que el gate High/Critical finaliza sin hallazgos y que el artefacto
-   conserva únicamente el payload autorizado durante 30 días.
+5. Descargar el artefacto del run, verificar SHA-256,
+   `deliverables.sha256` y la allowlist; comprobar Trivy, base, fecha y gate
+   High/Critical. Confirmar la retención de 30 días del workflow.
 
 ## Recomendación para QA
 
-No reutilizar el handoff QA anterior. Esperar el run CI/SCA del commit
-candidato y validar su SHA/digest, ADR aceptado, ausencia de cambios funcionales
-y resultados del gate antes del retest independiente.
+No reutilizar el handoff QA anterior. Validar independientemente el SHA/digest,
+ADR aceptado, ausencia de cambios funcionales y resultados remotos de CI/SCA
+antes del retest.
 
-BLOCKED
+READY_FOR_HANDOFF

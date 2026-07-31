@@ -5,11 +5,15 @@
 - Historia: `EN-011`.
 - Autorización: opción A de ADR-011, 2026-07-30.
 - Commit base previo: `df18774c1b15fb0fed3a421258ba9032ae81ffc3`.
-- Candidato autorizado: rama `feature/en-011-closure`; commit de remediación
-  `a2607e4abbec50735664449bb3fc4a534f1194ff`, corrección temporal
-  `77d1c2c8687e4a0d212a5149e683693887a82b95` y un tercer commit limitado al
-  cache y evidencia material de Trivy, su prueba de política, política SCA y
-  este manifiesto. El SHA definitivo se registra desde Git/GitHub Actions.
+- Candidato autorizado y ejecutado: rama `feature/en-011-closure`; commit
+  definitivo `7f8a2717a5aa70d101affec202bba0e767add057`.
+- Ejecución remota: GitHub Actions run
+  [30601633807](https://github.com/nahuipum/FollwUpBussiness/actions/runs/30601633807),
+  attempt `2`, job `91072356994`, resultado `success`.
+- Artefacto:
+  `backend-en011-closure-7f8a2717a5aa70d101affec202bba0e767add057-2.zip`;
+  SHA-256
+  `C2D06BCC78982EF409453587405582B86CBBA8DFF56891061C65DB77358D892C`.
 - Digest lógico SHA-256:
   `8062754176a5fbc837ddeea1f36636cd4814e1b85a837bd896066d2217f28db6`.
 
