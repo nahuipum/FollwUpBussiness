@@ -1,8 +1,15 @@
 # ADR-008 — Autenticación, sesiones y recuperación
 
-**Estado:** Propuesto
+**Estado:** Aceptado
 **Historia:** EN-013
 **Dominio propietario:** `identityaccess`
+
+## Aceptación
+
+- **Decisión:** A — aceptar ADR-008 y el OpenAPI revisado como contrato estable de EN-013.
+- **Responsable humano de Arquitectura:** Luis Siancas — Owner.
+- **Fecha:** 2026-07-31 (America/Lima).
+- **Alcance:** desbloquea las historias dependientes de EN-013 para consumir este contrato sin modificarlo silenciosamente. No aprueba ni inicia EN-017, ni sustituye las validaciones de implementación de BE-003 a BE-006, FE-001 a FE-003 o MOB-001 a MOB-002.
 
 ## Contexto
 
@@ -77,7 +84,7 @@ Para web:
 - el JSON web no contiene propiedad `refreshToken`;
 - el servidor ignora la cookie fuera de `/auth/refresh` y `/auth/logout`;
 - login y cada refresh exitoso devuelven un token CSRF nuevo en el JSON;
-- refresh y logout exigen `X-CSRF-Token`, ligado a familia, canal y `clientInstanceId`;
+- refresh y logout normal exigen `X-CSRF-Token`, ligado a familia, canal y `clientInstanceId`;
 - logout elimina la cookie con un `Set-Cookie` equivalente, `Max-Age=0`.
 
 Para mobile:
@@ -88,13 +95,32 @@ Para mobile:
 - una cookie se ignora y no puede sustituir el body;
 - el access token permanece solo en memoria y se regenera con el refresh.
 
+El logout local es defensivo e independiente de la respuesta remota. WEB borra
+access, CSRF y estado de aplicación, marca un `logoutPending` no secreto e
+inhabilita cualquier refresh automático antes de enviar la petición. JavaScript
+no puede borrar `__Host-fs-refresh` por ser HttpOnly: la cookie solo se elimina
+cuando el servidor responde con `Set-Cookie ... Max-Age=0`. Si no hay red, al
+recuperarla WEB reintenta exclusivamente la operación de cierre descrita abajo;
+el navegador adjunta la cookie pero la operación nunca emite access, refresh,
+CSRF ni datos de usuario.
+
+MOBILE detiene rastreo y elimina access/refresh de secure storage antes de
+esperar `204`. Conserva únicamente un `sessionRevocationTicket` opaco de 32
+bytes, emitido al login para esa familia y persistido solo en secure storage
+hasta confirmar la revocación. PostgreSQL conserva solo su HMAC; el ticket es
+de un uso, expira con la familia, se invalida al revocar y solo puede revocar
+esa familia. No autentica, no permite refresh, no entrega identidad/tenant/rol
+ni admite `allSessions=true`; su pérdida puede causar como máximo un logout
+idempotente de la propia familia. Un timeout, error de red o respuesta no
+exitosa nunca conserva access/refresh ni reanuda rastreo.
+
 El servidor envía `Cache-Control: no-store` y `Pragma: no-cache` en toda respuesta que contenga o rote credenciales.
 
 ### CSRF y CORS
 
-Los endpoints de negocio usan access token explícito en `Authorization` y no autenticación por cookie, por lo que no dependen de CSRF. Web refresh/logout sí usan una credencial ambiental y requieren el token CSRF. Token ausente o incorrecto responde `403 CSRF_TOKEN_INVALID` sin consumir el refresh.
+Los endpoints de negocio usan access token explícito en `Authorization` y no autenticación por cookie, por lo que no dependen de CSRF. Web refresh y logout normal usan una credencial ambiental y requieren el token CSRF. La única excepción es el cierre WEB pendiente definido abajo: exige `X-Logout-Intent: PENDING`, `Origin` allowlisted exacto y cookie `SameSite=Strict`, solo puede revocar/borrar y jamás renovar, emitir o leer una credencial. Token CSRF ausente o incorrecto en refresh/logout normal responde `403 CSRF_TOKEN_INVALID` sin consumir el refresh.
 
-CORS usa allowlist exacta por ambiente, `Access-Control-Allow-Credentials: true` únicamente para orígenes aprobados, y nunca combina credenciales con `*`. Solo admite los métodos y headers necesarios, incluidos `Authorization`, `Content-Type`, `X-Auth-Client`, `X-Client-Instance-Id`, `X-CSRF-Token` y `X-Correlation-Id`; expone `X-Correlation-Id`, no `Set-Cookie`. Un origen no permitido no recibe headers CORS. El despliegue mismo-host es preferido.
+CORS usa allowlist exacta por ambiente, `Access-Control-Allow-Credentials: true` únicamente para orígenes aprobados, y nunca combina credenciales con `*`. Solo admite los métodos y headers necesarios, incluidos `Authorization`, `Content-Type`, `X-Auth-Client`, `X-Client-Instance-Id`, `X-CSRF-Token`, `X-Logout-Intent` y `X-Correlation-Id`; expone `X-Correlation-Id`, no `Set-Cookie`. El preflight del cierre WEB pendiente permite `X-Logout-Intent` solo para el Origin exacto aprobado y el método `POST` de `/auth/logout`. Un origen no permitido no recibe headers CORS. El despliegue mismo-host es preferido.
 
 ### Login, primer acceso y estado de cuenta
 
@@ -106,7 +132,18 @@ Login acepta correo o nombre de usuario y contraseña. Identificador desconocido
 
 ### Recuperación y cambio de contraseña
 
-`POST /auth/password-recovery-requests` siempre responde `202` con el mismo cuerpo para entrada sintácticamente válida, exista o no una cuenta utilizable. La búsqueda canónica, creación del token y solicitud de notificación ocurren sin exponer el resultado. EN-017 elegirá proveedor y canal; EN-013 solo exige que el token no aparezca en logs, eventos generales ni respuesta HTTP.
+`POST /auth/password-recovery-requests` siempre responde `202` con el mismo
+cuerpo para entrada sintácticamente válida, exista o no una cuenta utilizable.
+Después de validar sintaxis y aplicar el mismo rate limit, el endpoint persiste
+o encola una solicitud genérica y responde antes de buscar una cuenta, crear un
+token o invocar una notificación. El worker canónico resuelve la identidad y,
+solo si es utilizable, crea el token y solicita su entrega; la ausencia o estado
+de cuenta no cambia la respuesta, el presupuesto temporal visible ni los
+eventos observables por el solicitante. El trabajo de cola/persistencia debe
+tener el mismo camino para entradas existentes e inexistentes y, si no puede
+aceptarse, responde el mismo `503 AUTH_RATE_LIMIT_UNAVAILABLE` sin consultar la
+cuenta. EN-017 elegirá proveedor y canal; EN-013 solo exige que el token no
+aparezca en logs, eventos generales ni respuesta HTTP.
 
 El token de recuperación:
 
@@ -124,9 +161,22 @@ Un reset exitoso consume el token, incrementa la versión de credencial, revoca 
 
 ### Logout, bloqueo y revocación
 
-`POST /auth/logout` requiere un access token vigente. `allSessions=false` (valor por defecto) revoca de forma idempotente la familia indicada por `sid`. `allSessions=true` revoca todas las familias de la misma cuenta y tenant. En ambos casos una familia ya revocada también responde `204`, sin revelar estado. Web exige además CSRF y siempre recibe la orden de eliminar la cookie; mobile elimina sus credenciales locales tras `204`.
+`POST /auth/logout` tiene tres formas mutuamente excluyentes. (1) El cierre
+normal usa un access vigente y, para WEB, CSRF: `allSessions=false` revoca la
+familia de `sid` y `true` todas las familias de la cuenta y tenant. (2) WEB con
+`logoutPending` sin access/CSRF envía `X-Logout-Intent: PENDING` desde un Origin
+exactamente allowlisted; el servidor acepta solo su cookie HttpOnly para
+revocar esa familia y devolver el `Set-Cookie` de borrado. Esta forma no admite
+`allSessions=true`, no rota/renueva la cookie y devuelve siempre `204` sin
+credenciales ni identidad. (3) MOBILE pendiente envía
+`X-Session-Revocation-Ticket`; el servidor resuelve su HMAC y revoca solo la
+familia ligada. Esta forma no admite cookie, access ni `allSessions=true`.
+Una familia ya revocada también responde `204`, sin revelar estado. El servidor
+nunca devuelve `429` ni omite una revocación por cuota: el control de abuso solo
+deduplica, registra y alerta las solicitudes globales excesivas, pero procesa
+la revocación idempotente.
 
-Bloqueo/inactivación de usuario, suspensión de empresa, reset de contraseña, reutilización detectada y revocación administrativa invalidan inmediatamente las familias alcanzadas. Aunque el access JWT sea autocontenido, el filtro consulta el estado de `sid` mediante cache respaldada por PostgreSQL; por tanto la revocación no espera los 10 minutos de expiración. Ante cache no disponible, la validación consulta PostgreSQL. Nunca se admite una sesión solo porque Redis esté degradado.
+Bloqueo/inactivación de usuario, suspensión de empresa, reset de contraseña, reutilización detectada y revocación administrativa invalidan inmediatamente las familias alcanzadas. PostgreSQL decide siempre si una familia está activa: el filtro consulta su fila de familia, cuenta y tenant en cada aceptación de access; Redis solo puede conservar tombstones de familias revocadas para rechazar antes y nunca respuestas positivas `ACTIVE`. La transacción que revoca confirma primero PostgreSQL y después intenta publicar el tombstone; un fallo de Redis se registra y reintenta de forma durable, pero no cambia la decisión del filtro ni permite un hit obsoleto. Por tanto la revocación no espera los 10 minutos de expiración y Redis degradado o stale nunca reactiva una sesión.
 
 ### Rate limiting y abuso
 
@@ -134,13 +184,13 @@ Redis contiene contadores efímeros, segregados mediante HMAC de identificadores
 
 | Operación | Límites acumulativos |
 |---|---|
-| Login | 5/15 min por identificador+IP; 30/15 min por IP |
+| Login | 5/15 min por identificador canónico independiente de IP; 5/15 min por identificador+IP; 30/15 min por IP |
 | Solicitar recuperación/activación | 3/h por identificador; 20/h por IP |
 | Consumir token de acción | 5/15 min por digest de token+IP; 30/15 min por IP |
-| Refresh | 30/min por familia+IP |
-| Logout global | 5/h por cuenta |
+| Refresh | 30/min por familia+IP; para token/familia desconocidos, 30/min por digest presentado+IP y 120/min por IP |
+| Logout global | 5/h por cuenta para deduplicación, alerta y backoff interno; nunca niega ni retrasa la revocación |
 
-Los límites no distinguen públicamente cuentas existentes. `429` incluye `Retry-After`. Login, refresh y operaciones de acción fallan cerradas con `503 AUTH_RATE_LIMIT_UNAVAILABLE` y `Retry-After` si no se puede aplicar el limitador; logout sigue procesándose para no impedir una revocación defensiva. Los umbrales son configuración técnica versionada y solo pueden relajarse mediante revisión de seguridad.
+El identificador canónico se normaliza de forma idéntica para correo y nombre de usuario antes de calcular un HMAC; se aplica también a entradas inexistentes y nunca se guarda ni publica en claro. El límite acumulativo por identificador no bloquea ni cambia el estado de la cuenta: devuelve el mismo `429 AUTH_RATE_LIMITED` y `Retry-After` para existente e inexistente, evitando que un atacante provoque lockout persistente. Los límites no distinguen públicamente cuentas existentes. Login, refresh y operaciones de acción fallan cerradas con `503 AUTH_RATE_LIMIT_UNAVAILABLE` y `Retry-After` si no se puede aplicar el limitador; logout sigue procesándose para no impedir una revocación defensiva. Los umbrales son configuración técnica versionada y solo pueden relajarse mediante revisión de seguridad.
 
 ### Persistencia, cache y aislamiento multiempresa
 
@@ -148,12 +198,14 @@ PostgreSQL es la fuente de verdad. La implementación de BE-003 a BE-006 creará
 
 - evolución de `identity_access_account`: estado, versión de credencial, timestamps de password y soporte de hash nulo solo para `INVITED`;
 - `identity_access_session_family`: cuenta, `company_id` nullable solo para plataforma, canal, digest de cliente, creación, expiración absoluta, revocación y motivo;
+- digest HMAC del `sessionRevocationTicket` de un uso para el cierre pendiente
+  MOBILE, sin reutilizar el digest de refresh;
 - `identity_access_refresh_token`: familia, digest único, padre/sucesor, emisión, expiración y consumo;
 - `identity_access_action_token`: cuenta, `company_id`, propósito, digest único, emisión, expiración, consumo e invalidación.
 
 Las FK, checks e índices parciales deben preservar la correspondencia rol/empresa de V2. Toda consulta por cuenta/familia se restringe por el tenant derivado de la sesión cuando aplica. Los tokens públicos se resuelven por digest de alta entropía y nunca aceptan `tenantId` del cliente.
 
-Redis solo acelera estado de sesión y rate limits. Las claves siguen `auth:session:<platform|tenantUuid>:<familyUuid>` y `auth:rate:<scope>:<hmac>`, con TTL no mayor que el registro PostgreSQL. Un miss o caída de Redis nunca crea autoridad ni reactiva una sesión.
+Redis solo acelera tombstones de sesión y rate limits. Las claves siguen `auth:session:<platform|tenantUuid>:<familyUuid>` para revocación y `auth:rate:<scope>:<hmac>`, con TTL no mayor que el registro PostgreSQL. No se almacenan decisiones positivas de sesión en Redis. Un miss, caída o dato stale de Redis nunca crea autoridad ni reactiva una sesión.
 
 ### Auditoría y observabilidad
 
@@ -204,7 +256,7 @@ Antes de migrar, rollback es retirar configuración y artefactos. Después de ap
 
 - Web y mobile comparten semántica de sesión sin compartir almacenamiento inseguro.
 - La renovación exige escritura PostgreSQL y coordinación transaccional.
-- La revocación inmediata añade una consulta cacheada de estado por solicitud.
+- La revocación inmediata añade una consulta PostgreSQL de estado por solicitud; Redis solo acelera rechazos de familias revocadas.
 - Un cliente que pierde la respuesta ganadora de una rotación concurrente debe autenticarse otra vez; nunca se reexpone el sucesor.
 - BE-003 a BE-006 deben implementar exactamente este contrato o proponer un nuevo ADR y transición compatible.
 

@@ -179,14 +179,25 @@ paths:
       summary: Revocar la sesión actual o todas las sesiones
       description: |
         Con allSessions=false revoca idempotentemente la familia de sid. Con
-        true revoca todas las familias de la misma cuenta y tenant. WEB exige
-        CSRF y siempre elimina la cookie; MOBILE elimina sus secretos locales.
+        true revoca todas las familias de la misma cuenta y tenant con access
+        vigente. WEB sin access reintenta solo con cookie HttpOnly,
+        X-Logout-Intent: PENDING y Origin allowlisted: no recibe credenciales y
+        el servidor elimina la cookie. El preflight CORS permite
+        X-Logout-Intent solo para ese Origin y POST /auth/logout. MOBILE pendiente usa exclusivamente
+        X-Session-Revocation-Ticket para la familia, sin allSessions. Limpieza
+        local y detención de rastreo preceden a la respuesta remota. La
+        revocación no se rechaza por rate limit.
+      security:
+        - bearerAuth: []
+        - webRefreshCookie: []
+        - sessionRevocationTicket: []
       x-required-roles: [PLATFORM_SUPERADMIN, COMPANY_ADMIN, SUPERVISOR, SELLER]
       x-story-ids: [EN-013, BE-005, FE-003, MOB-002, INT-002, INT-003]
       parameters:
         - $ref: '#/components/parameters/AuthClient'
         - $ref: '#/components/parameters/ClientInstanceId'
         - $ref: '#/components/parameters/WebCsrfToken'
+        - $ref: '#/components/parameters/LogoutIntent'
       requestBody:
         content:
           application/json:
@@ -202,7 +213,6 @@ paths:
         '400': { $ref: '#/components/responses/AuthRequestInvalid' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/CsrfRejected' }
-        '429': { $ref: '#/components/responses/AuthRateLimited' }
 
   /auth/password-recovery-requests:
     post:
@@ -211,8 +221,9 @@ paths:
       summary: Solicitar activación o recuperación de contraseña
       description: |
         Siempre responde el mismo 202 para entrada válida, exista o no una
-        cuenta utilizable. No devuelve token ni estado de cuenta; EN-017 define
-        el proveedor de entrega.
+        cuenta utilizable. Acepta primero una solicitud genérica y resuelve la
+        cuenta/token fuera del camino de respuesta; no devuelve token ni estado
+        de cuenta. EN-017 define el proveedor de entrega.
       security: []
       x-story-ids: [EN-013, BE-006, BE-057, FE-002]
       parameters:
@@ -266,7 +277,7 @@ paths:
             Cache-Control: { $ref: '#/components/headers/NoStore' }
         '400': { $ref: '#/components/responses/PasswordResetInvalid' }
         '410': { $ref: '#/components/responses/PasswordResetExpired' }
-        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+        '422': { $ref: '#/components/responses/PasswordPolicyViolation' }
         '429': { $ref: '#/components/responses/AuthRateLimited' }
         '503': { $ref: '#/components/responses/AuthRateLimiterUnavailable' }
 
@@ -2284,6 +2295,11 @@ components:
       in: cookie
       name: __Host-fs-refresh
       description: Cookie refresh exclusiva de WEB; Secure, HttpOnly, SameSite=Strict y Path=/.
+    sessionRevocationTicket:
+      type: apiKey
+      in: header
+      name: X-Session-Revocation-Ticket
+      description: Ticket opaco MOBILE de un uso y solo para revocar su propia familia; no autentica ni permite refresh.
 
   headers:
     CorrelationId:
@@ -2338,6 +2354,12 @@ components:
         type: string
         minLength: 43
         maxLength: 128
+    LogoutIntent:
+      name: X-Logout-Intent
+      in: header
+      required: false
+      description: Solo WEB pendiente sin access/CSRF; valor único PENDING, Origin allowlisted y cookie HttpOnly. Nunca habilita refresh ni allSessions.
+      schema: { type: string, const: PENDING }
     Page:
       name: page
       in: query
@@ -2562,6 +2584,15 @@ components:
       content:
         application/problem+json:
           schema: { $ref: '#/components/schemas/ErrorResponse' }
+    PasswordPolicyViolation:
+      description: La nueva contraseña no cumple la política vigente
+      x-error-codes: [PASSWORD_POLICY_VIOLATION]
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+        Cache-Control: { $ref: '#/components/headers/NoStore' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
     LocationBatchConflict:
       description: Idempotency-Key o batchId reutilizado con contexto, deviceId, conjunto u orden diferente; no se procesa ninguna muestra.
       x-error-codes: [LOCATION_BATCH_IDEMPOTENCY_CONFLICT]
@@ -2783,7 +2814,7 @@ components:
     MobileAuthenticationResponse:
       type: object
       additionalProperties: false
-      required: [channel, credentials, refreshToken, refreshExpiresIn, user]
+      required: [channel, credentials, refreshToken, sessionRevocationTicket, refreshExpiresIn, user]
       properties:
         channel: { type: string, const: MOBILE }
         credentials: { $ref: '#/components/schemas/AccessCredentials' }
@@ -2793,6 +2824,12 @@ components:
           maxLength: 43
           pattern: '^[A-Za-z0-9_-]{43}$'
           description: Secreto opaco para secure storage móvil; nunca se entrega a WEB.
+        sessionRevocationTicket:
+          type: string
+          minLength: 43
+          maxLength: 43
+          pattern: '^[A-Za-z0-9_-]{43}$'
+          description: Ticket opaco de un uso, solo para cerrar remotamente la propia familia tras logout local; no sirve para autenticar ni renovar.
         refreshExpiresIn:
           type: integer
           minimum: 1

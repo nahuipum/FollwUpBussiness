@@ -158,4 +158,26 @@ Requiere JDK 21 y Docker disponible para la suite completa con Testcontainers. N
 5. Confirmar que `allSessions` y reset revocan el alcance correcto sin cruce de tenant cuando exista implementación.
 6. Mantener BE-003 a BE-006 bloqueadas hasta que Frontend, Mobile, QA y Ciberseguridad registren consumibilidad.
 
+### Estabilización de candidato — 2026-07-31
+
+- **Snapshot revisable:** `adec7be3ec673ff9681a517a1d11f10ed0781c28` sobre la base funcional EN-013 `4987f5eef7c9310b5a8ed4aa2c08f96d71b6de24` (base previa `5233521136e763f05a285cff2b57e1d7ee7974c5`). El cambio original compartió EN-013 y EN-014; la revisión se limita a los materiales EN-013 enumerados aquí.
+- **Delta posterior:** entre `4987f5e..adec7be`, ADR-008 y este handoff no cambian. `docs/api/openapi.yaml` solo añade una regla ajena de proveedor y el test EN-013 solo sustituye `Files.isDirectory(.git)` por `Files.exists(.git)`, compatible con worktrees; no modifica ninguna aserción de autenticación ni contrato `/auth/*`.
+- **Worktree al revisar:** modificaciones ajenas limitadas a `.gitignore`, `AGENTS.MD` y `.codex/`; no se atribuyen a EN-013. `git diff --check` termina con código 0 (los avisos LF→CRLF son del host).
+- **Huella SHA-256 del candidato:** ADR-008 `4A640A6BE7D37D5B6BED1C869A3C48953332E83F681DAE1EA2CAC85526BA9102`; OpenAPI `95E8055CD325E1F3F63B52D5C02B52D952764177F2808C325425F79DF43ADA4B`; prueba `69582F8DF3A28BC5C93C49177E2D96B9E7A1CE42C51EB43B914BE6DED7496785`.
+- **Verificación actual:** con JDK 21.0.9, `mvn "-Dtest=AuthenticationContractPolicyTest" test` finalizó `BUILD SUCCESS`, 5 pruebas, 0 fallos/errores/omitidas. `npx --yes @redocly/cli lint docs/api/openapi.yaml` finalizó con código 0. No se repitió `mvn clean verify`: no hubo delta EN-013 funcional y la evidencia previa del handoff ya lo cubre.
+
+Reproducción de la estabilización:
+
+```powershell
+git rev-parse HEAD
+git diff --name-status 4987f5e..HEAD -- docs/architecture/adr/ADR-008-autenticacion-sesiones.md docs/api/openapi.yaml docs/handoffs/backend/EN-013-backend-handoff.md backend/followupbussiness/src/test/java/com/nahui/followupbussiness/identityaccess/AuthenticationContractPolicyTest.java
+$env:JAVA_HOME='C:\Program Files\Java\jdk-21'
+$env:Path="$env:JAVA_HOME\bin;$env:Path"
+Set-Location backend\followupbussiness
+mvn "-Dtest=AuthenticationContractPolicyTest" test
+Set-Location ..\..
+npx --yes @redocly/cli lint docs/api/openapi.yaml
+git diff --check
+```
+
 READY_FOR_HANDOFF
