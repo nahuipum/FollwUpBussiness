@@ -11,6 +11,7 @@ import com.nahui.followupbussiness.identityaccess.application.port.out.Bootstrap
 import com.nahui.followupbussiness.identityaccess.application.port.out.PasswordHashingPort;
 import com.nahui.followupbussiness.identityaccess.application.port.out.PlatformSuperadminAccountRepository;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnNotWebApplication;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -27,6 +28,7 @@ import java.util.function.Supplier;
 
 @Configuration(proxyBeanMethods = false)
 @Profile("bootstrap-superadmin")
+@ConditionalOnNotWebApplication
 @ConditionalOnProperty(
         prefix = "fieldsales.bootstrap.platform-superadmin",
         name = "enabled",

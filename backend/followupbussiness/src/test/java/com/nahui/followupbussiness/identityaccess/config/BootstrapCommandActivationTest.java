@@ -1,8 +1,10 @@
 package com.nahui.followupbussiness.identityaccess.config;
 
 import com.nahui.followupbussiness.identityaccess.adapter.in.cli.PlatformSuperadminBootstrapRunner;
+import com.nahui.followupbussiness.identityaccess.application.port.in.BootstrapPlatformSuperadminUseCase;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 
@@ -13,6 +15,10 @@ class BootstrapCommandActivationTest {
 
     private final ApplicationContextRunner contextRunner =
             new ApplicationContextRunner()
+                    .withUserConfiguration(PlatformSuperadminBootstrapConfiguration.class);
+
+    private final WebApplicationContextRunner webContextRunner =
+            new WebApplicationContextRunner()
                     .withUserConfiguration(PlatformSuperadminBootstrapConfiguration.class);
 
     @Test
@@ -44,5 +50,16 @@ class BootstrapCommandActivationTest {
                         "fieldsales.bootstrap.platform-superadmin.enabled=true")
                 .run(context -> assertThat(context)
                         .hasSingleBean(PlatformSuperadminBootstrapRunner.class));
+    }
+
+    @Test
+    void profileAndFlagDoNotRegisterBootstrapCommandInServletContext() {
+        webContextRunner
+                .withPropertyValues(
+                        "spring.profiles.active=bootstrap-superadmin",
+                        "fieldsales.bootstrap.platform-superadmin.enabled=true")
+                .run(context -> assertThat(context)
+                        .doesNotHaveBean(PlatformSuperadminBootstrapRunner.class)
+                        .doesNotHaveBean(BootstrapPlatformSuperadminUseCase.class));
     }
 }
