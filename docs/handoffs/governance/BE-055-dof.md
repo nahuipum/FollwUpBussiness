@@ -2,17 +2,20 @@
 
 ## Estado
 
-`BLOCKED`
+`PASS`
 
 ## Snapshot final revisado
 
-- PR [#2](https://github.com/nahuipum/FollwUpBussiness/pull/2), abierto contra `main`; head `4a8746659086cf19b40b807fcbd698525e887c85`.
-- Candidato: `3f6d8f8` (BE-055) más `4a87466` (correctivo Netty); worktree limpio y `git diff --check 6fd9b33..4a87466` en PASS.
-- CI del mismo head: runs `30718469562`, `30718469584` y `30718467991`, `SUCCESS`.
+- PR [#2](https://github.com/nahuipum/FollwUpBussiness/pull/2), abierto contra `main`; head `62be6637de6db7e604785bd246e255152e646889`.
+- Candidato: `3f6d8f8` (BE-055), `4a87466` (correctivo Netty) y `62be663` (trazabilidad QA); worktree limpio y `git diff --check 6fd9b33..62be663` en PASS.
+- CI del mismo head: runs `30718657019` (EN-011 SCA) y `30718657024` (EN-010 SCA), ambos `SUCCESS`.
 
-## Gate bloqueante
+## Evidencia de cierre
 
-Falta un handoff de QA independiente trazable a `4a87466`. El único handoff QA
-BE-055 está en `3f6d8f8`, anterior al correctivo que cambia `pom.xml` y añade
-`DependencySecurityPolicyTest`. La mención de ese retest en los handoffs de
-Desarrollo o Seguridad no reemplaza el resultado QA independiente requerido.
+| Gate | Evidencia trazable | Estado |
+|---|---|---|
+| Desarrollo y criterios | Handoff `READY_FOR_HANDOFF`; outbox, migración V3 y pruebas de transacción, ACK/NACK/return, lease/retry y observabilidad. | PASS |
+| QA independiente | `docs/handoffs/backend/BE-055-backend-qa.md`: matriz original en PASS y revalidación Netty sobre `4a87466` (`DependencySecurityPolicyTest`, árbol efectivo `4.2.16.Final`). | PASS |
+| Seguridad | `docs/handoffs/security/BE-055-security-review.md`: PASS, sin hallazgos Critical/High/Medium abiertos; E2E QA `NOT_EXECUTED` explícito y E2E de Desarrollo PASS reutilizado. | PASS |
+| Contratos y operación | ADR-005, ADR-018, envelope de eventos, alertas y topología Prometheus interna incluidos en el diff. | PASS |
+| Entrega | PR #2 y CI final asociados al head `62be663`. | PASS |
