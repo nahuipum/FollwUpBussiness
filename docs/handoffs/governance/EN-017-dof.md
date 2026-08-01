@@ -1,6 +1,8 @@
 # Definition of Finished — EN-017
 
-`BLOCKED`
+`PASS`
 
-- Falta evidencia de CI aplicable al candidato EN-017 (no hay handoff/ejecución CI trazable para el lint y validación documental requeridos).
-- Falta un snapshot/commit común y verificable: los documentos de EN-017 y los handoffs de Desarrollo, QA y Seguridad están sin seguimiento o con cambios sin commit; por tanto no se puede demostrar que las aprobaciones correspondan al mismo alcance/commit.
+- Candidato común: `dd80ca55e23b66b55f54a8312c1aa6d121841788`; incluye ADR-017, contrato de notificaciones, catálogo `route.*`, OpenAPI/ADR-008 y los handoffs finales de Desarrollo, QA y Seguridad.
+- Desarrollo `READY_FOR_HANDOFF`; QA `PASS`; Seguridad `PASS`; D1--D8 aprobadas y dependencias EN-013/EN-015 estables.
+- CI del mismo SHA: ejecución `30675209262`, job `91300880724`, completada con éxito; verificación limpia, pruebas focalizadas y de arquitectura, gate SCA High/Critical y carga de artefactos en verde.
+- El commit se limita a documentación y contratos del enabler; no incorpora implementación, migraciones, SDK, secretos ni proveedor nominal.
