@@ -1,127 +1,4327 @@
 openapi: 3.1.0
 info:
   title: FieldSales CRM API
-  version: 0.1.0
+  version: 1.0.0
+  summary: Contrato REST general del MVP
+  description: |
+    API multiempresa para administración, aplicación móvil y procesos de
+    integración de FieldSales CRM.
+
+    Reglas globales:
+    - El tenant y el usuario se derivan de la identidad autenticada.
+    - Ningún `tenantId` recibido en payload se considera autoridad.
+    - Las colecciones usan paginación por página y orden estable.
+    - Fechas y horas se expresan en ISO 8601; la fecha operativa usa la zona
+      horaria de la empresa.
+    - Importes usan decimal; el servidor recalcula totales.
+    - Comandos mobile sensibles requieren idempotencia.
+    - Un `correlationId` se devuelve tanto en éxito como en error.
+    - Auth WEB usa refresh solo en cookie HttpOnly; MOBILE usa body solo fuera
+      de contexto navegador. El canal nunca concede identidad, tenant o rol.
+  contact:
+    name: FieldSales CRM Engineering
+  license:
+    name: UNLICENSED
+    identifier: LicenseRef-Proprietary
+  x-contract-status: READY_FOR_HANDOFF
+  x-source-of-truth:
+    - ../../00_CONTRATO_FUNCIONAL.md
+    - ../stories/enablers/EN-013-definir-autenticacion-sesiones-y-recuperacion.md
+    - ../architecture/adr/ADR-008-autenticacion-sesiones.md
+    - ../stories/BACKLOG_REFINEMENT.md
+    - ../stories/dependency-map.md
 servers:
-  - url: http://localhost:8080/api/v1
+  - url: /api/v1
+    description: Mismo host que el cliente
+  - url: https://{host}/api/v1
+    description: Ambiente desplegado
+    variables:
+      host:
+        default: api.example.invalid
+security:
+  - bearerAuth: []
+tags:
+  - name: Authentication
+    description: Sesiones, recuperación de acceso e identidad actual.
+  - name: Platform companies
+    description: Administración global y onboarding de empresas.
+  - name: Company users
+    description: Usuarios, roles y estados dentro de una empresa.
+  - name: Settings
+    description: Configuración operativa del tenant.
+  - name: Territories
+    description: Zonas comerciales y límites geográficos.
+  - name: Sellers
+    description: Vendedores, supervisión y asignaciones territoriales.
+  - name: Customers
+    description: Cartera, ubicación, asignación e historial de clientes.
+  - name: Customer imports
+    description: Plantilla e importación asíncrona de clientes.
+  - name: Routes
+    description: Planeación, publicación y ejecución de rutas.
+  - name: Journeys
+    description: Inicio, ubicación y cierre de la jornada del vendedor.
+  - name: Tracking
+    description: Presencia actual y recorridos históricos.
+  - name: Visits
+    description: Geocerca, check-in, check-out y correcciones.
+  - name: Products
+    description: Catálogo de productos disponible para venta.
+  - name: Sales
+    description: Registro, edición, anulación y consulta de ventas.
+  - name: Reports
+    description: Indicadores y exportaciones asíncronas.
+  - name: Audit
+    description: Consulta de acciones críticas trazables.
+  - name: Devices
+    description: Registro de dispositivos para notificaciones.
+  - name: Mobile
+    description: Lecturas agregadas para operación offline.
+  - name: Mobile sync
+    description: Sincronización idempotente de comandos offline.
+
 paths:
   /auth/login:
     post:
+      tags: [Authentication]
+      operationId: login
       summary: Iniciar sesión
+      description: |
+        Respuesta neutral ante credenciales inválidas o cuenta no utilizable.
+        WEB requiere un Origin permitido y recibe el refresh exclusivamente en
+        cookie HttpOnly. MOBILE solo se admite sin contexto de navegador y
+        recibe el refresh en el cuerpo. El header de canal no concede autoridad.
+      security: []
+      x-story-ids: [EN-013, BE-003, FE-001, MOB-001, INT-002, INT-003]
+      parameters:
+        - $ref: '#/components/parameters/AuthClient'
+        - $ref: '#/components/parameters/ClientInstanceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
       responses:
-        '200': { description: Sesión iniciada }
-        '401': { description: Credenciales inválidas }
+        '200':
+          description: Sesión iniciada por el canal solicitado y validado
+          headers:
+            X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+            Cache-Control: { $ref: '#/components/headers/NoStore' }
+            Pragma: { $ref: '#/components/headers/NoCache' }
+            Set-Cookie: { $ref: '#/components/headers/WebRefreshSetCookie' }
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/WebAuthenticationResponse'
+                  - $ref: '#/components/schemas/MobileAuthenticationResponse'
+                discriminator:
+                  propertyName: channel
+        '400': { $ref: '#/components/responses/AuthRequestInvalid' }
+        '401': { $ref: '#/components/responses/LoginFailed' }
+        '429': { $ref: '#/components/responses/AuthRateLimited' }
+        '503': { $ref: '#/components/responses/AuthRateLimiterUnavailable' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /auth/refresh:
+    post:
+      tags: [Authentication]
+      operationId: refreshSession
+      summary: Renovar una sesión
+      description: |
+        Rota exactamente una vez el refresh de la familia. WEB usa únicamente
+        la cookie HttpOnly y X-CSRF-Token; el body debe estar ausente. MOBILE
+        exige el token opaco del body, ausencia de contexto navegador y no puede
+        canjear una cookie web. Origin o Sec-Fetch con MOBILE se rechaza antes
+        de leer credenciales.
+      security:
+        - webRefreshCookie: []
+        - {}
+      x-story-ids: [EN-013, BE-004, FE-003, MOB-002, INT-002, INT-003]
+      parameters:
+        - $ref: '#/components/parameters/AuthClient'
+        - $ref: '#/components/parameters/ClientInstanceId'
+        - $ref: '#/components/parameters/WebCsrfToken'
+      requestBody:
+        description: Obligatorio solo para MOBILE y prohibido para WEB.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MobileRefreshSessionRequest'
+      responses:
+        '200':
+          description: Sesión renovada y refresh token rotado
+          headers:
+            X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+            Cache-Control: { $ref: '#/components/headers/NoStore' }
+            Pragma: { $ref: '#/components/headers/NoCache' }
+            Set-Cookie: { $ref: '#/components/headers/WebRefreshSetCookie' }
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/WebAuthenticationResponse'
+                  - $ref: '#/components/schemas/MobileAuthenticationResponse'
+                discriminator:
+                  propertyName: channel
+        '400': { $ref: '#/components/responses/AuthRequestInvalid' }
+        '401': { $ref: '#/components/responses/RefreshRejected' }
+        '403': { $ref: '#/components/responses/CsrfRejected' }
+        '409': { $ref: '#/components/responses/RefreshAlreadyRotated' }
+        '429': { $ref: '#/components/responses/AuthRateLimited' }
+        '503': { $ref: '#/components/responses/AuthRateLimiterUnavailable' }
+
+  /auth/logout:
+    post:
+      tags: [Authentication]
+      operationId: logout
+      summary: Revocar la sesión actual o todas las sesiones
+      description: |
+        Con allSessions=false revoca idempotentemente la familia de sid. Con
+        true revoca todas las familias de la misma cuenta y tenant con access
+        vigente. WEB sin access reintenta solo con cookie HttpOnly,
+        X-Logout-Intent: PENDING y Origin allowlisted: no recibe credenciales y
+        el servidor elimina la cookie. El preflight CORS permite
+        X-Logout-Intent solo para ese Origin y POST /auth/logout. MOBILE pendiente usa exclusivamente
+        X-Session-Revocation-Ticket para la familia, sin allSessions. Al
+        resolverlo, el servidor revoca también las vinculaciones de dispositivo
+        MOBILE de esa familia por el puerto interno de notificaciones, sin
+        transportar ticket, access, refresh ni token push a dicho puerto.
+        Limpieza local y detención de rastreo preceden a la respuesta remota.
+        La revocación no se rechaza por rate limit.
+      security:
+        - bearerAuth: []
+        - webRefreshCookie: []
+        - sessionRevocationTicket: []
+      x-required-roles: [PLATFORM_SUPERADMIN, COMPANY_ADMIN, SUPERVISOR, SELLER]
+      x-story-ids: [EN-013, BE-005, FE-003, MOB-002, INT-002, INT-003]
+      parameters:
+        - $ref: '#/components/parameters/AuthClient'
+        - $ref: '#/components/parameters/ClientInstanceId'
+        - $ref: '#/components/parameters/WebCsrfToken'
+        - $ref: '#/components/parameters/LogoutIntent'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogoutRequest'
+      responses:
+        '204':
+          description: Revocación completada o ya aplicada
+          headers:
+            X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+            Cache-Control: { $ref: '#/components/headers/NoStore' }
+            Set-Cookie: { $ref: '#/components/headers/WebRefreshClearCookie' }
+        '400': { $ref: '#/components/responses/AuthRequestInvalid' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/CsrfRejected' }
+
+  /auth/password-recovery-requests:
+    post:
+      tags: [Authentication]
+      operationId: requestPasswordRecovery
+      summary: Solicitar activación o recuperación de contraseña
+      description: |
+        Siempre responde el mismo 202 para entrada válida, exista o no una
+        cuenta utilizable. Acepta primero una solicitud genérica y resuelve la
+        cuenta/token fuera del camino de respuesta; no devuelve token ni estado
+        de cuenta. EN-017 define el proveedor de entrega.
+      security: []
+      x-story-ids: [EN-013, BE-006, BE-057, FE-002]
+      parameters:
+        - $ref: '#/components/parameters/AuthClient'
+        - $ref: '#/components/parameters/ClientInstanceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordRecoveryRequest'
+      responses:
+        '202':
+          description: Solicitud aceptada, exista o no la cuenta
+          headers:
+            X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+            Cache-Control: { $ref: '#/components/headers/NoStore' }
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcceptedResponse'
+        '400': { $ref: '#/components/responses/AuthRequestInvalid' }
+        '429': { $ref: '#/components/responses/AuthRateLimited' }
+        '503': { $ref: '#/components/responses/AuthRateLimiterUnavailable' }
+
+  /auth/password-resets:
+    post:
+      tags: [Authentication]
+      operationId: resetPassword
+      summary: Activar una cuenta o restablecer contraseña con token de un uso
+      description: |
+        El propósito se deriva del token persistido, nunca del cliente. Un reset
+        exitoso revoca todas las sesiones web/mobile de la cuenta. El token
+        opaco no asigna tenant ni rol.
+      security: []
+      x-story-ids: [EN-013, BE-006, BE-057, FE-002]
+      parameters:
+        - $ref: '#/components/parameters/AuthClient'
+        - $ref: '#/components/parameters/ClientInstanceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequest'
+      responses:
+        '204':
+          description: Contraseña establecida, token consumido y sesiones revocadas
+          headers:
+            X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+            Cache-Control: { $ref: '#/components/headers/NoStore' }
+        '400': { $ref: '#/components/responses/PasswordResetInvalid' }
+        '410': { $ref: '#/components/responses/PasswordResetExpired' }
+        '422': { $ref: '#/components/responses/PasswordPolicyViolation' }
+        '429': { $ref: '#/components/responses/AuthRateLimited' }
+        '503': { $ref: '#/components/responses/AuthRateLimiterUnavailable' }
+
+  /me:
+    get:
+      tags: [Authentication]
+      operationId: getCurrentUser
+      summary: Consultar identidad, empresa, roles y permisos actuales
+      x-required-roles: [PLATFORM_SUPERADMIN, COMPANY_ADMIN, SUPERVISOR, SELLER]
+      x-story-ids: [BE-003, BE-007, FE-003, MOB-001]
+      responses:
+        '200':
+          description: Identidad autenticada
+          headers:
+            X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentUser'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /platform/companies:
+    get:
+      tags: [Platform companies]
+      operationId: listCompanies
+      summary: Listar empresas de la plataforma
+      x-required-roles: [PLATFORM_SUPERADMIN]
+      x-story-ids: [BE-001, BE-002]
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Search'
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/CompanyStatus' }
+      responses:
+        '200':
+          description: Empresas paginadas
+          headers:
+            X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanyPage'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [Platform companies]
+      operationId: createCompany
+      summary: Crear una empresa con configuración inicial
+      x-required-roles: [PLATFORM_SUPERADMIN]
+      x-story-ids: [BE-001, INT-001]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCompanyRequest'
+      responses:
+        '201':
+          description: Empresa creada
+          headers:
+            Location:
+              schema: { type: string, format: uri-reference }
+            X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Company'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /platform/companies/{companyId}:
+    parameters:
+      - $ref: '#/components/parameters/CompanyId'
+    get:
+      tags: [Platform companies]
+      operationId: getCompany
+      summary: Consultar una empresa
+      x-required-roles: [PLATFORM_SUPERADMIN]
+      x-story-ids: [BE-001, BE-002]
+      responses:
+        '200':
+          description: Empresa
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Company' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /platform/companies/{companyId}/status:
+    parameters:
+      - $ref: '#/components/parameters/CompanyId'
+    patch:
+      tags: [Platform companies]
+      operationId: changeCompanyStatus
+      summary: Suspender o reactivar una empresa
+      x-required-roles: [PLATFORM_SUPERADMIN]
+      x-story-ids: [BE-002, INT-038]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangeCompanyStatusRequest'
+      responses:
+        '200':
+          description: Estado actualizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Company' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /platform/companies/{companyId}/initial-admin:
+    parameters:
+      - $ref: '#/components/parameters/CompanyId'
+    post:
+      tags: [Platform companies]
+      operationId: provisionInitialCompanyAdmin
+      summary: Invitar al administrador inicial de una empresa
+      x-required-roles: [PLATFORM_SUPERADMIN]
+      x-story-ids: [BE-057, INT-001]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProvisionInitialAdminRequest'
+      responses:
+        '202':
+          description: Administrador provisionado e invitación aceptada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /company/users:
+    get:
+      tags: [Company users]
+      operationId: listCompanyUsers
+      summary: Listar usuarios de la empresa
+      x-required-roles: [COMPANY_ADMIN]
+      x-story-ids: [BE-058, FE-004]
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Search'
+        - name: role
+          in: query
+          schema: { $ref: '#/components/schemas/CompanyRole' }
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/UserStatus' }
+      responses:
+        '200':
+          description: Usuarios paginados
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserPage' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [Company users]
+      operationId: inviteCompanyUser
+      summary: Invitar un administrador o supervisor
+      x-required-roles: [COMPANY_ADMIN]
+      x-story-ids: [BE-058, FE-004, INT-033]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InviteCompanyUserRequest'
+      responses:
+        '202':
+          description: Usuario creado e invitación aceptada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /company/users/{userId}:
+    parameters:
+      - $ref: '#/components/parameters/UserId'
+    get:
+      tags: [Company users]
+      operationId: getCompanyUser
+      summary: Consultar un usuario de empresa
+      x-required-roles: [COMPANY_ADMIN]
+      x-story-ids: [BE-058, FE-004]
+      responses:
+        '200':
+          description: Usuario
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Company users]
+      operationId: updateCompanyUser
+      summary: Editar datos y rol permitido de un usuario
+      x-required-roles: [COMPANY_ADMIN]
+      x-story-ids: [BE-058, FE-004]
+      parameters:
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCompanyUserRequest'
+      responses:
+        '200':
+          description: Usuario actualizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /company/users/{userId}/status:
+    parameters:
+      - $ref: '#/components/parameters/UserId'
+    patch:
+      tags: [Company users]
+      operationId: changeCompanyUserStatus
+      summary: Bloquear o reactivar un usuario
+      x-required-roles: [COMPANY_ADMIN]
+      x-story-ids: [BE-005, BE-058, FE-004]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangeUserStatusRequest'
+      responses:
+        '200':
+          description: Estado actualizado y sesiones revocadas cuando aplica
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /company/settings:
+    get:
+      tags: [Settings]
+      operationId: getCompanySettings
+      summary: Consultar configuración operativa
+      x-required-roles: [COMPANY_ADMIN, SUPERVISOR, SELLER]
+      x-story-ids: [BE-054, FE-033, MOB-011, MOB-017]
+      responses:
+        '200':
+          description: Configuración vigente y versión
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CompanySettings' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    patch:
+      tags: [Settings]
+      operationId: updateCompanySettings
+      summary: Configurar geocerca, tracking y capacidades condicionadas
+      x-required-roles: [COMPANY_ADMIN]
+      x-story-ids: [BE-054, FE-033]
+      parameters:
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCompanySettingsRequest'
+      responses:
+        '200':
+          description: Configuración actualizada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CompanySettings' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /territories:
+    get:
+      tags: [Territories]
+      operationId: listTerritories
+      summary: Listar zonas o territorios
+      x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
+      x-story-ids: [BE-062, FE-037]
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Search'
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/EntityStatus' }
+      responses:
+        '200':
+          description: Territorios paginados
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TerritoryPage' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [Territories]
+      operationId: createTerritory
+      summary: Crear una zona o territorio
+      x-required-roles: [COMPANY_ADMIN]
+      x-story-ids: [BE-062, FE-037]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateTerritoryRequest' }
+      responses:
+        '201':
+          description: Territorio creado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Territory' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /territories/{territoryId}:
+    parameters:
+      - $ref: '#/components/parameters/TerritoryId'
+    get:
+      tags: [Territories]
+      operationId: getTerritory
+      summary: Consultar un territorio
+      x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
+      x-story-ids: [BE-062, FE-037]
+      responses:
+        '200':
+          description: Territorio
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Territory' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Territories]
+      operationId: updateTerritory
+      summary: Editar o inactivar un territorio
+      x-required-roles: [COMPANY_ADMIN]
+      x-story-ids: [BE-062, FE-037]
+      parameters:
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateTerritoryRequest' }
+      responses:
+        '200':
+          description: Territorio actualizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Territory' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
   /sellers:
     get:
-      summary: Listar vendedores
+      tags: [Sellers]
+      operationId: listSellers
+      summary: Listar vendedores autorizados
+      x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
+      x-story-ids: [BE-059, FE-005]
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Search'
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/EntityStatus' }
+        - name: supervisorId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: territoryId
+          in: query
+          schema: { type: string, format: uuid }
       responses:
-        '200': { description: Resultado paginado }
+        '200':
+          description: Vendedores paginados
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SellerPage' }
+        '403': { $ref: '#/components/responses/Forbidden' }
     post:
-      summary: Crear vendedor
+      tags: [Sellers]
+      operationId: createSeller
+      summary: Crear vendedor y usuario invitado
+      x-required-roles: [COMPANY_ADMIN]
+      x-story-ids: [BE-008, FE-006, INT-004]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateSellerRequest' }
       responses:
-        '201': { description: Vendedor creado }
+        '202':
+          description: Vendedor creado e invitación aceptada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Seller' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /sellers/{sellerId}:
+    parameters:
+      - $ref: '#/components/parameters/SellerId'
+    get:
+      tags: [Sellers]
+      operationId: getSeller
+      summary: Consultar detalle de vendedor
+      x-required-roles: [COMPANY_ADMIN, SUPERVISOR, SELLER]
+      x-story-ids: [BE-059, FE-005, FE-021]
+      responses:
+        '200':
+          description: Vendedor
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Seller' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Sellers]
+      operationId: updateSeller
+      summary: Editar un vendedor
+      x-required-roles: [COMPANY_ADMIN]
+      x-story-ids: [BE-009, FE-006]
+      parameters:
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateSellerRequest' }
+      responses:
+        '200':
+          description: Vendedor actualizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Seller' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /sellers/{sellerId}/status:
+    parameters:
+      - $ref: '#/components/parameters/SellerId'
+    patch:
+      tags: [Sellers]
+      operationId: changeSellerStatus
+      summary: Activar o inactivar un vendedor
+      x-required-roles: [COMPANY_ADMIN]
+      x-story-ids: [BE-010, FE-007, INT-004]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ChangeEntityStatusRequest' }
+      responses:
+        '200':
+          description: Estado actualizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Seller' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /sellers/{sellerId}/supervisor:
+    parameters:
+      - $ref: '#/components/parameters/SellerId'
+    put:
+      tags: [Sellers]
+      operationId: assignSellerSupervisor
+      summary: Asignar supervisor al vendedor
+      x-required-roles: [COMPANY_ADMIN]
+      x-story-ids: [BE-011, FE-006, INT-033]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AssignSupervisorRequest' }
+      responses:
+        '200':
+          description: Supervisor asignado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Seller' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /sellers/{sellerId}/territories:
+    parameters:
+      - $ref: '#/components/parameters/SellerId'
+    put:
+      tags: [Sellers]
+      operationId: assignSellerTerritories
+      summary: Reemplazar territorios vigentes del vendedor
+      x-required-roles: [COMPANY_ADMIN]
+      x-story-ids: [BE-012, FE-006]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AssignTerritoriesRequest' }
+      responses:
+        '200':
+          description: Territorios asignados
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Seller' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
   /customers:
     get:
-      summary: Listar clientes
+      tags: [Customers]
+      operationId: listCustomers
+      summary: Listar y filtrar clientes
+      x-required-roles: [COMPANY_ADMIN, SUPERVISOR, SELLER]
+      x-story-ids: [BE-016, FE-008, FE-010]
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Search'
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/EntityStatus' }
+        - name: territoryId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: sellerId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: segment
+          in: query
+          schema: { type: string, maxLength: 80 }
+        - name: withoutVisitSince
+          in: query
+          schema: { type: string, format: date }
+        - name: withoutPurchaseSince
+          in: query
+          schema: { type: string, format: date }
       responses:
-        '200': { description: Resultado paginado }
+        '200':
+          description: Clientes paginados
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CustomerPage' }
+        '403': { $ref: '#/components/responses/Forbidden' }
     post:
-      summary: Crear cliente
+      tags: [Customers]
+      operationId: createCustomer
+      summary: Crear un cliente geolocalizado
+      x-required-roles: [COMPANY_ADMIN]
+      x-story-ids: [BE-013, BE-015, FE-009, INT-005]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateCustomerRequest' }
       responses:
-        '201': { description: Cliente creado }
-  /customers/imports:
+        '201':
+          description: Cliente creado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Customer' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /customers/{customerId}:
+    parameters:
+      - $ref: '#/components/parameters/CustomerId'
+    get:
+      tags: [Customers]
+      operationId: getCustomer
+      summary: Consultar ficha de cliente
+      x-required-roles: [COMPANY_ADMIN, SUPERVISOR, SELLER]
+      x-story-ids: [BE-016, FE-008, FE-009]
+      responses:
+        '200':
+          description: Cliente
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Customer' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Customers]
+      operationId: updateCustomer
+      summary: Editar datos, ubicación o estado de un cliente
+      x-required-roles: [COMPANY_ADMIN]
+      x-story-ids: [BE-014, FE-009, INT-005]
+      parameters:
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateCustomerRequest' }
+      responses:
+        '200':
+          description: Cliente actualizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Customer' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /customers/duplicate-checks:
     post:
-      summary: Importar clientes
+      tags: [Customers]
+      operationId: checkCustomerDuplicates
+      summary: Buscar posibles clientes duplicados
+      x-required-roles: [COMPANY_ADMIN]
+      x-story-ids: [BE-015, FE-009]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CustomerDuplicateCheckRequest' }
       responses:
-        '202': { description: Proceso aceptado }
+        '200':
+          description: Candidatos y razones
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CustomerDuplicateCheckResponse' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /customers/{customerId}/assignment:
+    parameters:
+      - $ref: '#/components/parameters/CustomerId'
+    put:
+      tags: [Customers]
+      operationId: assignCustomer
+      summary: Asignar o reasignar un cliente
+      x-required-roles: [COMPANY_ADMIN]
+      x-story-ids: [BE-060, FE-036, INT-034]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AssignCustomerRequest' }
+      responses:
+        '200':
+          description: Asignación vigente
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CustomerAssignment' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /customer-assignments/batch:
+    post:
+      tags: [Customers]
+      operationId: batchAssignCustomers
+      summary: Asignar una cartera de clientes
+      x-required-roles: [COMPANY_ADMIN]
+      x-story-ids: [BE-060, FE-036, INT-034]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BatchAssignCustomersRequest' }
+      responses:
+        '200':
+          description: Resultado por cliente
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BatchAssignCustomersResponse' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /customers/{customerId}/history:
+    parameters:
+      - $ref: '#/components/parameters/CustomerId'
+    get:
+      tags: [Customers]
+      operationId: getCustomerHistory
+      summary: Consultar resumen, visitas y ventas de un cliente
+      x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
+      x-story-ids: [BE-017, FE-011, INT-020]
+      parameters:
+        - $ref: '#/components/parameters/DateFrom'
+        - $ref: '#/components/parameters/DateTo'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Historial de cliente
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CustomerHistory' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /customers/import-template:
+    get:
+      tags: [Customer imports]
+      operationId: downloadCustomerImportTemplate
+      summary: Descargar plantilla versionada de clientes
+      x-required-roles: [COMPANY_ADMIN]
+      x-story-ids: [BE-018, FE-012]
+      responses:
+        '200':
+          description: Plantilla CSV o XLSX
+          headers:
+            X-Template-Version:
+              schema: { type: string }
+          content:
+            text/csv:
+              schema: { type: string }
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: { type: string, format: binary }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /customer-imports:
+    post:
+      tags: [Customer imports]
+      operationId: createCustomerImport
+      summary: Iniciar importación asíncrona de clientes
+      x-required-roles: [COMPANY_ADMIN]
+      x-story-ids: [BE-019, FE-012, INT-006]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [templateVersion, file]
+              properties:
+                templateVersion: { type: string, maxLength: 30 }
+                partialAcceptance:
+                  type: boolean
+                  default: true
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '202':
+          description: Importación aceptada
+          headers:
+            Location:
+              schema: { type: string, format: uri-reference }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CustomerImportJob' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /customer-imports/{importId}:
+    parameters:
+      - $ref: '#/components/parameters/ImportId'
+    get:
+      tags: [Customer imports]
+      operationId: getCustomerImport
+      summary: Consultar estado y resultado de importación
+      x-required-roles: [COMPANY_ADMIN]
+      x-story-ids: [BE-019, FE-013, INT-006]
+      responses:
+        '200':
+          description: Trabajo de importación
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CustomerImportJob' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /customer-imports/{importId}/errors:
+    parameters:
+      - $ref: '#/components/parameters/ImportId'
+    get:
+      tags: [Customer imports]
+      operationId: downloadCustomerImportErrors
+      summary: Descargar errores seguros de una importación
+      x-required-roles: [COMPANY_ADMIN]
+      x-story-ids: [BE-020, FE-013, INT-006]
+      responses:
+        '200':
+          description: Archivo de errores
+          content:
+            text/csv:
+              schema: { type: string }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '410': { $ref: '#/components/responses/Gone' }
+
   /routes:
     get:
-      summary: Consultar rutas
+      tags: [Routes]
+      operationId: listRoutes
+      summary: Listar rutas del tenant
+      x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
+      x-story-ids: [BE-061, FE-014]
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: date
+          in: query
+          schema: { type: string, format: date }
+        - name: sellerId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/RouteStatus' }
       responses:
-        '200': { description: Rutas }
+        '200':
+          description: Página de rutas
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RoutePage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
     post:
-      summary: Crear ruta manual
+      tags: [Routes]
+      operationId: createRoute
+      summary: Crear una ruta manual
+      x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
+      x-story-ids: [BE-021, FE-015, INT-007]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateRouteRequest' }
       responses:
-        '201': { description: Ruta creada }
+        '201':
+          description: Ruta creada
+          headers:
+            Location:
+              schema: { type: string, format: uri-reference }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Route' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /routes/{routeId}:
+    parameters:
+      - $ref: '#/components/parameters/RouteId'
+    get:
+      tags: [Routes]
+      operationId: getRoute
+      summary: Consultar una ruta
+      x-required-roles: [COMPANY_ADMIN, SUPERVISOR, SELLER]
+      x-story-ids: [BE-061, FE-014, MOB-004]
+      responses:
+        '200':
+          description: Ruta
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Route' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Routes]
+      operationId: updateRoute
+      summary: Editar una ruta en borrador
+      x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
+      x-story-ids: [BE-021, FE-015, INT-007]
+      parameters:
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/merge-patch+json:
+            schema: { $ref: '#/components/schemas/UpdateRouteRequest' }
+      responses:
+        '200':
+          description: Ruta actualizada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Route' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
   /routes/optimize:
     post:
-      summary: Proponer ruta automática
+      tags: [Routes]
+      operationId: optimizeRoute
+      summary: Generar propuesta de ruta automática básica
+      description: |
+        Genera una propuesta versionada y no publicada para un vendedor, fecha
+        y territorio del tenant autenticado. El proveedor de matriz recibe solo
+        coordenadas; no recibe tenant, vendedor, territorio ni clientes.
+      x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
+      x-story-ids: [EN-018, BE-022, FE-016, INT-008]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/OptimizeRouteRequest' }
       responses:
-        '200': { description: Propuesta }
-  /routes/{routeId}/publish:
-    post:
-      summary: Publicar ruta
+        '200':
+          description: Propuesta optimizada; todavía no publicada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OptimizeRouteResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+        '503': { $ref: '#/components/responses/RouteOptimizationUnavailable' }
+
+  /routes/{routeId}/points/order:
+    parameters:
+      - $ref: '#/components/parameters/RouteId'
+    put:
+      tags: [Routes]
+      operationId: reorderRoutePoints
+      summary: Reordenar todos los puntos de una ruta
+      x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
+      x-story-ids: [BE-023, FE-015, FE-016]
       parameters:
-        - name: routeId
-          in: path
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReorderRoutePointsRequest' }
+      responses:
+        '200':
+          description: Ruta reordenada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Route' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /routes/{routeId}/publish:
+    parameters:
+      - $ref: '#/components/parameters/RouteId'
+    post:
+      tags: [Routes]
+      operationId: publishRoute
+      summary: Publicar ruta y disparar su notificación
+      x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
+      x-story-ids: [BE-024, BE-053, FE-017, MOB-029, INT-007]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PublishRouteRequest' }
+      responses:
+        '200':
+          description: Ruta publicada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Route' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /routes/{routeId}/reassign:
+    parameters:
+      - $ref: '#/components/parameters/RouteId'
+    post:
+      tags: [Routes]
+      operationId: reassignRoute
+      summary: Reasignar una ruta
+      x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
+      x-story-ids: [BE-025, FE-018, INT-009]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReassignRouteRequest' }
+      responses:
+        '200':
+          description: Ruta reasignada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Route' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /routes/{routeId}/copy:
+    parameters:
+      - $ref: '#/components/parameters/RouteId'
+    post:
+      tags: [Routes]
+      operationId: copyRoute
+      summary: Duplicar una ruta para otra fecha
+      x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
+      x-story-ids: [BE-026, FE-015]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CopyRouteRequest' }
+      responses:
+        '201':
+          description: Copia en borrador
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Route' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /routes/suggested-customers:
+    get:
+      tags: [Routes]
+      operationId: listSuggestedCustomers
+      summary: Sugerir clientes por frecuencia de visita
+      x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
+      x-story-ids: [BE-027, FE-016]
+      parameters:
+        - name: sellerId
+          in: query
           required: true
           schema: { type: string, format: uuid }
+        - name: date
+          in: query
+          required: true
+          schema: { type: string, format: date }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
       responses:
-        '200': { description: Publicada }
+        '200':
+          description: Clientes sugeridos
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SuggestedCustomerPage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /routes/my-route:
+    get:
+      tags: [Routes, Mobile]
+      operationId: getMyRoute
+      summary: Obtener la ruta asignada al vendedor autenticado
+      x-required-roles: [SELLER]
+      x-story-ids: [BE-061, MOB-004, MOB-005]
+      parameters:
+        - name: date
+          in: query
+          required: true
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Ruta del vendedor
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Route' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /routes/{routeId}/execution:
+    parameters:
+      - $ref: '#/components/parameters/RouteId'
+    get:
+      tags: [Routes, Tracking]
+      operationId: getRouteExecution
+      summary: Comparar la ruta planificada con la ejecutada
+      x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
+      x-story-ids: [FE-019, INT-039]
+      responses:
+        '200':
+          description: Ejecución de ruta
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RouteExecution' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
   /journeys/start:
     post:
-      summary: Iniciar jornada
+      tags: [Journeys]
+      operationId: startJourney
+      summary: Iniciar jornada del vendedor autenticado
+      x-required-roles: [SELLER]
+      x-story-ids: [BE-028, MOB-007, INT-010]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/StartJourneyRequest' }
       responses:
-        '201': { description: Jornada iniciada }
+        '201':
+          description: Jornada iniciada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Journey' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /journeys/current:
+    get:
+      tags: [Journeys]
+      operationId: getCurrentJourney
+      summary: Recuperar la jornada activa propia
+      x-required-roles: [SELLER]
+      x-story-ids: [BE-028, MOB-007, MOB-015]
+      responses:
+        '200':
+          description: Jornada activa
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Journey' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /journeys/{journeyId}:
+    parameters:
+      - $ref: '#/components/parameters/JourneyId'
+    get:
+      tags: [Journeys]
+      operationId: getJourney
+      summary: Consultar una jornada
+      x-required-roles: [COMPANY_ADMIN, SUPERVISOR, SELLER]
+      x-story-ids: [BE-028, BE-032, FE-021]
+      responses:
+        '200':
+          description: Jornada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Journey' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
   /journeys/{journeyId}/locations:
+    parameters:
+      - $ref: '#/components/parameters/JourneyId'
     post:
-      summary: Enviar ubicaciones
+      tags: [Journeys, Mobile]
+      operationId: appendJourneyLocations
+      summary: Recibir un lote ordenado de ubicaciones
+      description: Cada muestra tiene clientEventId propio. La guarda de lote precede a la guarda por muestra y vincula Idempotency-Key+batchId al tenant/owner derivados, jornada, deviceId y fingerprint del conjunto ordenado. Replay exacto devuelve el acuse original semánticamente idéntico, incluidos statuses originales, sin reprocesar muestras; no convierte ACCEPTED en DUPLICATE. Binding igual con contexto/fingerprint/orden distinto devuelve 409 LOCATION_BATCH_IDEMPOTENCY_CONFLICT sin mutación. Solo un lote lógico nuevo aplica guardas por muestra y puede devolver DUPLICATE por clientEventId previamente aceptado. ADR-016 exige jornada activa, máximo una aceptada por ventana UTC de capturedAt de 60 s, precisión <=50 m, antigüedad <=5 min y adelanto servidor <=2 min. Una inválida se rechaza individualmente sin efectos.
+      x-required-roles: [SELLER]
+      x-story-ids: [BE-029, BE-030, BE-031, MOB-008, MOB-009, INT-011]
       parameters:
-        - name: journeyId
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LocationBatchRequest' }
       responses:
-        '202': { description: Aceptadas }
+        '200':
+          description: Acuse con exactamente un resultado por cada clientEventId recibido, en el mismo orden y sin resultados adicionales.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LocationBatchResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/LocationBatchConflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+        '429': { $ref: '#/components/responses/LocationRateLimited' }
+
+  /journeys/{journeyId}/track:
+    parameters:
+      - $ref: '#/components/parameters/JourneyId'
+    get:
+      tags: [Tracking]
+      operationId: getJourneyTrack
+      summary: Consultar el recorrido histórico de una jornada
+      description: Contrato futuro BE-032/FE-022. La jornada debe corresponder al vendedor y fecha solicitados. Devuelve solo puntos aceptados, no vencidos y paginados en secuencia temporal. Los puntos de visita se consultan de forma paginada en GET /visits con journeyId.
+      x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
+      x-story-ids: [BE-032, FE-022, INT-012]
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: sellerId
+          in: query
+          required: true
+          description: Debe pertenecer al tenant; para SUPERVISOR debe estar en su equipo vigente.
+          schema: { type: string, format: uuid }
+        - name: businessDate
+          in: query
+          required: true
+          description: Fecha operativa usada por el filtro FE-022; debe coincidir con la jornada.
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Recorrido
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JourneyTrack' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
   /journeys/{journeyId}/close:
+    parameters:
+      - $ref: '#/components/parameters/JourneyId'
     post:
+      tags: [Journeys]
+      operationId: closeJourney
       summary: Cerrar jornada
+      x-required-roles: [SELLER]
+      x-story-ids: [BE-033, MOB-024, MOB-025, INT-023]
       parameters:
-        - name: journeyId
-          in: path
-          required: true
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CloseJourneyRequest' }
+      responses:
+        '200':
+          description: Jornada cerrada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Journey' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /tracking/active-sellers:
+    get:
+      tags: [Tracking]
+      operationId: listActiveSellers
+      summary: Listar vendedores activos y su última ubicación
+      description: El tenant siempre se deriva de sesión. SUPERVISOR recibe únicamente su equipo vigente y no puede ampliar alcance con supervisorId. COMPANY_ADMIN recibe vendedores de su tenant y puede filtrar por un supervisor del mismo tenant. Un filtro no autorizado devuelve 403, nunca datos parciales de otro ámbito.
+      x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
+      x-story-ids: [BE-030, BE-031, FE-020, FE-021, INT-011]
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: supervisorId
+          in: query
+          description: Filtro opcional solo para COMPANY_ADMIN; para SUPERVISOR se omite o debe coincidir con su identidad, sin ampliar su equipo.
           schema: { type: string, format: uuid }
       responses:
-        '200': { description: Jornada cerrada }
+        '200':
+          description: Presencia activa
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ActiveSellerPage' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /visits/proximity-validations:
+    post:
+      tags: [Visits]
+      operationId: validateVisitProximity
+      summary: Validar proximidad del vendedor al cliente
+      x-required-roles: [SELLER]
+      x-story-ids: [BE-034, MOB-011, MOB-012, INT-013]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProximityValidationRequest' }
+      responses:
+        '200':
+          description: Resultado de proximidad
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProximityValidationResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /visits:
+    get:
+      tags: [Visits]
+      operationId: listVisits
+      summary: Listar visitas y pendientes
+      x-required-roles: [COMPANY_ADMIN, SUPERVISOR, SELLER]
+      x-story-ids: [BE-040, FE-023, INT-016]
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/DateFrom'
+        - $ref: '#/components/parameters/DateTo'
+        - name: sellerId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: journeyId
+          in: query
+          description: Filtro futuro para marcadores paginados de FE-022; se valida contra tenant, vendedor y equipo autorizado.
+          schema: { type: string, format: uuid }
+        - name: customerId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/VisitStatus' }
+      responses:
+        '200':
+          description: Página de visitas
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VisitPage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
   /visits/check-in:
     post:
-      summary: Iniciar visita
+      tags: [Visits]
+      operationId: checkInVisit
+      summary: Iniciar visita dentro o fuera de ruta
+      x-required-roles: [SELLER]
+      x-story-ids: [BE-035, BE-037, MOB-013, MOB-014, MOB-018, INT-013, INT-015]
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VisitCheckInRequest' }
       responses:
-        '201': { description: Visita iniciada }
-        '422': { description: Geocerca o ubicación inválida }
+        '201':
+          description: Visita iniciada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Visit' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /visits/{visitId}:
+    parameters:
+      - $ref: '#/components/parameters/VisitId'
+    get:
+      tags: [Visits]
+      operationId: getVisit
+      summary: Consultar detalle de visita
+      x-required-roles: [COMPANY_ADMIN, SUPERVISOR, SELLER]
+      x-story-ids: [BE-040, FE-024, INT-016]
+      responses:
+        '200':
+          description: Visita
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Visit' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
   /visits/{visitId}/check-out:
+    parameters:
+      - $ref: '#/components/parameters/VisitId'
     post:
-      summary: Finalizar visita
+      tags: [Visits]
+      operationId: checkOutVisit
+      summary: Finalizar visita y registrar resultado
+      x-required-roles: [SELLER]
+      x-story-ids: [BE-036, MOB-016, MOB-017, INT-014]
       parameters:
-        - name: visitId
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
         - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VisitCheckOutRequest' }
       responses:
-        '200': { description: Visita finalizada }
+        '200':
+          description: Visita finalizada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Visit' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /visits/{visitId}/correction:
+    parameters:
+      - $ref: '#/components/parameters/VisitId'
+    patch:
+      tags: [Visits]
+      operationId: correctVisit
+      summary: Corregir una visita conservando auditoría
+      x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
+      x-story-ids: [BE-039, FE-025]
+      parameters:
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/merge-patch+json:
+            schema: { $ref: '#/components/schemas/CorrectVisitRequest' }
+      responses:
+        '200':
+          description: Visita corregida
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Visit' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /visits/geofence-exceptions:
+    post:
+      tags: [Visits]
+      operationId: authorizeGeofenceException
+      summary: Autorizar excepción de geocerca
+      x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
+      x-story-ids: [BE-038, FE-038, INT-036]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/GeofenceExceptionRequest' }
+      responses:
+        '201':
+          description: Excepción autorizada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GeofenceException' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /visits/results:
+    get:
+      tags: [Visits]
+      operationId: listVisitResults
+      summary: Listar resultados permitidos para cerrar visita
+      x-required-roles: [SELLER, SUPERVISOR, COMPANY_ADMIN]
+      x-story-ids: [BE-036, MOB-017]
+      responses:
+        '200':
+          description: Catálogo de resultados
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/VisitResultOption' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /products:
+    get:
+      tags: [Products]
+      operationId: listProducts
+      summary: Listar catálogo de productos
+      x-required-roles: [COMPANY_ADMIN, SUPERVISOR, SELLER]
+      x-story-ids: [BE-041, FE-035, MOB-019, INT-035]
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Search'
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/EntityStatus' }
+      responses:
+        '200':
+          description: Página de productos
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProductPage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [Products]
+      operationId: createProduct
+      summary: Crear producto
+      x-required-roles: [COMPANY_ADMIN]
+      x-story-ids: [BE-041, FE-035, INT-035]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateProductRequest' }
+      responses:
+        '201':
+          description: Producto creado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Product' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /products/{productId}:
+    parameters:
+      - $ref: '#/components/parameters/ProductId'
+    get:
+      tags: [Products]
+      operationId: getProduct
+      summary: Consultar producto
+      x-required-roles: [COMPANY_ADMIN, SUPERVISOR, SELLER]
+      x-story-ids: [BE-041, FE-035, MOB-019]
+      responses:
+        '200':
+          description: Producto
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Product' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Products]
+      operationId: updateProduct
+      summary: Editar o cambiar estado de producto
+      x-required-roles: [COMPANY_ADMIN]
+      x-story-ids: [BE-041, FE-035, INT-035]
+      parameters:
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/merge-patch+json:
+            schema: { $ref: '#/components/schemas/UpdateProductRequest' }
+      responses:
+        '200':
+          description: Producto actualizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Product' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
   /sales:
     get:
+      tags: [Sales]
+      operationId: listSales
       summary: Consultar ventas
+      x-required-roles: [COMPANY_ADMIN, SUPERVISOR, SELLER]
+      x-story-ids: [BE-046, FE-026, FE-027, INT-019]
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/DateFrom'
+        - $ref: '#/components/parameters/DateTo'
+        - name: sellerId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: customerId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/SaleStatus' }
       responses:
-        '200': { description: Ventas }
+        '200':
+          description: Página de ventas
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SalePage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
     post:
-      summary: Registrar venta
+      tags: [Sales]
+      operationId: createSale
+      summary: Registrar venta; el servidor recalcula importes
+      x-required-roles: [SELLER]
+      x-story-ids: [BE-042, MOB-020, MOB-021, MOB-022, INT-017, INT-018]
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateSaleRequest' }
       responses:
-        '201': { description: Venta registrada }
+        '201':
+          description: Venta registrada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Sale' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /sales/{saleId}:
+    parameters:
+      - $ref: '#/components/parameters/SaleId'
+    get:
+      tags: [Sales]
+      operationId: getSale
+      summary: Consultar venta
+      x-required-roles: [COMPANY_ADMIN, SUPERVISOR, SELLER]
+      x-story-ids: [BE-046, FE-027]
+      responses:
+        '200':
+          description: Venta
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Sale' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Sales]
+      operationId: updateSale
+      summary: Editar una venta dentro de la ventana permitida
+      x-required-roles: [SELLER]
+      x-story-ids: [BE-043, MOB-032, INT-037]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/merge-patch+json:
+            schema: { $ref: '#/components/schemas/UpdateSaleRequest' }
+      responses:
+        '200':
+          description: Venta actualizada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Sale' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /sales/{saleId}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/SaleId'
+    post:
+      tags: [Sales]
+      operationId: cancelSale
+      summary: Anular venta sin eliminarla
+      x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
+      x-story-ids: [BE-044, FE-029]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CancelSaleRequest' }
+      responses:
+        '200':
+          description: Venta anulada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Sale' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /sales/my-daily-summary:
+    get:
+      tags: [Sales, Mobile]
+      operationId: getMyDailySalesSummary
+      summary: Consultar resumen diario del vendedor autenticado
+      x-required-roles: [SELLER]
+      x-story-ids: [BE-045, MOB-023, MOB-031, INT-019]
+      parameters:
+        - name: date
+          in: query
+          required: true
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Resumen diario
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DailySalesSummary' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
   /reports/daily-dashboard:
     get:
-      summary: Dashboard diario
+      tags: [Reports]
+      operationId: getDailyDashboard
+      summary: Consultar dashboard diario
+      x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
+      x-story-ids: [BE-047, FE-030, INT-022]
+      parameters:
+        - name: date
+          in: query
+          required: true
+          schema: { type: string, format: date }
+        - name: supervisorId
+          in: query
+          schema: { type: string, format: uuid }
       responses:
-        '200': { description: Indicadores }
+        '200':
+          description: Indicadores diarios
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DailyDashboard' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /reports/sellers/{sellerId}:
+    parameters:
+      - $ref: '#/components/parameters/SellerId'
+    get:
+      tags: [Reports]
+      operationId: getSellerReport
+      summary: Consultar resultados por vendedor
+      x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
+      x-story-ids: [BE-048, FE-028, INT-021]
+      parameters:
+        - $ref: '#/components/parameters/DateFrom'
+        - $ref: '#/components/parameters/DateTo'
+      responses:
+        '200':
+          description: Resultados del vendedor
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SellerReport' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /reports/customers/{customerId}:
+    parameters:
+      - $ref: '#/components/parameters/CustomerId'
+    get:
+      tags: [Reports]
+      operationId: getCustomerReport
+      summary: Consultar resultados e histórico por cliente
+      x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
+      x-story-ids: [BE-049, FE-011, INT-020]
+      parameters:
+        - $ref: '#/components/parameters/DateFrom'
+        - $ref: '#/components/parameters/DateTo'
+      responses:
+        '200':
+          description: Resultados del cliente
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CustomerReport' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /reports/coverage:
+    get:
+      tags: [Reports]
+      operationId: getCoverageReport
+      summary: Consultar cobertura de cartera y rutas
+      x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
+      x-story-ids: [BE-047, BE-048, FE-031]
+      parameters:
+        - $ref: '#/components/parameters/DateFrom'
+        - $ref: '#/components/parameters/DateTo'
+        - name: territoryId
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Cobertura
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CoverageReport' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /report-exports:
+    post:
+      tags: [Reports]
+      operationId: createReportExport
+      summary: Solicitar exportación asíncrona
+      x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
+      x-story-ids: [BE-050, FE-031, INT-040]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReportExportRequest' }
+      responses:
+        '202':
+          description: Exportación aceptada
+          headers:
+            Location:
+              schema: { type: string, format: uri-reference }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReportExportJob' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /report-exports/{exportId}:
+    parameters:
+      - $ref: '#/components/parameters/ExportId'
+    get:
+      tags: [Reports]
+      operationId: getReportExport
+      summary: Consultar estado de exportación
+      x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
+      x-story-ids: [BE-050, FE-031, INT-040]
+      responses:
+        '200':
+          description: Trabajo de exportación
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReportExportJob' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /report-exports/{exportId}/download:
+    parameters:
+      - $ref: '#/components/parameters/ExportId'
+    get:
+      tags: [Reports]
+      operationId: downloadReportExport
+      summary: Descargar una exportación terminada
+      x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
+      x-story-ids: [BE-050, FE-031, INT-040]
+      responses:
+        '200':
+          description: Archivo exportado
+          content:
+            text/csv:
+              schema: { type: string }
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: { type: string, format: binary }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '410': { $ref: '#/components/responses/Gone' }
+
+  /audit-entries:
+    get:
+      tags: [Audit]
+      operationId: listAuditEntries
+      summary: Consultar auditoría inmutable del tenant
+      x-required-roles: [COMPANY_ADMIN]
+      x-story-ids: [BE-051, BE-052, FE-032, INT-025]
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/DateFrom'
+        - $ref: '#/components/parameters/DateTo'
+        - name: actorId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: action
+          in: query
+          schema: { type: string, maxLength: 100 }
+        - name: resourceType
+          in: query
+          schema: { type: string, maxLength: 100 }
+        - name: resourceId
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Página de auditoría
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuditEntryPage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /devices:
+    post:
+      tags: [Devices]
+      operationId: registerDevice
+      summary: Registrar dispositivo y token push del usuario
+      x-required-roles: [SELLER]
+      x-story-ids: [MOB-029, BE-053]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegisterDeviceRequest' }
+      responses:
+        '201':
+          description: Dispositivo registrado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeviceRegistration' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /devices/{deviceId}:
+    parameters:
+      - $ref: '#/components/parameters/DeviceId'
+    delete:
+      tags: [Devices]
+      operationId: unregisterDevice
+      summary: Revocar registro push del dispositivo propio
+      x-required-roles: [SELLER]
+      x-story-ids: [MOB-002, MOB-029]
+      responses:
+        '204':
+          description: Resuelve atómicamente tenant+usuario derivados+deviceId y devuelve 204 con resultado/tiempo indistinguibles para dispositivo propio, ajeno, revocado o inexistente; no revela pertenencia. Autenticación y rol se validan antes.
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /mobile/bootstrap:
+    get:
+      tags: [Mobile]
+      operationId: getMobileBootstrap
+      summary: Descargar datos iniciales y deltas para operación offline
+      x-required-roles: [SELLER]
+      x-story-ids: [MOB-004, MOB-005, MOB-019, MOB-027]
+      parameters:
+        - name: since
+          in: query
+          description: Cursor opaco retornado por una descarga anterior; omitir para carga completa.
+          schema: { type: string, maxLength: 500 }
+      responses:
+        '200':
+          description: Datos asignados al vendedor
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MobileBootstrap' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /mobile/sync/commands:
+    post:
+      tags: [Mobile]
+      operationId: synchronizeMobileCommands
+      summary: Sincronizar comandos offline idempotentes en lote
+      description: El orden de entrada se conserva. Cada comando se confirma o rechaza de forma independiente.
+      x-required-roles: [SELLER]
+      x-story-ids: [MOB-010, MOB-014, MOB-022, MOB-025, MOB-028, INT-015, INT-018]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SyncBatchRequest' }
+      responses:
+        '200':
+          description: Resultado determinista por comando
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SyncBatchResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT RS256 de acceso, 10 minutos, transportado solo en Authorization; nunca en cookie.
+    webRefreshCookie:
+      type: apiKey
+      in: cookie
+      name: __Host-fs-refresh
+      description: Cookie refresh exclusiva de WEB; Secure, HttpOnly, SameSite=Strict y Path=/.
+    sessionRevocationTicket:
+      type: apiKey
+      in: header
+      name: X-Session-Revocation-Ticket
+      description: Ticket opaco MOBILE de un uso y solo para revocar su propia familia; no autentica ni permite refresh.
+
+  headers:
+    CorrelationId:
+      description: Identificador de trazabilidad de extremo a extremo.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 100
+    NoStore:
+      description: Impide almacenar respuestas que contienen o alteran credenciales.
+      schema: { type: string, const: no-store }
+    NoCache:
+      description: Compatibilidad HTTP/1.0 para respuestas de credenciales.
+      schema: { type: string, const: no-cache }
+    WebRefreshSetCookie:
+      description: |
+        Solo WEB. Contiene el refresh opaco; nunca es legible desde JavaScript ni
+        se incluye en el JSON. Ausente para MOBILE.
+      schema:
+        type: string
+        example: __Host-fs-refresh=<opaque>; Path=/; Secure; HttpOnly; SameSite=Strict
+    WebRefreshClearCookie:
+      description: Solo WEB. Elimina la cookie incluso si la familia ya estaba revocada.
+      schema:
+        type: string
+        example: __Host-fs-refresh=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Strict
+
   parameters:
+    AuthClient:
+      name: X-Auth-Client
+      in: header
+      required: true
+      description: |
+        Selecciona transporte, no autoridad. WEB requiere Origin allowlisted.
+        MOBILE requiere ausencia de Origin y Sec-Fetch; un navegador no puede
+        declarar MOBILE para obtener un refresh en el body.
+      schema:
+        type: string
+        enum: [WEB, MOBILE]
+    ClientInstanceId:
+      name: X-Client-Instance-Id
+      in: header
+      required: true
+      description: UUID estable de instalación/perfil; no autentica ni concede tenant o rol.
+      schema: { type: string, format: uuid }
+    WebCsrfToken:
+      name: X-CSRF-Token
+      in: header
+      required: false
+      description: Obligatorio para WEB en refresh/logout; prohibido como sustituto de una credencial.
+      schema:
+        type: string
+        minLength: 43
+        maxLength: 128
+    LogoutIntent:
+      name: X-Logout-Intent
+      in: header
+      required: false
+      description: Solo WEB pendiente sin access/CSRF; valor único PENDING, Origin allowlisted y cookie HttpOnly. Nunca habilita refresh ni allSessions.
+      schema: { type: string, const: PENDING }
+    Page:
+      name: page
+      in: query
+      description: Página basada en cero.
+      schema: { type: integer, minimum: 0, default: 0 }
+    PageSize:
+      name: pageSize
+      in: query
+      description: Cantidad máxima de elementos por página.
+      schema: { type: integer, minimum: 1, maximum: 200, default: 20 }
+    Search:
+      name: search
+      in: query
+      schema: { type: string, minLength: 1, maxLength: 120 }
+    DateFrom:
+      name: dateFrom
+      in: query
+      required: true
+      schema: { type: string, format: date }
+    DateTo:
+      name: dateTo
+      in: query
+      required: true
+      schema: { type: string, format: date }
+    IfMatch:
+      name: If-Match
+      in: header
+      required: true
+      description: Versión de la entidad entre comillas, por ejemplo "7".
+      schema: { type: string, pattern: '^"[1-9][0-9]*"$' }
     IdempotencyKey:
       name: Idempotency-Key
       in: header
       required: true
+      description: UUID estable por comando lógico; reutilizarlo en reintentos del mismo comando.
       schema: { type: string, format: uuid }
+    CompanyId:
+      name: companyId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    UserId:
+      name: userId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    TerritoryId:
+      name: territoryId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    SellerId:
+      name: sellerId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    CustomerId:
+      name: customerId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    ImportId:
+      name: importId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    RouteId:
+      name: routeId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    JourneyId:
+      name: journeyId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    VisitId:
+      name: visitId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    ProductId:
+      name: productId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    SaleId:
+      name: saleId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    ExportId:
+      name: exportId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    DeviceId:
+      name: deviceId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  responses:
+    BadRequest:
+      description: Solicitud mal formada
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    AuthRequestInvalid:
+      description: Canal/origen de autenticación incompatible o solicitud mal formada
+      x-error-codes: [AUTH_CLIENT_CHANNEL_INVALID, VALIDATION_FAILED]
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+        Cache-Control: { $ref: '#/components/headers/NoStore' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    LoginFailed:
+      description: Credenciales o estado de cuenta/empresa no utilizables; respuesta neutral
+      x-error-codes: [AUTHENTICATION_FAILED]
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+        Cache-Control: { $ref: '#/components/headers/NoStore' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    RefreshRejected:
+      description: Refresh expirado, inválido/revocado o reutilizado
+      x-error-codes: [REFRESH_TOKEN_EXPIRED, REFRESH_TOKEN_INVALID, REFRESH_TOKEN_REUSED]
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+        Cache-Control: { $ref: '#/components/headers/NoStore' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    CsrfRejected:
+      description: Token CSRF web ausente o inválido; no consume el refresh
+      x-error-codes: [CSRF_TOKEN_INVALID]
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+        Cache-Control: { $ref: '#/components/headers/NoStore' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    RefreshAlreadyRotated:
+      description: El mismo refresh ya ganó una rotación concurrente controlada; no se reemite el sucesor
+      x-error-codes: [REFRESH_ALREADY_ROTATED]
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+        Cache-Control: { $ref: '#/components/headers/NoStore' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    PasswordResetInvalid:
+      description: Token malformado, desconocido, consumido o de propósito incompatible
+      x-error-codes: [PASSWORD_RESET_TOKEN_INVALID, AUTH_CLIENT_CHANNEL_INVALID, VALIDATION_FAILED]
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+        Cache-Control: { $ref: '#/components/headers/NoStore' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    PasswordResetExpired:
+      description: Token de activación/recuperación reconocido pero expirado
+      x-error-codes: [PASSWORD_RESET_TOKEN_EXPIRED]
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+        Cache-Control: { $ref: '#/components/headers/NoStore' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    AuthRateLimited:
+      description: Límite temporal de autenticación excedido sin revelar existencia de cuenta
+      x-error-codes: [AUTH_RATE_LIMITED]
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+        Cache-Control: { $ref: '#/components/headers/NoStore' }
+        Retry-After:
+          schema: { type: integer, minimum: 1 }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    AuthRateLimiterUnavailable:
+      description: Operación cerrada temporalmente porque no puede aplicarse el control de abuso
+      x-error-codes: [AUTH_RATE_LIMIT_UNAVAILABLE]
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+        Cache-Control: { $ref: '#/components/headers/NoStore' }
+        Retry-After:
+          schema: { type: integer, minimum: 1 }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    Unauthorized:
+      description: Identidad ausente, inválida o sesión revocada
+      x-error-codes: [ACCESS_TOKEN_EXPIRED, ACCESS_TOKEN_INVALID, SESSION_REVOKED]
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    Forbidden:
+      description: La identidad no puede realizar la operación o acceder al recurso
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    NotFound:
+      description: Recurso inexistente dentro del alcance visible
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    Conflict:
+      description: Conflicto de estado, versión o idempotencia
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    PasswordPolicyViolation:
+      description: La nueva contraseña no cumple la política vigente
+      x-error-codes: [PASSWORD_POLICY_VIOLATION]
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+        Cache-Control: { $ref: '#/components/headers/NoStore' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    LocationBatchConflict:
+      description: Idempotency-Key o batchId reutilizado con contexto, deviceId, conjunto u orden diferente; no se procesa ninguna muestra.
+      x-error-codes: [LOCATION_BATCH_IDEMPOTENCY_CONFLICT]
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    LocationRateLimited:
+      description: Presupuesto de ubicación por tenant, usuario y jornada excedido, agregado entre dispositivos.
+      x-error-codes: [LOCATION_RATE_LIMITED]
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+        Retry-After:
+          schema: { type: integer, minimum: 1 }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    RouteOptimizationUnavailable:
+      description: Motor o proveedor de matriz temporalmente no disponible
+      x-error-codes:
+        - PROVIDER_UNCONFIGURED
+        - PROVIDER_UNAUTHORIZED
+        - PROVIDER_RATE_LIMITED
+        - PROVIDER_TIMEOUT
+        - SOLVER_TIME_LIMIT
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+        Retry-After:
+          schema: { type: integer, minimum: 1 }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    Gone:
+      description: Recurso expirado por política de retención
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    PayloadTooLarge:
+      description: Cuerpo o archivo excede el límite permitido
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    UnsupportedMediaType:
+      description: Tipo de contenido no admitido
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    UnprocessableEntity:
+      description: Solicitud sintácticamente válida que incumple reglas de negocio
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    InternalError:
+      description: Error interno sin detalles sensibles
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  schemas:
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [type, title, status, code, correlationId]
+      properties:
+        type: { type: string, format: uri-reference }
+        title: { type: string, maxLength: 200 }
+        status: { type: integer, minimum: 400, maximum: 599 }
+        code: { type: string, pattern: '^[A-Z][A-Z0-9_]{2,79}$' }
+        detail: { type: string, maxLength: 1000 }
+        instance: { type: string, format: uri-reference }
+        correlationId: { type: string, maxLength: 100 }
+        fieldErrors:
+          type: array
+          maxItems: 100
+          items: { $ref: '#/components/schemas/FieldError' }
+    FieldError:
+      type: object
+      additionalProperties: false
+      required: [field, code]
+      properties:
+        field: { type: string, maxLength: 200 }
+        code: { type: string, maxLength: 80 }
+        message: { type: string, maxLength: 300 }
+    AcceptedResponse:
+      type: object
+      additionalProperties: false
+      required: [accepted]
+      properties:
+        accepted: { type: boolean, const: true }
+    PageInfo:
+      type: object
+      additionalProperties: false
+      required: [page, pageSize, totalElements, totalPages]
+      properties:
+        page: { type: integer, minimum: 0 }
+        pageSize: { type: integer, minimum: 1 }
+        totalElements: { type: integer, format: int64, minimum: 0 }
+        totalPages: { type: integer, minimum: 0 }
+    EntityStatus:
+      type: string
+      enum: [ACTIVE, INACTIVE]
+    CompanyStatus:
+      type: string
+      enum: [ACTIVE, SUSPENDED]
+    UserStatus:
+      type: string
+      enum: [INVITED, ACTIVE, INACTIVE, LOCKED]
+    PlatformRole:
+      type: string
+      enum: [PLATFORM_SUPERADMIN]
+    CompanyRole:
+      type: string
+      enum: [COMPANY_ADMIN, SUPERVISOR, SELLER]
+    UserRole:
+      oneOf:
+        - $ref: '#/components/schemas/PlatformRole'
+        - $ref: '#/components/schemas/CompanyRole'
+    GeoPoint:
+      type: object
+      additionalProperties: false
+      description: Punto WGS 84 (SRID EPSG:4326) expresado en grados decimales.
+      required: [latitude, longitude]
+      properties:
+        latitude: { type: number, format: double, minimum: -90, maximum: 90 }
+        longitude: { type: number, format: double, minimum: -180, maximum: 180 }
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required: [identifier, password]
+      properties:
+        identifier:
+          type: string
+          minLength: 3
+          maxLength: 254
+          description: Correo electrónico o nombre de usuario.
+        password: { type: string, minLength: 8, maxLength: 200, writeOnly: true }
+        deviceName: { type: string, maxLength: 120 }
+    MobileRefreshSessionRequest:
+      type: object
+      additionalProperties: false
+      required: [refreshToken]
+      description: Solo MOBILE. WEB debe omitir por completo el body.
+      properties:
+        refreshToken:
+          type: string
+          minLength: 43
+          maxLength: 43
+          pattern: '^[A-Za-z0-9_-]{43}$'
+          writeOnly: true
+          description: Refresh opaco almacenado en secure storage; nunca acepta una cookie web.
+    LogoutRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        allSessions:
+          type: boolean
+          default: false
+          description: False revoca sid; true revoca todas las familias de la cuenta/tenant autenticados.
+    PasswordRecoveryRequest:
+      type: object
+      additionalProperties: false
+      required: [email]
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+    PasswordResetRequest:
+      type: object
+      additionalProperties: false
+      required: [token, newPassword]
+      properties:
+        token:
+          type: string
+          minLength: 43
+          maxLength: 43
+          pattern: '^[A-Za-z0-9_-]{43}$'
+          writeOnly: true
+          description: Token opaco de activación (24 h) o recuperación (30 min), de un solo uso.
+        newPassword:
+          type: string
+          minLength: 8
+          maxLength: 72
+          writeOnly: true
+          description: Debe cumplir la política vigente y ocupar como máximo 72 bytes UTF-8 para BCrypt.
+    AccessCredentials:
+      type: object
+      additionalProperties: false
+      required: [accessToken, tokenType, expiresIn]
+      properties:
+        accessToken:
+          type: string
+          minLength: 1
+          maxLength: 4096
+          description: JWT RS256 para mantener solo en memoria.
+        tokenType: { type: string, const: Bearer }
+        expiresIn: { type: integer, const: 600, description: Segundos hasta expirar el access token. }
+    WebAuthenticationResponse:
+      type: object
+      additionalProperties: false
+      required: [channel, credentials, csrfToken, user]
+      properties:
+        channel: { type: string, const: WEB }
+        credentials: { $ref: '#/components/schemas/AccessCredentials' }
+        csrfToken:
+          type: string
+          minLength: 43
+          maxLength: 128
+          description: Rotado con la familia; enviar en X-CSRF-Token. No es el refresh.
+        user: { $ref: '#/components/schemas/CurrentUser' }
+    MobileAuthenticationResponse:
+      type: object
+      additionalProperties: false
+      required: [channel, credentials, refreshToken, sessionRevocationTicket, refreshExpiresIn, user]
+      properties:
+        channel: { type: string, const: MOBILE }
+        credentials: { $ref: '#/components/schemas/AccessCredentials' }
+        refreshToken:
+          type: string
+          minLength: 43
+          maxLength: 43
+          pattern: '^[A-Za-z0-9_-]{43}$'
+          description: Secreto opaco para secure storage móvil; nunca se entrega a WEB.
+        sessionRevocationTicket:
+          type: string
+          minLength: 43
+          maxLength: 43
+          pattern: '^[A-Za-z0-9_-]{43}$'
+          description: Ticket opaco de un uso, solo para cerrar remotamente la propia familia tras logout local; no sirve para autenticar ni renovar.
+        refreshExpiresIn:
+          type: integer
+          minimum: 1
+          maximum: 2592000
+          description: Segundos restantes hasta el límite absoluto de 30 días de la familia.
+        user: { $ref: '#/components/schemas/CurrentUser' }
+    UserSummary:
+      type: object
+      additionalProperties: false
+      required: [id, displayName, email, status, roles]
+      properties:
+        id: { type: string, format: uuid }
+        displayName: { type: string, maxLength: 160 }
+        username: { type: string, maxLength: 100 }
+        email: { type: string, format: email }
+        status: { $ref: '#/components/schemas/UserStatus' }
+        roles:
+          type: array
+          uniqueItems: true
+          items: { $ref: '#/components/schemas/UserRole' }
+    CurrentUser:
+      allOf:
+        - $ref: '#/components/schemas/UserSummary'
+        - type: object
+          required: [company]
+          properties:
+            company:
+              oneOf:
+                - $ref: '#/components/schemas/Company'
+                - type: 'null'
+
+    CompanySettings:
+      type: object
+      additionalProperties: false
+      required: [timezone, currency, geofenceRadiusMeters, trackingIntervalSeconds]
+      properties:
+        timezone: { type: string, maxLength: 100, example: America/Lima }
+        currency: { type: string, pattern: '^[A-Z]{3}$', example: PEN }
+        geofenceRadiusMeters: { type: integer, const: 100, description: 'ADR-016: valor fijo del MVP; cambios requieren ADR sustituto.' }
+        trackingIntervalSeconds: { type: integer, const: 60, description: 'ADR-016: valor fijo del MVP; cambios requieren ADR sustituto.' }
+        locationRetentionDays: { type: integer, const: 90, description: 'ADR-016: purga física al vencer; cambios requieren ADR sustituto.' }
+        saleEditWindowMinutes: { type: integer, minimum: 0, maximum: 10080 }
+    UpdateCompanySettingsRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        timezone: { type: string, maxLength: 100 }
+        currency: { type: string, pattern: '^[A-Z]{3}$' }
+        geofenceRadiusMeters: { type: integer, const: 100, description: 'ADR-016: no modificable durante MVP.' }
+        trackingIntervalSeconds: { type: integer, const: 60, description: 'ADR-016: no modificable durante MVP.' }
+        locationRetentionDays: { type: integer, const: 90, description: 'ADR-016: no modificable durante MVP.' }
+        saleEditWindowMinutes: { type: integer, minimum: 0, maximum: 10080 }
+    Company:
+      type: object
+      additionalProperties: false
+      required: [id, legalName, code, status, settings, createdAt, updatedAt, version]
+      properties:
+        id: { type: string, format: uuid, readOnly: true }
+        legalName: { type: string, maxLength: 200 }
+        tradeName: { type: string, maxLength: 200 }
+        code: { type: string, pattern: '^[A-Z0-9][A-Z0-9_-]{2,39}$' }
+        taxId: { type: string, maxLength: 30 }
+        status: { $ref: '#/components/schemas/CompanyStatus' }
+        settings: { $ref: '#/components/schemas/CompanySettings' }
+        createdAt: { type: string, format: date-time, readOnly: true }
+        updatedAt: { type: string, format: date-time, readOnly: true }
+        version: { type: integer, minimum: 1, readOnly: true }
+    CompanyPage:
+      type: object
+      additionalProperties: false
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Company' }
+        page: { $ref: '#/components/schemas/PageInfo' }
+    CreateCompanyRequest:
+      type: object
+      additionalProperties: false
+      required: [legalName, code, settings]
+      properties:
+        legalName: { type: string, minLength: 2, maxLength: 200 }
+        tradeName: { type: string, maxLength: 200 }
+        code: { type: string, pattern: '^[A-Z0-9][A-Z0-9_-]{2,39}$' }
+        taxId: { type: string, maxLength: 30 }
+        settings: { $ref: '#/components/schemas/CompanySettings' }
+    ChangeCompanyStatusRequest:
+      type: object
+      additionalProperties: false
+      required: [status, reason]
+      properties:
+        status: { $ref: '#/components/schemas/CompanyStatus' }
+        reason: { type: string, minLength: 5, maxLength: 500 }
+    ProvisionInitialAdminRequest:
+      type: object
+      additionalProperties: false
+      required: [displayName, email]
+      properties:
+        displayName: { type: string, minLength: 2, maxLength: 160 }
+        username: { type: string, minLength: 3, maxLength: 100 }
+        email: { type: string, format: email, maxLength: 254 }
+    User:
+      type: object
+      additionalProperties: false
+      required: [id, displayName, email, status, roles, createdAt, updatedAt, version]
+      properties:
+        id: { type: string, format: uuid, readOnly: true }
+        displayName: { type: string, maxLength: 160 }
+        username: { type: string, maxLength: 100 }
+        email: { type: string, format: email, maxLength: 254 }
+        phone: { type: string, maxLength: 30 }
+        status: { $ref: '#/components/schemas/UserStatus' }
+        roles:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items: { $ref: '#/components/schemas/CompanyRole' }
+        createdAt: { type: string, format: date-time, readOnly: true }
+        updatedAt: { type: string, format: date-time, readOnly: true }
+        version: { type: integer, minimum: 1, readOnly: true }
+    UserPage:
+      type: object
+      additionalProperties: false
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/User' }
+        page: { $ref: '#/components/schemas/PageInfo' }
+    InviteCompanyUserRequest:
+      type: object
+      additionalProperties: false
+      required: [displayName, email, roles]
+      properties:
+        displayName: { type: string, minLength: 2, maxLength: 160 }
+        username: { type: string, minLength: 3, maxLength: 100 }
+        email: { type: string, format: email, maxLength: 254 }
+        phone: { type: string, maxLength: 30 }
+        roles:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items: { $ref: '#/components/schemas/CompanyRole' }
+    UpdateCompanyUserRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        displayName: { type: string, minLength: 2, maxLength: 160 }
+        username: { type: string, minLength: 3, maxLength: 100 }
+        phone: { type: string, maxLength: 30 }
+        roles:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items: { $ref: '#/components/schemas/CompanyRole' }
+    ChangeUserStatusRequest:
+      type: object
+      additionalProperties: false
+      required: [status, reason]
+      properties:
+        status: { $ref: '#/components/schemas/UserStatus' }
+        reason: { type: string, minLength: 5, maxLength: 500 }
+
+    Territory:
+      type: object
+      additionalProperties: false
+      required: [id, name, status, createdAt, updatedAt, version]
+      properties:
+        id: { type: string, format: uuid, readOnly: true }
+        name: { type: string, maxLength: 160 }
+        code: { type: string, maxLength: 40 }
+        description: { type: string, maxLength: 500 }
+        status: { $ref: '#/components/schemas/EntityStatus' }
+        boundary:
+          description: Polígono GeoJSON opcional, coordenadas en longitud/latitud.
+          type: object
+          additionalProperties: true
+        createdAt: { type: string, format: date-time, readOnly: true }
+        updatedAt: { type: string, format: date-time, readOnly: true }
+        version: { type: integer, minimum: 1, readOnly: true }
+    TerritoryPage:
+      type: object
+      additionalProperties: false
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Territory' }
+        page: { $ref: '#/components/schemas/PageInfo' }
+    CreateTerritoryRequest:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 160 }
+        code: { type: string, maxLength: 40 }
+        description: { type: string, maxLength: 500 }
+        boundary: { type: object, additionalProperties: true }
+    UpdateTerritoryRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name: { type: string, minLength: 2, maxLength: 160 }
+        code: { type: string, maxLength: 40 }
+        description: { type: string, maxLength: 500 }
+        status: { $ref: '#/components/schemas/EntityStatus' }
+        boundary: { type: object, additionalProperties: true }
+
+    Seller:
+      type: object
+      additionalProperties: false
+      required: [id, userId, displayName, status, territoryIds, createdAt, updatedAt, version]
+      properties:
+        id: { type: string, format: uuid, readOnly: true }
+        userId: { type: string, format: uuid }
+        displayName: { type: string, maxLength: 160 }
+        email: { type: string, format: email }
+        phone: { type: string, maxLength: 30 }
+        employeeCode: { type: string, maxLength: 50 }
+        status: { $ref: '#/components/schemas/EntityStatus' }
+        supervisorId:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        territoryIds:
+          type: array
+          uniqueItems: true
+          items: { type: string, format: uuid }
+        createdAt: { type: string, format: date-time, readOnly: true }
+        updatedAt: { type: string, format: date-time, readOnly: true }
+        version: { type: integer, minimum: 1, readOnly: true }
+    SellerPage:
+      type: object
+      additionalProperties: false
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Seller' }
+        page: { $ref: '#/components/schemas/PageInfo' }
+    CreateSellerRequest:
+      type: object
+      additionalProperties: false
+      required: [displayName, email]
+      properties:
+        displayName: { type: string, minLength: 2, maxLength: 160 }
+        username: { type: string, minLength: 3, maxLength: 100 }
+        email: { type: string, format: email, maxLength: 254 }
+        phone: { type: string, maxLength: 30 }
+        employeeCode: { type: string, maxLength: 50 }
+        supervisorId: { type: string, format: uuid }
+        territoryIds:
+          type: array
+          uniqueItems: true
+          items: { type: string, format: uuid }
+    UpdateSellerRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        displayName: { type: string, minLength: 2, maxLength: 160 }
+        phone: { type: string, maxLength: 30 }
+        employeeCode: { type: string, maxLength: 50 }
+    ChangeEntityStatusRequest:
+      type: object
+      additionalProperties: false
+      required: [status, reason]
+      properties:
+        status: { $ref: '#/components/schemas/EntityStatus' }
+        reason: { type: string, minLength: 5, maxLength: 500 }
+    AssignSupervisorRequest:
+      type: object
+      additionalProperties: false
+      required: [supervisorId]
+      properties:
+        supervisorId:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+    AssignTerritoriesRequest:
+      type: object
+      additionalProperties: false
+      required: [territoryIds]
+      properties:
+        territoryIds:
+          type: array
+          uniqueItems: true
+          items: { type: string, format: uuid }
+
+    Customer:
+      type: object
+      additionalProperties: false
+      required: [id, name, status, location, assignedSellerIds, createdAt, updatedAt, version]
+      properties:
+        id: { type: string, format: uuid, readOnly: true }
+        name: { type: string, maxLength: 200 }
+        documentType: { type: string, maxLength: 30 }
+        documentNumber: { type: string, maxLength: 40 }
+        phone: { type: string, maxLength: 30 }
+        email: { type: string, format: email, maxLength: 254 }
+        address: { type: string, maxLength: 300 }
+        location: { $ref: '#/components/schemas/GeoPoint' }
+        visitFrequencyDays: { type: integer, minimum: 1, maximum: 365 }
+        territoryId:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        assignedSellerIds:
+          type: array
+          uniqueItems: true
+          items: { type: string, format: uuid }
+        status: { $ref: '#/components/schemas/EntityStatus' }
+        createdAt: { type: string, format: date-time, readOnly: true }
+        updatedAt: { type: string, format: date-time, readOnly: true }
+        version: { type: integer, minimum: 1, readOnly: true }
+    CustomerPage:
+      type: object
+      additionalProperties: false
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Customer' }
+        page: { $ref: '#/components/schemas/PageInfo' }
+    CreateCustomerRequest:
+      type: object
+      additionalProperties: false
+      required: [name, address, location]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 200 }
+        documentType: { type: string, maxLength: 30 }
+        documentNumber: { type: string, maxLength: 40 }
+        phone: { type: string, maxLength: 30 }
+        email: { type: string, format: email, maxLength: 254 }
+        address: { type: string, minLength: 3, maxLength: 300 }
+        location: { $ref: '#/components/schemas/GeoPoint' }
+        visitFrequencyDays: { type: integer, minimum: 1, maximum: 365 }
+        territoryId: { type: string, format: uuid }
+    UpdateCustomerRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name: { type: string, minLength: 2, maxLength: 200 }
+        documentType: { type: string, maxLength: 30 }
+        documentNumber: { type: string, maxLength: 40 }
+        phone: { type: string, maxLength: 30 }
+        email: { type: string, format: email, maxLength: 254 }
+        address: { type: string, minLength: 3, maxLength: 300 }
+        location: { $ref: '#/components/schemas/GeoPoint' }
+        visitFrequencyDays: { type: integer, minimum: 1, maximum: 365 }
+        territoryId: { type: string, format: uuid }
+        status: { $ref: '#/components/schemas/EntityStatus' }
+    CustomerDuplicateCheckRequest:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 200 }
+        documentNumber: { type: string, maxLength: 40 }
+        phone: { type: string, maxLength: 30 }
+        location: { $ref: '#/components/schemas/GeoPoint' }
+        excludeCustomerId: { type: string, format: uuid }
+    DuplicateCandidate:
+      type: object
+      additionalProperties: false
+      required: [customer, score, matchedFields]
+      properties:
+        customer: { $ref: '#/components/schemas/Customer' }
+        score: { type: number, format: double, minimum: 0, maximum: 1 }
+        matchedFields:
+          type: array
+          uniqueItems: true
+          items: { type: string, enum: [DOCUMENT, PHONE, NAME, LOCATION] }
+    CustomerDuplicateCheckResponse:
+      type: object
+      additionalProperties: false
+      required: [hasPossibleDuplicates, candidates]
+      properties:
+        hasPossibleDuplicates: { type: boolean }
+        candidates:
+          type: array
+          items: { $ref: '#/components/schemas/DuplicateCandidate' }
+    AssignCustomerRequest:
+      type: object
+      additionalProperties: false
+      required: [sellerIds, effectiveFrom]
+      properties:
+        sellerIds:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items: { type: string, format: uuid }
+        effectiveFrom: { type: string, format: date }
+        reason: { type: string, maxLength: 500 }
+    CustomerAssignment:
+      type: object
+      additionalProperties: false
+      required: [customerId, sellerIds, effectiveFrom, updatedAt, version]
+      properties:
+        customerId: { type: string, format: uuid }
+        sellerIds:
+          type: array
+          uniqueItems: true
+          items: { type: string, format: uuid }
+        effectiveFrom: { type: string, format: date }
+        updatedAt: { type: string, format: date-time }
+        version: { type: integer, minimum: 1 }
+    BatchAssignCustomersRequest:
+      type: object
+      additionalProperties: false
+      required: [customerIds, sellerIds, effectiveFrom]
+      properties:
+        customerIds:
+          type: array
+          minItems: 1
+          maxItems: 1000
+          uniqueItems: true
+          items: { type: string, format: uuid }
+        sellerIds:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items: { type: string, format: uuid }
+        effectiveFrom: { type: string, format: date }
+        reason: { type: string, maxLength: 500 }
+    BatchAssignmentResult:
+      type: object
+      additionalProperties: false
+      required: [customerId, status]
+      properties:
+        customerId: { type: string, format: uuid }
+        status: { type: string, enum: [ASSIGNED, REJECTED] }
+        errorCode: { type: string, maxLength: 80 }
+    BatchAssignCustomersResponse:
+      type: object
+      additionalProperties: false
+      required: [results]
+      properties:
+        results:
+          type: array
+          items: { $ref: '#/components/schemas/BatchAssignmentResult' }
+    VisitHistoryItem:
+      type: object
+      additionalProperties: false
+      required: [visitId, startedAt, status]
+      properties:
+        visitId: { type: string, format: uuid }
+        startedAt: { type: string, format: date-time }
+        endedAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: 'null'
+        status: { $ref: '#/components/schemas/VisitStatus' }
+        result: { $ref: '#/components/schemas/VisitResultCode' }
+    SaleHistoryItem:
+      type: object
+      additionalProperties: false
+      required: [saleId, occurredAt, total, currency, status]
+      properties:
+        saleId: { type: string, format: uuid }
+        occurredAt: { type: string, format: date-time }
+        total: { type: number, multipleOf: 0.01, minimum: 0 }
+        currency: { type: string, pattern: '^[A-Z]{3}$' }
+        status: { $ref: '#/components/schemas/SaleStatus' }
+    CustomerHistory:
+      type: object
+      additionalProperties: false
+      required: [customer, visits, sales]
+      properties:
+        customer: { $ref: '#/components/schemas/Customer' }
+        visits:
+          type: array
+          items: { $ref: '#/components/schemas/VisitHistoryItem' }
+        sales:
+          type: array
+          items: { $ref: '#/components/schemas/SaleHistoryItem' }
+    ImportJobStatus:
+      type: string
+      enum: [PENDING, PROCESSING, COMPLETED, COMPLETED_WITH_ERRORS, FAILED]
+    CustomerImportJob:
+      type: object
+      additionalProperties: false
+      required: [id, status, totalRows, acceptedRows, rejectedRows, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        status: { $ref: '#/components/schemas/ImportJobStatus' }
+        totalRows: { type: integer, minimum: 0 }
+        acceptedRows: { type: integer, minimum: 0 }
+        rejectedRows: { type: integer, minimum: 0 }
+        createdAt: { type: string, format: date-time }
+        completedAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: 'null'
+        errorFileExpiresAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: 'null'
+
+    RouteStatus:
+      type: string
+      enum: [DRAFT, PUBLISHED, IN_PROGRESS, COMPLETED, CANCELLED]
+    RoutePointStatus:
+      type: string
+      enum: [PENDING, VISITED, SKIPPED]
+    RoutePoint:
+      type: object
+      additionalProperties: false
+      required: [id, customerId, sequence, status, location]
+      properties:
+        id: { type: string, format: uuid }
+        customerId: { type: string, format: uuid }
+        customerName: { type: string, maxLength: 200 }
+        sequence: { type: integer, minimum: 1 }
+        status: { $ref: '#/components/schemas/RoutePointStatus' }
+        location: { $ref: '#/components/schemas/GeoPoint' }
+        plannedArrivalAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: 'null'
+    Route:
+      type: object
+      additionalProperties: false
+      required: [id, date, sellerId, status, points, createdAt, updatedAt, version]
+      properties:
+        id: { type: string, format: uuid, readOnly: true }
+        name: { type: string, maxLength: 160 }
+        date: { type: string, format: date }
+        sellerId: { type: string, format: uuid }
+        status: { $ref: '#/components/schemas/RouteStatus' }
+        startLocation: { $ref: '#/components/schemas/GeoPoint' }
+        points:
+          type: array
+          items: { $ref: '#/components/schemas/RoutePoint' }
+        publishedAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: 'null'
+        createdAt: { type: string, format: date-time, readOnly: true }
+        updatedAt: { type: string, format: date-time, readOnly: true }
+        version: { type: integer, minimum: 1, readOnly: true }
+    RoutePage:
+      type: object
+      additionalProperties: false
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Route' }
+        page: { $ref: '#/components/schemas/PageInfo' }
+    CreateRouteRequest:
+      type: object
+      additionalProperties: false
+      required: [date, sellerId, customerIds]
+      properties:
+        name: { type: string, maxLength: 160 }
+        date: { type: string, format: date }
+        sellerId: { type: string, format: uuid }
+        startLocation: { $ref: '#/components/schemas/GeoPoint' }
+        customerIds:
+          type: array
+          minItems: 1
+          maxItems: 500
+          uniqueItems: true
+          items: { type: string, format: uuid }
+    UpdateRouteRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name: { type: string, maxLength: 160 }
+        date: { type: string, format: date }
+        sellerId: { type: string, format: uuid }
+        startLocation: { $ref: '#/components/schemas/GeoPoint' }
+    OptimizeRouteRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - routeId
+        - date
+        - sellerId
+        - territoryId
+        - startLocation
+        - endLocation
+        - availability
+        - baseRouteVersion
+        - visits
+      properties:
+        routeId: { type: string, format: uuid }
+        date: { type: string, format: date }
+        sellerId: { type: string, format: uuid }
+        territoryId:
+          type: string
+          format: uuid
+          description: Zona autorizada; debe pertenecer al tenant autenticado.
+        startLocation: { $ref: '#/components/schemas/GeoPoint' }
+        endLocation: { $ref: '#/components/schemas/GeoPoint' }
+        availability: { $ref: '#/components/schemas/TimeWindow' }
+        baseRouteVersion:
+          type: integer
+          minimum: 1
+          description: Versión base usada para detectar edición concurrente.
+        visits:
+          type: array
+          minItems: 1
+          maxItems: 9
+          uniqueItems: true
+          description: Los customerId deben ser únicos y pertenecer al mismo tenant y territorio.
+          items: { $ref: '#/components/schemas/OptimizeRouteVisitRequest' }
+    TimeWindow:
+      type: object
+      additionalProperties: false
+      required: [start, end]
+      properties:
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+          description: Debe ser posterior a start; el backend valida la zona operativa.
+    OptimizeRouteVisitRequest:
+      type: object
+      additionalProperties: false
+      required: [customerId, serviceDurationSeconds, priority]
+      properties:
+        customerId: { type: string, format: uuid }
+        serviceDurationSeconds:
+          type: integer
+          minimum: 1
+        priority:
+          type: integer
+          minimum: 1
+          description: Una prioridad mayor aplica mayor penalización por no atender.
+        windows:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          description: Ventanas duras; no se relajan silenciosamente.
+          items: { $ref: '#/components/schemas/TimeWindow' }
+    OptimizeRouteResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - routeId
+        - proposalVersion
+        - baseRouteVersion
+        - published
+        - orderedVisits
+        - unassignedVisits
+        - totalTravelSeconds
+        - totalServiceSeconds
+        - totalDistanceMeters
+        - optimality
+        - generatedAt
+      properties:
+        routeId: { type: string, format: uuid }
+        proposalVersion: { type: integer, minimum: 1, readOnly: true }
+        baseRouteVersion: { type: integer, minimum: 1 }
+        published:
+          type: boolean
+          const: false
+          readOnly: true
+          description: Optimizar nunca publica una ruta.
+        orderedVisits:
+          type: array
+          items: { $ref: '#/components/schemas/OptimizedRouteVisit' }
+        unassignedVisits:
+          type: array
+          items: { $ref: '#/components/schemas/UnassignedRouteVisit' }
+        totalTravelSeconds: { type: integer, minimum: 0 }
+        totalServiceSeconds: { type: integer, minimum: 0 }
+        totalDistanceMeters: { type: integer, minimum: 0 }
+        optimality:
+          type: string
+          enum: [FEASIBLE, OPTIMAL, TIME_LIMIT]
+        generatedAt: { type: string, format: date-time, readOnly: true }
+    OptimizedRouteVisit:
+      type: object
+      additionalProperties: false
+      required: [customerId, sequence, plannedArrivalAt, plannedDepartureAt]
+      properties:
+        customerId: { type: string, format: uuid }
+        sequence: { type: integer, minimum: 1 }
+        plannedArrivalAt: { type: string, format: date-time }
+        plannedDepartureAt: { type: string, format: date-time }
+    UnassignedRouteVisit:
+      type: object
+      additionalProperties: false
+      required: [customerId, reason]
+      properties:
+        customerId: { type: string, format: uuid }
+        reason:
+          type: string
+          enum: [OUTSIDE_SHIFT, TIME_WINDOW_CONFLICT, UNREACHABLE, LIMIT_EXCEEDED]
+    ReorderRoutePointsRequest:
+      type: object
+      additionalProperties: false
+      required: [routePointIds]
+      properties:
+        routePointIds:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items: { type: string, format: uuid }
+    PublishRouteRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        notifySeller: { type: boolean, default: true }
+    ReassignRouteRequest:
+      type: object
+      additionalProperties: false
+      required: [sellerId, reason]
+      properties:
+        sellerId: { type: string, format: uuid }
+        reason: { type: string, minLength: 5, maxLength: 500 }
+    CopyRouteRequest:
+      type: object
+      additionalProperties: false
+      required: [date, sellerId]
+      properties:
+        date: { type: string, format: date }
+        sellerId: { type: string, format: uuid }
+        name: { type: string, maxLength: 160 }
+    SuggestedCustomer:
+      type: object
+      additionalProperties: false
+      required: [customer, priority, reason]
+      properties:
+        customer: { $ref: '#/components/schemas/Customer' }
+        priority: { type: integer, minimum: 1 }
+        reason: { type: string, maxLength: 300 }
+        lastVisitAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: 'null'
+    SuggestedCustomerPage:
+      type: object
+      additionalProperties: false
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/SuggestedCustomer' }
+        page: { $ref: '#/components/schemas/PageInfo' }
+    RouteExecution:
+      type: object
+      additionalProperties: false
+      required: [route, plannedPoints, executedTrack, visits]
+      properties:
+        route: { $ref: '#/components/schemas/Route' }
+        plannedPoints:
+          type: array
+          items: { $ref: '#/components/schemas/RoutePoint' }
+        executedTrack:
+          type: array
+          items: { $ref: '#/components/schemas/TrackPoint' }
+        visits:
+          type: array
+          items: { $ref: '#/components/schemas/VisitHistoryItem' }
+
+    JourneyStatus:
+      type: string
+      enum: [ACTIVE, CLOSED]
+    StartJourneyRequest:
+      type: object
+      additionalProperties: false
+      required: [clientEventId, startedAt, initialLocation]
+      properties:
+        clientEventId: { type: string, format: uuid }
+        startedAt: { type: string, format: date-time }
+        initialLocation: { $ref: '#/components/schemas/GeoPoint' }
+        locationPermission: { type: string, enum: [ALWAYS, WHILE_IN_USE] }
+    Journey:
+      type: object
+      additionalProperties: false
+      required: [id, sellerId, businessDate, startedAt, status, pendingCommandCount, version]
+      properties:
+        id: { type: string, format: uuid }
+        sellerId: { type: string, format: uuid }
+        businessDate: { type: string, format: date }
+        startedAt: { type: string, format: date-time }
+        endedAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: 'null'
+        status: { $ref: '#/components/schemas/JourneyStatus' }
+        pendingCommandCount: { type: integer, minimum: 0 }
+        version: { type: integer, minimum: 1 }
+    LocationSample:
+      type: object
+      additionalProperties: false
+      required: [clientEventId, capturedAt, location, accuracyMeters]
+      properties:
+        clientEventId: { type: string, format: uuid }
+        capturedAt: { type: string, format: date-time, description: 'Regla servidor: máximo 5 min de antigüedad y máximo 2 min en el futuro.' }
+        location: { $ref: '#/components/schemas/GeoPoint' }
+        accuracyMeters: { type: number, minimum: 0, maximum: 10000, description: 'Rango estructural seguro del transporte. El servidor evalúa la regla de negocio: >50 m produce REJECTED/LOCATION_ACCURACY_EXCEEDED para esta muestra, sin invalidar las demás del lote ni persistirla como ubicación.' }
+        altitudeMeters: { type: number }
+        speedMetersPerSecond: { type: number, minimum: 0 }
+        headingDegrees: { type: number, minimum: 0, maximum: 360 }
+        batteryPercent: { type: integer, minimum: 0, maximum: 100 }
+        mocked: { type: boolean, description: 'true implica LOCATION_MOCKED; ausente implica integridad UNKNOWN y no habilita visita.' }
+    LocationBatchRequest:
+      type: object
+      additionalProperties: false
+      required: [batchId, deviceId, samples]
+      properties:
+        batchId: { type: string, format: uuid, description: 'Idempotencia estable del lote lógico; no sustituye clientEventId por muestra.' }
+        deviceId: { type: string, format: uuid }
+        samples:
+          type: array
+          minItems: 1
+          maxItems: 500
+          items: { $ref: '#/components/schemas/LocationSample' }
+    LocationResult:
+      description: Unión discriminada por status; ninguna variante contiene coordenadas.
+      oneOf:
+        - $ref: '#/components/schemas/AcceptedLocationResult'
+        - $ref: '#/components/schemas/DuplicateLocationResult'
+        - $ref: '#/components/schemas/RejectedLocationResult'
+      discriminator:
+        propertyName: status
+        mapping:
+          ACCEPTED: '#/components/schemas/AcceptedLocationResult'
+          DUPLICATE: '#/components/schemas/DuplicateLocationResult'
+          REJECTED: '#/components/schemas/RejectedLocationResult'
+    AcceptedLocationResult:
+      type: object
+      additionalProperties: false
+      required: [clientEventId, status, serverId, integrityStatus]
+      properties:
+        clientEventId: { type: string, format: uuid }
+        status: { type: string, const: ACCEPTED }
+        serverId: { type: string, format: uuid }
+        integrityStatus: { $ref: '#/components/schemas/LocationIntegrityStatus' }
+    DuplicateLocationResult:
+      type: object
+      additionalProperties: false
+      required: [clientEventId, status, serverId, integrityStatus]
+      properties:
+        clientEventId: { type: string, format: uuid }
+        status: { type: string, const: DUPLICATE }
+        serverId: { type: string, format: uuid, description: 'Referencia de la ubicación previamente aceptada con igual fingerprint.' }
+        integrityStatus: { $ref: '#/components/schemas/LocationIntegrityStatus' }
+    RejectedLocationResult:
+      type: object
+      additionalProperties: false
+      required: [clientEventId, status, errorCode]
+      properties:
+        clientEventId: { type: string, format: uuid }
+        status: { type: string, const: REJECTED }
+        errorCode:
+          type: string
+          enum: [LOCATION_ACCURACY_EXCEEDED, LOCATION_TOO_OLD, LOCATION_TIMESTAMP_IN_FUTURE, LOCATION_FREQUENCY_EXCEEDED, LOCATION_MOCKED, TRACKING_INACTIVE, LOCATION_UNAVAILABLE, IDEMPOTENCY_CONFLICT]
+          description: Código estable y sanitizado; nunca contiene coordenadas. Repetir una muestra inválida conserva REJECTED.
+    LocationBatchResponse:
+      type: object
+      additionalProperties: false
+      description: results conserva el orden del request y contiene exactamente un elemento por cada samples[].clientEventId, sin omisiones, duplicados ni extras.
+      required: [batchId, results, serverTime]
+      properties:
+        batchId: { type: string, format: uuid }
+        results:
+          type: array
+          minItems: 1
+          maxItems: 500
+          items: { $ref: '#/components/schemas/LocationResult' }
+        serverTime: { type: string, format: date-time }
+    TrackPoint:
+      type: object
+      additionalProperties: false
+      description: Solo representa una muestra aceptada, con accuracyMeters <=50 y aún dentro de la retención de 90 días. Nunca contiene rechazos ni telemetría degradada.
+      required: [capturedAt, receivedAt, location, accuracyMeters, integrityStatus]
+      properties:
+        capturedAt: { type: string, format: date-time }
+        receivedAt: { type: string, format: date-time, description: 'Instante de recepción servidor usado para mostrar última actualización.' }
+        location: { $ref: '#/components/schemas/GeoPoint' }
+        accuracyMeters: { type: number, minimum: 0, maximum: 50 }
+        integrityStatus: { $ref: '#/components/schemas/LocationIntegrityStatus' }
+    LocationIntegrityStatus:
+      type: string
+      description: Señal declarada; no constituye prueba antifraude ni causa sanción automática.
+      enum: [DECLARED_NOT_MOCKED, UNKNOWN]
+    JourneyTrack:
+      type: object
+      additionalProperties: false
+      required: [journeyId, sellerId, businessDate, points, page]
+      properties:
+        journeyId: { type: string, format: uuid }
+        sellerId: { type: string, format: uuid }
+        businessDate: { type: string, format: date }
+        points:
+          type: array
+          maxItems: 200
+          description: Página ordenada por capturedAt y desempate estable del servidor.
+          items: { $ref: '#/components/schemas/TrackPoint' }
+        page: { $ref: '#/components/schemas/PageInfo' }
+    CloseJourneyRequest:
+      type: object
+      additionalProperties: false
+      required: [clientEventId, endedAt, finalLocation, pendingCommandCount]
+      properties:
+        clientEventId: { type: string, format: uuid }
+        endedAt: { type: string, format: date-time }
+        finalLocation: { $ref: '#/components/schemas/GeoPoint' }
+        pendingCommandCount: { type: integer, minimum: 0 }
+        force:
+          type: boolean
+          default: false
+          description: Solo se acepta si la política permite cerrar con pendientes.
+    SellerPresenceStatus:
+      type: string
+      enum: [ONLINE, STALE, OFFLINE]
+    ActiveSeller:
+      type: object
+      additionalProperties: false
+      required: [seller, presenceStatus, activeJourneyId]
+      properties:
+        seller: { $ref: '#/components/schemas/Seller' }
+        presenceStatus: { $ref: '#/components/schemas/SellerPresenceStatus' }
+        activeJourneyId: { type: string, format: uuid }
+        lastLocation:
+          oneOf:
+            - $ref: '#/components/schemas/TrackPoint'
+            - type: 'null'
+    ActiveSellerPage:
+      type: object
+      additionalProperties: false
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/ActiveSeller' }
+        page: { $ref: '#/components/schemas/PageInfo' }
+
+    VisitStatus:
+      type: string
+      enum: [IN_PROGRESS, COMPLETED, CORRECTED]
+    VisitResultCode:
+      type: string
+      enum: [SALE, NO_SALE, CLOSED, ABSENT, RESCHEDULED, OTHER]
+    VisitResultOption:
+      type: object
+      additionalProperties: false
+      required: [code, label, requiresReason]
+      properties:
+        code: { $ref: '#/components/schemas/VisitResultCode' }
+        label: { type: string, maxLength: 100 }
+        requiresReason: { type: boolean }
+    ProximityValidationRequest:
+      type: object
+      additionalProperties: false
+      required: [customerId, capturedAt, location, accuracyMeters]
+      properties:
+        customerId: { type: string, format: uuid }
+        capturedAt: { type: string, format: date-time }
+        location: { $ref: '#/components/schemas/GeoPoint' }
+        accuracyMeters: { type: number, minimum: 0, maximum: 10000, description: 'Rango estructural. >50 m es baja precisión de negocio y produce eligible=false/reasonCode=LOW_ACCURACY, sin geocerca.' }
+        mocked: { type: boolean, description: 'true rechaza geocerca; ausente produce integridad UNKNOWN y no habilita visita.' }
+    ProximityValidationResponse:
+      type: object
+      additionalProperties: false
+      required: [eligible, distanceMeters, allowedRadiusMeters, requiresException]
+      properties:
+        eligible: { type: boolean }
+        distanceMeters: { type: number, minimum: 0 }
+        allowedRadiusMeters: { type: integer, minimum: 1 }
+        requiresException: { type: boolean }
+        reasonCode: { type: string, enum: [WITHIN_RADIUS, OUTSIDE_RADIUS, LOW_ACCURACY, LOCATION_MOCKED, LOCATION_INTEGRITY_UNKNOWN] }
+    Visit:
+      type: object
+      additionalProperties: false
+      required: [id, customerId, sellerId, startedAt, checkInLocation, status, outOfRoute, version]
+      properties:
+        id: { type: string, format: uuid }
+        journeyId: { type: string, format: uuid }
+        routeId:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        routePointId:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        customerId: { type: string, format: uuid }
+        sellerId: { type: string, format: uuid }
+        startedAt: { type: string, format: date-time }
+        endedAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: 'null'
+        checkInLocation: { $ref: '#/components/schemas/GeoPoint' }
+        checkOutLocation:
+          oneOf:
+            - $ref: '#/components/schemas/GeoPoint'
+            - type: 'null'
+        status: { $ref: '#/components/schemas/VisitStatus' }
+        result:
+          oneOf:
+            - $ref: '#/components/schemas/VisitResultCode'
+            - type: 'null'
+        resultReason: { type: string, maxLength: 500 }
+        outOfRoute: { type: boolean }
+        geofenceExceptionId:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+        version: { type: integer, minimum: 1 }
+    VisitPage:
+      type: object
+      additionalProperties: false
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Visit' }
+        page: { $ref: '#/components/schemas/PageInfo' }
+    VisitCheckInRequest:
+      type: object
+      additionalProperties: false
+      required: [clientEventId, customerId, journeyId, startedAt, location, accuracyMeters]
+      properties:
+        clientEventId: { type: string, format: uuid }
+        customerId: { type: string, format: uuid }
+        journeyId: { type: string, format: uuid }
+        routePointId: { type: string, format: uuid }
+        startedAt: { type: string, format: date-time }
+        location: { $ref: '#/components/schemas/GeoPoint' }
+        accuracyMeters: { type: number, minimum: 0, maximum: 10000, description: 'Rango estructural. >50 m se rechaza como regla de negocio (422) y no inicia visita ni geocerca.' }
+        mocked: { type: boolean, description: 'true implica 422 LOCATION_MOCKED; ausente implica 422 LOCATION_INTEGRITY_UNKNOWN.' }
+        outOfRouteReason: { type: string, maxLength: 500 }
+        geofenceExceptionId: { type: string, format: uuid }
+    VisitCheckOutRequest:
+      type: object
+      additionalProperties: false
+      required: [clientEventId, endedAt, location, result]
+      properties:
+        clientEventId: { type: string, format: uuid }
+        endedAt: { type: string, format: date-time }
+        location: { $ref: '#/components/schemas/GeoPoint' }
+        result: { $ref: '#/components/schemas/VisitResultCode' }
+        resultReason: { type: string, maxLength: 500 }
+    CorrectVisitRequest:
+      type: object
+      additionalProperties: false
+      required: [reason]
+      properties:
+        startedAt: { type: string, format: date-time }
+        endedAt: { type: string, format: date-time }
+        result: { $ref: '#/components/schemas/VisitResultCode' }
+        resultReason: { type: string, maxLength: 500 }
+        reason: { type: string, minLength: 5, maxLength: 500 }
+    GeofenceExceptionRequest:
+      type: object
+      additionalProperties: false
+      required: [sellerId, customerId, validFrom, validUntil, reason]
+      properties:
+        sellerId: { type: string, format: uuid }
+        customerId: { type: string, format: uuid }
+        routePointId: { type: string, format: uuid }
+        validFrom: { type: string, format: date-time }
+        validUntil: { type: string, format: date-time }
+        reason: { type: string, minLength: 5, maxLength: 500 }
+    GeofenceException:
+      type: object
+      additionalProperties: false
+      required: [id, sellerId, customerId, validFrom, validUntil, reason, authorizedBy]
+      properties:
+        id: { type: string, format: uuid }
+        sellerId: { type: string, format: uuid }
+        customerId: { type: string, format: uuid }
+        routePointId: { type: string, format: uuid }
+        validFrom: { type: string, format: date-time }
+        validUntil: { type: string, format: date-time }
+        reason: { type: string, maxLength: 500 }
+        authorizedBy: { type: string, format: uuid }
+
+    Product:
+      type: object
+      additionalProperties: false
+      required: [id, sku, name, unitPrice, currency, status, createdAt, updatedAt, version]
+      properties:
+        id: { type: string, format: uuid }
+        sku: { type: string, maxLength: 80 }
+        name: { type: string, maxLength: 200 }
+        description: { type: string, maxLength: 1000 }
+        unitPrice: { type: number, multipleOf: 0.01, minimum: 0 }
+        currency: { type: string, pattern: '^[A-Z]{3}$' }
+        status: { $ref: '#/components/schemas/EntityStatus' }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        version: { type: integer, minimum: 1 }
+    ProductPage:
+      type: object
+      additionalProperties: false
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Product' }
+        page: { $ref: '#/components/schemas/PageInfo' }
+    CreateProductRequest:
+      type: object
+      additionalProperties: false
+      required: [sku, name, unitPrice, currency]
+      properties:
+        sku: { type: string, minLength: 1, maxLength: 80 }
+        name: { type: string, minLength: 2, maxLength: 200 }
+        description: { type: string, maxLength: 1000 }
+        unitPrice: { type: number, multipleOf: 0.01, minimum: 0 }
+        currency: { type: string, pattern: '^[A-Z]{3}$' }
+    UpdateProductRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        sku: { type: string, minLength: 1, maxLength: 80 }
+        name: { type: string, minLength: 2, maxLength: 200 }
+        description: { type: string, maxLength: 1000 }
+        unitPrice: { type: number, multipleOf: 0.01, minimum: 0 }
+        currency: { type: string, pattern: '^[A-Z]{3}$' }
+        status: { $ref: '#/components/schemas/EntityStatus' }
+
+    SaleStatus:
+      type: string
+      enum: [CONFIRMED, CANCELLED]
+    SaleLineRequest:
+      type: object
+      additionalProperties: false
+      required: [productId, quantity]
+      properties:
+        productId: { type: string, format: uuid }
+        quantity: { type: number, exclusiveMinimum: 0, multipleOf: 0.001 }
+        observedUnitPrice:
+          type: number
+          minimum: 0
+          multipleOf: 0.01
+          description: Referencia del cliente; el precio aplicable lo determina el servidor.
+    SaleLine:
+      type: object
+      additionalProperties: false
+      required: [productId, sku, productName, quantity, unitPrice, lineTotal]
+      properties:
+        productId: { type: string, format: uuid }
+        sku: { type: string, maxLength: 80 }
+        productName: { type: string, maxLength: 200 }
+        quantity: { type: number, exclusiveMinimum: 0, multipleOf: 0.001 }
+        unitPrice: { type: number, minimum: 0, multipleOf: 0.01 }
+        lineTotal: { type: number, minimum: 0, multipleOf: 0.01 }
+    CreateSaleRequest:
+      type: object
+      additionalProperties: false
+      required: [clientEventId, visitId, customerId, occurredAt, lines]
+      properties:
+        clientEventId: { type: string, format: uuid }
+        visitId: { type: string, format: uuid }
+        customerId: { type: string, format: uuid }
+        occurredAt: { type: string, format: date-time }
+        notes: { type: string, maxLength: 500 }
+        lines:
+          type: array
+          minItems: 1
+          maxItems: 200
+          items: { $ref: '#/components/schemas/SaleLineRequest' }
+    UpdateSaleRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        clientEventId: { type: string, format: uuid }
+        notes: { type: string, maxLength: 500 }
+        lines:
+          type: array
+          minItems: 1
+          maxItems: 200
+          items: { $ref: '#/components/schemas/SaleLineRequest' }
+    CancelSaleRequest:
+      type: object
+      additionalProperties: false
+      required: [reason]
+      properties:
+        reason: { type: string, minLength: 5, maxLength: 500 }
+    Sale:
+      type: object
+      additionalProperties: false
+      required: [id, visitId, customerId, sellerId, occurredAt, currency, lines, subtotal, total, status, version]
+      properties:
+        id: { type: string, format: uuid }
+        visitId: { type: string, format: uuid }
+        customerId: { type: string, format: uuid }
+        sellerId: { type: string, format: uuid }
+        occurredAt: { type: string, format: date-time }
+        currency: { type: string, pattern: '^[A-Z]{3}$' }
+        lines:
+          type: array
+          items: { $ref: '#/components/schemas/SaleLine' }
+        subtotal: { type: number, minimum: 0, multipleOf: 0.01 }
+        total: { type: number, minimum: 0, multipleOf: 0.01 }
+        notes: { type: string, maxLength: 500 }
+        status: { $ref: '#/components/schemas/SaleStatus' }
+        cancelledAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: 'null'
+        cancellationReason: { type: string, maxLength: 500 }
+        editableUntil: { type: string, format: date-time }
+        version: { type: integer, minimum: 1 }
+    SalePage:
+      type: object
+      additionalProperties: false
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Sale' }
+        page: { $ref: '#/components/schemas/PageInfo' }
+    DailySalesSummary:
+      type: object
+      additionalProperties: false
+      required: [date, currency, saleCount, netTotal, visitCount, completedVisitCount]
+      properties:
+        date: { type: string, format: date }
+        currency: { type: string, pattern: '^[A-Z]{3}$' }
+        saleCount: { type: integer, minimum: 0 }
+        netTotal: { type: number, minimum: 0, multipleOf: 0.01 }
+        visitCount: { type: integer, minimum: 0 }
+        completedVisitCount: { type: integer, minimum: 0 }
+
+    DailyDashboard:
+      type: object
+      additionalProperties: false
+      required: [date, activeSellers, plannedVisits, completedVisits, salesCount, netSales, currency, generatedAt]
+      properties:
+        date: { type: string, format: date }
+        activeSellers: { type: integer, minimum: 0 }
+        plannedVisits: { type: integer, minimum: 0 }
+        completedVisits: { type: integer, minimum: 0 }
+        salesCount: { type: integer, minimum: 0 }
+        netSales: { type: number, minimum: 0, multipleOf: 0.01 }
+        currency: { type: string, pattern: '^[A-Z]{3}$' }
+        generatedAt: { type: string, format: date-time }
+    SellerReport:
+      type: object
+      additionalProperties: false
+      required: [seller, dateFrom, dateTo, plannedVisits, completedVisits, salesCount, netSales, currency]
+      properties:
+        seller: { $ref: '#/components/schemas/Seller' }
+        dateFrom: { type: string, format: date }
+        dateTo: { type: string, format: date }
+        plannedVisits: { type: integer, minimum: 0 }
+        completedVisits: { type: integer, minimum: 0 }
+        salesCount: { type: integer, minimum: 0 }
+        netSales: { type: number, minimum: 0, multipleOf: 0.01 }
+        currency: { type: string, pattern: '^[A-Z]{3}$' }
+    CustomerReport:
+      type: object
+      additionalProperties: false
+      required: [customer, dateFrom, dateTo, visitCount, saleCount, netSales, currency]
+      properties:
+        customer: { $ref: '#/components/schemas/Customer' }
+        dateFrom: { type: string, format: date }
+        dateTo: { type: string, format: date }
+        visitCount: { type: integer, minimum: 0 }
+        saleCount: { type: integer, minimum: 0 }
+        netSales: { type: number, minimum: 0, multipleOf: 0.01 }
+        currency: { type: string, pattern: '^[A-Z]{3}$' }
+    CoverageReport:
+      type: object
+      additionalProperties: false
+      required: [dateFrom, dateTo, assignedCustomers, visitedCustomers, coveragePercent]
+      properties:
+        dateFrom: { type: string, format: date }
+        dateTo: { type: string, format: date }
+        assignedCustomers: { type: integer, minimum: 0 }
+        visitedCustomers: { type: integer, minimum: 0 }
+        coveragePercent: { type: number, minimum: 0, maximum: 100 }
+    ExportType:
+      type: string
+      enum: [SALES, VISITS, SELLERS, CUSTOMERS, COVERAGE, AUDIT]
+    ExportFormat:
+      type: string
+      enum: [CSV, XLSX]
+    ExportJobStatus:
+      type: string
+      enum: [PENDING, PROCESSING, COMPLETED, FAILED, EXPIRED]
+    ReportExportRequest:
+      type: object
+      additionalProperties: false
+      required: [type, format, dateFrom, dateTo]
+      properties:
+        type: { $ref: '#/components/schemas/ExportType' }
+        format: { $ref: '#/components/schemas/ExportFormat' }
+        dateFrom: { type: string, format: date }
+        dateTo: { type: string, format: date }
+        sellerId: { type: string, format: uuid }
+        customerId: { type: string, format: uuid }
+        territoryId: { type: string, format: uuid }
+    ReportExportJob:
+      type: object
+      additionalProperties: false
+      required: [id, status, type, format, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        status: { $ref: '#/components/schemas/ExportJobStatus' }
+        type: { $ref: '#/components/schemas/ExportType' }
+        format: { $ref: '#/components/schemas/ExportFormat' }
+        createdAt: { type: string, format: date-time }
+        completedAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: 'null'
+        expiresAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: 'null'
+        failureCode: { type: string, maxLength: 80 }
+    AuditEntry:
+      type: object
+      additionalProperties: false
+      required: [id, occurredAt, actorId, action, resourceType, resourceId, correlationId]
+      properties:
+        id: { type: string, format: uuid }
+        occurredAt: { type: string, format: date-time }
+        actorId: { type: string, format: uuid }
+        actorDisplayName: { type: string, maxLength: 160 }
+        action: { type: string, maxLength: 100 }
+        resourceType: { type: string, maxLength: 100 }
+        resourceId: { type: string, format: uuid }
+        reason: { type: string, maxLength: 500 }
+        correlationId: { type: string, maxLength: 100 }
+        before:
+          type: object
+          additionalProperties: true
+        after:
+          type: object
+          additionalProperties: true
+    AuditEntryPage:
+      type: object
+      additionalProperties: false
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/AuditEntry' }
+        page: { $ref: '#/components/schemas/PageInfo' }
+
+    RegisterDeviceRequest:
+      type: object
+      additionalProperties: false
+      required: [installationId, platform, pushToken, appVersion]
+      properties:
+        installationId: { type: string, format: uuid }
+        platform: { type: string, enum: [ANDROID, IOS] }
+        pushToken: { type: string, minLength: 10, maxLength: 4096, writeOnly: true }
+        appVersion: { type: string, maxLength: 40 }
+        deviceModel: { type: string, maxLength: 120 }
+    DeviceRegistration:
+      type: object
+      additionalProperties: false
+      required: [id, installationId, platform, registeredAt]
+      properties:
+        id: { type: string, format: uuid }
+        installationId: { type: string, format: uuid }
+        platform: { type: string, enum: [ANDROID, IOS] }
+        registeredAt: { type: string, format: date-time }
+    SyncState:
+      type: object
+      additionalProperties: false
+      required: [cursor, serverTime]
+      properties:
+        cursor: { type: string, maxLength: 500 }
+        serverTime: { type: string, format: date-time }
+    MobileBootstrap:
+      type: object
+      additionalProperties: false
+      required: [sync, settings, territories, customers, products, routes]
+      properties:
+        sync: { $ref: '#/components/schemas/SyncState' }
+        settings: { $ref: '#/components/schemas/CompanySettings' }
+        territories:
+          type: array
+          items: { $ref: '#/components/schemas/Territory' }
+        customers:
+          type: array
+          items: { $ref: '#/components/schemas/Customer' }
+        products:
+          type: array
+          items: { $ref: '#/components/schemas/Product' }
+        routes:
+          type: array
+          items: { $ref: '#/components/schemas/Route' }
+        deleted:
+          type: object
+          additionalProperties: false
+          properties:
+            territoryIds:
+              type: array
+              items: { type: string, format: uuid }
+            customerIds:
+              type: array
+              items: { type: string, format: uuid }
+            productIds:
+              type: array
+              items: { type: string, format: uuid }
+            routeIds:
+              type: array
+              items: { type: string, format: uuid }
+    SyncCommandType:
+      type: string
+      enum:
+        - START_JOURNEY
+        - CHECK_IN_VISIT
+        - CHECK_OUT_VISIT
+        - CREATE_SALE
+        - UPDATE_SALE
+        - CLOSE_JOURNEY
+    SyncCommand:
+      type: object
+      additionalProperties: false
+      required: [commandId, type, occurredAt, payload]
+      properties:
+        commandId: { type: string, format: uuid }
+        type: { $ref: '#/components/schemas/SyncCommandType' }
+        occurredAt: { type: string, format: date-time }
+        aggregateId:
+          description: ID local o de servidor usado para preservar orden causal.
+          type: string
+          maxLength: 120
+        payload:
+          description: Debe cumplir el esquema del endpoint equivalente según `type`.
+          oneOf:
+            - $ref: '#/components/schemas/StartJourneyRequest'
+            - $ref: '#/components/schemas/VisitCheckInRequest'
+            - $ref: '#/components/schemas/VisitCheckOutRequest'
+            - $ref: '#/components/schemas/CreateSaleRequest'
+            - $ref: '#/components/schemas/UpdateSaleRequest'
+            - $ref: '#/components/schemas/CloseJourneyRequest'
+    SyncBatchRequest:
+      type: object
+      additionalProperties: false
+      required: [deviceId, commands]
+      properties:
+        deviceId: { type: string, format: uuid }
+        commands:
+          type: array
+          minItems: 1
+          maxItems: 200
+          items: { $ref: '#/components/schemas/SyncCommand' }
+    SyncCommandResult:
+      type: object
+      additionalProperties: false
+      required: [commandId, status]
+      properties:
+        commandId: { type: string, format: uuid }
+        status: { type: string, enum: [APPLIED, DUPLICATE, REJECTED, RETRY_LATER] }
+        serverResourceId: { type: string, format: uuid }
+        serverVersion: { type: integer, minimum: 1 }
+        error:
+          oneOf:
+            - $ref: '#/components/schemas/ErrorResponse'
+            - type: 'null'
+    SyncBatchResponse:
+      type: object
+      additionalProperties: false
+      required: [results, sync]
+      properties:
+        results:
+          type: array
+          items: { $ref: '#/components/schemas/SyncCommandResult' }
+        sync: { $ref: '#/components/schemas/SyncState' }

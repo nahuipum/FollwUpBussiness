@@ -1,0 +1,594 @@
+# ============================================================
+# FieldSales CRM / FollowUpBussiness
+# Monorepo: Spring Boot + React + Flutter + Infrastructure
+# ============================================================
+
+
+# ============================================================
+# 1. SISTEMA OPERATIVO
+# ============================================================
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.stackdump
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100/
+.Trashes/
+.fseventsd/
+
+# Linux
+.directory
+.Trash-*/
+
+
+# ============================================================
+# 2. ARCHIVOS TEMPORALES Y COPIAS
+# ============================================================
+
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+*.orig
+*.swp
+*.swo
+*.swn
+*~
+~$*
+*.lock.tmp
+
+tmp/
+temp/
+.cache/
+
+
+# ============================================================
+# 3. LOGS Y ARCHIVOS DE EJECUCIÓN
+# ============================================================
+
+*.log
+logs/
+**/logs/
+
+*.pid
+*.pid.lock
+*.seed
+
+crash-reports/
+hs_err_pid*
+replay_pid*
+
+
+# ============================================================
+# 4. SECRETOS Y VARIABLES DE ENTORNO
+# ============================================================
+
+# Variables de entorno
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.*.example
+
+# Credenciales y claves privadas
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.pkcs8
+*.pkcs12
+*.mobileprovision
+id_rsa*
+id_ed25519*
+
+# Directorios locales de secretos
+**/.secrets/
+**/secrets-local/
+
+# Android signing
+**/key.properties
+**/local.properties
+**/debug.keystore
+
+# Configuraciones privadas
+**/secrets.yml
+**/secrets.yaml
+**/secrets.properties
+**/application-secrets.yml
+**/application-secrets.yaml
+**/application-private.yml
+**/application-private.yaml
+**/application-*.local.yml
+**/application-*.local.yaml
+**/application-*.local.properties
+
+# Tokens y credenciales locales
+credentials.json
+service-account.json
+firebase-adminsdk*.json
+
+
+# ============================================================
+# 5. INTELLIJ IDEA / ANDROID STUDIO
+# ============================================================
+
+**/.idea/
+*.iml
+*.ipr
+*.iws
+
+.idea_modules/
+/out/
+
+# IntelliJ generated
+**/.idea/**/workspace.xml
+**/.idea/**/tasks.xml
+**/.idea/**/usage.statistics.xml
+**/.idea/**/dictionaries/
+**/.idea/**/shelf/
+**/.idea/**/dataSources/
+**/.idea/**/dataSources.ids
+**/.idea/**/dataSources.local.xml
+**/.idea/**/sqlDataSources.xml
+**/.idea/**/dynamic.xml
+**/.idea/**/uiDesigner.xml
+**/.idea/**/dbnavigator.xml
+
+# Eclipse / Spring Tool Suite
+.classpath
+.project
+.settings/
+.springBeans
+.sts4-cache/
+
+
+# ============================================================
+# 6. VISUAL STUDIO CODE
+# ============================================================
+
+# Ignorar configuración personal, pero permitir configuración compartida
+**/.vscode/*
+!**/.vscode/settings.json
+!**/.vscode/extensions.json
+!**/.vscode/tasks.json
+!**/.vscode/launch.json
+!**/.vscode/*.code-snippets
+
+# Historial local de VS Code
+.history/
+
+
+# ============================================================
+# 7. JAVA / SPRING BOOT / MAVEN
+# ============================================================
+
+# Maven build
+**/target/
+
+# Gradle, por si alguna herramienta Java lo utiliza
+**/.gradle/
+**/build/
+
+# Compilados Java
+*.class
+
+# Paquetes generados
+*.jar
+*.war
+*.ear
+*.nar
+
+# Excepción: no ignorar Maven Wrapper
+!**/.mvn/wrapper/maven-wrapper.jar
+
+# Maven auxiliares
+dependency-reduced-pom.xml
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+.flattened-pom.xml
+
+# Maven local
+.mvn/timing.properties
+
+# Spring Boot DevTools
+.spring-boot-devtools.properties
+
+# JHipster, si alguna vez se utiliza
+.yo-rc.json
+
+
+# ============================================================
+# 8. NODE / REACT / TYPESCRIPT
+# ============================================================
+
+# Dependencias
+**/node_modules/
+
+# Builds
+**/dist/
+**/.next/
+**/.nuxt/
+**/.output/
+**/.vite/
+**/.parcel-cache/
+**/.turbo/
+**/.cache-loader/
+
+# Tests y cobertura
+**/coverage/
+**/.nyc_output/
+**/playwright-report/
+**/test-results/
+**/cypress/screenshots/
+**/cypress/videos/
+**/storybook-static/
+
+# Logs de administradores de paquetes
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Cache
+**/.eslintcache
+**/.stylelintcache
+**/*.tsbuildinfo
+
+# PnP
+.pnp.*
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# Archivos locales de herramientas
+.vercel/
+.netlify/
+
+# No ignorar lockfiles.
+# Deben versionarse:
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+
+# ============================================================
+# 9. FLUTTER / DART
+# ============================================================
+
+# Dart y Flutter
+**/.dart_tool/
+**/.pub/
+**/.pub-cache/
+**/.packages
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+
+# Builds Flutter
+**/build/
+
+# Documentación generada
+**/doc/api/
+
+# Cobertura
+**/coverage/
+
+# Symbol files
+**/app.*.symbols
+
+# Obfuscation maps
+**/app.*.map.json
+
+# Android generado
+**/android/.gradle/
+**/android/captures/
+**/android/app/debug/
+**/android/app/profile/
+**/android/app/release/
+
+# iOS generado
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/Flutter/ephemeral/
+**/ios/Runner/GeneratedPluginRegistrant.*
+
+# macOS generado
+**/macos/Pods/
+**/macos/.symlinks/
+**/macos/Flutter/ephemeral/
+**/macos/Flutter/GeneratedPluginRegistrant.swift
+
+# Windows Flutter generado
+**/windows/flutter/ephemeral/
+
+# Linux Flutter generado
+**/linux/flutter/ephemeral/
+
+# Flutter Web generado
+**/web/.dart_tool/
+
+# No ignorar:
+# pubspec.lock
+# .metadata
+# Ambos deben versionarse para una aplicación Flutter.
+
+
+# ============================================================
+# 10. ANDROID
+# ============================================================
+
+**/android/.idea/
+**/android/.cxx/
+**/android/.externalNativeBuild/
+**/android/app/.cxx/
+
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# Native
+*.so
+
+# ProGuard
+**/proguard/
+
+# Fastlane generado
+**/fastlane/report.xml
+**/fastlane/Preview.html
+**/fastlane/screenshots/
+**/fastlane/test_output/
+
+
+# ============================================================
+# 11. BASES DE DATOS Y DATOS LOCALES
+# ============================================================
+
+# Bases locales
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+
+# Volúmenes y datos locales
+data/
+local-data/
+docker-data/
+.docker-data/
+volumes/
+
+# Datos de infraestructura
+/infrastructure/**/data/
+/infrastructure/**/logs/
+/infrastructure/**/tmp/
+/infrastructure/**/backup-local/
+/infrastructure/**/backups-local/
+
+
+# ============================================================
+# 12. DOCKER
+# ============================================================
+
+# Configuraciones locales no compartidas
+docker-compose.local.yml
+docker-compose.local.yaml
+compose.local.yml
+compose.local.yaml
+
+# Docker local
+.docker/
+
+# BuildKit
+*.dockerbuild
+
+# No ignorar:
+# Dockerfile
+# docker-compose.yml
+# compose.yml
+
+
+# ============================================================
+# 13. POSTGRESQL / POSTGIS
+# ============================================================
+
+# Dumps locales
+*.dump
+*.backup
+*.sql.gz
+
+# Directorios runtime
+pgdata/
+postgres-data/
+postgis-data/
+
+# Mantener scripts SQL versionados dentro de:
+# infrastructure/postgres/
+# backend/src/main/resources/db/migration/
+
+
+# ============================================================
+# 14. REDIS
+# ============================================================
+
+dump.rdb
+appendonly.aof
+appendonlydir/
+redis-data/
+
+
+# ============================================================
+# 15. RABBITMQ
+# ============================================================
+
+rabbitmq-data/
+rabbitmq-mnesia/
+.rabbitmq/
+
+
+# ============================================================
+# 16. MONITORING
+# ============================================================
+
+# Prometheus
+prometheus-data/
+
+# Grafana
+grafana-data/
+
+# Loki
+loki-data/
+
+# Tempo
+tempo-data/
+
+# Elasticsearch
+elasticsearch-data/
+
+# OpenTelemetry local
+otel-data/
+
+
+# ============================================================
+# 17. TESTCONTAINERS
+# ============================================================
+
+.testcontainers.properties
+testcontainers.properties.local
+
+
+# ============================================================
+# 18. REPORTES GENERADOS
+# ============================================================
+
+reports/
+test-reports/
+allure-results/
+allure-report/
+jacoco-report/
+surefire-reports/
+failsafe-reports/
+
+*.exec
+
+
+# ============================================================
+# 19. CODEX Y AGENTES
+# ============================================================
+
+# Se DEBEN versionar:
+# .codex/config.toml
+# .codex/agents/*.toml
+# .agents/skills/**/SKILL.md
+# agents/**/*.md
+# AGENTS.md
+# backend/AGENTS.md
+# frontend/AGENTS.md
+# mobile/AGENTS.md
+
+# Solo ignorar datos locales o temporales
+.codex/.env
+.codex/cache/
+.codex/logs/
+.codex/tmp/
+.codex/sessions/
+.codex/config.local.toml
+.codex/*.local.toml
+
+.agents/cache/
+.agents/logs/
+.agents/tmp/
+
+# Grafo local de Graphify: se regenera por máquina y puede contener un índice grande.
+graphify-out/
+
+
+# ============================================================
+# 20. ARCHIVOS DE IDE O WORKSPACE PERSONALES
+# ============================================================
+
+*.sublime-workspace
+*.sublime-project
+
+# Los archivos .code-workspace pueden versionarse si son compartidos.
+# No se ignoran por defecto.
+
+
+# ============================================================
+# 21. ARCHIVOS DE IMPORTACIÓN TEMPORALES
+# ============================================================
+
+imports-temp/
+exports-temp/
+uploads-temp/
+downloads-temp/
+
+*.part
+*.crdownload
+
+
+# ============================================================
+# 22. BACKUPS Y ARTEFACTOS DE DESPLIEGUE
+# ============================================================
+
+backup/
+backups/
+artifacts/
+deployment-artifacts/
+
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+
+# Excepción opcional:
+# Si deseas guardar ZIP de documentación dentro del repositorio,
+# colócalos en docs/releases/ y habilita esta regla:
+# !docs/releases/*.zip
+
+
+# ============================================================
+# 23. COBERTURA Y CALIDAD
+# ============================================================
+
+.sonar/
+.scannerwork/
+sonar-report/
+dependency-check-report/
+dependency-check-data/
+
+spotbugsXml.xml
+spotbugs.html
+checkstyle-result.xml
+pmd.xml
+
+
+# ============================================================
+# 24. ARCHIVOS PERSONALES
+# ============================================================
+
+notes.local.md
+todo.local.md
+scratch/
+private/
+personal/

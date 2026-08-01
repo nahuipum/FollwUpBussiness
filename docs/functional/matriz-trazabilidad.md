@@ -4,6 +4,7 @@
 |---|---|---|
 | BE-001 — Crear una empresa | Backend | Empresa 14.1; RN-001; RN-002 |
 | BE-002 — Suspender y reactivar empresa | Backend | Tipos de usuario 6.4 |
+| BE-057 — Provisionar administrador inicial de empresa | Backend | Tipos de usuario 6.1 y 6.4; RF-AUT-003; RF-AUT-005; RN-001; RN-002; RNF-005; RNF-006; RNF-008 |
 | BE-003 — Autenticar usuario | Backend | RF-AUT-001; RNF-005 |
 | BE-004 — Renovar sesión | Backend | RF-AUT-004 |
 | BE-005 — Cerrar y revocar sesión | Backend | RF-AUT-004; RF-AUT-005 |

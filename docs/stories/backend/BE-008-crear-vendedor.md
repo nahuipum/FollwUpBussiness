@@ -1,4 +1,4 @@
-# BE-008 — Crear vendedor
+﻿# BE-008 — Crear vendedor
 
     **Área:** Backend  
     **Tipo:** Historia de usuario  
@@ -14,14 +14,18 @@
 
     ## Alcance
 
-    Persistir vendedor y usuario.
+    Persistir el perfil vendedor y su usuario de acceso. La cuenta se activa
+    mediante invitación de un solo uso; no se aceptan contraseñas predeterminadas
+    ni enviadas en texto plano por el administrador.
 
     ## Criterios de aceptación
 
-    1. Valida obligatorios.
-2. Usuario único en empresa.
-3. Permite supervisor y zona.
-4. Auditoría.
+    1. Valida obligatorios y separa perfil vendedor de usuario de acceso.
+2. Correo o nombre de usuario es único dentro de la empresa.
+3. Permite supervisor y zona activos del mismo tenant.
+4. La invitación usa BE-006 y no expone secretos.
+5. Un fallo al crear usuario/perfil no deja una identidad parcial utilizable.
+6. La creación queda auditada.
 
     ## Referencias
 
@@ -47,3 +51,46 @@
     - QA independiente.
     - Revisión de seguridad cuando aplique.
     - Contratos y documentación actualizados.
+
+<!-- delivery-traceability:start -->
+## Secuencia de entrega y trazabilidad
+
+- **Sprint objetivo:** Sprint 2 — Equipo, zonas, clientes y cartera.
+- **Predecesoras obligatorias:** `BE-058` — Gestionar usuarios de empresa; `BE-062` — Gestionar zonas y territorios
+- **Historias consecuentes que habilita:** `BE-009` — Editar vendedor; `BE-010` — Activar o inactivar vendedor; `BE-059` — Listar y consultar vendedores; `FE-006` — Formulario de vendedor; `INT-004` — Alta de vendedor disponible en mobile
+- **Validación vertical:** `INT-004` — Alta de vendedor disponible en mobile
+
+## Contratos y superficies
+
+- **Debe estar listo antes de desarrollar:** OpenAPI `/sellers` y `/territories`; autorización por equipo.
+- El contrato no puede modificarse silenciosamente para acomodar una
+  implementación; Backend, consumidores y QA de contrato deben revisarlo.
+
+## Datos, reglas y casos límite
+
+- **Datos mínimos de la capacidad:** Perfil vendedor, usuario de acceso, supervisor, zona/territorio, estado y vigencia.
+- El modelo persistente, cache, mensajes, almacenamiento local y sus consultas
+  deben conservar `tenantId`/propiedad de empresa cuando aplique.
+- El backend es autoridad de reglas; web y mobile solo anticipan validaciones
+  para experiencia de usuario.
+- Casos mínimos adicionales: sin datos, sin permiso, recurso inactivo,
+  petición repetida o concurrente, dependencia degradada y cambio de tenant o
+  usuario.
+
+## Riesgos conocidos
+
+- QA y Seguridad deben cubrir: relaciones entre tenants, usuario/perfil desalineado y eliminación de historial.
+
+## Fuera de alcance
+
+- nómina, asistencia laboral y eliminación física de historial.
+
+## Puerta de Ready para esta historia
+
+- Dependencias anteriores terminadas o con contrato estable y mock acordado.
+- Reglas, datos, permisos y estados definidos; no se acepta una pantalla cuyo
+  único resultado posible sea vacío por falta de una historia productora.
+- Contrato actualizado antes del handoff y matriz criterio → prueba preparada.
+- Si una decisión de arquitectura o producto sigue abierta, la historia queda
+  fuera del sprint hasta cerrar el enabler correspondiente.
+<!-- delivery-traceability:end -->

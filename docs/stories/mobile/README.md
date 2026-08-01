@@ -1,6 +1,6 @@
-# Historias — Mobile
+﻿# Historias — Mobile
 
-Total: **31**
+Total: **32**
 
 | ID | Épica | Historia | Prioridad | Fase |
 |---|---|---|---|---|
@@ -21,10 +21,10 @@ Total: **31**
 | [MOB-015](./MOB-015-recuperar-visita-activa-tras-reinicio.md) | Visitas | Recuperar visita activa tras reinicio | Must Have | MVP |
 | [MOB-016](./MOB-016-finalizar-visita.md) | Visitas | Finalizar visita | Must Have | MVP |
 | [MOB-017](./MOB-017-registrar-motivo-de-no-venta.md) | Visitas | Registrar motivo de no venta | Must Have | MVP |
-| [MOB-018](./MOB-018-registrar-visita-fuera-de-ruta.md) | Visitas | Registrar visita fuera de ruta | Must Have | MVP |
-| [MOB-019](./MOB-019-consultar-catalogo-offline.md) | Ventas | Consultar catálogo offline | Must Have | MVP |
+| [MOB-018](./MOB-018-registrar-visita-fuera-de-ruta.md) | Visitas | Registrar visita fuera de ruta | Should Have | MVP condicionado por configuración de empresa |
+| [MOB-019](./MOB-019-consultar-catalogo-offline.md) | Ventas | Consultar catálogo offline | Should Have | MVP condicionado al modelo de venta detallada |
 | [MOB-020](./MOB-020-registrar-venta-simple.md) | Ventas | Registrar venta simple | Must Have | MVP |
-| [MOB-021](./MOB-021-registrar-venta-detallada.md) | Ventas | Registrar venta detallada | Must Have | MVP |
+| [MOB-021](./MOB-021-registrar-venta-detallada.md) | Ventas | Registrar venta detallada | Should Have | MVP condicionado; MOB-020 es la venta mínima obligatoria |
 | [MOB-022](./MOB-022-sincronizar-venta-idempotente.md) | Ventas | Sincronizar venta idempotente | Must Have | MVP |
 | [MOB-023](./MOB-023-consultar-ventas-propias-del-dia.md) | Ventas | Consultar ventas propias del día | Must Have | MVP |
 | [MOB-024](./MOB-024-cerrar-jornada.md) | Jornada | Cerrar jornada | Must Have | MVP |
@@ -35,3 +35,4 @@ Total: **31**
 | [MOB-029](./MOB-029-recibir-ruta-asignada-o-modificada.md) | Notificaciones | Recibir ruta asignada o modificada | Must Have | MVP |
 | [MOB-030](./MOB-030-manejar-bateria-y-servicios-desactivados.md) | Experiencia | Manejar batería y servicios desactivados | Must Have | MVP |
 | [MOB-031](./MOB-031-consultar-resumen-diario.md) | Resumen | Consultar resumen diario | Must Have | MVP |
+| [MOB-032](./MOB-032-editar-venta-dentro-de-ventana.md) | Ventas | Editar venta dentro de ventana | Should Have | MVP condicionado |

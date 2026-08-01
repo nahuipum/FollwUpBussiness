@@ -364,7 +364,7 @@ El rastreo se suspenderá cuando:
 
 - El vendedor cierre su jornada.
 - La empresa finalice administrativamente la jornada.
-- El usuario cierre sesión, según la configuración.
+- El usuario cierre sesión; el logout siempre suspende y detiene el rastreo.
 - El permiso de ubicación sea revocado.
 
 ---
@@ -634,15 +634,15 @@ El sistema registrará:
 
 Mientras la jornada esté activa, la aplicación enviará ubicaciones periódicas.
 
-### RF-UBI-003. Frecuencia configurable
+### RF-UBI-003. Frecuencia de actualización
 
-La frecuencia de actualización será configurable.
-
-Valor sugerido:
-
-- En movimiento: cada 1 a 3 minutos.
-- Detenido: cada 5 minutos.
-- Durante visita: cada 3 a 5 minutos.
+Para el MVP la frecuencia será fija: una muestra cada 60 segundos, solo durante
+jornada activa, conforme EN-016/ADR-016. Cambiar ese valor requiere ADR
+sustituto, actualización de contrato y revisión de Seguridad/Legal.
+El servidor acepta como máximo una muestra por ventana UTC de 60 segundos de
+`capturedAt` por tenant, usuario y jornada; las adicionales se rechazan por
+muestra. Los lotes offline pueden contener ventanas distintas y el control de
+abuso agrega todos los dispositivos del mismo ámbito.
 
 ### RF-UBI-004. Visualización en tiempo real
 
@@ -686,7 +686,11 @@ El sistema deberá validar:
 
 ### RF-UBI-008. Privacidad
 
-El sistema no deberá recopilar ubicación después del cierre de jornada.
+El sistema no deberá recopilar ubicación después del cierre de jornada. La
+política EN-016/ADR-016 fija captura cada 60 segundos solo durante jornada
+activa, aviso visible y detención ante cierre, revocación o indisponibilidad.
+El logout siempre detiene el rastreo. Las muestras inválidas no se persisten ni
+se usan para geocerca; el historial exacto aceptado se retiene 90 días.
 
 ---
 
@@ -1044,6 +1048,23 @@ La primera versión estará disponible en español.
 ---
 
 ## ÉPICA 1. Acceso y usuarios
+
+### HU-000. Provisionar administrador inicial de empresa
+
+**Como** superadministrador de plataforma<br>
+**Quiero** provisionar el administrador inicial de una empresa activa<br>
+**Para** que la empresa pueda administrar sus usuarios y su operación.
+
+**Criterios de aceptación:**
+
+1. El administrador inicial queda asociado a una empresa activa y al rol Administrador.
+2. Solo un superadministrador autorizado puede realizar la provisión.
+3. La contraseña se almacena exclusivamente mediante hash seguro.
+4. La operación es auditable sin exponer secretos ni datos personales completos.
+
+**Nota de dependencia:** el catálogo de roles debe existir antes de crear usuarios. El bootstrap del primer superadministrador se realiza mediante un enabler y ADR con procedimiento controlado; no se expone como registro público.
+
+---
 
 ### HU-001. Iniciar sesión
 
@@ -1773,9 +1794,16 @@ La primera versión estará disponible en español.
 
 - Latitud entre -90 y 90.
 - Longitud entre -180 y 180.
-- Precisión dentro del valor permitido.
-- Fecha de ubicación no excesivamente antigua.
+- Precisión de hasta 50 m.
+- Fecha de ubicación con antigüedad máxima de 5 min al validarla el servidor.
 - Prohibir coordenadas nulas para iniciar una visita.
+- Rechazar muestras inválidas sin persistirlas, publicarlas ni usarlas en
+  geocerca; solo se admite telemetría técnica sanitizada sin coordenadas.
+- Admitir como máximo 2 min de adelanto respecto del reloj servidor; un exceso
+  devuelve `LOCATION_TIMESTAMP_IN_FUTURE` sin efectos.
+- Rechazar exceso de cadencia con `LOCATION_FREQUENCY_EXCEEDED` y
+  `mocked=true` con `LOCATION_MOCKED`. Si `mocked` está ausente, la integridad
+  es `UNKNOWN` y no habilita visita geolocalizada. No hay sanción automática.
 
 ## 15.2 Geocerca
 
@@ -1898,9 +1926,20 @@ Si el permiso es rechazado:
 - No podrá marcar visita geolocalizada.
 - Se mostrará una explicación clara.
 
+La revocación de permiso, GPS o servicio disponible suspende inmediatamente el
+rastreo y muestra un estado degradado recuperable; el logout siempre lo detiene.
+
 ## 17.3 Retención
 
-La empresa deberá definir cuánto tiempo conserva:
+Para el MVP, EN-016/ADR-016 define 90 días y purga física para historial exacto
+de ubicación aceptado; Redis conserva última ubicación por un máximo de 15 min
+y la cola local cifrada la conserva solo hasta confirmación o resolución.
+El vencimiento usa `min(capturedAt, receivedAt)` y abarca copias/backups; las
+claves se segmentan para crypto-erasure, el backup móvil del SO excluye base y
+clave, todo restore se cuarentena/purga antes de exposición y Mobile limpia y
+compacta almacenamiento tras acuse.
+
+Permanece pendiente definir cuánto tiempo conserva:
 
 - Historial de ubicación.
 - Visitas.
@@ -1910,6 +1949,12 @@ La empresa deberá definir cuánto tiempo conserva:
 ## 17.4 Acceso
 
 Los supervisores solo deberán acceder a vendedores bajo su responsabilidad.
+El administrador de empresa solo accede a su tenant; el vendedor a sus propios
+datos. El rol de plataforma no obtiene acceso operativo transversal. Toda
+consulta valida empresa, identidad, rol, equipo y recurso.
+Las consultas sensibles, soporte excepcional, cambios de política y solicitudes
+de eliminación requieren trazabilidad sin coordenadas; el soporte además exige
+justificación, temporalidad y autorización por recurso.
 
 ---
 

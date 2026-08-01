@@ -1,5 +1,24 @@
 # Flujo operativo entre agentes
 
+## 0. Política de eficiencia
+
+- Trabajar una historia y una fase por solicitud.
+- No iniciar todos los agentes por defecto. Invocar solo el agente de la
+  aplicación afectada y avanzar al siguiente gate mediante su handoff.
+- Entregar a cada revisor: historia, diff o commit objetivo, handoff anterior y
+  rutas de evidencia. No reenviar el historial completo de conversación.
+- Leer documentos grandes por ID o sección. Evitar recorridos generales del
+  repositorio cuando el alcance ya está identificado.
+- Ejecutar primero pruebas dirigidas al cambio. Ampliar a regresión completa
+  cuando el riesgo sea transversal, fallen pruebas dirigidas o el gate lo exija.
+- Reutilizar resultados verificables de CI. No volver a ejecutar una suite
+  costosa si el código objetivo no cambió y la evidencia identifica commit,
+  comando y resultado.
+- Mantener handoffs breves: no pegar logs completos, código ni documentos.
+  Registrar comando, resultado, ruta de evidencia, hallazgos y pendientes.
+- Detener la fase al encontrar un bloqueo concluyente; no consumir contexto en
+  revisiones secundarias que no puedan cambiar el estado.
+
 ## 1. Entrada mínima de una historia
 
 Una historia debe contener:
@@ -89,6 +108,9 @@ Debe incluir:
 - Instrucciones para reproducir.
 - Impacto de seguridad.
 
+El handoff debe identificar el diff o commit revisable y limitarse a información
+nueva de la historia. Las reglas permanentes permanecen en sus fuentes de verdad.
+
 ---
 
 ## 5. Handoff de QA
@@ -119,11 +141,24 @@ Seguridad entrega:
 - Estado de remediación.
 - Riesgo aceptado, solo con responsable.
 
+Seguridad es obligatoria si el cambio afecta autenticación, autorización,
+aislamiento multiempresa, datos personales, geolocalización, almacenamiento
+local, archivos, dependencias, secretos, APIs públicas, WebSocket, Redis,
+RabbitMQ, infraestructura o CI/CD. En ausencia de estas superficies puede emitir
+`NOT_APPLICABLE` con una justificación breve basada en el diff.
+
 ---
 
 ## 7. Validación DoF
 
 DoF no vuelve a desarrollar ni sustituye a QA.
+
+Antes de emitir `PASS`, DoF debe ejecutar o verificar directamente el cierre de
+entrega del mismo candidato: commit revisable, pull request trazable y CI
+asociado. Si el usuario autoriza la entrega, el propio proceso DoF crea el
+commit y PR, espera y revisa el resultado de CI; no delega este gate al usuario.
+Sin evidencia de los tres elementos sobre el mismo commit, el resultado es
+`BLOCKED`.
 
 Valida:
 

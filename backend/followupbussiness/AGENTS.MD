@@ -1,42 +1,26 @@
 # Backend — Instrucciones locales
 
-## Contexto obligatorio
+## Contexto
 
-Antes de modificar el backend, revisar:
+- Aplicar `../../AGENTS.MD`.
+- Leer completa la historia Backend indicada.
+- Abrir solo el contrato, ADR y documentación de seguridad afectados.
+- Inspeccionar primero el diff y los símbolos relacionados.
 
-- `../AGENTS.md`
-- `../00_CONTRATO_FUNCIONAL.md`
-- `../shared/PROJECT_CONTEXT.md`
-- `../shared/ENGINEERING_RULES.md`
-- La historia correspondiente en `../docs/stories/`
-- El contrato en `../docs/api/openapi.yaml`
+## Invariantes
 
-El rol específico será proporcionado mediante uno de estos archivos:
+- Mantener el monolito modular y la arquitectura hexagonal por dominio.
+- El dominio no depende de Spring, JPA, Redis, mensajería ni transporte.
+- No acceder a repositorios o tablas internas de otro dominio.
+- PostgreSQL es la fuente de verdad; Redis solo conserva estado efímero.
+- Toda consulta y clave multiempresa incluye y valida `tenantId`.
+- Aplicar autorización por recurso, validación de entrada e idempotencia cuando
+  la historia lo requiera.
+- Usar migraciones versionadas para cambios de esquema.
+- No exponer entidades de persistencia como DTO de API.
 
-- Desarrollo: `../agents/development/backend-developer.md`
-- QA: `../agents/qa/backend-qa.md`
-- Seguridad: `../agents/security/cybersecurity-reviewer.md`
-- Cierre: `../agents/governance/definition-of-finished.md`
+## Verificación
 
-## Stack
-
-- Java
-- Spring Boot
-- PostgreSQL
-- PostGIS
-- Redis
-- WebSocket
-- RabbitMQ
-- Maven
-
-## Arquitectura
-
-El backend es un monolito modular separado por dominios.
-
-Cada dominio utiliza arquitectura hexagonal:
-
-```text
-domain/
-application/
-adapter/
-config/
+Ejecutar primero las pruebas dirigidas al módulo modificado. Ampliar a la suite
+Maven o pruebas de integración solo por riesgo o fallo. Reportar comando y
+resultado; no pegar logs completos.

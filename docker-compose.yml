@@ -1,0 +1,120 @@
+name: fieldsales-crm
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/followupbussiness/Dockerfile
+    environment:
+      FIELD_SALES_SECURITY_LOCAL_SECRET: ${FIELD_SALES_SECURITY_LOCAL_SECRET:?FIELD_SALES_SECURITY_LOCAL_SECRET must be set in .env}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-fieldsales}
+      POSTGRES_USER: ${POSTGRES_USER:-fieldsales_local}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_VHOST: ${RABBITMQ_VHOST:-fieldsales}
+      RABBITMQ_USER: ${RABBITMQ_USER:-fieldsales_local}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD must be set in .env}
+      MANAGEMENT_ADDRESS: 172.30.0.3
+      MANAGEMENT_PORT: 9091
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      infrastructure: {}
+      observability:
+        ipv4_address: 172.30.0.3
+
+  postgres:
+    image: postgis/postgis:17-3.5
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-fieldsales}
+      POSTGRES_USER: ${POSTGRES_USER:-fieldsales_local}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./infrastructure/postgres/init/001_extensions.sql:/docker-entrypoint-initdb.d/001_extensions.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - infrastructure
+
+  redis:
+    image: redis:7.4.10-alpine
+    user: redis
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env}
+    command:
+      - sh
+      - -c
+      - exec redis-server --save "" --appendonly no --requirepass "$${REDIS_PASSWORD}"
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$${REDIS_PASSWORD}\" redis-cli ping | grep -q PONG"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    networks:
+      - infrastructure
+
+  rabbitmq:
+    image: rabbitmq:4.2.9-management-alpine
+    hostname: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-fieldsales_local}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD must be set in .env}
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST:-fieldsales}
+    ports:
+      - "127.0.0.1:${RABBITMQ_AMQP_PORT:-5672}:5672"
+      - "127.0.0.1:${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - infrastructure
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    volumes:
+      - ./infrastructure/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./infrastructure/monitoring/alerts:/etc/prometheus/rules:ro
+    networks:
+      observability:
+        ipv4_address: 172.30.0.2
+
+  observability-probe:
+    image: busybox:1.36.1
+    profiles: [e2e]
+    networks:
+      - infrastructure
+
+networks:
+  infrastructure:
+    driver: bridge
+  observability:
+    driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.30.0.0/29
+
+volumes:
+  postgres-data:
+  rabbitmq-data:
