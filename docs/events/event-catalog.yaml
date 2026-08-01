@@ -2,6 +2,67 @@ events:
   - name: route.published
     version: 1
     owner: routing
+    schemaVersion: route-notification/v1
+    contract: docs/events/notification-contract.md
+    producer: routing
+    consumers:
+      - notifications
+      - mobile-sync
+    idempotencyKey: tenantId+eventId+recipientTechnicalId+notificationType
+    payload:
+      required:
+        - routeId
+        - routeVersion
+        - routeOperationalDate
+        - recipientTechnicalIds
+  - name: route.assigned
+    version: 1
+    owner: routing
+    schemaVersion: route-notification/v1
+    contract: docs/events/notification-contract.md
+    producer: routing
+    consumers:
+      - notifications
+      - mobile-sync
+    idempotencyKey: tenantId+eventId+recipientTechnicalId+notificationType
+    payload:
+      required:
+        - routeId
+        - routeVersion
+        - routeOperationalDate
+        - recipientTechnicalIds
+  - name: route.modified
+    version: 1
+    owner: routing
+    schemaVersion: route-notification/v1
+    contract: docs/events/notification-contract.md
+    producer: routing
+    consumers:
+      - notifications
+      - mobile-sync
+    idempotencyKey: tenantId+eventId+recipientTechnicalId+notificationType
+    payload:
+      required:
+        - routeId
+        - routeVersion
+        - routeOperationalDate
+        - recipientTechnicalIds
+  - name: route.reassigned
+    version: 1
+    owner: routing
+    schemaVersion: route-notification/v1
+    contract: docs/events/notification-contract.md
+    producer: routing
+    consumers:
+      - notifications
+      - mobile-sync
+    idempotencyKey: tenantId+eventId+recipientTechnicalId+notificationType
+    payload:
+      required:
+        - routeId
+        - routeVersion
+        - routeOperationalDate
+        - recipientTechnicalIds
   - name: seller.location.updated
     version: 1
     owner: tracking
