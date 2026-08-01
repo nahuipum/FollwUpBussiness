@@ -5,9 +5,10 @@
 `PASS`
 
 Snapshot: worktree sin archivos staged, posterior a la remediación final de
-observabilidad contenida y al `PASS` independiente de QA. El E2E Compose de QA
-agotó su límite de 364 segundos, limpió los recursos exactos y se conserva como
-`NOT_EXECUTED`; se reutilizó el E2E `PASS` de Desarrollo sobre el mismo snapshot.
+observabilidad contenida, al cierre de CVE-2026-59901 en Netty y al `PASS`
+independiente de QA. El E2E Compose de QA agotó su límite de 364 segundos,
+limpió los recursos exactos y se conserva como `NOT_EXECUTED`; se reutilizó el
+E2E `PASS` de Desarrollo sobre el mismo snapshot.
 
 ## Superficie y modelo de abuso
 
@@ -36,6 +37,7 @@ red `infrastructure`.
 | `SEC-BE055-03` lease agotado bloquea lote | Medium | El reclamo excluye intento 8; las leases vencidas agotadas pasan a `TERMINAL` antes del lote. La prueba PostgreSQL prueba que la fila siguiente se reclama. |
 | `SEC-BE055-04` observabilidad de backlog incompleta | Medium | Gauges `outbox.backlog` y `outbox.oldest_pending_age_seconds`; reglas Prometheus para backlog, antigüedad, fallos y terminales en `infrastructure/monitoring/alerts/fieldsales-outbox-alerts.yaml`. |
 | `SEC-BE055-05` scrape Prometheus incompatible con binding loopback | Medium | ADR-018 contiene backend y Prometheus en `observability` (`internal: true`, `172.30.0.0/29`). Management escucha solo en `172.30.0.3`; Prometheus usa `172.30.0.2`, scrapea `backend:9091` y ninguno publica puerto al host. El E2E de Desarrollo comprobó target `UP`, serie `outbox_publish_failures_total`, regla cargada y rechazo de una sonda conectada solo a `infrastructure`. |
+| `SEC-BE055-NETTY` denegación de servicio por CVE-2026-59901 | High | El BOM gestionado fija Netty `4.2.16.Final`, versión corregida de `netty-codec-compression`. QA verificó el árbol efectivo en `4.2.16.Final` y `DependencySecurityPolicyTest` en `PASS` con 6 pruebas y 0 fallos; todos los módulos Netty del classpath reciente resuelven uniformemente esa versión. No se encontró uso directo de `Bzip2Decoder` o bzip2 en código de aplicación. |
 
 ## Controles y evidencia
 
@@ -48,6 +50,11 @@ red `infrastructure`.
 - Migración aditiva, sin acceso a tablas de otros dominios. DLQ/reproceso avanzado sigue fuera de alcance de BE-055 y pertenece a BE-056.
 - ADR-018 fue aceptado y declara que la topología Compose local no sustituye TLS, autenticación ni políticas de red productivas.
 - Evidencia dirigida reutilizada: pruebas HTTP/serie Prometheus, contador por evento, matriz Security deny-by-default y límites modulares en `PASS`; `git diff --check` en `PASS` y cero directorios `.m2` bajo `backend`.
+- Evidencia QA reutilizada para dependencias: `DependencySecurityPolicyTest` en
+  `PASS` (6 pruebas, 0 fallos) y árbol Maven efectivo con
+  `io.netty:netty-codec-compression:4.2.16.Final`. Los reportes Surefire antiguos
+  que contienen `4.2.15.Final` son artefactos históricos anteriores al cambio,
+  no la resolución efectiva del snapshot revisado.
 
 ## Controles no aplicables
 
@@ -67,9 +74,13 @@ Riesgos Low: el contenedor backend usa el usuario predeterminado y aún no aplic
 `read_only`, `cap_drop` o `no-new-privileges`; la subnet estática puede colisionar
 con una red local/VPN; `OUTBOX_ENABLED=false` exige control operativo porque
 desactiva publisher y series; las variables Compose no sustituyen un gestor de
-secretos productivo. Un despliegue fuera de Compose debe conservar la restricción
-de red de ADR-018, añadir TLS/autenticación según su modelo y pasar nueva revisión
-de Seguridad.
+secretos productivo. El comparador de la política de dependencias elimina los
+calificadores de versión, por lo que una versión hipotética `4.2.16.Alpha` o
+`4.2.16.RC` podría compararse como equivalente a `Final`; no bloquea este cierre
+porque el POM y el classpath efectivo usan exactamente `4.2.16.Final`, pero debe
+endurecerse con comparación Maven o validación explícita de releases finales. Un
+despliegue fuera de Compose debe conservar la restricción de red de ADR-018,
+añadir TLS/autenticación según su modelo y pasar nueva revisión de Seguridad.
 
 Los productores futuros deben derivar `tenantId` del contexto autorizado,
 validar tipo/esquema y limitar payload; los consumidores deduplican por

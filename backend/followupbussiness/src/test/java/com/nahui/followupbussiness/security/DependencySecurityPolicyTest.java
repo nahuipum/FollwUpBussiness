@@ -13,6 +13,7 @@ class DependencySecurityPolicyTest {
     private static final String MINIMUM_TOMCAT_VERSION = "11.0.24";
     private static final String MINIMUM_POSTGRESQL_DRIVER_VERSION = "42.7.12";
     private static final String MINIMUM_JACKSON_DATABIND_VERSION = "3.1.5";
+    private static final String MINIMUM_NETTY_COMPRESSION_VERSION = "4.2.16.Final";
 
     @ParameterizedTest
     @ValueSource(strings = {
@@ -49,6 +50,14 @@ class DependencySecurityPolicyTest {
                 "3.1.4");
     }
 
+    @Test
+    void nettyCompressionMeetsSecurityBaseline() throws ClassNotFoundException {
+        assertDependencyVersionAtLeast(
+                "io.netty.handler.codec.compression.CompressionOptions",
+                MINIMUM_NETTY_COMPRESSION_VERSION,
+                "4.2.15.Final");
+    }
+
     private static void assertDependencyVersionAtLeast(
             String className,
             String minimumVersion,
@@ -80,6 +89,8 @@ class DependencySecurityPolicyTest {
 
     private static int[] versionParts(String version) {
         return Arrays.stream(version.split("\\."))
+                .map(part -> part.replaceFirst("[^0-9].*$", ""))
+                .filter(part -> !part.isEmpty())
                 .mapToInt(Integer::parseInt)
                 .toArray();
     }

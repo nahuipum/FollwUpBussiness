@@ -20,6 +20,7 @@
 		<jackson-bom.version>3.1.5</jackson-bom.version>
 		<ortools.version>9.15.6755</ortools.version>
 		<postgresql.version>42.7.12</postgresql.version>
+		<netty.version>4.2.16.Final</netty.version>
 		<tomcat.version>11.0.24</tomcat.version>
 	</properties>
 	<dependencies>

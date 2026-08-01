@@ -48,6 +48,9 @@ La dependencia de infraestructura está documentada como lista en
 - El wiring de outbox queda activo con el datasource real y registra sus
   contadores desde el arranque; los contextos de pruebas sin datasource lo
   deshabilitan explícitamente con `fieldsales.outbox.enabled=false`.
+- SCA: el BOM gestionado fija Netty `4.2.16.Final`, corrigiendo
+  CVE-2026-59901 en `netty-codec-compression` transitivo de AMQP; la política
+  de dependencias bloquea el mínimo seguro.
 - Un lease vencido en el intento 8 pasa a `TERMINAL` antes del reclamo; no se
   incrementa fuera del `CHECK` ni bloquea el lote restante.
 - BE-056 conserva DLQ, reproceso y operación avanzada.
@@ -59,6 +62,7 @@ La dependencia de infraestructura está documentada como lista en
 | `backend/followupbussiness/src/main/java/com/nahui/followupbussiness/outbox/` | Dominio, puertos, publicador, adaptadores JDBC/RabbitMQ/scheduler y configuración |
 | `backend/followupbussiness/src/main/resources/db/migration/V3__create_transactional_outbox.sql` | Tabla, checks de estado, índices de claim/lease/retención |
 | `backend/followupbussiness/pom.xml` | AMQP, Actuator/Micrometer y registry Prometheus |
+| `backend/followupbussiness/src/test/java/com/nahui/followupbussiness/security/DependencySecurityPolicyTest.java` | Política de mínimo seguro para Netty compression |
 | `backend/followupbussiness/src/main/resources/application.yaml` | Propiedades RabbitMQ/outbox, flag técnico y management configurable |
 | `backend/followupbussiness/Dockerfile` | Imagen Java 21 multistage sin repositorio Maven del host |
 | `backend/followupbussiness/src/main/java/com/nahui/followupbussiness/identityaccess/config/SecurityConfiguration.java` | Deny-by-default; excepción única para Prometheus en el puerto técnico |
@@ -99,6 +103,8 @@ despliegue de observabilidad aprobado.
 | Maven con JDK 21 y repo temporal `C:\tmp\be055-maven-repo`: `-Dtest=PrometheusMetricsEndpointTest,OutboxPublishingSchedulerTest,SecurityConfigurationTest test` | PASS: 31 pruebas; endpoint Prometheus separado, serie outbox y matriz deny-by-default |
 | Maven con JDK 21 y repo temporal `C:\tmp\be055-maven-repo`: `-Dtest=FollowupbussinessApplicationTests,PrometheusMetricsEndpointTest,OutboxPublishingSchedulerTest,SecurityConfigurationTest,ModuleBoundaryTest test` | PASS: 34 pruebas; contexto sin datasource, límites, endpoint y seguridad |
 | Maven con JDK 21 y repo temporal `C:\tmp\be055-maven-repo`: `-Dtest=PrometheusMetricsEndpointTest,SecurityConfigurationTest,OutboxPublishingSchedulerTest,ModuleBoundaryTest test` | PASS: 32 pruebas; exposición técnica, seguridad, fallos por evento y límites |
+| Maven con JDK 21 y repo temporal `C:\tmp\be055-maven-repo`: `-Dtest=DependencySecurityPolicyTest test` | PASS: 6 pruebas; Tomcat, pgJDBC, Jackson y Netty compression cumplen mínimos |
+| Maven con JDK 21 y repo temporal `C:\tmp\be055-maven-repo`: `-Dincludes=io.netty:netty-codec-compression dependency:tree` | PASS: resolución efectiva `io.netty:netty-codec-compression:4.2.16.Final` |
 | `docker compose -f docker-compose.yml config -q` con credenciales de validación efímeras | PASS (exit 0); servicios, mounts de reglas y scrape config válidos |
 | E2E Compose aislada | PASS: target `UP`, serie y regla presentes; puertos `8080/9091` no publicados y sonda solo en `infrastructure` rechazada; recursos temporales eliminados |
 | Maven con JDK 21: `clean -Dtest=FollowupbussinessApplicationTests,OutboxPublisherTest,RabbitMqEventTransportTest,TransactionalOutboxMigrationTest,OutboxRabbitMqIntegrationTest,HexagonalArchitectureTest,ModuleBoundaryTest test` | PASS: 17 pruebas; compilación limpia JDK 21, contexto Spring, PostgreSQL y RabbitMQ Testcontainers |
