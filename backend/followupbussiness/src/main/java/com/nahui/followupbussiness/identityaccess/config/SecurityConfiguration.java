@@ -34,7 +34,9 @@ public class SecurityConfiguration {
         };
 
         http
-                .authorizeHttpRequests(authorize -> authorize.anyRequest().authenticated())
+                .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers("/actuator/prometheus").permitAll()
+                        .anyRequest().authenticated())
                 .csrf(csrf -> csrf.requireCsrfProtectionMatcher(authenticatedCsrfRequest))
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(authenticationEntryPoint)

@@ -27,7 +27,8 @@ class ModuleBoundaryTest {
             "reporting",
             "imports",
             "notifications",
-            "audit");
+            "audit",
+            "outbox");
 
     @Test
     void adaptersRemainInternalToTheirModule() {

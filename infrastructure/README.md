@@ -28,6 +28,8 @@ parte de la configuración soportada.
 | PostgreSQL/PostGIS | `postgis/postgis:17-3.5` |
 | Redis | `redis:7.4.10-alpine` |
 | RabbitMQ Management | `rabbitmq:4.2.9-management-alpine` |
+| Backend | Construido desde `backend/followupbussiness/Dockerfile` |
+| Prometheus | `prom/prometheus:v3.5.0` |
 
 No se utilizan etiquetas `latest`.
 
@@ -78,6 +80,11 @@ docker compose ps
 ```
 
 Esperar hasta que `postgres`, `redis` y `rabbitmq` aparezcan como `healthy`.
+El backend y Prometheus se verifican sin publicar sus puertos mediante:
+
+```text
+powershell -ExecutionPolicy Bypass -File infrastructure/monitoring/verify-observability.ps1
+```
 
 ## Estado, logs y ciclo de vida
 
@@ -160,6 +167,8 @@ Se accede con `RABBITMQ_USER` y `RABBITMQ_PASSWORD` del `.env` local.
 
 - Proyecto Compose: `fieldsales-crm`.
 - Red bridge dedicada: `fieldsales-crm_infrastructure`.
+- Red interna de observabilidad: `fieldsales-crm_observability`; solo backend y
+  Prometheus la comparten.
 - Volumen PostgreSQL: `fieldsales-crm_postgres-data`.
 - Volumen RabbitMQ: `fieldsales-crm_rabbitmq-data`.
 - PostgreSQL: `127.0.0.1:5432`.
@@ -167,19 +176,16 @@ Se accede con `RABBITMQ_USER` y `RABBITMQ_PASSWORD` del `.env` local.
 - RabbitMQ AMQP: `127.0.0.1:5672`.
 - RabbitMQ Management: `127.0.0.1:15672`.
 
-Los puertos solo se publican en loopback. La red bridge pertenece al proyecto y
-la comparten únicamente los tres servicios de Compose. No se usa red de host,
-modo privilegiado ni puertos adicionales. No se marca la red como
-`internal: true`, porque Docker Desktop no activa los puertos publicados de una
-red interna; la restricción frente a la red del host se aplica con
-`127.0.0.1`.
+Los puertos de datos solo se publican en loopback. La red bridge pertenece al
+proyecto y no se usa red de host ni modo privilegiado. Backend y Prometheus no
+publican puertos; comparten una red `internal: true` exclusiva para el scrape.
 
 ## Directorios existentes
 
 - `postgres/`: fuente de verdad transaccional y geográfica.
 - `redis/`: cache, presencia e idempotencia temporal.
 - `rabbitmq/`: procesos asíncronos.
-- `monitoring/`: documentación futura; EN-005 no agrega observabilidad.
+- `monitoring/`: configuración Prometheus, reglas y verificación E2E de BE-055.
 
 ## Limitaciones
 

@@ -153,6 +153,13 @@ RabbitMQ, infraestructura o CI/CD. En ausencia de estas superficies puede emitir
 
 DoF no vuelve a desarrollar ni sustituye a QA.
 
+Antes de emitir `PASS`, DoF debe ejecutar o verificar directamente el cierre de
+entrega del mismo candidato: commit revisable, pull request trazable y CI
+asociado. Si el usuario autoriza la entrega, el propio proceso DoF crea el
+commit y PR, espera y revisa el resultado de CI; no delega este gate al usuario.
+Sin evidencia de los tres elementos sobre el mismo commit, el resultado es
+`BLOCKED`.
+
 Valida:
 
 - Trazabilidad.

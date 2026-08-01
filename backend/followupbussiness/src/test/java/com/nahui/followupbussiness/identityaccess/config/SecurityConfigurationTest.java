@@ -30,7 +30,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest(properties = {
         "field-sales.security.local-secret=TEST_ONLY_NON_SECRET_012345678901234567890123456789",
-        "spring.autoconfigure.exclude=org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration"
+        "spring.autoconfigure.exclude=org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration",
+        "fieldsales.outbox.enabled=false"
 })
 @AutoConfigureMockMvc
 @Import(SecurityConfigurationTest.TestOnlyController.class)

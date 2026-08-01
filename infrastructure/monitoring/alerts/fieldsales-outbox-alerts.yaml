@@ -1,0 +1,23 @@
+groups:
+  - name: fieldsales-outbox
+    rules:
+      - alert: FieldSalesOutboxBacklogSustained
+        expr: outbox_backlog > 100
+        for: 15m
+        labels: { severity: warning }
+        annotations: { summary: "Outbox backlog sustained" }
+      - alert: FieldSalesOutboxOldestPending
+        expr: outbox_oldest_pending_age_seconds > 300
+        for: 5m
+        labels: { severity: warning }
+        annotations: { summary: "Outbox oldest pending event is delayed" }
+      - alert: FieldSalesOutboxPublishFailures
+        expr: increase(outbox_publish_failures_total[5m]) > 0
+        for: 5m
+        labels: { severity: warning }
+        annotations: { summary: "Outbox publisher failures detected" }
+      - alert: FieldSalesOutboxTerminalRows
+        expr: increase(outbox_events_terminal_total[15m]) > 0
+        for: 1m
+        labels: { severity: critical }
+        annotations: { summary: "Outbox event reached terminal state" }
