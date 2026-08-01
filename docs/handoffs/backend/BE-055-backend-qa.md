@@ -4,6 +4,33 @@
 
 `PASS`
 
+## Revalidación SCA — snapshot `4a87466`
+
+Revisión independiente del correctivo Netty. La propiedad gestionada
+`netty.version` resuelve `netty-codec-compression` en `4.2.16.Final` a través
+de AMQP, y la política impide regresar por debajo de ese mínimo.
+
+| Riesgo | Evidencia | Resultado |
+|---|---|---|
+| Compresión Netty vulnerable | `DependencySecurityPolicyTest` | PASS: 6 pruebas, sin fallos ni errores |
+| Resolución efectiva transitiva | `spring-rabbit → amqp-client → netty-codec → netty-codec-compression` | PASS: `4.2.16.Final` |
+
+Comando ejecutado desde `backend/followupbussiness` con JDK 21 y repositorio
+temporal fuera del proyecto:
+
+```powershell
+& 'C:\WorkSpace\apache-maven-3.9.6\bin\mvn.cmd' `
+  "-Dmaven.repo.local=$env:TEMP\codex-be055-m2" `
+  '-Dtest=DependencySecurityPolicyTest' test `
+  '-Dincludes=io.netty:netty-codec-compression' dependency:tree
+```
+
+Resultado: `BUILD SUCCESS`; el árbol efectivo confirmó
+`io.netty:netty-codec-compression:4.2.16.Final`. No se aportó ejecución CI
+verificable adicional para este snapshot; la evidencia independiente anterior
+fue reproducida localmente. `git diff --check`: PASS; no existe
+`backend/followupbussiness/.m2`.
+
 Retest independiente final del snapshot sin staged files. Maven con JDK 21,
 PostgreSQL y RabbitMQ Testcontainers: 19 pruebas, 0 fallos, 0 errores y 0
 omitidas. `git diff --check`: PASS.
