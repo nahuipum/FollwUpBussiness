@@ -74,6 +74,11 @@ public final class JdbcPlatformSuperadminAccountRepository
         return updated == 1;
     }
 
+    @Override
+    public boolean completeProfileIfMissing(java.util.UUID accountId, String displayName, String email) {
+        return jdbcTemplate.update("UPDATE identity_access_account SET display_name=?, email=?, updated_at=CURRENT_TIMESTAMP WHERE id=? AND role_code='PLATFORM_SUPERADMIN' AND company_id IS NULL AND display_name IS NULL AND email IS NULL", displayName, email, accountId) == 1;
+    }
+
     private static ExistingAccount mapExistingAccount(ResultSet resultSet, int rowNumber)
             throws SQLException {
         return new ExistingAccount(

@@ -1,57 +1,54 @@
-# Backend Handoff — BE-003
+# BE-003 — Backend handoff
 
 ## Estado
 
-`BLOCKED`
+READY_FOR_HANDOFF.
 
-BE-003 no se implementó: el snapshot `48ef86f` no proporciona una fuente de
-verdad ni un contrato de `tenancy` para comprobar que una empresa está activa.
-Implementar ese dato dentro de `identityaccess` inventaría un modelo y rompería
-el límite modular.
+## Alcance
 
-## Alcance y cambios
+Login de credenciales con estado de cuenta, empresa activa consultada mediante
+`CompanyAccessStatusQuery`, familia de sesión y JWT RS256. El tenant y rol se
+derivan exclusivamente de la cuenta persistida. El rate limit usa Redis de forma
+atómica, claves HMAC sin identificadores en claro y falla cerrada con
+`Retry-After`. La renovación queda para BE-004.
 
-- Alcance revisado: login seguro de BE-003 y sus criterios CA1–CA4.
-- Cambio realizado: solo la evidencia de bloqueo
-  `docs/handoffs/governance/BE-003-phase0-ready.md`.
-- No hubo cambios en `backend/followupbussiness`, OpenAPI, ADR, migraciones,
-  dependencias ni secretos. No se creó commit de implementación; este handoff
-  se publica mediante un commit documental trazable.
+## Archivos y contratos
 
-## Contratos y migraciones
+- `backend/followupbussiness/src/main/resources/db/migration/V5__extend_identity_access_accounts_and_create_session_families.sql`
+- `backend/followupbussiness/src/main/java/com/nahui/followupbussiness/identityaccess/application/LoginService.java`
+- `backend/followupbussiness/src/main/java/com/nahui/followupbussiness/identityaccess/adapter/in/rest/LoginRateLimiter.java`
+- `backend/followupbussiness/src/main/java/com/nahui/followupbussiness/identityaccess/config/LoginConfiguration.java`
+- Puertos/adaptadores de cuenta, sesión, token RS256 y origen WEB en `identityaccess`.
+- `docs/api/openapi.yaml` y `docs/architecture/adr/ADR-008-autenticacion-sesiones.md` se preservan.
 
-- Se conservaron sin cambios ADR-008 y `docs/api/openapi.yaml` (`/auth/login`).
-- No se creó migración: V2 solo contiene `company_id` nullable en la cuenta;
-  carece de FK, tabla o estado de empresa.
-- Se requiere un puerto/contrato público de `tenancy` que derive la empresa de
-  la cuenta, valide su estado y conserve aislamiento por tenant también al
-  aceptar JWT en recursos protegidos.
+## Criterios y seguridad
 
-## Criterios
+- Credenciales activas crean una familia de sesión y access JWT de 10 minutos.
+- Cuenta inactiva, perfil incompleto, contraseña inválida o empresa inactiva retornan el mismo `401 AUTHENTICATION_FAILED`.
+- WEB exige `Origin` exactamente igual a la propiedad requerida `field-sales.authentication.web-origin`; MOBILE rechaza contexto navegador.
+- WEB no expone refresh en JSON; MOBILE recibe refresh/ticket en JSON. Respuestas de credenciales usan `no-store`.
+- Redis no disponible devuelve `503 AUTH_RATE_LIMIT_UNAVAILABLE` con `Retry-After`; cuota agotada devuelve `429 AUTH_RATE_LIMITED` con el TTL restante.
+- La configuración inyecta la clave HMAC al adaptador; este no depende de `AuthenticationProperties`.
+- El bootstrap controlado exige nombre visible y correo mediante variables de entorno y completa solo un perfil histórico ausente; un perfil incompleto se rechaza de forma neutral.
+- MockMvc cubre login exitoso WEB (cookie HttpOnly y CSRF sin refresh en body) y MOBILE (refresh/ticket sin cookie); Flyway cubre perfil y familia de sesión V5.
+- Una identidad compartida por más de una empresa se rechaza neutralmente, sin seleccionar un tenant por orden de filas ni aceptar tenant del cliente. Las rutas inexistentes, ambiguas o con estado no utilizable ejecutan una comparación BCrypt dummy.
+- `LoginRequest` valida máximo 254 caracteres de identificador, 200 de contraseña y 120 de dispositivo; propiedades JSON extra se rechazan con el binding Jackson de Boot. El filtro limita a 4096 bytes tanto cuerpos declarados como streams chunked/desconocidos, y responde `413 application/problem+json`, `no-store` y `X-Correlation-Id`.
+- Los errores de binding y Bean Validation de `LoginController` se interceptan antes del resolvedor por defecto: no incluyen ni registran valores rechazados de credenciales y devuelven un Problem Detail neutro `VALIDATION_FAILED`; el advice no modifica otros endpoints.
 
-| Criterio | Resultado |
-|---|---|
-| CA1, sesión con credenciales válidas | Diseño disponible en ADR-008; no implementado. |
-| CA2, rechazar usuario o empresa inactiva | Bloqueado por ausencia de contrato/estado de empresa. |
-| CA3, respuesta neutral | Diseño disponible en ADR-008; no implementado. |
-| CA4, empresa y rol asociados a sesión | Bloqueado para ámbito empresa; no implementado. |
+## Verificación
 
-## Verificación y reproducción
+Con JDK 21.0.9 y Testcontainers:
 
-- `git diff --check`: sin diferencias previas en el snapshot.
-- Intento de Maven dirigido con JDK 21 y repositorio temporal:
-  `mvnw.cmd -Dtest=AuthenticationContractPolicyTest,PlatformSuperadminBootstrapMigrationTest,SecurityConfigurationTest test`.
-  El wrapper no pudo iniciarse en el sandbox; no produjo ejecución de tests ni
-  evidencia válida.
+`mvn -Dmaven.repo.local=C:/tmp/field-sales-be003-m2 -Dtest=HexagonalArchitectureTest,ModuleBoundaryTest,*Login*,Rs256AccessTokenAdapterTest,SecurityConfigurationTest,PlatformSuperadminBootstrapMigrationTest,AuthenticationContractPolicyTest,BootstrapOpenApiPolicyTest,BootstrapSuperadminCredentialsReaderTest,PlatformSuperadminBootstrapRunnerTest,BootstrapPlatformSuperadminServiceTest test`
 
-Reproducir el bloqueo con las instrucciones de
-`docs/handoffs/governance/BE-003-phase0-ready.md`.
+La regresión focalizada actual pasó con 77 pruebas, incluyendo el cap de stream,
+binding Jackson real de Boot, arquitectura, MockMvc, RS256, seguridad y
+Flyway/Testcontainers. La suite completa con JDK 21 ejecutó 163
+pruebas: BE-003, arquitectura y migraciones pasaron; seis errores ajenos en
+`RouteEngineDecisionPolicyTest` impidieron el PASS global porque ese test exige
+un directorio `.git`, mientras este worktree tiene el archivo `.git` de un
+worktree enlazado. `git diff --check`: PASS.
 
-## Riesgo y desbloqueo
+## Riesgo residual y reproducción
 
-Un login que ignore empresa inactiva o trate `company_id` como autoridad sería
-incompatible con BE-003 y ADR-008. Se requiere decisión de Arquitectura/Product
-Owner sobre el contrato de `tenancy`, estados empresariales, fuente de verdad y
-orden de migración. Tras esa decisión deben ejecutarse las pruebas de login,
-PostgreSQL/Testcontainers, JWT RS256, canales, rate limit, tenant/rol spoofing,
-autorización runtime y arquitectura solicitadas.
+QA/Security debe ejecutar integración con Redis real y comprobar cookies/headers/canales bajo cuota agotada y caída de Redis. Reproducir con el comando anterior; configurar las propiedades RS256, HMAC, Redis y `web-origin` antes de arrancar login.

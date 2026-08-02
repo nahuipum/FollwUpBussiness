@@ -15,11 +15,13 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
@@ -88,9 +90,18 @@ class SecurityConfigurationTest {
         assertThat(applicationContext.getBeansOfType(UserDetailsService.class)).isEmpty();
     }
 
+    @Test
+    void productionBootJacksonConfigurationRejectsUnknownRequestProperties() throws Exception {
+        mockMvc.perform(post("/api/test/strict-json")
+                        .with(user("test-only-user"))
+                        .with(csrf())
+                        .contentType("application/json")
+                        .content("{\"name\":\"valid\",\"unexpected\":true}"))
+                .andExpect(status().isBadRequest());
+    }
+
     private static Stream<Arguments> protectedOperations() {
         return Stream.of(
-                Arguments.of(HttpMethod.POST, "/auth/login"),
                 Arguments.of(HttpMethod.POST, "/auth/refresh"),
                 Arguments.of(HttpMethod.POST, "/auth/logout"),
                 Arguments.of(HttpMethod.POST, "/roles"),
@@ -141,5 +152,12 @@ class SecurityConfigurationTest {
         String mutateProtectedResource() {
             return "protected";
         }
+
+        @PostMapping("/api/test/strict-json")
+        String strictJson(@RequestBody StrictPayload payload) {
+            return payload.name();
+        }
+
+        record StrictPayload(String name) { }
     }
 }

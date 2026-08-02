@@ -2,6 +2,8 @@ package com.nahui.followupbussiness.identityaccess.persistence;
 
 import com.nahui.followupbussiness.identityaccess.adapter.out.persistence.JdbcBootstrapAuditAdapter;
 import com.nahui.followupbussiness.identityaccess.adapter.out.persistence.JdbcPlatformSuperadminAccountRepository;
+import com.nahui.followupbussiness.identityaccess.adapter.out.persistence.JdbcLoginAccountQuery;
+import com.nahui.followupbussiness.identityaccess.adapter.out.persistence.JdbcSessionFamilyAdapter;
 import com.nahui.followupbussiness.identityaccess.adapter.out.security.BCryptPasswordHashingAdapter;
 import com.nahui.followupbussiness.identityaccess.application.BootstrapPlatformSuperadminCommand;
 import com.nahui.followupbussiness.identityaccess.application.BootstrapPlatformSuperadminResult;
@@ -25,6 +27,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -109,13 +112,15 @@ class PlatformSuperadminBootstrapMigrationTest {
 
         Map<String, Object> account = jdbcTemplate.queryForMap(
                 """
-                SELECT id, login_identifier, password_hash, role_code, company_id
+                SELECT id, login_identifier, password_hash, role_code, company_id, display_name, email
                 FROM identity_access_account
                 """);
         String passwordHash = account.get("password_hash").toString();
         assertThat(result.status()).isEqualTo(BootstrapPlatformSuperadminResult.Status.CREATED);
         assertThat(account.get("role_code")).isEqualTo("PLATFORM_SUPERADMIN");
         assertThat(account.get("company_id")).isNull();
+        assertThat(account).containsEntry("display_name", "Platform Administrator")
+                .containsEntry("email", "bootstrap@invalid.example");
         assertThat(passwordHash).startsWith("$2").contains("$12$");
         assertThat(new BCryptPasswordEncoder().matches(
                 lastPasswordForVerification(identity),
@@ -134,6 +139,42 @@ class PlatformSuperadminBootstrapMigrationTest {
         assertThat(audit.keySet())
                 .doesNotContain("login_identifier", "password", "password_hash", "secret", "token");
         assertThat(output.getAll()).doesNotContain(DATABASE_PASSWORD);
+    }
+
+    @Test
+    void v5PersistsBootstrapProfileAndPlatformSessionFamily() {
+        LoginIdentifier identity = randomIdentity();
+        char[] password = randomPassword();
+        BootstrapPlatformSuperadminResult result;
+        try {
+            result = execute(identity, password);
+        } finally {
+            Arrays.fill(password, '\0');
+        }
+        UUID familyId = UUID.randomUUID();
+        Instant now = Instant.now();
+        new JdbcSessionFamilyAdapter(jdbcTemplate).create(
+                familyId, result.accountId(), null, "WEB", new byte[] {1}, new byte[] {2}, new byte[] {3}, null,
+                now.plusSeconds(60), now);
+
+        Map<String, Object> family = jdbcTemplate.queryForMap(
+                "SELECT account_id, company_id, channel, client_instance_digest, refresh_token_digest, csrf_token_digest "
+                        + "FROM identity_access_session_family WHERE id = ?", familyId);
+        assertThat(family).containsEntry("account_id", result.accountId())
+                .containsEntry("channel", "WEB");
+        assertThat(family.get("company_id")).isNull();
+        assertThat((byte[]) family.get("client_instance_digest")).containsExactly((byte) 1);
+        assertThat((byte[]) family.get("refresh_token_digest")).containsExactly((byte) 2);
+        assertThat((byte[]) family.get("csrf_token_digest")).containsExactly((byte) 3);
+    }
+
+    @Test
+    void duplicateLoginIdentityAcrossCompaniesIsRejectedInsteadOfSelectingAnArbitraryTenant() {
+        String identifier = "shared-" + UUID.randomUUID() + "@invalid.example";
+        insertCompanyAccount(identifier, UUID.randomUUID());
+        insertCompanyAccount(identifier, UUID.randomUUID());
+
+        assertThat(new JdbcLoginAccountQuery(jdbcTemplate).findByIdentifier(identifier)).isEmpty();
     }
 
     @Test
@@ -322,6 +363,14 @@ class PlatformSuperadminBootstrapMigrationTest {
         return jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM identity_access_account",
                 Integer.class);
+    }
+
+    private void insertCompanyAccount(String identifier, UUID companyId) {
+        jdbcTemplate.update(
+                "INSERT INTO identity_access_account(id, login_identifier, password_hash, role_code, company_id, created_at, status, display_name, email) "
+                        + "VALUES (?, ?, ?, 'SELLER', ?, CURRENT_TIMESTAMP, 'ACTIVE', 'Seller', ?)",
+                UUID.randomUUID(), identifier, "$2a$12$7EqJtq98hPqEX7fNZaFWoO9fkg8rDs3umP5e0yZG5qR1zwVmzEoOe", companyId,
+                identifier);
     }
 
     private String storedHash() {

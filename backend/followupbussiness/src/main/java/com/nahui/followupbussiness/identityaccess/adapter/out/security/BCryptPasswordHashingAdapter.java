@@ -24,4 +24,14 @@ public final class BCryptPasswordHashingAdapter implements PasswordHashingPort {
             Arrays.fill(passwordCopy, '\0');
         }
     }
+
+    @Override
+    public boolean matches(char[] rawPassword, String passwordHash) {
+        char[] passwordCopy = rawPassword.clone();
+        try {
+            return passwordEncoder.matches(new String(passwordCopy), passwordHash);
+        } finally {
+            Arrays.fill(passwordCopy, '\0');
+        }
+    }
 }

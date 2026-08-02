@@ -102,6 +102,8 @@ class BootstrapSuperadminCredentialsReaderTest {
         Map<String, String> environment = new HashMap<>();
         environment.put(BootstrapSuperadminCredentialsReader.IDENTITY_VARIABLE, identity);
         environment.put(BootstrapSuperadminCredentialsReader.PASSWORD_VARIABLE, password);
+        environment.put(BootstrapSuperadminCredentialsReader.DISPLAY_NAME_VARIABLE, "Platform Administrator");
+        environment.put(BootstrapSuperadminCredentialsReader.EMAIL_VARIABLE, "bootstrap@invalid.example");
         return environment;
     }
 

@@ -14,6 +14,8 @@ public final class BootstrapSuperadminCredentialsReader {
             "FIELD_SALES_BOOTSTRAP_SUPERADMIN_IDENTITY";
     public static final String PASSWORD_VARIABLE =
             "FIELD_SALES_BOOTSTRAP_SUPERADMIN_PASSWORD";
+    public static final String DISPLAY_NAME_VARIABLE = "FIELD_SALES_BOOTSTRAP_SUPERADMIN_DISPLAY_NAME";
+    public static final String EMAIL_VARIABLE = "FIELD_SALES_BOOTSTRAP_SUPERADMIN_EMAIL";
     static final int MINIMUM_PASSWORD_LENGTH = 16;
     static final int MAXIMUM_PASSWORD_BYTES = 72;
 
@@ -30,7 +32,15 @@ public final class BootstrapSuperadminCredentialsReader {
     public BootstrapSuperadminCredentials read() {
         LoginIdentifier loginIdentifier = readIdentity();
         char[] password = readPassword();
-        return new BootstrapSuperadminCredentials(loginIdentifier, password);
+        String displayName = environmentReader.apply(DISPLAY_NAME_VARIABLE);
+        String email = environmentReader.apply(EMAIL_VARIABLE);
+        if (displayName == null || displayName.isBlank()) {
+            throw invalid(DISPLAY_NAME_VARIABLE, "is required");
+        }
+        if (email == null || email.isBlank() || !email.contains("@")) {
+            throw invalid(EMAIL_VARIABLE, "must be a valid nonblank profile value");
+        }
+        return new BootstrapSuperadminCredentials(loginIdentifier, password, displayName, email);
     }
 
     private LoginIdentifier readIdentity() {

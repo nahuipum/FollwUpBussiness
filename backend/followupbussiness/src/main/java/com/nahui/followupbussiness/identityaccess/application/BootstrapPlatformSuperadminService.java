@@ -68,6 +68,7 @@ public final class BootstrapPlatformSuperadminService implements BootstrapPlatfo
                 passwordHash,
                 now);
         if (accountRepository.insertIfAbsent(candidate)) {
+            completeProfile(candidate.id(), command);
             return auditedResult(
                     BootstrapPlatformSuperadminResult.Status.CREATED,
                     candidate.id(),
@@ -92,12 +93,21 @@ public final class BootstrapPlatformSuperadminService implements BootstrapPlatfo
             ExistingAccount account) {
         boolean isSamePlatformAccount = account.role() == BaseRole.PLATFORM_SUPERADMIN
                 && account.companyId() == null;
+        if (isSamePlatformAccount) {
+            completeProfile(account.id(), command);
+        }
         return auditedResult(
                 isSamePlatformAccount
                         ? BootstrapPlatformSuperadminResult.Status.ALREADY_PROVISIONED
                         : BootstrapPlatformSuperadminResult.Status.CONFLICT,
                 account.id(),
                 command.correlationId());
+    }
+
+    private void completeProfile(UUID accountId, BootstrapPlatformSuperadminCommand command) {
+        // A retry may fill only an account created by an earlier controlled bootstrap.
+        // Existing profile data is immutable here and is never read or logged.
+        accountRepository.completeProfileIfMissing(accountId, command.displayName(), command.email());
     }
 
     private BootstrapPlatformSuperadminResult auditedResult(
