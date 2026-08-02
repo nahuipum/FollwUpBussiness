@@ -15,6 +15,8 @@ public interface PlatformSuperadminAccountRepository {
 
     boolean insertIfAbsent(PlatformSuperadminAccount account);
 
+    default boolean completeProfileIfMissing(UUID accountId, String displayName, String email) { return false; }
+
     record ExistingAccount(UUID id, BaseRole role, UUID companyId) {
     }
 }

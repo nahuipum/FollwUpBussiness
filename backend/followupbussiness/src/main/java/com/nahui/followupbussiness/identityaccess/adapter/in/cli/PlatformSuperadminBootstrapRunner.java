@@ -54,6 +54,8 @@ public final class PlatformSuperadminBootstrapRunner implements ApplicationRunne
                             new BootstrapPlatformSuperadminCommand(
                                     credentials.loginIdentifier(),
                                     credentials.passwordCopy(),
+                                    credentials.displayName(),
+                                    credentials.email(),
                                     correlationId)) {
                 BootstrapPlatformSuperadminResult result = useCase.execute(command);
                 logResult(result.status().name(), correlationId);
