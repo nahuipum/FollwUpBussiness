@@ -14,6 +14,7 @@ import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import com.nahui.followupbussiness.outbox.adapter.out.messaging.RabbitMqEventTransport;
 import com.nahui.followupbussiness.outbox.domain.OutboxEvent;
+import com.nahui.followupbussiness.outbox.domain.UnroutablePublicationException;
 import tools.jackson.databind.ObjectMapper;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.utility.DockerImageName;
@@ -87,6 +88,6 @@ class OutboxRabbitMqIntegrationTest {
 
         assertThat(org.assertj.core.api.Assertions.catchThrowable(
                 () -> new RabbitMqEventTransport(template, new ObjectMapper(), EXCHANGE).publish(event)))
-                .isInstanceOf(IllegalStateException.class);
+                .isInstanceOf(UnroutablePublicationException.class);
     }
 }

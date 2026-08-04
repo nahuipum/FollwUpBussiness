@@ -29,7 +29,7 @@ class LocalSecuritySecretsPropertiesTest {
     @Test
     void startsWhenRequiredLocalSecretIsPresent() {
         contextRunner
-                .withPropertyValues("field-sales.security.local-secret=" + TEST_ONLY_SECRET)
+                .withPropertyValues("followupbussiness.security.local-secret=" + TEST_ONLY_SECRET)
                 .run(context -> {
                     assertNull(context.getStartupFailure());
                     assertNotNull(context.getBean(LocalSecuritySecretsProperties.class));
@@ -51,7 +51,7 @@ class LocalSecuritySecretsPropertiesTest {
     @Test
     void failsSafelyWhenDocumentedPlaceholderWasNotReplaced() {
         contextRunner
-                .withPropertyValues("field-sales.security.local-secret=" + REJECTED_PLACEHOLDERS.get(1))
+                .withPropertyValues("followupbussiness.security.local-secret=" + REJECTED_PLACEHOLDERS.get(1))
                 .run(context -> {
                     Throwable rootCause = rootCause(context.getStartupFailure());
 

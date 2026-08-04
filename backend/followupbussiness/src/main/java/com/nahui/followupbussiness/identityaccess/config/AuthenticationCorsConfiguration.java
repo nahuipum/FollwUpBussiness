@@ -10,7 +10,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.cors.CorsConfigurationSource;
 
 @Configuration(proxyBeanMethods = false)
-@ConditionalOnProperty(prefix = "field-sales.authentication", name = "web-origin")
+@ConditionalOnProperty(prefix = "followupbussiness.authentication", name = "web-origin")
 @EnableConfigurationProperties(AuthenticationProperties.Values.class)
 class AuthenticationCorsConfiguration {
 

@@ -22,8 +22,9 @@ public final class DlqReprocessController {
     private final ReprocessOutboxEvent reprocessOutboxEvent;
     private final DlqReprocessRateLimiter rateLimiter;
 
-    public DlqReprocessController(ReprocessOutboxEvent reprocessOutboxEvent, ObjectProvider<DlqReprocessRateLimiter> rateLimiter) {
-        this.reprocessOutboxEvent = reprocessOutboxEvent;
+    public DlqReprocessController(ObjectProvider<ReprocessOutboxEvent> reprocessOutboxEvent,
+                                  ObjectProvider<DlqReprocessRateLimiter> rateLimiter) {
+        this.reprocessOutboxEvent = reprocessOutboxEvent.getIfAvailable();
         this.rateLimiter = rateLimiter.getIfAvailable();
     }
 
@@ -41,6 +42,9 @@ public final class DlqReprocessController {
         }
         DlqReprocessRateLimiter.Decision rateLimit;
         if (rateLimiter == null) {
+            return ResponseEntity.status(503).build();
+        }
+        if (reprocessOutboxEvent == null) {
             return ResponseEntity.status(503).build();
         }
         try {

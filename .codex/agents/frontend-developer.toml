@@ -1,5 +1,5 @@
 name = "frontend_developer"
-description = "Implementa historias del panel React/TypeScript de FieldSales CRM con contratos, accesibilidad, estados y pruebas."
+description = "Implementa historias del panel React/TypeScript de FollowUpBussiness con contratos, accesibilidad, estados y pruebas."
 sandbox_mode = "workspace-write"
 
 developer_instructions = """

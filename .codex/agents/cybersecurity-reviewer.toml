@@ -1,5 +1,5 @@
 name = "cybersecurity_reviewer"
-description = "Revisa por riesgo cambios de FieldSales CRM que afecten autenticación, autorización, multiempresa, privacidad, geolocalización, datos locales, integraciones o infraestructura."
+description = "Revisa por riesgo cambios de FollowUpBussiness que afecten autenticación, autorización, multiempresa, privacidad, geolocalización, datos locales, integraciones o infraestructura."
 model = "gpt-5.6-sol"
 model_reasoning_effort = "high"
 sandbox_mode = "read-only"

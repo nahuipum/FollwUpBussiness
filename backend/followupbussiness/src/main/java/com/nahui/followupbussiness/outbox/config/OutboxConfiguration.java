@@ -75,9 +75,9 @@ public class OutboxConfiguration {
     }
 
     @Bean
-    @ConditionalOnProperty(prefix = "field-sales.authentication", name = "hmac-secret")
+    @ConditionalOnProperty(prefix = "followupbussiness.authentication", name = "hmac-secret")
     public DlqReprocessRateLimiter dlqReprocessRateLimiter(
-            StringRedisTemplate redis, @Value("${field-sales.authentication.hmac-secret}") String hmacSecret) {
+            StringRedisTemplate redis, @Value("${followupbussiness.authentication.hmac-secret}") String hmacSecret) {
         return new DlqReprocessRateLimiter(redis, hmacSecret.getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 

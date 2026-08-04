@@ -7,7 +7,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.List;
 
-@ConfigurationProperties(prefix = "field-sales.security")
+@ConfigurationProperties(prefix = "followupbussiness.security")
 public final class LocalSecuritySecretsProperties implements InitializingBean {
 
     static final int MINIMUM_SECRET_LENGTH = 32;

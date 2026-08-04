@@ -1,6 +1,6 @@
 ---
 name: spring-hexagonal-scaffold
-description: Crear o extender código Spring Boot dentro de la arquitectura hexagonal y modular de FieldSales CRM. Usar al iniciar un caso de uso, puerto, adaptador REST/persistencia/mensajería, configuración o dominio Backend, sin generar capas o abstracciones innecesarias.
+description: Crear o extender código Spring Boot dentro de la arquitectura hexagonal y modular de FollowUpBussiness. Usar al iniciar un caso de uso, puerto, adaptador REST/persistencia/mensajería, configuración o dominio Backend, sin generar capas o abstracciones innecesarias.
 ---
 
 # Crear estructura hexagonal Spring

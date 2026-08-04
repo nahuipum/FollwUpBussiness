@@ -1,5 +1,5 @@
 name = "backend_developer"
-description = "Implementa historias Backend de FieldSales CRM con Java y Spring Boot, preservando arquitectura hexagonal, contratos, multiempresa y pruebas."
+description = "Implementa historias Backend de FollowUpBussiness con Java y Spring Boot, preservando arquitectura hexagonal, contratos, multiempresa y pruebas."
 model = "gpt-5.6-terra"
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
