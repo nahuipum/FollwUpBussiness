@@ -59,4 +59,9 @@ public class LoginConfiguration {
     LoginRequestSizeFilter loginRequestSizeFilter() {
         return new LoginRequestSizeFilter();
     }
+
+    @Bean
+    ResourceAccessAuthorizer resourceAccessAuthorizer(JdbcTemplate jdbcTemplate) {
+        return new ResourceAccessAuthorizer(new JdbcTeamMembershipQuery(jdbcTemplate), new JdbcResourceAccessGrantQuery(jdbcTemplate), new JdbcAccessDecisionAuditAdapter(jdbcTemplate));
+    }
 }

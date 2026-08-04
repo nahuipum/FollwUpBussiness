@@ -8,6 +8,8 @@ import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Base64;
+import com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor;
+import com.nahui.followupbussiness.identityaccess.domain.model.BaseRole;
 import java.util.List;
 import java.util.UUID;
 
@@ -47,16 +49,24 @@ public final class InboundJwtAuthenticator {
             UUID subject = UUID.fromString(claims.path("sub").asText());
             UUID session = UUID.fromString(claims.path("sid").asText());
             String role = singleRole(claims);
-            if (!issuer.equals(claims.path("iss").asText()) || !hasAudience(claims) || claims.hasNonNull("tid") || claims.path("exp").asLong(0) <= clock.instant().getEpochSecond())
+            if (!issuer.equals(claims.path("iss").asText()) || !hasAudience(claims) || claims.path("exp").asLong(0) <= clock.instant().getEpochSecond())
                 throw new JwtValidationException();
-            Integer active = jdbcTemplate.queryForObject("""
-                    SELECT COUNT(*) FROM identity_access_session_family session
+            var tenantIds = jdbcTemplate.query("""
+                    SELECT account.company_id FROM identity_access_session_family session
                     JOIN identity_access_account account ON account.id = session.account_id
+                    LEFT JOIN tenancy_company company ON company.id = account.company_id
                     WHERE session.id = ? AND session.account_id = ? AND session.revoked_at IS NULL AND session.expires_at > ?
-                      AND account.status = 'ACTIVE' AND account.role_code = ? AND account.company_id IS NULL
-                    """, Integer.class, session, subject, Timestamp.from(clock.instant()), role);
-            if (active == null || active != 1) throw new JwtValidationException();
-            return UsernamePasswordAuthenticationToken.authenticated(subject.toString(), bearerToken, List.of(new SimpleGrantedAuthority(role)));
+                      AND account.status = 'ACTIVE' AND account.role_code = ?
+                      AND session.company_id IS NOT DISTINCT FROM account.company_id
+                      AND (account.company_id IS NULL OR company.status = 'ACTIVE')
+                    """, (rs, row) -> rs.getObject(1, UUID.class), session, subject, Timestamp.from(clock.instant()), role);
+            if (tenantIds.size() != 1) throw new JwtValidationException();
+            BaseRole persistedRole = BaseRole.findByCode(role).orElseThrow(JwtValidationException::new);
+            UUID tenantId = tenantIds.getFirst();
+            if (persistedRole.scope() == com.nahui.followupbussiness.identityaccess.domain.model.RoleScope.PLATFORM ? tenantId != null : tenantId == null)
+                throw new JwtValidationException();
+            return UsernamePasswordAuthenticationToken.authenticated(
+                    new AuthenticatedActor(subject, tenantId, persistedRole), bearerToken, List.of(new SimpleGrantedAuthority(role)));
         } catch (GeneralSecurityException | RuntimeException exception) {
             if (exception instanceof JwtValidationException) throw (JwtValidationException) exception;
             throw new JwtValidationException();
@@ -80,7 +90,7 @@ public final class InboundJwtAuthenticator {
 
     private String singleRole(JsonNode claims) {
         JsonNode roles = claims.path("roles");
-        if (!roles.isArray() || roles.size() != 1 || !"PLATFORM_SUPERADMIN".equals(roles.get(0).asText()))
+        if (!roles.isArray() || roles.size() != 1 || BaseRole.findByCode(roles.get(0).asText()).isEmpty())
             throw new JwtValidationException();
         return roles.get(0).asText();
     }
