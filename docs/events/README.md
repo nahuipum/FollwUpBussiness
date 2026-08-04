@@ -38,3 +38,10 @@ payload, productores, consumidores e idempotencia antes de ser contrato.
 | journey.closed | journeys | tracking, reporting |
 
 Todos los eventos son versionados y los consumidores son idempotentes.
+
+## Fallos de publicación y DLQ
+
+ADR-019 define la DLQ durable PostgreSQL para fallos del publicador de outbox:
+preserva el envelope y sus IDs técnicos sin exponer payload en telemetría. Las
+DLQ RabbitMQ de consumidores pertenecen a cada cola/consumidor y no alteran el
+contrato del envelope.

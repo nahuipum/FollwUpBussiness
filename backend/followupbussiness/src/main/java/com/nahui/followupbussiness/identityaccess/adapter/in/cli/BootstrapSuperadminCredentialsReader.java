@@ -11,11 +11,11 @@ import java.util.function.Function;
 public final class BootstrapSuperadminCredentialsReader {
 
     public static final String IDENTITY_VARIABLE =
-            "FIELD_SALES_BOOTSTRAP_SUPERADMIN_IDENTITY";
+            "FOLLOW_UP_BUSSINESS_BOOTSTRAP_SUPERADMIN_IDENTITY";
     public static final String PASSWORD_VARIABLE =
-            "FIELD_SALES_BOOTSTRAP_SUPERADMIN_PASSWORD";
-    public static final String DISPLAY_NAME_VARIABLE = "FIELD_SALES_BOOTSTRAP_SUPERADMIN_DISPLAY_NAME";
-    public static final String EMAIL_VARIABLE = "FIELD_SALES_BOOTSTRAP_SUPERADMIN_EMAIL";
+            "FOLLOW_UP_BUSSINESS_BOOTSTRAP_SUPERADMIN_PASSWORD";
+    public static final String DISPLAY_NAME_VARIABLE = "FOLLOW_UP_BUSSINESS_BOOTSTRAP_SUPERADMIN_DISPLAY_NAME";
+    public static final String EMAIL_VARIABLE = "FOLLOW_UP_BUSSINESS_BOOTSTRAP_SUPERADMIN_EMAIL";
     static final int MINIMUM_PASSWORD_LENGTH = 16;
     static final int MAXIMUM_PASSWORD_BYTES = 72;
 

@@ -53,7 +53,7 @@ public final class LoginRequestSizeFilter extends OncePerRequestFilter {
         response.setHeader("Cache-Control", "no-store");
         response.setHeader("Pragma", "no-cache");
         response.setHeader("X-Correlation-Id", correlationId);
-        response.getWriter().write("{\"type\":\"urn:fieldsales:auth:request-too-large\",\"status\":413,\"code\":\"AUTH_REQUEST_TOO_LARGE\",\"correlationId\":\"" + correlationId + "\"}");
+        response.getWriter().write("{\"type\":\"urn:followupbussiness:auth:request-too-large\",\"status\":413,\"code\":\"AUTH_REQUEST_TOO_LARGE\",\"correlationId\":\"" + correlationId + "\"}");
         response.flushBuffer();
     }
 

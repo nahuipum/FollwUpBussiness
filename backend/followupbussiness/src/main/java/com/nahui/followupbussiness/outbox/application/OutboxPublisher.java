@@ -3,6 +3,9 @@ package com.nahui.followupbussiness.outbox.application;
 import com.nahui.followupbussiness.outbox.application.port.out.EventTransport;
 import com.nahui.followupbussiness.outbox.application.port.out.OutboxStore;
 import com.nahui.followupbussiness.outbox.domain.ClaimedOutboxEvent;
+import com.nahui.followupbussiness.outbox.domain.PublicationFailureKind;
+import com.nahui.followupbussiness.outbox.domain.RetryPolicy;
+import com.nahui.followupbussiness.outbox.domain.UnroutablePublicationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,20 +18,23 @@ import java.util.Random;
 
 public final class OutboxPublisher {
     private static final Logger LOGGER = LoggerFactory.getLogger(OutboxPublisher.class);
-    static final int MAX_ATTEMPTS = 8;
-    private static final Duration BASE_BACKOFF = Duration.ofSeconds(1);
-    private static final Duration MAX_BACKOFF = Duration.ofMinutes(5);
-
     private final OutboxStore outboxStore;
     private final EventTransport eventTransport;
     private final Clock clock;
     private final Random random;
+    private final RetryPolicy retryPolicy;
 
     public OutboxPublisher(OutboxStore outboxStore, EventTransport eventTransport, Clock clock, Random random) {
+        this(outboxStore, eventTransport, clock, random, RetryPolicy.DEFAULT);
+    }
+
+    public OutboxPublisher(OutboxStore outboxStore, EventTransport eventTransport, Clock clock, Random random,
+                           RetryPolicy retryPolicy) {
         this.outboxStore = Objects.requireNonNull(outboxStore);
         this.eventTransport = Objects.requireNonNull(eventTransport);
         this.clock = Objects.requireNonNull(clock);
         this.random = Objects.requireNonNull(random);
+        this.retryPolicy = Objects.requireNonNull(retryPolicy);
     }
 
     public DispatchResult dispatchAvailable(int limit, Duration leaseDuration) {
@@ -36,8 +42,8 @@ public final class OutboxPublisher {
             throw new IllegalArgumentException("limit and leaseDuration must be positive");
         }
         Instant now = clock.instant();
-        int terminal = outboxStore.terminalExpiredLeasesAtMaxAttempts(now);
-        List<ClaimedOutboxEvent> claimed = outboxStore.claimAvailable(now, now.plus(leaseDuration), limit);
+        int terminal = outboxStore.moveExpiredLeasesToDlqAtMaxAttempts(now, retryPolicy.maxAttempts());
+        List<ClaimedOutboxEvent> claimed = outboxStore.claimAvailable(now, now.plus(leaseDuration), limit, retryPolicy.maxAttempts());
         int published = 0;
         int retried = 0;
         int failures = 0;
@@ -50,8 +56,9 @@ public final class OutboxPublisher {
                 }
             } catch (RuntimeException exception) {
                 failures++;
-                if (event.attemptCount() >= MAX_ATTEMPTS) {
-                    if (outboxStore.markTerminal(event.event().eventId(), event.leaseToken(), clock.instant(),
+                PublicationFailureKind kind = classify(exception);
+                if (kind == PublicationFailureKind.PERMANENT || event.attemptCount() >= retryPolicy.maxAttempts()) {
+                    if (outboxStore.moveToDlq(event.event().eventId(), event.leaseToken(), clock.instant(), kind,
                             exception.getClass().getSimpleName(), safeDetail(exception))) {
                         terminal++;
                         logResult(event, "TERMINAL", exception.getClass().getSimpleName());
@@ -69,13 +76,19 @@ public final class OutboxPublisher {
 
     private Duration backoff(int attemptCount) {
         long exponent = 1L << Math.min(attemptCount - 1, 8);
-        long cappedMillis = Math.min(BASE_BACKOFF.toMillis() * exponent, MAX_BACKOFF.toMillis());
+        long cappedMillis = Math.min(retryPolicy.initialBackoff().toMillis() * exponent, retryPolicy.maxBackoff().toMillis());
         long jitter = random.nextLong(Math.max(1L, cappedMillis / 4 + 1));
         return Duration.ofMillis(cappedMillis + jitter);
     }
 
     private static String safeDetail(RuntimeException exception) {
         return "PUBLISH_FAILURE";
+    }
+
+    private static PublicationFailureKind classify(RuntimeException exception) {
+        return exception instanceof IllegalArgumentException || exception instanceof UnroutablePublicationException
+                ? PublicationFailureKind.PERMANENT
+                : PublicationFailureKind.TRANSIENT;
     }
 
     private static void logResult(ClaimedOutboxEvent event, String result, String errorType) {

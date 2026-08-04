@@ -57,8 +57,8 @@ class PlatformSuperadminBootstrapMigrationTest {
     @BeforeAll
     static void startPostgres() {
         postgres = new PostgreSQLContainer(POSTGIS_IMAGE)
-                .withDatabaseName("fieldsales_en012")
-                .withUsername("fieldsales_en012")
+                .withDatabaseName("followupbussiness_en012")
+                .withUsername("followupbussiness_en012")
                 .withPassword(DATABASE_PASSWORD);
         postgres.start();
     }

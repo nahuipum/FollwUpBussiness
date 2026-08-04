@@ -1,11 +1,11 @@
 openapi: 3.1.0
 info:
-  title: FieldSales CRM API
+  title: FollowUpBussiness API
   version: 1.0.0
   summary: Contrato REST general del MVP
   description: |
     API multiempresa para administración, aplicación móvil y procesos de
-    integración de FieldSales CRM.
+    integración de FollowUpBussiness.
 
     Reglas globales:
     - El tenant y el usuario se derivan de la identidad autenticada.
@@ -19,7 +19,7 @@ info:
     - Auth WEB usa refresh solo en cookie HttpOnly; MOBILE usa body solo fuera
       de contexto navegador. El canal nunca concede identidad, tenant o rol.
   contact:
-    name: FieldSales CRM Engineering
+    name: FollowUpBussiness Engineering
   license:
     name: UNLICENSED
     identifier: LicenseRef-Proprietary
@@ -45,6 +45,8 @@ tags:
     description: Sesiones, recuperación de acceso e identidad actual.
   - name: Platform companies
     description: Administración global y onboarding de empresas.
+  - name: Platform operations
+    description: Operaciones internas y auditables de plataforma.
   - name: Company users
     description: Usuarios, roles y estados dentro de una empresa.
   - name: Settings
@@ -301,6 +303,33 @@ paths:
               schema:
                 $ref: '#/components/schemas/CurrentUser'
         '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /internal/outbox/dlq/{eventId}/reprocess:
+    post:
+      tags: [Platform operations]
+      operationId: reprocessOutboxDlqEvent
+      summary: Reprocesar un evento de DLQ
+      description: |
+        Operación interna, explícita y auditada para reencolar un fallo de
+        publicación. Solo PLATFORM_SUPERADMIN puede invocarla. El tenant,
+        envelope, correlationId y operador se derivan de datos durables y de
+        la autenticación; el cliente no envía cuerpo ni tenantId.
+      x-internal: true
+      x-required-roles: [PLATFORM_SUPERADMIN]
+      x-story-ids: [BE-056]
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '202':
+          description: Evento reencolado para un nuevo ciclo limitado de publicación
+          headers:
+            X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
 
   /platform/companies:
     get:

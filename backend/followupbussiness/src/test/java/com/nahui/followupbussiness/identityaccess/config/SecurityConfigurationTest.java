@@ -9,6 +9,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.test.web.servlet.MockMvc;
@@ -17,11 +18,17 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestBody;
 
+import com.nahui.followupbussiness.outbox.application.PlatformOperator;
+import com.nahui.followupbussiness.outbox.adapter.in.rest.DlqReprocessRateLimiter;
+import com.nahui.followupbussiness.identityaccess.adapter.in.security.InboundJwtAuthenticator;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.core.authority.AuthorityUtils.createAuthorityList;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
@@ -33,11 +40,20 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(properties = {
         "field-sales.security.local-secret=TEST_ONLY_NON_SECRET_012345678901234567890123456789",
         "spring.autoconfigure.exclude=org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration",
-        "fieldsales.outbox.enabled=false"
+        "followupbussiness.outbox.enabled=false"
 })
 @AutoConfigureMockMvc
 @Import(SecurityConfigurationTest.TestOnlyController.class)
 class SecurityConfigurationTest {
+
+    @MockitoBean
+    private com.nahui.followupbussiness.outbox.application.ReprocessOutboxEvent reprocessOutboxEvent;
+
+    @MockitoBean
+    private DlqReprocessRateLimiter dlqReprocessRateLimiter;
+
+    @MockitoBean
+    private InboundJwtAuthenticator inboundJwtAuthenticator;
 
     @Autowired
     private MockMvc mockMvc;
@@ -96,8 +112,49 @@ class SecurityConfigurationTest {
                         .with(user("test-only-user"))
                         .with(csrf())
                         .contentType("application/json")
-                        .content("{\"name\":\"valid\",\"unexpected\":true}"))
+                .content("{\"name\":\"valid\",\"unexpected\":true}"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void dlqReprocessRequiresPlatformAuthorityAndTrustedUuidIdentity() throws Exception {
+        String eventId = "00000000-0000-0000-0000-000000000001";
+        String path = "/api/v1/internal/outbox/dlq/" + eventId + "/reprocess";
+        mockMvc.perform(post(path)).andExpect(status().isUnauthorized());
+        when(inboundJwtAuthenticator.authenticate("signed-seller-token")).thenReturn(
+                new org.springframework.security.authentication.UsernamePasswordAuthenticationToken("operator", "token", createAuthorityList("SELLER")));
+        mockMvc.perform(post(path).header("Authorization", "Bearer signed-seller-token")).andExpect(status().isForbidden());
+        when(inboundJwtAuthenticator.authenticate("signed-malformed-sub-token")).thenReturn(
+                new org.springframework.security.authentication.UsernamePasswordAuthenticationToken("not-a-uuid", "token", createAuthorityList("PLATFORM_SUPERADMIN")));
+        mockMvc.perform(post(path).header("Authorization", "Bearer signed-malformed-sub-token"))
+                .andExpect(status().isForbidden());
+        when(reprocessOutboxEvent.execute(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(true);
+        when(dlqReprocessRateLimiter.check(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString()))
+                .thenReturn(new DlqReprocessRateLimiter.Decision(true, 1));
+        when(inboundJwtAuthenticator.authenticate("valid-signed-token")).thenReturn(
+                new org.springframework.security.authentication.UsernamePasswordAuthenticationToken("00000000-0000-0000-0000-000000000002", "token", createAuthorityList("PLATFORM_SUPERADMIN")));
+        mockMvc.perform(post(path).header("Authorization", "Bearer valid-signed-token"))
+                .andExpect(status().isAccepted());
+        verify(reprocessOutboxEvent).execute(
+                java.util.UUID.fromString(eventId),
+                new PlatformOperator(java.util.UUID.fromString("00000000-0000-0000-0000-000000000002"), true));
+    }
+
+    @Test
+    void dlqReprocessUsesRuntimeBearerAuthenticationAndRejectsAThrottleAbuse() throws Exception {
+        String eventId = "00000000-0000-0000-0000-000000000001";
+        String path = "/api/v1/internal/outbox/dlq/" + eventId + "/reprocess";
+        var authentication = new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+                "00000000-0000-0000-0000-000000000002", "token", createAuthorityList("PLATFORM_SUPERADMIN"));
+        when(inboundJwtAuthenticator.authenticate("valid-signed-token")).thenReturn(authentication);
+        when(dlqReprocessRateLimiter.check("00000000-0000-0000-0000-000000000002", "127.0.0.1"))
+                .thenReturn(new DlqReprocessRateLimiter.Decision(false, 45));
+
+        mockMvc.perform(post(path).header("Authorization", "Bearer valid-signed-token"))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(header().string("Retry-After", "45"));
+        mockMvc.perform(post(path).header("Authorization", "Bearer altered-token"))
+                .andExpect(status().isUnauthorized());
     }
 
     private static Stream<Arguments> protectedOperations() {

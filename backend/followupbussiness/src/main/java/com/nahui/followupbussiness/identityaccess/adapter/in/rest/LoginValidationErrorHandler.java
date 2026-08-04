@@ -18,7 +18,7 @@ public final class LoginValidationErrorHandler {
     ResponseEntity<ProblemDetail> invalidRequest(Exception ignored, WebRequest request) {
         String correlationId = correlationId(request.getHeader("X-Correlation-Id"));
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Request cannot be processed");
-        problem.setType(URI.create("urn:fieldsales:auth:validation-failed"));
+        problem.setType(URI.create("urn:followupbussiness:auth:validation-failed"));
         problem.setProperty("code", "VALIDATION_FAILED");
         problem.setProperty("correlationId", correlationId);
         return ResponseEntity.badRequest()

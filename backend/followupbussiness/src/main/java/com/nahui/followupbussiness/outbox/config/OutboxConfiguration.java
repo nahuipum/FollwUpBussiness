@@ -1,11 +1,14 @@
 package com.nahui.followupbussiness.outbox.config;
 
 import com.nahui.followupbussiness.outbox.adapter.in.scheduling.OutboxPublishingScheduler;
+import com.nahui.followupbussiness.outbox.adapter.in.rest.DlqReprocessRateLimiter;
 import com.nahui.followupbussiness.outbox.adapter.out.messaging.RabbitMqEventTransport;
 import com.nahui.followupbussiness.outbox.adapter.out.persistence.JdbcOutboxStore;
 import com.nahui.followupbussiness.outbox.application.OutboxPublisher;
+import com.nahui.followupbussiness.outbox.application.ReprocessOutboxEvent;
 import com.nahui.followupbussiness.outbox.application.port.out.EventTransport;
 import com.nahui.followupbussiness.outbox.application.port.out.OutboxStore;
+import com.nahui.followupbussiness.outbox.domain.RetryPolicy;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Gauge;
 import org.springframework.amqp.core.TopicExchange;
@@ -14,11 +17,13 @@ import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import tools.jackson.databind.ObjectMapper;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -26,10 +31,10 @@ import java.util.Random;
 
 @Configuration(proxyBeanMethods = false)
 @EnableScheduling
-@ConditionalOnProperty(prefix = "fieldsales.outbox", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "followupbussiness.outbox", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class OutboxConfiguration {
     @Bean
-    @ConfigurationProperties(prefix = "fieldsales.outbox")
+    @ConfigurationProperties(prefix = "followupbussiness.outbox")
     public OutboxProperties outboxProperties() {
         return new OutboxProperties();
     }
@@ -57,8 +62,23 @@ public class OutboxConfiguration {
     }
 
     @Bean
-    public OutboxPublisher outboxPublisher(OutboxStore outboxStore, EventTransport eventTransport) {
-        return new OutboxPublisher(outboxStore, eventTransport, Clock.systemUTC(), new Random());
+    public OutboxPublisher outboxPublisher(OutboxStore outboxStore, EventTransport eventTransport, OutboxProperties properties) {
+        return new OutboxPublisher(outboxStore, eventTransport, Clock.systemUTC(), new Random(),
+                new RetryPolicy(properties.maxAttempts, Duration.ofMillis(properties.initialBackoffMs),
+                        Duration.ofMillis(properties.maxBackoffMs)));
+    }
+
+    @Bean
+    public ReprocessOutboxEvent reprocessOutboxEvent(OutboxStore outboxStore, MeterRegistry meterRegistry) {
+        return new ReprocessOutboxEvent(outboxStore, Clock.systemUTC(),
+                () -> meterRegistry.counter("outbox.dlq.reprocessed").increment());
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "field-sales.authentication", name = "hmac-secret")
+    public DlqReprocessRateLimiter dlqReprocessRateLimiter(
+            StringRedisTemplate redis, @Value("${field-sales.authentication.hmac-secret}") String hmacSecret) {
+        return new DlqReprocessRateLimiter(redis, hmacSecret.getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 
     @Bean
@@ -67,6 +87,9 @@ public class OutboxConfiguration {
         Gauge.builder("outbox.backlog", outboxStore, store -> store.countReadyToPublish()).register(meterRegistry);
         Gauge.builder("outbox.oldest_pending_age_seconds", outboxStore,
                 store -> store.oldestReadyAgeSeconds(Clock.systemUTC().instant())).register(meterRegistry);
+        Gauge.builder("outbox.dlq.depth", outboxStore, OutboxStore::dlqDepth).register(meterRegistry);
+        Gauge.builder("outbox.dlq.oldest_age_seconds", outboxStore,
+                store -> store.oldestDlqAgeSeconds(Clock.systemUTC().instant())).register(meterRegistry);
         return new OutboxPublishingScheduler(
                 outboxPublisher,
                 properties.batchSize,
@@ -74,6 +97,7 @@ public class OutboxConfiguration {
                 meterRegistry.counter("outbox.events.published"),
                 meterRegistry.counter("outbox.events.retry_scheduled"),
                 meterRegistry.counter("outbox.events.terminal"),
+                meterRegistry.counter("outbox.dlq.entered"),
                 outboxStore,
                 Clock.systemUTC(),
                 meterRegistry.counter("outbox.events.retention_deleted"),
@@ -84,7 +108,10 @@ public class OutboxConfiguration {
         private long pollDelayMs = 1000;
         private int batchSize = 50;
         private long leaseSeconds = 60;
-        private String exchange = "fieldsales.events";
+        private int maxAttempts = 8;
+        private long initialBackoffMs = 1000;
+        private long maxBackoffMs = 300000;
+        private String exchange = "followupbussiness.events";
 
         public long getPollDelayMs() { return pollDelayMs; }
         public void setPollDelayMs(long pollDelayMs) { this.pollDelayMs = pollDelayMs; }
@@ -92,6 +119,12 @@ public class OutboxConfiguration {
         public void setBatchSize(int batchSize) { this.batchSize = batchSize; }
         public long getLeaseSeconds() { return leaseSeconds; }
         public void setLeaseSeconds(long leaseSeconds) { this.leaseSeconds = leaseSeconds; }
+        public int getMaxAttempts() { return maxAttempts; }
+        public void setMaxAttempts(int maxAttempts) { this.maxAttempts = maxAttempts; }
+        public long getInitialBackoffMs() { return initialBackoffMs; }
+        public void setInitialBackoffMs(long initialBackoffMs) { this.initialBackoffMs = initialBackoffMs; }
+        public long getMaxBackoffMs() { return maxBackoffMs; }
+        public void setMaxBackoffMs(long maxBackoffMs) { this.maxBackoffMs = maxBackoffMs; }
         public String getExchange() { return exchange; }
         public void setExchange(String exchange) { this.exchange = exchange; }
     }

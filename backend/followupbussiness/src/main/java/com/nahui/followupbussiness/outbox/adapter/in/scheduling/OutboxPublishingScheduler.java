@@ -19,6 +19,7 @@ public final class OutboxPublishingScheduler {
     private final Counter publishedCounter;
     private final Counter retryCounter;
     private final Counter terminalCounter;
+    private final Counter dlqCounter;
     private final OutboxStore outboxStore;
     private final Clock clock;
     private final Counter retentionCounter;
@@ -31,6 +32,7 @@ public final class OutboxPublishingScheduler {
             Counter publishedCounter,
             Counter retryCounter,
             Counter terminalCounter,
+            Counter dlqCounter,
             OutboxStore outboxStore,
             Clock clock,
             Counter retentionCounter,
@@ -41,19 +43,21 @@ public final class OutboxPublishingScheduler {
         this.publishedCounter = publishedCounter;
         this.retryCounter = retryCounter;
         this.terminalCounter = terminalCounter;
+        this.dlqCounter = dlqCounter;
         this.outboxStore = outboxStore;
         this.clock = clock;
         this.retentionCounter = retentionCounter;
         this.failureCounter = failureCounter;
     }
 
-    @Scheduled(fixedDelayString = "${fieldsales.outbox.poll-delay-ms}")
+    @Scheduled(fixedDelayString = "${followupbussiness.outbox.poll-delay-ms}")
     public void publishAvailable() {
         try {
             OutboxPublisher.DispatchResult result = publisher.dispatchAvailable(batchSize, leaseDuration);
             publishedCounter.increment(result.published());
             retryCounter.increment(result.retried());
             terminalCounter.increment(result.terminal());
+            dlqCounter.increment(result.terminal());
             failureCounter.increment(result.failures());
             if (result.claimed() > 0) {
                 LOGGER.info("operation=outbox.publish claimed={} published={} retried={} terminal={}",
@@ -65,7 +69,7 @@ public final class OutboxPublishingScheduler {
         }
     }
 
-    @Scheduled(fixedDelayString = "${fieldsales.outbox.retention-delay-ms:86400000}")
+    @Scheduled(fixedDelayString = "${followupbussiness.outbox.retention-delay-ms:86400000}")
     public void purgeExpiredEvidence() {
         int deleted = outboxStore.deleteCompletedBefore(clock.instant().minus(Duration.ofDays(30)));
         retentionCounter.increment(deleted);

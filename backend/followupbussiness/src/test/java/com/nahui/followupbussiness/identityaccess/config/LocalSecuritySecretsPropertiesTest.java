@@ -42,7 +42,7 @@ class LocalSecuritySecretsPropertiesTest {
             Throwable rootCause = rootCause(context.getStartupFailure());
 
             assertEquals(
-                    "FIELD_SALES_SECURITY_LOCAL_SECRET is required; its value was not logged",
+                    "FOLLOW_UP_BUSSINESS_SECURITY_LOCAL_SECRET is required; its value was not logged",
                     rootCause.getMessage());
             assertFalse(rootCause.getMessage().contains(TEST_ONLY_SECRET));
         });
@@ -56,7 +56,7 @@ class LocalSecuritySecretsPropertiesTest {
                     Throwable rootCause = rootCause(context.getStartupFailure());
 
                     assertEquals(
-                            "FIELD_SALES_SECURITY_LOCAL_SECRET must be a non-placeholder value of at least 32 "
+                            "FOLLOW_UP_BUSSINESS_SECURITY_LOCAL_SECRET must be a non-placeholder value of at least 32 "
                                     + "characters; its value was not logged",
                             rootCause.getMessage());
                     assertFalse(rootCause.getMessage().contains(REJECTED_PLACEHOLDERS.get(1)));
@@ -69,7 +69,7 @@ class LocalSecuritySecretsPropertiesTest {
         IllegalStateException exception = validateDirectly(candidate);
 
         assertEquals(
-                "FIELD_SALES_SECURITY_LOCAL_SECRET must not contain leading or trailing whitespace; "
+                "FOLLOW_UP_BUSSINESS_SECURITY_LOCAL_SECRET must not contain leading or trailing whitespace; "
                         + "its value was not logged",
                 exception.getMessage());
         assertFalse(exception.getMessage().contains(candidate));
@@ -90,7 +90,7 @@ class LocalSecuritySecretsPropertiesTest {
         IllegalStateException exception = validateDirectly(candidate);
 
         assertEquals(
-                "FIELD_SALES_SECURITY_LOCAL_SECRET must not contain leading or trailing whitespace; "
+                "FOLLOW_UP_BUSSINESS_SECURITY_LOCAL_SECRET must not contain leading or trailing whitespace; "
                         + "its value was not logged",
                 exception.getMessage());
         assertFalse(exception.getMessage().contains(candidate));
