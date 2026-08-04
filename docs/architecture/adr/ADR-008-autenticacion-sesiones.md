@@ -13,7 +13,7 @@
 
 ## Contexto
 
-FieldSales CRM necesita una política única de autenticación para el panel web y la aplicación móvil antes de implementar BE-003 a BE-006. EN-010 dejó Spring Security en denegación por defecto y reservó esta decisión. EN-011 estabilizó los roles base y EN-012 creó, sin endpoint público, la primera cuenta de plataforma con BCrypt 12.
+FollowUpBussiness necesita una política única de autenticación para el panel web y la aplicación móvil antes de implementar BE-003 a BE-006. EN-010 dejó Spring Security en denegación por defecto y reservó esta decisión. EN-011 estabilizó los roles base y EN-012 creó, sin endpoint público, la primera cuenta de plataforma con BCrypt 12.
 
 El contrato funcional exige login por correo o nombre de usuario, sesiones renovables y revocables, bloqueo de cuentas, recuperación de contraseña, ausencia de registro público, activación temporal de un solo uso, aislamiento multiempresa y auditoría. Web y mobile comparten autoridad de servidor, pero sus mecanismos de almacenamiento tienen amenazas distintas. El canal elegido por el cliente no puede convertirse en autoridad de identidad, tenant o rol ni permitir que JavaScript obtenga un refresh token web.
 

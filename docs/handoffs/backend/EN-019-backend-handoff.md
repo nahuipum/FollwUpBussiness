@@ -30,6 +30,6 @@
 
 ## Comandos
 
-`mvnw.cmd -Dmaven.repo.local=C:\\tmp\\fieldsales-en019-m2 -Dtest=CompanyAccessStatusMigrationTest,HexagonalArchitectureTest,ModuleBoundaryTest test` con JDK 21: **PASS**, 5 pruebas.
+`mvnw.cmd -Dmaven.repo.local=C:\\tmp\\followupbussiness-en019-m2 -Dtest=CompanyAccessStatusMigrationTest,HexagonalArchitectureTest,ModuleBoundaryTest test` con JDK 21: **PASS**, 5 pruebas.
 
 `git diff --check`: **PASS**. `python -m graphify update .`: **PASS**.

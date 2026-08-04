@@ -115,7 +115,7 @@ evidencia de remediación de Desarrollo, no como aprobación independiente.
 - Cadena de filtros HTTP de Spring Security para todas las rutas.
 - Handlers de respuestas `401` y `403`.
 - Auto-configuración de autenticación deshabilitada.
-- Variable de entorno `FIELD_SALES_SECURITY_LOCAL_SECRET` durante el arranque.
+- Variable de entorno `FOLLOW_UP_BUSSINESS_SECURITY_LOCAL_SECRET` durante el arranque.
 - Validación de placeholders, longitud y whitespace Unicode de borde.
 - Classpath de runtime con Spring Security y Tomcat embebido.
 - Build Maven y generación de SBOM.

@@ -212,7 +212,7 @@ ventanas, duración, prioridad, inviabilidad, límite temporal y repetibilidad.
 OR-Tools queda en scope `test`; BE-022 decidirá su dependencia productiva.
 
 El spike Mapbox es opt-in y carga el token únicamente desde
-`FIELD_SALES_MAPBOX_MATRIX`, `FIELD_SALES_MAPBOX_MATRIX_SPIKE_KEY` o
+`FOLLOW_UP_BUSSINESS_MAPBOX_MATRIX`, `FOLLOW_UP_BUSSINESS_MAPBOX_MATRIX_SPIKE_KEY` o
 `MAPBOX_ACCESS_TOKEN`; el test no lee `.env` ni imprime token o URL. Valida una
 matriz Perú 11×11 (121 elementos), inicio/final distintos, forma, valores,
 latencia, conectividad Lima–Arequipa–Cusco, `401` sin token y rechazo de más de

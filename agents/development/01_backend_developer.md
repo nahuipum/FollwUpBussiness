@@ -1,5 +1,5 @@
 ---
-name: fieldsales-backend-developer
+name: followupbussiness-backend-developer
 role: Desarrollo Backend
 stack: Java, Spring Boot, PostgreSQL, PostGIS, Redis, WebSocket, async queue
 status_output: READY_FOR_HANDOFF | BLOCKED
@@ -9,7 +9,7 @@ status_output: READY_FOR_HANDOFF | BLOCKED
 
 ## 1. Misión
 
-Diseñar e implementar el backend de FieldSales CRM como monolito modular por dominios, aplicando arquitectura hexagonal dentro de cada módulo y preservando aislamiento multiempresa, consistencia, idempotencia, seguridad y observabilidad.
+Diseñar e implementar el backend de FollowUpBussiness como monolito modular por dominios, aplicando arquitectura hexagonal dentro de cada módulo y preservando aislamiento multiempresa, consistencia, idempotencia, seguridad y observabilidad.
 
 Este agente es propietario de:
 

@@ -1,4 +1,4 @@
-# FieldSales CRM Backend
+# FollowUpBussiness Backend
 
 EN-002 establishes the executable Spring Boot foundation, EN-010 adds the
 Spring Security and local-secret baseline, EN-011 defines the persistent
@@ -41,7 +41,7 @@ The backend requires this variable:
 
 | Variable | Purpose | Required |
 |---|---|---|
-| `FIELD_SALES_SECURITY_LOCAL_SECRET` | Verify local secret injection and fail-fast behavior | Yes |
+| `FOLLOW_UP_BUSSINESS_SECURITY_LOCAL_SECRET` | Verify local secret injection and fail-fast behavior | Yes |
 
 The value must be local-only, nonblank, at least 32 characters, contain no
 leading or trailing whitespace, and be different from every prohibited public
@@ -73,7 +73,7 @@ Get-Content ..\..\.env |
     }
 ```
 
-If `FIELD_SALES_SECURITY_LOCAL_SECRET` is missing, blank, too short, has
+If `FOLLOW_UP_BUSSINESS_SECURITY_LOCAL_SECRET` is missing, blank, too short, has
 leading/trailing whitespace, or matches a prohibited placeholder after
 normalization, application startup fails before accepting traffic. The failure
 identifies the variable and violated rule but never its value.
@@ -123,7 +123,7 @@ all three guards are present:
 
 1. profile `bootstrap-superadmin`;
 2. `spring.main.web-application-type=none`;
-3. `fieldsales.bootstrap.platform-superadmin.enabled=true`.
+3. `followupbussiness.bootstrap.platform-superadmin.enabled=true`.
 
 The operator must provide these environment variables through the process or
 an ignored local file. The public `.env.example` intentionally leaves both
@@ -131,8 +131,8 @@ values empty:
 
 | Variable | Purpose | Required only for bootstrap |
 |---|---|---|
-| `FIELD_SALES_BOOTSTRAP_SUPERADMIN_IDENTITY` | Canonical login identity for the first platform operator | Yes |
-| `FIELD_SALES_BOOTSTRAP_SUPERADMIN_PASSWORD` | One-time input to the BCrypt hash | Yes |
+| `FOLLOW_UP_BUSSINESS_BOOTSTRAP_SUPERADMIN_IDENTITY` | Canonical login identity for the first platform operator | Yes |
+| `FOLLOW_UP_BUSSINESS_BOOTSTRAP_SUPERADMIN_PASSWORD` | One-time input to the BCrypt hash | Yes |
 
 The password must have at least 16 characters, occupy at most 72 bytes in
 UTF-8, contain no boundary whitespace and differ from public placeholders.
@@ -157,7 +157,7 @@ Set-Location backend\followupbussiness
 java -jar target\followupbussiness-0.0.1-SNAPSHOT.jar `
   --spring.profiles.active=bootstrap-superadmin `
   --spring.main.web-application-type=none `
-  --fieldsales.bootstrap.platform-superadmin.enabled=true
+  --followupbussiness.bootstrap.platform-superadmin.enabled=true
 ```
 
 The process closes after the result and logs only `operation`, `result` and a
@@ -184,8 +184,8 @@ null `company_id`. After verification, remove the process variables and delete
 their values from the ignored local file:
 
 ```powershell
-Remove-Item Env:FIELD_SALES_BOOTSTRAP_SUPERADMIN_IDENTITY -ErrorAction SilentlyContinue
-Remove-Item Env:FIELD_SALES_BOOTSTRAP_SUPERADMIN_PASSWORD -ErrorAction SilentlyContinue
+Remove-Item Env:FOLLOW_UP_BUSSINESS_BOOTSTRAP_SUPERADMIN_IDENTITY -ErrorAction SilentlyContinue
+Remove-Item Env:FOLLOW_UP_BUSSINESS_BOOTSTRAP_SUPERADMIN_PASSWORD -ErrorAction SilentlyContinue
 ```
 
 Before the initial `CREATED`, rotate the local inputs by replacing them and

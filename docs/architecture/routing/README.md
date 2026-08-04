@@ -59,8 +59,8 @@ mediante disjunction, descarte inviable, límite temporal y repetibilidad.
 `MapboxMatrixLiveSpikeTest` es opt-in y solo consulta variables de entorno, en
 este orden:
 
-1. `FIELD_SALES_MAPBOX_MATRIX`
-2. `FIELD_SALES_MAPBOX_MATRIX_SPIKE_KEY`
+1. `FOLLOW_UP_BUSSINESS_MAPBOX_MATRIX`
+2. `FOLLOW_UP_BUSSINESS_MAPBOX_MATRIX_SPIKE_KEY`
 3. `MAPBOX_ACCESS_TOKEN`
 
 El test no abre `.env`. Para una validación local desde la raíz del repositorio,
@@ -69,17 +69,17 @@ y eliminarlo al finalizar sin imprimir el valor:
 
 ```powershell
 $entry = Get-Content -LiteralPath .env |
-    Where-Object { $_ -match '^\s*(FIELD_SALES_MAPBOX_MATRIX|FIELD_SALES_MAPBOX_MATRIX_SPIKE_KEY|MAPBOX_ACCESS_TOKEN)\s*=' } |
+    Where-Object { $_ -match '^\s*(FOLLOW_UP_BUSSINESS_MAPBOX_MATRIX|FOLLOW_UP_BUSSINESS_MAPBOX_MATRIX_SPIKE_KEY|MAPBOX_ACCESS_TOKEN)\s*=' } |
     Select-Object -First 1
 if (-not $entry) { throw 'No Mapbox Matrix token alias found in .env' }
 $ignored, $value = $entry -split '=', 2
-$env:FIELD_SALES_MAPBOX_MATRIX_SPIKE_KEY = $value.Trim().Trim('"').Trim("'")
+$env:FOLLOW_UP_BUSSINESS_MAPBOX_MATRIX_SPIKE_KEY = $value.Trim().Trim('"').Trim("'")
 Push-Location backend/followupbussiness
 try {
     .\mvnw.cmd "-Dtest=MapboxMatrixLiveSpikeTest" test
 } finally {
     Pop-Location
-    Remove-Item Env:\FIELD_SALES_MAPBOX_MATRIX_SPIKE_KEY -ErrorAction SilentlyContinue
+    Remove-Item Env:\FOLLOW_UP_BUSSINESS_MAPBOX_MATRIX_SPIKE_KEY -ErrorAction SilentlyContinue
 }
 ```
 

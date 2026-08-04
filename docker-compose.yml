@@ -1,4 +1,4 @@
-name: fieldsales-crm
+name: followupbussiness
 
 services:
   backend:
@@ -6,16 +6,16 @@ services:
       context: .
       dockerfile: backend/followupbussiness/Dockerfile
     environment:
-      FIELD_SALES_SECURITY_LOCAL_SECRET: ${FIELD_SALES_SECURITY_LOCAL_SECRET:?FIELD_SALES_SECURITY_LOCAL_SECRET must be set in .env}
+      FOLLOW_UP_BUSSINESS_SECURITY_LOCAL_SECRET: ${FOLLOW_UP_BUSSINESS_SECURITY_LOCAL_SECRET:?FOLLOW_UP_BUSSINESS_SECURITY_LOCAL_SECRET must be set in .env}
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
-      POSTGRES_DB: ${POSTGRES_DB:-fieldsales}
-      POSTGRES_USER: ${POSTGRES_USER:-fieldsales_local}
+      POSTGRES_DB: ${POSTGRES_DB:-followupbussiness}
+      POSTGRES_USER: ${POSTGRES_USER:-followupbussiness_local}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_PORT: 5672
-      RABBITMQ_VHOST: ${RABBITMQ_VHOST:-fieldsales}
-      RABBITMQ_USER: ${RABBITMQ_USER:-fieldsales_local}
+      RABBITMQ_VHOST: ${RABBITMQ_VHOST:-followupbussiness}
+      RABBITMQ_USER: ${RABBITMQ_USER:-followupbussiness_local}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD must be set in .env}
       MANAGEMENT_ADDRESS: 172.30.0.3
       MANAGEMENT_PORT: 9091
@@ -32,8 +32,8 @@ services:
   postgres:
     image: postgis/postgis:17-3.5
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-fieldsales}
-      POSTGRES_USER: ${POSTGRES_USER:-fieldsales_local}
+      POSTGRES_DB: ${POSTGRES_DB:-followupbussiness}
+      POSTGRES_USER: ${POSTGRES_USER:-followupbussiness_local}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
     ports:
       - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
@@ -73,9 +73,9 @@ services:
     image: rabbitmq:4.2.9-management-alpine
     hostname: rabbitmq
     environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-fieldsales_local}
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-followupbussiness_local}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD must be set in .env}
-      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST:-fieldsales}
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST:-followupbussiness}
     ports:
       - "127.0.0.1:${RABBITMQ_AMQP_PORT:-5672}:5672"
       - "127.0.0.1:${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"

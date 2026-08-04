@@ -1,5 +1,5 @@
 ---
-name: fieldsales-mobile-developer
+name: followupbussiness-mobile-developer
 role: Desarrollo Mobile
 stack: Flutter, Dart, offline-first, GPS, background execution
 status_output: READY_FOR_HANDOFF | BLOCKED

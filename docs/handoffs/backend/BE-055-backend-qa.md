@@ -41,7 +41,7 @@ omitidas. `git diff --check`: PASS.
 | Rollback, migración V3 y PostgreSQL fuente de verdad | `TransactionalOutboxMigrationTest` | PASS |
 | Lease vencido en intento 8 y continuidad del lote | `expiredEighthAttemptTerminalizesAndDoesNotBlockFollowingReadyEvent` | PASS; termina la fila agotada y reclama la siguiente lista |
 | Gauges con persistencia real | prueba de `OutboxConfiguration` contra `JdbcOutboxStore` | PASS; registra `outbox.backlog` y `outbox.oldest_pending_age_seconds` |
-| Alertas operativas | `infrastructure/monitoring/alerts/fieldsales-outbox-alerts.yaml` | PASS por inspección: backlog, antigüedad, fallos y terminales |
+| Alertas operativas | `infrastructure/monitoring/alerts/followupbussiness-outbox-alerts.yaml` | PASS por inspección: backlog, antigüedad, fallos y terminales |
 | Arquitectura y límites de módulo | `HexagonalArchitectureTest`, `ModuleBoundaryTest` | PASS |
 
 Comando ejecutado desde `backend/followupbussiness`:

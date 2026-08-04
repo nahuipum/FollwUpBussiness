@@ -1,6 +1,6 @@
 # Follow Up Bussiness
 
-Aplicación Flutter para vendedores de campo de FieldSales CRM. EN-004 crea el punto de partida ejecutable y la estructura técnica; no implementa flujos de negocio.
+Aplicación Flutter para vendedores de campo de FollowUpBussiness. EN-004 crea el punto de partida ejecutable y la estructura técnica; no implementa flujos de negocio.
 
 ## Requisitos y plataformas
 

@@ -75,8 +75,8 @@ verdad; las propuestas futuras conservarán snapshot/hash de entrada y matriz.
 - Tenant, actor, ruta, vendedor, territorio y clientes se derivan/autorizan
   desde sesión y deben pertenecer al mismo tenant.
 - Mapbox nunca recibe `tenantId`, IDs, nombres, direcciones ni prioridades.
-- El spike solo consulta `FIELD_SALES_MAPBOX_MATRIX`,
-  `FIELD_SALES_MAPBOX_MATRIX_SPIKE_KEY` o `MAPBOX_ACCESS_TOKEN`.
+- El spike solo consulta `FOLLOW_UP_BUSSINESS_MAPBOX_MATRIX`,
+  `FOLLOW_UP_BUSSINESS_MAPBOX_MATRIX_SPIKE_KEY` o `MAPBOX_ACCESS_TOKEN`.
 - No abre `.env`, no sigue redirects y no imprime token, URI autenticada,
   coordenadas ni payload.
 - Cache, cuotas, rate limits y locks futuros quedan segregados por tenant y
@@ -153,17 +153,17 @@ Live desde la raíz. El wrapper, no el test, extrae el secreto de `.env`:
 
 ```powershell
 $entry = Get-Content -LiteralPath .env |
-    Where-Object { $_ -match '^\s*(FIELD_SALES_MAPBOX_MATRIX|FIELD_SALES_MAPBOX_MATRIX_SPIKE_KEY|MAPBOX_ACCESS_TOKEN)\s*=' } |
+    Where-Object { $_ -match '^\s*(FOLLOW_UP_BUSSINESS_MAPBOX_MATRIX|FOLLOW_UP_BUSSINESS_MAPBOX_MATRIX_SPIKE_KEY|MAPBOX_ACCESS_TOKEN)\s*=' } |
     Select-Object -First 1
 if (-not $entry) { throw 'No Mapbox Matrix token alias found in .env' }
 $ignored, $value = $entry -split '=', 2
-$env:FIELD_SALES_MAPBOX_MATRIX_SPIKE_KEY = $value.Trim().Trim('"').Trim("'")
+$env:FOLLOW_UP_BUSSINESS_MAPBOX_MATRIX_SPIKE_KEY = $value.Trim().Trim('"').Trim("'")
 Push-Location backend/followupbussiness
 try {
     .\mvnw.cmd "-Dtest=MapboxMatrixLiveSpikeTest" test
 } finally {
     Pop-Location
-    Remove-Item Env:\FIELD_SALES_MAPBOX_MATRIX_SPIKE_KEY -ErrorAction SilentlyContinue
+    Remove-Item Env:\FOLLOW_UP_BUSSINESS_MAPBOX_MATRIX_SPIKE_KEY -ErrorAction SilentlyContinue
 }
 ```
 

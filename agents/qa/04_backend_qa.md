@@ -1,5 +1,5 @@
 ---
-name: fieldsales-backend-qa
+name: followupbussiness-backend-qa
 role: QA Backend
 status_output: PASS | CHANGES_REQUIRED | BLOCKED
 ---

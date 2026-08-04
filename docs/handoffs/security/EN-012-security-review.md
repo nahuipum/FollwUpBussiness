@@ -8,7 +8,7 @@ H-01 (Alta) queda cerrado para el worktree sobre `dca1a9c60e6d253dd21eb9190452f5
 
 Revisados: historia EN-012, handoff de remediación, QA `PASS`, diff de `PlatformSuperadminBootstrapConfiguration`/`BootstrapCommandActivationTest`, runner, postura HTTP y evidencia de arquitectura. Activos: credenciales iniciales, hash BCrypt, cuenta `PLATFORM_SUPERADMIN` y auditoría. Actores: operador local autorizado, atacante remoto y despliegue servlet mal configurado. Límite de confianza: entorno local -> configuración Spring no-web -> runner/caso de uso -> PostgreSQL.
 
-Abuso reproducido: crear contexto servlet con perfil `bootstrap-superadmin` y `fieldsales.bootstrap.platform-superadmin.enabled=true`, omitiendo el tipo no-web. `@ConditionalOnNotWebApplication` condiciona la clase completa y evita registrar `PlatformSuperadminBootstrapRunner` y `BootstrapPlatformSuperadminUseCase`; el runner conserva además el rechazo defensivo de contexto web antes de leer credenciales.
+Abuso reproducido: crear contexto servlet con perfil `bootstrap-superadmin` y `followupbussiness.bootstrap.platform-superadmin.enabled=true`, omitiendo el tipo no-web. `@ConditionalOnNotWebApplication` condiciona la clase completa y evita registrar `PlatformSuperadminBootstrapRunner` y `BootstrapPlatformSuperadminUseCase`; el runner conserva además el rechazo defensivo de contexto web antes de leer credenciales.
 
 ## Hallazgos y controles
 

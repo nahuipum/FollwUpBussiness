@@ -1,4 +1,4 @@
-# Arquitectura de FieldSales CRM
+# Arquitectura de FollowUpBussiness
 
 ## Componentes
 

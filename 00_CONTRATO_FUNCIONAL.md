@@ -1,7 +1,7 @@
 # Contrato funcional y especificación de requerimientos  
 ## Plataforma de gestión de vendedores de campo, rutas, visitas y ventas
 
-**Nombre provisional del producto:** FieldSales CRM  
+**Nombre provisional del producto:** FollowUpBussiness
 **Versión del documento:** 1.1
 **Estado:** Backlog funcional refinado; decisiones de enablers pendientes
 **Tipo de documento:** Contrato funcional, especificación de requerimientos y base de producto  

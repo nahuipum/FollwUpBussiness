@@ -17,7 +17,7 @@
 
 ## Comandos y evidencia
 
-- Ejecución inicial (antes de renumerar): `C:\\WorkSpace\\apache-maven-3.9.6\\bin\\mvn.cmd -Dmaven.repo.local=C:\\tmp\\fieldsales-en019-m2 -Dtest=CompanyAccessStatusMigrationTest,HexagonalArchitectureTest,ModuleBoundaryTest test` con JDK 21: PASS, 5 pruebas, 0 fallos.
+- Ejecución inicial (antes de renumerar): `C:\\WorkSpace\\apache-maven-3.9.6\\bin\\mvn.cmd -Dmaven.repo.local=C:\\tmp\\followupbussiness-en019-m2 -Dtest=CompanyAccessStatusMigrationTest,HexagonalArchitectureTest,ModuleBoundaryTest test` con JDK 21: PASS, 5 pruebas, 0 fallos.
 - Retest: `git -c safe.directory=C:/tmp/field-sales-en019 show --format= --check 579e8e8`, `git -c safe.directory=C:/tmp/field-sales-en019 diff --check 579e8e8^ 579e8e8` y `git -c safe.directory=C:/tmp/field-sales-en019 diff --check cf461a9 579e8e8`: PASS, sin salida. El whitespace que motivó el hallazgo previo quedó resuelto.
 - `git -c safe.directory=C:/tmp/field-sales-en019 diff --name-only cf461a9 579e8e8`: solo cambia la historia para el formato y se incorpora este handoff; no hay cambio de producción, migración ni prueba que invalide la ejecución dirigida anterior.
 - La consulta de referencias de `CompanyAccessStatusQuery` y `tenancy_company` solo devuelve el módulo `tenancy`; no se detectó exposición de datos ni dependencia de `identityaccess` a la tabla/adaptador.

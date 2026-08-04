@@ -110,8 +110,8 @@ una operación de rotación aprobada en BE-003 o una historia operativa.
 
 Variables obligatorias del proceso, sin valores ni defaults:
 
-- `FIELD_SALES_BOOTSTRAP_SUPERADMIN_IDENTITY`
-- `FIELD_SALES_BOOTSTRAP_SUPERADMIN_PASSWORD`
+- `FOLLOW_UP_BUSSINESS_BOOTSTRAP_SUPERADMIN_IDENTITY`
+- `FOLLOW_UP_BUSSINESS_BOOTSTRAP_SUPERADMIN_PASSWORD`
 - `POSTGRES_PASSWORD` para la conexión local ya definida por la línea base.
 
 La contraseña debe tener al menos 16 caracteres, no contener whitespace en los
@@ -195,7 +195,7 @@ Set-Location backend\followupbussiness
 java -jar target\followupbussiness-0.0.1-SNAPSHOT.jar `
   --spring.profiles.active=bootstrap-superadmin `
   --spring.main.web-application-type=none `
-  --fieldsales.bootstrap.platform-superadmin.enabled=true
+  --followupbussiness.bootstrap.platform-superadmin.enabled=true
 ```
 
 Comprobaciones de repositorio:

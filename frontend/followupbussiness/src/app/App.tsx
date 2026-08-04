@@ -1,7 +1,7 @@
 export function App() {
   return (
     <main className="application-shell">
-      <h1>FieldSales CRM</h1>
+      <h1>FollowUpBussiness</h1>
     </main>
   )
 }
