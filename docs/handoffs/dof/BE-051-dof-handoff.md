@@ -1,33 +1,40 @@
-# DoF Handoff — BE-051
+# DoF Handoff — BE-051 (revalidación CI)
 
 ## Resultado
 
 `PASS`
 
-## Candidato y trazabilidad
+## Candidato revalidado
 
-- Paquete de contexto: `BE-051-context-package-v8.md`.
-- Base verificada: `03cddd578850f77acd1a1d1035fef031f7ac7384`.
-- Agregado reproducido con el algoritmo citado por v8 (procedente de v7):
-  `95ef6631b74cb4b0423e1f886af042f2e2a61cb79bb444bef3d07048863b92e9`
-  sobre 28 rutas; coincide con QA v6 y Seguridad v3.
-- La matriz BE-051 y SEC-001..005 está cubierta por Dev v2 y aprobada de
-  forma independiente por QA v6 y Seguridad v3 para ese candidato.
+- Rama/PR: `feature/be-051-critical-audit`, PR #9.
+- SHA inmutable: `34f9eb1f299001233e64d2c088badba324861bf4`.
+- Padre funcional: `5562e8eb468f3e4dacb54d7dc2eb1b051e590f45`.
+- Delta exacto: solo `AuditConfiguration.java`; añade
+  `@ConditionalOnBean(DataSource.class)`, de modo que el wiring de auditoría
+  queda fuera de contextos Spring de prueba sin `DataSource`.
+- `git diff --check 5562e8e..34f9eb1`: PASS.
 
-## Gates aplicables
+## Trazabilidad de gates
 
-- Desarrollo: `READY_FOR_HANDOFF` (v2), con evidencia de migraciones,
-  idempotencia, aislamiento, retención, arquitectura y documentación.
-- QA independiente: `PASS` (v6): 8 pruebas audit, 4 ArchUnit y comprobación
-  de diff correctas.
-- Seguridad: `PASS` (v3): SEC-001..005 aprobados, incluidos privilegios,
-  contexto confiable y purga acotada.
-- Arquitectura, migraciones y ADR: evidencia trazable en los handoffs y ADR-020;
-  no hay interfaz REST/evento aplicable.
-- PR y CI: inexistentes por alcance, declarado coherentemente en paquete v8,
-  Dev v2 y Seguridad v3; no constituyen un gate ejecutable del candidato.
+- Desarrollo v2: `READY_FOR_HANDOFF`; QA v6: `PASS`; Seguridad v3: `PASS`.
+  Los tres handoffs y el paquete v8 cubren la matriz BE-051 y SEC-001..005,
+  pero identifican su candidato histórico como composición reproducible
+  (`03cddd5…` + agregado `95ef…`), no como SHA Git. Por ello no se les
+  atribuye una referencia literal a `34f9eb1`.
+- El commit padre `5562e8e` contiene la implementación, migraciones, ADR y
+  handoffs de ese alcance; `34f9eb1` es su descendiente directo y no modifica
+  ninguna de esas superficies ni los controles SEC-001..005.
+- CI de la PR #9 ejecutado sobre el head `34f9eb1`: runs/jobs
+  `30952358585/92137270191` y `30952367243/92137299836` (`JDK 21`, Maven
+  `verify`, EN-011 y SCA), y `30952364426/92137289943` (`JDK 21`, Maven
+  `verify`, SCA): todos PASS. Esta CI cubre el único delta porque compila y
+  prueba el árbol del SHA final, incluida la configuración condicional; no
+  amplía el alcance funcional ni de seguridad previamente aprobado.
+- Evidencia local complementaria sobre el mismo candidato:
+  `SecurityConfigurationTest` y `PrometheusMetricsEndpointTest`, 32/32 PASS.
 
-## Riesgo residual aceptado
+## Decisión
 
-Backup/restore, operación multiinstancia y lotes superiores a 500 quedan fuera
-del diff y están registrados por QA y Seguridad.
+La evidencia de fases previas conserva su alcance histórico explícito y la CI
+del SHA final cubre íntegramente el delta de revalidación. No quedan gates ni
+evidencias aplicables pendientes para BE-051.
