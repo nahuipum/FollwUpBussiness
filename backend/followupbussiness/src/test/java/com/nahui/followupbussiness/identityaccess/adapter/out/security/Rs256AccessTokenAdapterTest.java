@@ -22,7 +22,7 @@ class Rs256AccessTokenAdapterTest {
         var subject = UUID.randomUUID();
         var session = UUID.randomUUID();
         var tenant = UUID.randomUUID();
-        var token = new Rs256AccessTokenAdapter(pair.getPrivate(), "test-kid", "fieldsales", "web", Clock.fixed(Instant.ofEpochSecond(100), ZoneOffset.UTC))
+        var token = new Rs256AccessTokenAdapter(pair.getPrivate(), "test-kid", "followupbussiness", "web", Clock.fixed(Instant.ofEpochSecond(100), ZoneOffset.UTC))
                 .issue(subject, session, tenant, BaseRole.SELLER);
         var parts = token.split("\\.");
         var verifier = Signature.getInstance("SHA256withRSA");

@@ -1,23 +1,33 @@
 groups:
-  - name: fieldsales-outbox
+  - name: followupbussiness-outbox
     rules:
-      - alert: FieldSalesOutboxBacklogSustained
+      - alert: FollowUpBussinessOutboxBacklogSustained
         expr: outbox_backlog > 100
         for: 15m
         labels: { severity: warning }
         annotations: { summary: "Outbox backlog sustained" }
-      - alert: FieldSalesOutboxOldestPending
+      - alert: FollowUpBussinessOutboxOldestPending
         expr: outbox_oldest_pending_age_seconds > 300
         for: 5m
         labels: { severity: warning }
         annotations: { summary: "Outbox oldest pending event is delayed" }
-      - alert: FieldSalesOutboxPublishFailures
+      - alert: FollowUpBussinessOutboxPublishFailures
         expr: increase(outbox_publish_failures_total[5m]) > 0
         for: 5m
         labels: { severity: warning }
         annotations: { summary: "Outbox publisher failures detected" }
-      - alert: FieldSalesOutboxTerminalRows
+      - alert: FollowUpBussinessOutboxTerminalRows
         expr: increase(outbox_events_terminal_total[15m]) > 0
         for: 1m
         labels: { severity: critical }
         annotations: { summary: "Outbox event reached terminal state" }
+      - alert: FollowUpBussinessOutboxDlqDepth
+        expr: outbox_dlq_depth > 0
+        for: 5m
+        labels: { severity: critical }
+        annotations: { summary: "Outbox DLQ contains events requiring operator action" }
+      - alert: FollowUpBussinessOutboxDlqOldestAge
+        expr: outbox_dlq_oldest_age_seconds > 300
+        for: 5m
+        labels: { severity: critical }
+        annotations: { summary: "Outbox DLQ oldest event exceeds the operational threshold" }

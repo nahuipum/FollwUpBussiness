@@ -115,10 +115,10 @@ Content-Type: application/json;charset=UTF-8
 ## Gestión de secretos y versionado
 
 - `LocalSecuritySecretsProperties` exige
-  `FIELD_SALES_SECURITY_LOCAL_SECRET`, mínimo 32 caracteres, sin whitespace
+  `FOLLOW_UP_BUSSINESS_SECURITY_LOCAL_SECRET`, mínimo 32 caracteres, sin whitespace
   de borde y distinto de todos los placeholders prohibidos.
 - Sin la variable, un proceso real terminó antes de 15 segundos y emitió
-  `FIELD_SALES_SECURITY_LOCAL_SECRET is required; its value was not logged`.
+  `FOLLOW_UP_BUSSINESS_SECURITY_LOCAL_SECRET is required; its value was not logged`.
   No se registró ni inspeccionó valor alguno de `.env`.
 - `git check-ignore -v --no-index` verificó `.env`, `.env.local`, `.secrets/`,
   `secrets-local/`, `*.key` y `*.p12`.

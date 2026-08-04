@@ -27,7 +27,7 @@ sin endpoint HTTP. Requiere simultáneamente:
 1. el perfil Spring `bootstrap-superadmin`;
 2. `spring.main.web-application-type=none`;
 3. la bandera no secreta
-   `fieldsales.bootstrap.platform-superadmin.enabled=true`.
+   `followupbussiness.bootstrap.platform-superadmin.enabled=true`.
 
 El perfil por sí solo no ejecuta nada. La bandera sin el perfil tampoco
 registra el comando. Si el contexto es web, el adaptador falla antes de
@@ -42,8 +42,8 @@ credenciales, usuario predeterminado ni fallback automático.
 
 El operador debe inyectar mediante el entorno del proceso:
 
-- `FIELD_SALES_BOOTSTRAP_SUPERADMIN_IDENTITY`;
-- `FIELD_SALES_BOOTSTRAP_SUPERADMIN_PASSWORD`.
+- `FOLLOW_UP_BUSSINESS_BOOTSTRAP_SUPERADMIN_IDENTITY`;
+- `FOLLOW_UP_BUSSINESS_BOOTSTRAP_SUPERADMIN_PASSWORD`.
 
 No existen valores por defecto. La configuración lee ambas variables
 manualmente y aplica validación segura para impedir que errores de binding

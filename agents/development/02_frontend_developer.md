@@ -1,5 +1,5 @@
 ---
-name: fieldsales-frontend-developer
+name: followupbussiness-frontend-developer
 role: Desarrollo Frontend
 stack: React, TypeScript, REST, WebSocket, maps
 status_output: READY_FOR_HANDOFF | BLOCKED

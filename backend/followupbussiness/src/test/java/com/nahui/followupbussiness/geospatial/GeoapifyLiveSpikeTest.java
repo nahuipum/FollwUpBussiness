@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 class GeoapifyLiveSpikeTest {
 
-    private static final String API_KEY_ENV = "FIELD_SALES_GEOAPIFY_SPIKE_KEY";
+    private static final String API_KEY_ENV = "FOLLOW_UP_BUSSINESS_GEOAPIFY_SPIKE_KEY";
     private static final Pattern COUNTRY_CODE =
             Pattern.compile("\"country_code\"\\s*:\\s*\"pe\"");
     private static final Pattern LATITUDE =

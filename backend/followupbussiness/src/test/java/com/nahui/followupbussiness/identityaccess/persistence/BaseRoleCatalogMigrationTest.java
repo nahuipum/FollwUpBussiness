@@ -44,8 +44,8 @@ class BaseRoleCatalogMigrationTest {
     @BeforeAll
     static void startPostgres() {
         postgres = new PostgreSQLContainer(POSTGIS_IMAGE)
-                .withDatabaseName("fieldsales_en011")
-                .withUsername("fieldsales_en011")
+                .withDatabaseName("followupbussiness_en011")
+                .withUsername("followupbussiness_en011")
                 .withPassword(DATABASE_PASSWORD);
         postgres.start();
     }

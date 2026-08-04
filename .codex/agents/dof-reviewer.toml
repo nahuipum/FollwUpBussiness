@@ -1,5 +1,5 @@
 name = "dof_reviewer"
-description = "Comprueba con evidencia si una historia de FieldSales CRM cumple la Definition of Finished."
+description = "Comprueba con evidencia si una historia de FollowUpBussiness cumple la Definition of Finished."
 model = "gpt-5.6-terra"
 model_reasoning_effort = "medium"
 sandbox_mode = "read-only"

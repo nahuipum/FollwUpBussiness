@@ -2,6 +2,7 @@ package com.nahui.followupbussiness.outbox.adapter.out.messaging;
 
 import com.nahui.followupbussiness.outbox.application.port.out.EventTransport;
 import com.nahui.followupbussiness.outbox.domain.OutboxEvent;
+import com.nahui.followupbussiness.outbox.domain.UnroutablePublicationException;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -43,7 +44,10 @@ public final class RabbitMqEventTransport implements EventTransport {
     private static void awaitPositiveConfirm(CorrelationData correlation) {
         try {
             CorrelationData.Confirm confirm = correlation.getFuture().get(CONFIRM_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            if (!confirm.isAck() || correlation.getReturned() != null) {
+            if (correlation.getReturned() != null) {
+                throw new UnroutablePublicationException();
+            }
+            if (!confirm.isAck()) {
                 throw new IllegalStateException("RabbitMQ publication was not confirmed");
             }
         } catch (InterruptedException exception) {

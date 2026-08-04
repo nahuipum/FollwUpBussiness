@@ -1,4 +1,4 @@
-﻿# EN-005 — Configurar Docker Compose con PostGIS, Redis y RabbitMQ
+# EN-005 — Configurar Docker Compose con PostGIS, Redis y RabbitMQ
 
 **Tipo:** Enabler técnico
 
@@ -51,7 +51,7 @@ enabler. No depende de que el identificador aparezca en el contrato funcional.
 | Redis `PING` | PASS — `PONG`, también después de `docker compose restart redis` |
 | Persistencia Redis | PASS — `save` vacío y `appendonly no`; no existe volumen Redis |
 | RabbitMQ | PASS — `rabbitmq-diagnostics -q ping` devolvió `Ping succeeded` |
-| RabbitMQ `vhost` | PASS — `fieldsales` |
+| RabbitMQ `vhost` | PASS — `followupbussiness` |
 | AMQP | PASS — listener 5672 y conexión TCP desde `127.0.0.1` |
 | RabbitMQ Management | PASS — listener 15672 y HTTP 200 autenticado; versión 4.2.9 |
 | Puertos del host | PASS — únicamente 5432, 6379, 5672 y 15672 ligados a `127.0.0.1` |

@@ -11,8 +11,8 @@
 	<groupId>com.nahui</groupId>
 	<artifactId>followupbussiness</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>FieldSales CRM Backend</name>
-	<description>Modular hexagonal backend foundation for FieldSales CRM.</description>
+	<name>FollowUpBussiness Backend</name>
+	<description>Modular hexagonal backend foundation for FollowUpBussiness.</description>
 	<properties>
 		<java.version>21</java.version>
 		<project.build.outputTimestamp>2026-07-30T00:00:00Z</project.build.outputTimestamp>

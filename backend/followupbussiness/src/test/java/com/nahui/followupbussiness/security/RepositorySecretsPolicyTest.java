@@ -95,14 +95,14 @@ class RepositorySecretsPolicyTest {
                 .collect(Collectors.toMap(parts -> parts[0], parts -> parts[1]));
 
         assertThat(properties)
-                .containsEntry("FIELD_SALES_SECURITY_LOCAL_SECRET",
+                .containsEntry("FOLLOW_UP_BUSSINESS_SECURITY_LOCAL_SECRET",
                         "replace_with_32_plus_random_local_characters")
-                .containsEntry("FIELD_SALES_BOOTSTRAP_SUPERADMIN_IDENTITY", "")
-                .containsEntry("FIELD_SALES_BOOTSTRAP_SUPERADMIN_PASSWORD", "");
+                .containsEntry("FOLLOW_UP_BUSSINESS_BOOTSTRAP_SUPERADMIN_IDENTITY", "")
+                .containsEntry("FOLLOW_UP_BUSSINESS_BOOTSTRAP_SUPERADMIN_PASSWORD", "");
 
         properties.forEach((name, value) -> {
             if (isSecretVariable(name)) {
-                if (name.equals("FIELD_SALES_BOOTSTRAP_SUPERADMIN_PASSWORD")) {
+                if (name.equals("FOLLOW_UP_BUSSINESS_BOOTSTRAP_SUPERADMIN_PASSWORD")) {
                     assertThat(value)
                             .as("%s must remain empty in the public template", name)
                             .isEmpty();

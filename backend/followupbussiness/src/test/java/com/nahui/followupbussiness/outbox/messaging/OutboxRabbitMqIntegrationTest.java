@@ -14,6 +14,7 @@ import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import com.nahui.followupbussiness.outbox.adapter.out.messaging.RabbitMqEventTransport;
 import com.nahui.followupbussiness.outbox.domain.OutboxEvent;
+import com.nahui.followupbussiness.outbox.domain.UnroutablePublicationException;
 import tools.jackson.databind.ObjectMapper;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.utility.DockerImageName;
@@ -24,10 +25,10 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class OutboxRabbitMqIntegrationTest {
-    private static final String VIRTUAL_HOST = "fieldsales";
-    private static final String USERNAME = "fieldsales_local";
+    private static final String VIRTUAL_HOST = "followupbussiness";
+    private static final String USERNAME = "followupbussiness_local";
     private static final String PASSWORD = "BE055_TEST_ONLY_RABBIT_PASSWORD";
-    private static final String EXCHANGE = "fieldsales.events";
+    private static final String EXCHANGE = "followupbussiness.events";
     private static final DockerImageName RABBIT_IMAGE = DockerImageName.parse("rabbitmq:4.1-management");
 
     private static GenericContainer<?> rabbitmq;
@@ -87,6 +88,6 @@ class OutboxRabbitMqIntegrationTest {
 
         assertThat(org.assertj.core.api.Assertions.catchThrowable(
                 () -> new RabbitMqEventTransport(template, new ObjectMapper(), EXCHANGE).publish(event)))
-                .isInstanceOf(IllegalStateException.class);
+                .isInstanceOf(UnroutablePublicationException.class);
     }
 }

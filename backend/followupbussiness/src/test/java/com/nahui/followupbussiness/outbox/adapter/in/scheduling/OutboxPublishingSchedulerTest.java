@@ -5,6 +5,7 @@ import com.nahui.followupbussiness.outbox.application.port.out.EventTransport;
 import com.nahui.followupbussiness.outbox.application.port.out.OutboxStore;
 import com.nahui.followupbussiness.outbox.domain.ClaimedOutboxEvent;
 import com.nahui.followupbussiness.outbox.domain.OutboxEvent;
+import com.nahui.followupbussiness.outbox.domain.PublicationFailureKind;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 
@@ -32,6 +33,7 @@ class OutboxPublishingSchedulerTest {
                 registry.counter("outbox.events.published"),
                 registry.counter("outbox.events.retry_scheduled"),
                 registry.counter("outbox.events.terminal"),
+                registry.counter("outbox.dlq.entered"),
                 store, Clock.fixed(NOW, ZoneOffset.UTC),
                 registry.counter("outbox.events.retention_deleted"),
                 registry.counter("outbox.publish.failures"));
@@ -39,6 +41,7 @@ class OutboxPublishingSchedulerTest {
         scheduler.publishAvailable();
 
         assertThat(registry.get("outbox.publish.failures").counter().count()).isEqualTo(2.0);
+        assertThat(registry.get("outbox.dlq.entered").counter().count()).isEqualTo(1.0);
     }
 
     private static EventTransport failingTransport() {
@@ -46,21 +49,24 @@ class OutboxPublishingSchedulerTest {
     }
 
     private static final class FailingEventStore implements OutboxStore {
-        private final List<ClaimedOutboxEvent> claimed = List.of(event(), event());
+        private final List<ClaimedOutboxEvent> claimed = List.of(event(8), event(1));
 
-        private static ClaimedOutboxEvent event() {
+        private static ClaimedOutboxEvent event(int attempts) {
             return new ClaimedOutboxEvent(
                 new OutboxEvent(UUID.randomUUID(), "route.published", 1, NOW, UUID.randomUUID(), UUID.randomUUID(),
                         UUID.randomUUID(), "{\"routeId\":\"redacted\"}"),
-                UUID.randomUUID(), 1, NOW.plusSeconds(30));
+                UUID.randomUUID(), attempts, NOW.plusSeconds(30));
         }
 
         @Override public void append(OutboxEvent event) { }
         @Override public List<ClaimedOutboxEvent> claimAvailable(Instant now, Instant leaseExpiresAt, int limit) { return claimed; }
         @Override public boolean markPublished(UUID eventId, UUID leaseToken, Instant publishedAt) { return false; }
         @Override public boolean scheduleRetry(UUID eventId, UUID leaseToken, Instant nextAttemptAt, String failureType, String failureDetail) { return true; }
-        @Override public boolean markTerminal(UUID eventId, UUID leaseToken, Instant terminalAt, String failureType, String failureDetail) { return true; }
-        @Override public int terminalExpiredLeasesAtMaxAttempts(Instant now) { return 0; }
+        @Override public boolean moveToDlq(UUID eventId, UUID leaseToken, Instant terminalAt, PublicationFailureKind failureKind, String failureType, String failureDetail) { return true; }
+        @Override public int moveExpiredLeasesToDlqAtMaxAttempts(Instant now) { return 0; }
+        @Override public boolean reprocessFromDlq(UUID eventId, UUID operatorId, Instant reprocessedAt) { return false; }
+        @Override public long dlqDepth() { return 0; }
+        @Override public long oldestDlqAgeSeconds(Instant now) { return 0; }
         @Override public long countReadyToPublish() { return 0; }
         @Override public long oldestReadyAgeSeconds(Instant now) { return 0; }
         @Override public int deleteCompletedBefore(Instant cutoff) { return 0; }

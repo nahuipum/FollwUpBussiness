@@ -18,6 +18,17 @@
   Registrar comando, resultado, ruta de evidencia, hallazgos y pendientes.
 - Detener la fase al encontrar un bloqueo concluyente; no consumir contexto en
   revisiones secundarias que no puedan cambiar el estado.
+- El Orquestador crea `docs/handoffs/governance/<HU>-context-package.md` una
+  sola vez por versión de historia/candidato. Incluye criterios normalizados,
+  reglas, contratos y ADR aplicables, todos con ruta, sección y hash.
+- Cada fase recibe solo el identificador del paquete, el commit/diff fijado,
+  el handoff anterior y las rutas de evidencia. Al lanzar subagentes usar
+  contexto limpio (`fork_turns: "none"`); no propagar el historial completo.
+- QA mantiene independencia ejecutando sus pruebas y contrastando los criterios
+  del paquete; no vuelve a descubrir documentación. Seguridad y DoF verifican
+  evidencia y solo reabren una fuente primaria mediante una excepción trazada.
+- Si una fuente o el candidato cambia, invalidar el paquete y crear una nueva
+  versión antes del siguiente gate. No reutilizar evidencia entre candidatos.
 
 ## 1. Entrada mínima de una historia
 
@@ -110,6 +121,8 @@ Debe incluir:
 
 El handoff debe identificar el diff o commit revisable y limitarse a información
 nueva de la historia. Las reglas permanentes permanecen en sus fuentes de verdad.
+Debe además referenciar la versión del Paquete de Contexto y declarar cualquier
+lectura excepcional de una fuente primaria.
 
 ---
 
@@ -173,3 +186,8 @@ Valida:
 - Evidencias.
 
 Si falta evidencia, el resultado es `BLOCKED`, aunque el código parezca correcto.
+
+DoF parte de la matriz de trazabilidad del Paquete de Contexto, los handoffs y
+la evidencia inmutable de CI. No relee la HU ni documentación ya trazada salvo
+una excepción registrada. La independencia se conserva al verificar el mismo
+commit, PR y CI directamente, no al duplicar la ingestión de documentos.

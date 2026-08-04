@@ -1,6 +1,6 @@
 ---
 name: architecture-review
-description: Revisar cambios de arquitectura de FieldSales CRM y sus límites entre dominios, capas hexagonales, aplicaciones e infraestructura. Usar al evaluar un diff, una historia transversal, una dependencia entre módulos, un cambio estructural o la necesidad de un ADR.
+description: Revisar cambios de arquitectura de FollowUpBussiness y sus límites entre dominios, capas hexagonales, aplicaciones e infraestructura. Usar al evaluar un diff, una historia transversal, una dependencia entre módulos, un cambio estructural o la necesidad de un ADR.
 ---
 
 # Revisar arquitectura

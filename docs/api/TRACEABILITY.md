@@ -10,6 +10,7 @@ capacidad; el archivo OpenAPI es la fuente exacta para una operación concreta.
 |---|---|---|
 | Autenticación e identidad | `/auth/*`, `/me` | EN-013, BE-003..007, FE-001..004, MOB-001..002, INT-002..003 |
 | Onboarding de empresa | `/platform/companies*` | BE-001..002, BE-057, INT-001, INT-038 |
+| Operación de plataforma | `/internal/outbox/dlq/{eventId}/reprocess` | BE-056 |
 | Usuarios y configuración | `/company/users*`, `/company/settings` | BE-007, BE-054, BE-058, FE-004, FE-033, INT-033 |
 | Territorios y vendedores | `/territories*`, `/sellers*` | BE-008..012, BE-059, BE-062, FE-005..007, FE-037, INT-004, INT-033 |
 | Clientes y cartera | `/customers*`, `/customer-assignments/batch` | BE-013..017, BE-060, FE-008..011, FE-036, INT-005, INT-034 |
@@ -27,7 +28,7 @@ capacidad; el archivo OpenAPI es la fuente exacta para una operación concreta.
 No toda HU debe crear un endpoint. Las siguientes se validan mediante otro
 contrato o mediante criterios no funcionales:
 
-- BE-055 y BE-056: outbox, reintentos y DLQ; contratos de eventos.
+- BE-055: outbox transaccional y contratos de eventos.
 - MOB-003, MOB-006, MOB-026 y MOB-030: permisos, navegación e indicadores del
   dispositivo; comportamiento de la aplicación.
 - FE-034: manejo transversal de errores y permisos; consume el error común.

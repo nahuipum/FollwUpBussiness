@@ -14,7 +14,7 @@ controles enumerados en este ADR.
 
 ## Contexto
 
-FieldSales CRM necesita mostrar clientes, rutas, recorridos y vendedores en
+FollowUpBussiness necesita mostrar clientes, rutas, recorridos y vendedores en
 React; sugerir coordenadas a partir de una dirección; y permitir que Flutter
 abra navegación hacia un cliente. Es un SaaS multiempresa y el piloto sugerido
 tiene entre 5 y 30 vendedores por empresa.
@@ -199,7 +199,7 @@ acceso.
 ## Spike y pruebas
 
 `GeoapifyLiveSpikeTest` se activa solo con
-`FIELD_SALES_GEOAPIFY_SPIKE_KEY`. La prueba:
+`FOLLOW_UP_BUSSINESS_GEOAPIFY_SPIKE_KEY`. La prueba:
 
 1. consulta direcciones de Lima, Arequipa y Cusco con filtro Perú;
 2. valida país y rango de coordenadas;

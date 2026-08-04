@@ -70,7 +70,7 @@ permanece en estado `Propuesto`. Documenta:
 
 ## Gestión local de secretos
 
-- Variable requerida: `FIELD_SALES_SECURITY_LOCAL_SECRET`.
+- Variable requerida: `FOLLOW_UP_BUSSINESS_SECURITY_LOCAL_SECRET`.
 - No existe valor por defecto ni valor secreto en `application.yaml`.
 - El valor debe ser no vacío, diferente del placeholder documentado y tener al
   menos 32 caracteres.
@@ -178,14 +178,14 @@ Resultado:
 
 ### Fallo seguro sin secreto
 
-Se eliminó `FIELD_SALES_SECURITY_LOCAL_SECRET` del entorno del proceso y se
+Se eliminó `FOLLOW_UP_BUSSINESS_SECURITY_LOCAL_SECRET` del entorno del proceso y se
 ejecutó el JAR.
 
 Resultado:
 
 - código de salida `1`;
 - se encontró el mensaje seguro:
-  `FIELD_SALES_SECURITY_LOCAL_SECRET is required; its value was not logged`;
+  `FOLLOW_UP_BUSSINESS_SECURITY_LOCAL_SECRET is required; its value was not logged`;
 - no se imprimió ningún valor del secreto.
 
 ### Dependencias

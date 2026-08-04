@@ -1,5 +1,5 @@
 name = "mobile_developer"
-description = "Implementa historias Flutter offline-first de FieldSales CRM con GPS, persistencia, sincronización idempotente y pruebas."
+description = "Implementa historias Flutter offline-first de FollowUpBussiness con GPS, persistencia, sincronización idempotente y pruebas."
 sandbox_mode = "workspace-write"
 
 developer_instructions = """

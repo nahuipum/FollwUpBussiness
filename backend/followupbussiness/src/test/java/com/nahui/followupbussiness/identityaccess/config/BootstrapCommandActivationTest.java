@@ -33,7 +33,7 @@ class BootstrapCommandActivationTest {
     void flagAloneDoesNotRegisterBootstrapCommand() {
         contextRunner
                 .withPropertyValues(
-                        "fieldsales.bootstrap.platform-superadmin.enabled=true")
+                        "followupbussiness.bootstrap.platform-superadmin.enabled=true")
                 .run(context -> assertThat(context)
                         .doesNotHaveBean(PlatformSuperadminBootstrapRunner.class));
     }
@@ -47,7 +47,7 @@ class BootstrapCommandActivationTest {
                         () -> mock(PlatformTransactionManager.class))
                 .withPropertyValues(
                         "spring.profiles.active=bootstrap-superadmin",
-                        "fieldsales.bootstrap.platform-superadmin.enabled=true")
+                        "followupbussiness.bootstrap.platform-superadmin.enabled=true")
                 .run(context -> assertThat(context)
                         .hasSingleBean(PlatformSuperadminBootstrapRunner.class));
     }
@@ -57,7 +57,7 @@ class BootstrapCommandActivationTest {
         webContextRunner
                 .withPropertyValues(
                         "spring.profiles.active=bootstrap-superadmin",
-                        "fieldsales.bootstrap.platform-superadmin.enabled=true")
+                        "followupbussiness.bootstrap.platform-superadmin.enabled=true")
                 .run(context -> assertThat(context)
                         .doesNotHaveBean(PlatformSuperadminBootstrapRunner.class)
                         .doesNotHaveBean(BootstrapPlatformSuperadminUseCase.class));

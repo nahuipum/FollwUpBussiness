@@ -83,11 +83,11 @@ re-geocodifican automáticamente.
 
 | Comando | Resultado | Evidencia relevante |
 |---|---|---|
-| `Get-ChildItem Env: ... GEOAPIFY ...` | Sin credencial | No existe `FIELD_SALES_GEOAPIFY_SPIKE_KEY`; no se ejecutó tráfico live |
+| `Get-ChildItem Env: ... GEOAPIFY ...` | Sin credencial | No existe `FOLLOW_UP_BUSSINESS_GEOAPIFY_SPIKE_KEY`; no se ejecutó tráfico live |
 | `mvn "-Dtest=MapProviderDecisionPolicyTest" test` | PASS final | 5 tests, 0 fallos |
-| `Remove-Item Env:FIELD_SALES_GEOAPIFY_SPIKE_KEY ...; mvn "-Dtest=GeoapifyLiveSpikeTest" test` | PASS/SKIPPED esperado | 1 test, 0 fallos, 1 skipped; cero red |
-| `Remove-Item Env:FIELD_SALES_GEOAPIFY_SPIKE_KEY ...; mvn "-Dtest=MapProviderDecisionPolicyTest,GeoapifyLiveSpikeTest" test` | PASS | 6 tests, 0 fallos, 1 skipped |
-| `Remove-Item Env:FIELD_SALES_GEOAPIFY_SPIKE_KEY ...; mvn clean verify` | PASS antes del último refuerzo focalizado | 108 tests, 0 fallos, 1 skipped; SBOM generado |
+| `Remove-Item Env:FOLLOW_UP_BUSSINESS_GEOAPIFY_SPIKE_KEY ...; mvn "-Dtest=GeoapifyLiveSpikeTest" test` | PASS/SKIPPED esperado | 1 test, 0 fallos, 1 skipped; cero red |
+| `Remove-Item Env:FOLLOW_UP_BUSSINESS_GEOAPIFY_SPIKE_KEY ...; mvn "-Dtest=MapProviderDecisionPolicyTest,GeoapifyLiveSpikeTest" test` | PASS | 6 tests, 0 fallos, 1 skipped |
+| `Remove-Item Env:FOLLOW_UP_BUSSINESS_GEOAPIFY_SPIKE_KEY ...; mvn clean verify` | PASS antes del último refuerzo focalizado | 108 tests, 0 fallos, 1 skipped; SBOM generado |
 | `mvn clean verify` final | Interrumpido externamente | No se usa como evidencia final; la prueba focalizada posterior sí pasó |
 | `git diff --check` | PASS en la revisión previa al handoff | Sin errores de whitespace en cambios rastreados |
 
@@ -128,13 +128,13 @@ cd backend/followupbussiness
 mvn "-Dtest=MapProviderDecisionPolicyTest" test
 ```
 
-Spike live: inyectar `FIELD_SALES_GEOAPIFY_SPIKE_KEY` desde un secreto del
+Spike live: inyectar `FOLLOW_UP_BUSSINESS_GEOAPIFY_SPIKE_KEY` desde un secreto del
 proceso, sin escribirlo en el comando, historial o repositorio, y ejecutar:
 
 ```powershell
 cd backend/followupbussiness
 mvn "-Dtest=GeoapifyLiveSpikeTest" test
-Remove-Item Env:FIELD_SALES_GEOAPIFY_SPIKE_KEY -ErrorAction SilentlyContinue
+Remove-Item Env:FOLLOW_UP_BUSSINESS_GEOAPIFY_SPIKE_KEY -ErrorAction SilentlyContinue
 ```
 
 La ejecución consume como máximo 13 geocodificaciones y una solicitud de

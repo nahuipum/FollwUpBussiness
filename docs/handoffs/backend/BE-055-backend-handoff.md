@@ -21,8 +21,8 @@ La dependencia de infraestructura está documentada como lista en
   máximo de ocho intentos, backoff exponencial con jitter y retención de
   evidencia PUBLISHED/TERMINAL de 30 días.
 - Publicación RabbitMQ al menos una vez, con `eventId` estable y envelope
-  versionado; vhost `fieldsales`, `RabbitAdmin` y exchange durable
-  `fieldsales.events` declarados antes de publicar; métricas y logs saneados
+  versionado; vhost `followupbussiness`, `RabbitAdmin` y exchange durable
+  `followupbussiness.events` declarados antes de publicar; métricas y logs saneados
   con IDs técnicos/correlationId.
 - El diagnóstico persistido usa `PUBLISH_FAILURE`; nunca conserva el mensaje
   crudo de una excepción de transporte.
@@ -36,7 +36,7 @@ La dependencia de infraestructura está documentada como lista en
   timeout o return traducidos por el transporte) se contabiliza en
   `outbox.publish.failures`; el scheduler incrementa ese contador por el total
   del lote, que Prometheus expone como `outbox_publish_failures_total` y usa la
-  alerta `FieldSalesOutboxPublishFailures`.
+  alerta `FollowUpBussinessOutboxPublishFailures`.
 - Exportación Prometheus operativa: el registry expone métricas en el puerto de
   management no se publica al host. Compose ejecuta backend y Prometheus en la
   red interna `observability`; Prometheus scrapea `backend:9091` por nombre de
@@ -47,7 +47,7 @@ La dependencia de infraestructura está documentada como lista en
   `infrastructure` recibe rechazo de conexión a `backend:9091`.
 - El wiring de outbox queda activo con el datasource real y registra sus
   contadores desde el arranque; los contextos de pruebas sin datasource lo
-  deshabilitan explícitamente con `fieldsales.outbox.enabled=false`.
+  deshabilitan explícitamente con `followupbussiness.outbox.enabled=false`.
 - SCA: el BOM gestionado fija Netty `4.2.16.Final`, corrigiendo
   CVE-2026-59901 en `netty-codec-compression` transitivo de AMQP; la política
   de dependencias bloquea el mínimo seguro.
@@ -68,7 +68,7 @@ La dependencia de infraestructura está documentada como lista en
 | `backend/followupbussiness/src/main/java/com/nahui/followupbussiness/identityaccess/config/SecurityConfiguration.java` | Deny-by-default; excepción única para Prometheus en el puerto técnico |
 | `backend/followupbussiness/src/test/java/com/nahui/followupbussiness/outbox/` | Pruebas de publicador, envelope, migración/JDBC y RabbitMQ limpio |
 | `backend/followupbussiness/src/test/java/com/nahui/followupbussiness/identityaccess/config/PrometheusMetricsEndpointTest.java` | Scrape HTTP de `outbox_publish_failures_total` por el endpoint técnico |
-| `infrastructure/monitoring/alerts/fieldsales-outbox-alerts.yaml` | Reglas Prometheus versionadas para backlog, edad, fallos y terminales |
+| `infrastructure/monitoring/alerts/followupbussiness-outbox-alerts.yaml` | Reglas Prometheus versionadas para backlog, edad, fallos y terminales |
 | `infrastructure/monitoring/prometheus/prometheus.yml`, `docker-compose.yml` | Backend/Prometheus contenidos, red interna y scrape por nombre de servicio sin puertos publicados |
 | `infrastructure/monitoring/verify-observability.ps1` | E2E aislada: target, serie, regla y sonda negativa desde `infrastructure` |
 | `docs/architecture/adr/ADR-018-observabilidad-contenida.md` | Decisión humana de contención Docker de SEC-BE055-05 |
@@ -92,7 +92,7 @@ despliegue de observabilidad aprobado.
 | Rollback no publica | `TransactionalOutboxMigrationTest.appendingInsideRolledBackTransactionLeavesNoOutboxEvent` | PASS con PostgreSQL Testcontainers |
 | Publicador idempotente | `eventId` estable, claim con lease token, actualización condicional y pruebas de publicación/retry/terminal | PASS |
 | Errores observables | Logs sin payload, correlationId, counters `outbox.*`, estado/diagnóstico constante; pruebas de scheduler/Prometheus y E2E Compose | PASS; dos fallos de transporte incrementan el counter; E2E confirma target `UP`, serie, regla y rechazo desde red no autorizada |
-| Broker limpio | vhost `fieldsales`, exchange durable y publicación a queue enlazada | PASS con RabbitMQ Testcontainers |
+| Broker limpio | vhost `followupbussiness`, exchange durable y publicación a queue enlazada | PASS con RabbitMQ Testcontainers |
 
 ## Comandos y resultados
 

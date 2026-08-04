@@ -1,6 +1,6 @@
 ---
 name: backend-testing
-description: Diseñar, implementar o revisar pruebas Backend de FieldSales CRM con JUnit, Spring Boot, Maven y validaciones de arquitectura, contrato, persistencia y seguridad. Usar cuando una historia Java requiera estrategia de pruebas, cobertura de criterios, reproducción de un defecto o selección eficiente de tests.
+description: Diseñar, implementar o revisar pruebas Backend de FollowUpBussiness con JUnit, Spring Boot, Maven y validaciones de arquitectura, contrato, persistencia y seguridad. Usar cuando una historia Java requiera estrategia de pruebas, cobertura de criterios, reproducción de un defecto o selección eficiente de tests.
 ---
 
 # Probar Backend

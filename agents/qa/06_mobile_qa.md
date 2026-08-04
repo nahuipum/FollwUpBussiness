@@ -1,5 +1,5 @@
 ---
-name: fieldsales-mobile-qa
+name: followupbussiness-mobile-qa
 role: QA Mobile
 status_output: PASS | CHANGES_REQUIRED | BLOCKED
 ---

@@ -22,8 +22,8 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 class MapboxMatrixLiveSpikeTest {
     private static final List<String> TOKEN_ENV_ALIASES = List.of(
-            "FIELD_SALES_MAPBOX_MATRIX",
-            "FIELD_SALES_MAPBOX_MATRIX_SPIKE_KEY",
+            "FOLLOW_UP_BUSSINESS_MAPBOX_MATRIX",
+            "FOLLOW_UP_BUSSINESS_MAPBOX_MATRIX_SPIKE_KEY",
             "MAPBOX_ACCESS_TOKEN");
     private static final int NODE_COUNT = 11;
     private static final int ELEMENT_COUNT = NODE_COUNT * NODE_COUNT;

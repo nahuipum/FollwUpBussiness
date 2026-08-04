@@ -54,15 +54,15 @@ del entorno local. `.env` está excluido de Git.
 
 | Variable | Propósito | Valor de ejemplo o predeterminado |
 |---|---|---|
-| `POSTGRES_DB` | Base inicial | `fieldsales` |
-| `POSTGRES_USER` | Usuario PostgreSQL local | `fieldsales_local` |
+| `POSTGRES_DB` | Base inicial | `followupbussiness` |
+| `POSTGRES_USER` | Usuario PostgreSQL local | `followupbussiness_local` |
 | `POSTGRES_PASSWORD` | Contraseña PostgreSQL requerida | Solo en `.env` |
 | `POSTGRES_PORT` | Puerto PostgreSQL en loopback | `5432` |
 | `REDIS_PASSWORD` | Contraseña Redis requerida | Solo en `.env` |
 | `REDIS_PORT` | Puerto Redis en loopback | `6379` |
-| `RABBITMQ_USER` | Usuario RabbitMQ local | `fieldsales_local` |
+| `RABBITMQ_USER` | Usuario RabbitMQ local | `followupbussiness_local` |
 | `RABBITMQ_PASSWORD` | Contraseña RabbitMQ requerida | Solo en `.env` |
-| `RABBITMQ_VHOST` | Virtual host inicial | `fieldsales` |
+| `RABBITMQ_VHOST` | Virtual host inicial | `followupbussiness` |
 | `RABBITMQ_AMQP_PORT` | Puerto AMQP en loopback | `5672` |
 | `RABBITMQ_MANAGEMENT_PORT` | Puerto de Management en loopback | `15672` |
 
@@ -115,26 +115,26 @@ nuevo los scripts de `infrastructure/postgres/init/`.
 
 ## Validar PostgreSQL y PostGIS
 
-Los siguientes comandos usan `POSTGRES_USER=fieldsales_local` y
-`POSTGRES_DB=fieldsales`, que son los valores documentados en `.env.example`.
+Los siguientes comandos usan `POSTGRES_USER=followupbussiness_local` y
+`POSTGRES_DB=followupbussiness`, que son los valores documentados en `.env.example`.
 Si se cambian, se deben sustituir también en los comandos.
 
 Comprobar disponibilidad:
 
 ```text
-docker compose exec -T postgres pg_isready -U fieldsales_local -d fieldsales
+docker compose exec -T postgres pg_isready -U followupbussiness_local -d followupbussiness
 ```
 
 Comprobar realmente la extensión PostGIS:
 
 ```text
-docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U fieldsales_local -d fieldsales -tAc "SELECT PostGIS_Version();"
+docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U followupbussiness_local -d followupbussiness -tAc "SELECT PostGIS_Version();"
 ```
 
 Comprobar las extensiones iniciales:
 
 ```text
-docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U fieldsales_local -d fieldsales -c "SELECT extname, extversion FROM pg_extension WHERE extname IN ('postgis','pgcrypto') ORDER BY extname;"
+docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U followupbussiness_local -d followupbussiness -c "SELECT extname, extversion FROM pg_extension WHERE extname IN ('postgis','pgcrypto') ORDER BY extname;"
 ```
 
 ## Validar Redis
@@ -154,7 +154,7 @@ docker compose exec -T rabbitmq rabbitmqctl list_vhosts name
 docker compose exec -T rabbitmq rabbitmq-diagnostics -q listeners
 ```
 
-El `vhost` esperado es `fieldsales`. El listener AMQP debe estar en `5672` y
+El `vhost` esperado es `followupbussiness`. El listener AMQP debe estar en `5672` y
 Management en `15672`. La interfaz local está disponible en:
 
 ```text
@@ -165,12 +165,12 @@ Se accede con `RABBITMQ_USER` y `RABBITMQ_PASSWORD` del `.env` local.
 
 ## Red, puertos y volúmenes
 
-- Proyecto Compose: `fieldsales-crm`.
-- Red bridge dedicada: `fieldsales-crm_infrastructure`.
-- Red interna de observabilidad: `fieldsales-crm_observability`; solo backend y
+- Proyecto Compose: `followupbussiness`.
+- Red bridge dedicada: `followupbussiness_infrastructure`.
+- Red interna de observabilidad: `followupbussiness_observability`; solo backend y
   Prometheus la comparten.
-- Volumen PostgreSQL: `fieldsales-crm_postgres-data`.
-- Volumen RabbitMQ: `fieldsales-crm_rabbitmq-data`.
+- Volumen PostgreSQL: `followupbussiness_postgres-data`.
+- Volumen RabbitMQ: `followupbussiness_rabbitmq-data`.
 - PostgreSQL: `127.0.0.1:5432`.
 - Redis: `127.0.0.1:6379`.
 - RabbitMQ AMQP: `127.0.0.1:5672`.

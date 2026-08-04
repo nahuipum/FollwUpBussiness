@@ -7,12 +7,12 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.List;
 
-@ConfigurationProperties(prefix = "field-sales.security")
+@ConfigurationProperties(prefix = "followupbussiness.security")
 public final class LocalSecuritySecretsProperties implements InitializingBean {
 
     static final int MINIMUM_SECRET_LENGTH = 32;
 
-    private static final String ENVIRONMENT_VARIABLE = "FIELD_SALES_SECURITY_LOCAL_SECRET";
+    private static final String ENVIRONMENT_VARIABLE = "FOLLOW_UP_BUSSINESS_SECURITY_LOCAL_SECRET";
     private static final List<byte[]> REJECTED_PLACEHOLDERS = List.of(
             "change_me_local_only".getBytes(StandardCharsets.UTF_8),
             "replace_with_32_plus_random_local_characters".getBytes(StandardCharsets.UTF_8));

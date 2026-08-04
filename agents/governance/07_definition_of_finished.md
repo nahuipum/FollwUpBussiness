@@ -1,5 +1,5 @@
 ---
-name: fieldsales-definition-of-finished
+name: followupbussiness-definition-of-finished
 role: Definition of Finished (DoF)
 status_output: PASS | BLOCKED
 ---

@@ -72,7 +72,7 @@ sesiones opacas, persistencia ni rotación.
 
 ### Gestión local de secretos
 
-El backend exige `FIELD_SALES_SECURITY_LOCAL_SECRET` como comprobación
+El backend exige `FOLLOW_UP_BUSSINESS_SECURITY_LOCAL_SECRET` como comprobación
 fundacional del canal de inyección de secretos. EN-010 valida su presencia y
 fortaleza mínima al arrancar, pero no lo utiliza como contraseña, clave de
 firma, token ni material criptográfico: el uso concreto dependerá de las

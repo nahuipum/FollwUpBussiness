@@ -1,5 +1,5 @@
 name = "backend_qa"
-description = "Valida de forma independiente historias Backend de FieldSales CRM con trazabilidad, pruebas dirigidas, arquitectura, multiempresa e integraciones."
+description = "Valida de forma independiente historias Backend de FollowUpBussiness con trazabilidad, pruebas dirigidas, arquitectura, multiempresa e integraciones."
 model = "gpt-5.6-terra"
 model_reasoning_effort = "medium"
 sandbox_mode = "read-only"

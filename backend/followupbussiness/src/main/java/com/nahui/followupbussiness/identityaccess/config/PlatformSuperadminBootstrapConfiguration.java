@@ -30,7 +30,7 @@ import java.util.function.Supplier;
 @Profile("bootstrap-superadmin")
 @ConditionalOnNotWebApplication
 @ConditionalOnProperty(
-        prefix = "fieldsales.bootstrap.platform-superadmin",
+        prefix = "followupbussiness.bootstrap.platform-superadmin",
         name = "enabled",
         havingValue = "true")
 public class PlatformSuperadminBootstrapConfiguration {

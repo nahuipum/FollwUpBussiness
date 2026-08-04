@@ -1,6 +1,6 @@
-# Frontend — FieldSales CRM
+# Frontend — FollowUpBussiness
 
-Esqueleto del panel administrativo de FieldSales CRM, ubicado en
+Esqueleto del panel administrativo de FollowUpBussiness, ubicado en
 `frontend/followupbussiness` dentro del monorepo. Contiene únicamente la
 inicialización React, el componente raíz, estilos globales y la configuración
 de calidad para los incrementos posteriores.

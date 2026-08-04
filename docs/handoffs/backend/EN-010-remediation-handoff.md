@@ -177,7 +177,7 @@ coherencia de dependencias/SBOM.
    `8778035114`.
 5. Verificar digest ZIP, JAR, SBOM, Trivy, Surefire y manifiestos.
 6. Ejecutar nuevamente `clean verify` sin definir
-   `FIELD_SALES_SECURITY_LOCAL_SECRET`.
+   `FOLLOW_UP_BUSSINESS_SECURITY_LOCAL_SECRET`.
 7. Repetir pruebas de arquitectura, deny-by-default, 401/403, secreto ausente,
    archivos ignorados y búsqueda de secretos.
 8. Rechazar el snapshot si cambia cualquier archivo o hash durante el retest.

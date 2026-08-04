@@ -4,6 +4,8 @@ import com.nahui.followupbussiness.outbox.application.port.out.EventTransport;
 import com.nahui.followupbussiness.outbox.application.port.out.OutboxStore;
 import com.nahui.followupbussiness.outbox.domain.ClaimedOutboxEvent;
 import com.nahui.followupbussiness.outbox.domain.OutboxEvent;
+import com.nahui.followupbussiness.outbox.domain.PublicationFailureKind;
+import com.nahui.followupbussiness.outbox.domain.RetryPolicy;
 import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
@@ -56,8 +58,35 @@ class OutboxPublisherTest {
         OutboxPublisher.DispatchResult result = publisher.dispatchAvailable(10, Duration.ofSeconds(30));
 
         assertThat(result).isEqualTo(new OutboxPublisher.DispatchResult(1, 0, 0, 1, 1));
-        assertThat(store.terminal).containsExactly(store.claimed.getFirst().event().eventId());
+        assertThat(store.dlq).containsExactly(store.claimed.getFirst().event().eventId());
         assertThat(store.retried).isEmpty();
+    }
+
+    @Test
+    void sendsPermanentInvalidEnvelopeFailureDirectlyToDlq() {
+        FakeStore store = new FakeStore(claimed(1));
+        OutboxPublisher publisher = publisher(store, ignored -> { throw new IllegalArgumentException("invalid payload"); });
+
+        OutboxPublisher.DispatchResult result = publisher.dispatchAvailable(10, Duration.ofSeconds(30));
+
+        assertThat(result).isEqualTo(new OutboxPublisher.DispatchResult(1, 0, 0, 1, 1));
+        assertThat(store.dlq).containsExactly(store.claimed.getFirst().event().eventId());
+        assertThat(store.retried).isEmpty();
+    }
+
+    @Test
+    void appliesTheConfiguredAttemptLimitAndExponentialBackoff() {
+        FakeStore store = new FakeStore(claimed(2));
+        OutboxPublisher publisher = new OutboxPublisher(store,
+                ignored -> { throw new IllegalStateException("broker unavailable"); },
+                Clock.fixed(NOW, ZoneOffset.UTC), new Random(17),
+                new RetryPolicy(3, Duration.ofSeconds(2), Duration.ofSeconds(4)));
+
+        publisher.dispatchAvailable(10, Duration.ofSeconds(30));
+
+        assertThat(store.nextAttemptAt).isBetween(NOW.plusSeconds(4), NOW.plusSeconds(5));
+        store.claimed = List.of(claimed(3));
+        assertThat(publisher.dispatchAvailable(10, Duration.ofSeconds(30)).terminal()).isEqualTo(1);
     }
 
     @Test
@@ -84,24 +113,29 @@ class OutboxPublisherTest {
     }
 
     private static final class FakeStore implements OutboxStore {
-        private final List<ClaimedOutboxEvent> claimed;
+        private List<ClaimedOutboxEvent> claimed;
         private final List<UUID> published = new ArrayList<>();
         private final List<UUID> retried = new ArrayList<>();
         private final List<UUID> terminal = new ArrayList<>();
+        private final List<UUID> dlq = new ArrayList<>();
         private final List<String> failureTypes = new ArrayList<>();
         private final List<String> failureDetails = new ArrayList<>();
+        private Instant nextAttemptAt;
 
         private FakeStore(ClaimedOutboxEvent event) { this.claimed = List.of(event); }
         @Override public void append(OutboxEvent event) { }
         @Override public List<ClaimedOutboxEvent> claimAvailable(Instant now, Instant leaseExpiresAt, int limit) { return claimed; }
         @Override public boolean markPublished(UUID eventId, UUID leaseToken, Instant publishedAt) { published.add(eventId); return true; }
         @Override public boolean scheduleRetry(UUID eventId, UUID leaseToken, Instant nextAttemptAt, String failureType, String failureDetail) {
-            retried.add(eventId); failureTypes.add(failureType); failureDetails.add(failureDetail); return true;
+            retried.add(eventId); failureTypes.add(failureType); failureDetails.add(failureDetail); this.nextAttemptAt = nextAttemptAt; return true;
         }
-        @Override public boolean markTerminal(UUID eventId, UUID leaseToken, Instant terminalAt, String failureType, String failureDetail) {
-            terminal.add(eventId); failureTypes.add(failureType); failureDetails.add(failureDetail); return true;
+        @Override public boolean moveToDlq(UUID eventId, UUID leaseToken, Instant terminalAt, PublicationFailureKind failureKind, String failureType, String failureDetail) {
+            terminal.add(eventId); dlq.add(eventId); failureTypes.add(failureType); failureDetails.add(failureDetail); return true;
         }
-        @Override public int terminalExpiredLeasesAtMaxAttempts(Instant now) { return 0; }
+        @Override public int moveExpiredLeasesToDlqAtMaxAttempts(Instant now) { return 0; }
+        @Override public boolean reprocessFromDlq(UUID eventId, UUID operatorId, Instant reprocessedAt) { return false; }
+        @Override public long dlqDepth() { return dlq.size(); }
+        @Override public long oldestDlqAgeSeconds(Instant now) { return 0; }
         @Override public long countReadyToPublish() { return 0; }
         @Override public long oldestReadyAgeSeconds(Instant now) { return 0; }
         @Override public int deleteCompletedBefore(Instant cutoff) { return 0; }

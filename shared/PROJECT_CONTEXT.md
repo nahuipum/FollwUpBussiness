@@ -1,4 +1,4 @@
-# Contexto técnico compartido — FieldSales CRM
+# Contexto técnico compartido — FollowUpBussiness
 
 ## 1. Producto
 

@@ -1,12 +1,12 @@
 param(
     [ValidateRange(30, 300)]
     [int]$TimeoutSeconds = 180,
-    [ValidatePattern('^fieldsales-be055-e2e-[a-z0-9-]+$')]
-    [string]$ProjectName = "fieldsales-be055-e2e-$PID"
+    [ValidatePattern('^followupbussiness-be055-e2e-[a-z0-9-]+$')]
+    [string]$ProjectName = "followupbussiness-be055-e2e-$PID"
 )
 
-if (-not $env:FIELD_SALES_SECURITY_LOCAL_SECRET) {
-    $env:FIELD_SALES_SECURITY_LOCAL_SECRET = "e2e-$(New-Guid)-security-secret"
+if (-not $env:FOLLOW_UP_BUSSINESS_SECURITY_LOCAL_SECRET) {
+    $env:FOLLOW_UP_BUSSINESS_SECURITY_LOCAL_SECRET = "e2e-$(New-Guid)-security-secret"
 }
 if (-not $env:POSTGRES_PASSWORD) { $env:POSTGRES_PASSWORD = "e2e-$(New-Guid)" }
 if (-not $env:REDIS_PASSWORD) { $env:REDIS_PASSWORD = "e2e-$(New-Guid)" }
@@ -33,7 +33,7 @@ try {
         $targetsJson = Invoke-Compose exec -T prometheus wget -qO- http://localhost:9090/api/v1/targets
         if ($LASTEXITCODE -eq 0) {
             $targets = $targetsJson | ConvertFrom-Json
-            $backendTarget = $targets.data.activeTargets | Where-Object { $_.labels.job -eq 'fieldsales-backend' }
+            $backendTarget = $targets.data.activeTargets | Where-Object { $_.labels.job -eq 'followupbussiness-backend' }
         }
         if ($backendTarget -and $backendTarget.health -eq 'up') {
             break
@@ -42,7 +42,7 @@ try {
     } while ((Get-Date) -lt $deadline)
 
     if (-not $backendTarget -or $backendTarget.health -ne 'up') {
-        throw 'Prometheus target fieldsales-backend did not become UP.'
+        throw 'Prometheus target followupbussiness-backend did not become UP.'
     }
 
     $series = Invoke-Compose exec -T prometheus wget -qO- 'http://localhost:9090/api/v1/query?query=outbox_publish_failures_total' | ConvertFrom-Json
@@ -56,11 +56,11 @@ try {
     }
 
     $rules = Invoke-Compose exec -T prometheus wget -qO- http://localhost:9090/api/v1/rules
-    if ($rules -notmatch 'FieldSalesOutboxPublishFailures') {
+    if ($rules -notmatch 'FollowUpBussinessOutboxPublishFailures') {
         throw 'Prometheus did not load the outbox publication-failures rule.'
     }
 
-    Write-Output 'PASS: fieldsales-backend is UP; the outbox series and rule are available; the infrastructure probe is denied.'
+    Write-Output 'PASS: followupbussiness-backend is UP; the outbox series and rule are available; the infrastructure probe is denied.'
 } finally {
     Invoke-Compose down --volumes
 }
