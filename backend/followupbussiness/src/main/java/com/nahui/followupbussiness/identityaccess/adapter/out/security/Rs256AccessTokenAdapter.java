@@ -1,4 +1,40 @@
 package com.nahui.followupbussiness.identityaccess.adapter.out.security;
-import com.nahui.followupbussiness.identityaccess.application.port.out.AccessTokenPort; import com.nahui.followupbussiness.identityaccess.domain.model.BaseRole;
-import java.nio.charset.StandardCharsets; import java.security.*; import java.time.*; import java.util.*;
-public final class Rs256AccessTokenAdapter implements AccessTokenPort { private final PrivateKey key; private final String kid,issuer,audience; private final Clock clock; public Rs256AccessTokenAdapter(PrivateKey key,String kid,String issuer,String audience,Clock clock){this.key=key;this.kid=kid;this.issuer=issuer;this.audience=audience;this.clock=clock;} public String issue(UUID sub,UUID sid,UUID tid,BaseRole role){try{long now=clock.instant().getEpochSecond(); String h=b64("{\"alg\":\"RS256\",\"typ\":\"JWT\",\"kid\":\""+kid+"\"}"), p=b64("{\"iss\":\""+issuer+"\",\"aud\":\""+audience+"\",\"sub\":\""+sub+"\",\"sid\":\""+sid+"\",\"jti\":\""+UUID.randomUUID()+"\",\"iat\":"+now+",\"nbf\":"+now+",\"exp\":"+(now+600)+",\"roles\":[\""+role.code()+"\"]"+(tid==null?"":",\"tid\":\""+tid+"\"")+"}"); Signature s=Signature.getInstance("SHA256withRSA");s.initSign(key);s.update((h+"."+p).getBytes(StandardCharsets.US_ASCII));return h+"."+p+"."+Base64.getUrlEncoder().withoutPadding().encodeToString(s.sign());}catch(GeneralSecurityException e){throw new IllegalStateException("Unable to sign access token",e);}} private static String b64(String s){return Base64.getUrlEncoder().withoutPadding().encodeToString(s.getBytes(StandardCharsets.UTF_8));}}
+
+import com.nahui.followupbussiness.identityaccess.application.port.out.AccessTokenPort;
+import com.nahui.followupbussiness.identityaccess.domain.model.BaseRole;
+
+import java.nio.charset.StandardCharsets;
+import java.security.*;
+import java.time.*;
+import java.util.*;
+
+public final class Rs256AccessTokenAdapter implements AccessTokenPort {
+    private final PrivateKey key;
+    private final String kid, issuer, audience;
+    private final Clock clock;
+
+    public Rs256AccessTokenAdapter(PrivateKey key, String kid, String issuer, String audience, Clock clock) {
+        this.key = key;
+        this.kid = kid;
+        this.issuer = issuer;
+        this.audience = audience;
+        this.clock = clock;
+    }
+
+    public String issue(UUID sub, UUID sid, UUID tid, BaseRole role) {
+        try {
+            long now = clock.instant().getEpochSecond();
+            String h = b64("{\"alg\":\"RS256\",\"typ\":\"JWT\",\"kid\":\"" + kid + "\"}"), p = b64("{\"iss\":\"" + issuer + "\",\"aud\":\"" + audience + "\",\"sub\":\"" + sub + "\",\"sid\":\"" + sid + "\",\"jti\":\"" + UUID.randomUUID() + "\",\"iat\":" + now + ",\"nbf\":" + now + ",\"exp\":" + (now + 600) + ",\"roles\":[\"" + role.code() + "\"]" + (tid == null ? "" : ",\"tid\":\"" + tid + "\"") + "}");
+            Signature s = Signature.getInstance("SHA256withRSA");
+            s.initSign(key);
+            s.update((h + "." + p).getBytes(StandardCharsets.US_ASCII));
+            return h + "." + p + "." + Base64.getUrlEncoder().withoutPadding().encodeToString(s.sign());
+        } catch (GeneralSecurityException e) {
+            throw new IllegalStateException("Unable to sign access token", e);
+        }
+    }
+
+    private static String b64(String s) {
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(s.getBytes(StandardCharsets.UTF_8));
+    }
+}
