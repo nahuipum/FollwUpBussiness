@@ -115,3 +115,39 @@ Resultado emitido contra el paquete v2 y el candidato inmutable indicado abajo.
 - Hallazgos abiertos: ninguno.
 - Regresión relevante: retención terminal/FK, límite acumulado de tres reprocesos y auditoría tras reingreso pasaron con PostgreSQL real.
 - Riesgo residual bajo: no existe aserción dedicada al subcamino de purga `PUBLISHED`; el predicado se conserva y no fue afectado por la condición que protege la fila `PENDING`.
+
+---
+
+## QA independiente — trazabilidad v3
+
+### Estado
+
+`PASS`
+
+### Candidato y alcance
+
+- Paquete vigente: `docs/handoffs/governance/BE-056-gestionar-reintentos-y-dlq.md` v3; handoff de Desarrollo v3: `READY_FOR_HANDOFF`.
+- Candidato fijo: `2ad78920b3b0178d44bc5379d5d1b5c26ff5f131` en `feature/be-056-dlq` (PR #7).
+- No hubo cambio funcional posterior a la remediación de Seguridad: los cambios posteriores son trazabilidad, nomenclatura y orquestación. Por ello la evidencia funcional de `d83b166…` se reutiliza para el candidato v3 y la CI se exige sobre el SHA exacto.
+
+### Matriz resumida
+
+| Criterio/riesgo | Implementación | Prueba/evidencia | Resultado |
+|---|---|---|---|
+| CA-1 a CA-4, VAL-1, tenantId, idempotencia, migración y límites hexagonales | Implementación funcional en el padre `d83b166…`; v3 no cambia código, contratos, pruebas ni migraciones. | `mvn clean verify` local en `d83b166…`: PASS; CI del SHA `2ad7892…` en los flujos EN-010/EN-011: PASS. | PASS |
+| SEC-BE056-01 | Autenticación inbound y validación de superadmin/UUID ya remediadas; sin cambio funcional posterior. | Evidencia funcional reutilizada y CI exacta del candidato. | PASS |
+| SEC-BE056-02 | Rate limiting distribuido/fail-closed ya remediado; sin cambio funcional posterior. | Evidencia funcional reutilizada y CI exacta del candidato. | PASS |
+| SEC-BE056-03 | Auditoría append-only, retención y serialización reproceso/purga ya remediadas; sin cambio funcional posterior. | Evidencia funcional reutilizada y CI exacta del candidato. | PASS |
+
+### Comandos y evidencia
+
+- Reutilizado: `mvn clean verify` en `d83b166…` (padre funcional): PASS.
+- CI del candidato exacto `2ad78920b3b0178d44bc5379d5d1b5c26ff5f131`: EN-010 PR #7, ejecución `30931035614`: PASS; EN-011 PR, reejecución `30931035880`: PASS; EN-011 push, ejecución `30931031812`: PASS.
+- Verificación documental de esta fase: `git diff --check -- docs/handoffs/backend/BE-056-backend-qa.md`.
+
+### Excepciones, hallazgos y riesgos residuales
+
+- Excepciones: no se releyó ninguna fuente primaria y no se repitieron suites; ambas decisiones se sustentan en el paquete v3, la ausencia de cambio funcional y la CI verificable del mismo candidato.
+- Hallazgos: ninguno.
+- Regresión relevante: las tres ejecuciones CI PASS sobre el SHA fijo cubren la integración del candidato; el `clean verify` PASS del padre funcional conserva evidencia de la suite completa para el contenido funcional sin cambios.
+- Riesgo residual: ninguno nuevo; persisten únicamente los riesgos operativos ya documentados para alertamiento y operación de DLQ.

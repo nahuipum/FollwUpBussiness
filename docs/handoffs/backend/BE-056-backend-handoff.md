@@ -207,3 +207,22 @@
 ### Riesgos
 
 - El advisory lock usa el hash PostgreSQL del UUID; una colisión solo serializa eventos independientes y no altera datos. Los hallazgos SEC-BE056-01 y SEC-BE056-02 permanecen fuera de este alcance.
+
+## Desarrollo — trazabilidad v3
+
+### Estado
+
+`READY_FOR_HANDOFF`
+
+### Candidato, alcance y relaciones
+
+- Paquete vigente: `docs/handoffs/governance/BE-056-gestionar-reintentos-y-dlq.md` v3.
+- Candidato fijo: `2ad78920b3b0178d44bc5379d5d1b5c26ff5f131` en `feature/be-056-dlq` (PR #7).
+- No existe cambio funcional posterior a la remediación de Seguridad; los cambios posteriores son de trazabilidad, nomenclatura y orquestación.
+- `SEC-BE056-01`, `SEC-BE056-02` y `SEC-BE056-03` quedan relacionados con las remediaciones ya documentadas en este handoff; v3 no añade código, pruebas, contratos ni migraciones.
+
+### Evidencia reutilizada y excepciones
+
+- `mvn clean verify` en `d83b166…`: PASS, según el paquete v3.
+- CI del candidato `2ad7892…`: EN-010 PR #7 PASS y EN-011 push PASS; EN-011 PR fue reejecutado y estaba en curso al crear v3.
+- Excepciones: ninguna lectura primaria fuera del paquete v3. `graphify` indisponible; no se usó para inferir reglas ni altera la evidencia reutilizada.

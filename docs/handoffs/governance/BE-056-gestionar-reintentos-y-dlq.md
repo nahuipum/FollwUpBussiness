@@ -1,4 +1,21 @@
-# Paquete de Contexto de Historia — BE-056 — v2
+# Paquete de Contexto de Historia — BE-056 — v3
+
+## Estado v3 — fuente de verdad vigente
+
+| Campo | Valor |
+|---|---|
+| Candidato funcional fijado | `2ad78920b3b0178d44bc5379d5d1b5c26ff5f131` en `feature/be-056-dlq` (PR #7). |
+| Base funcional | `dc8979e8…` (BE-056) + `d83b166…` (corrección de contextos CI y prefijos activos). `0651804…` homologa nombres y `2ad7892…` añade únicamente orquestación/plantillas. |
+| Fuentes primarias | Se reutilizan las rutas, secciones y hashes de v2: no cambiaron la HU, ADR-019, OpenAPI, contrato de eventos ni migración V6. No se autoriza relectura salvo excepción en handoff. |
+| Evidencia reutilizable | `mvn clean verify` local en `d83b166…`: PASS; CI del candidato `2ad7892…`: EN-010 PR #7 PASS, EN-011 push PASS y EN-011 PR reejecutado en curso al crear v3. |
+| Cambio posterior de fase | No hay cambio funcional posterior a la remediación de Seguridad; los cambios posteriores son trazabilidad, naming y orquestación. |
+
+v3 invalida las huellas de diff no comprometidas de v2 y fija un commit Git
+verificable. Las secciones v2 siguientes se conservan como registro histórico;
+las fases Dev, QA, Seguridad y DoF deben añadir su adenda v3 con esta misma
+huella y las excepciones de lectura/prueba que realicen.
+
+## Registro histórico v2
 
 ## Inmutabilidad
 
