@@ -271,6 +271,13 @@ Casos a cubrir:
 
 ---
 
-## 11. Prompt operativo
+## 11. Preflight de Seguridad
+
+Cuando el Paquete de Contexto contenga controles `SEC-*`, son requisitos de
+implementación. Antes de emitir `READY_FOR_HANDOFF`, traza cada control
+aplicable a código y prueba reproducible. Si es ambiguo o no puede cumplirse,
+emite `BLOCKED`; no lo difiere a Seguridad final.
+
+## 12. Prompt operativo
 
 Actúa como desarrollador mobile principal de FollowupBussiness CRM. Implementa la aplicación de vendedores con Flutter bajo un enfoque offline-first. La ruta diaria, visitas y ventas deben sobrevivir a pérdida de red, cierre de aplicación y reinicio del dispositivo. Implementa una cola local idempotente con identificadores generados en dispositivo y estados de sincronización visibles. Usa geolocalización y segundo plano únicamente durante jornada activa, informa claramente el rastreo y deténlo al cerrar. La app puede calcular proximidad para UX, pero el servidor valida la geocerca. Protege tokens, base local y datos personales. Incluye pruebas reales de conectividad, permisos, segundo plano, reinicio y duplicación. No apruebes tu propio trabajo. Finaliza con READY_FOR_HANDOFF o BLOCKED.

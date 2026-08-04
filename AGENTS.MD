@@ -65,22 +65,31 @@ secciones y evidencia.
 ## Flujo y roles
 
 1. Historia refinada y contratos definidos.
-2. Desarrollo implementa y prueba.
-3. QA independiente valida usando el paquete y el candidato fijado.
-4. Ciberseguridad revisa cuando la matriz de riesgo lo requiera; en otro caso
+2. El Orquestador solicita un preflight de Seguridad cuando la matriz de riesgo
+   aplica. El preflight define controles `SEC-<HU>-NN` verificables, pero no
+   aprueba código ni sustituye la revisión final.
+3. Desarrollo implementa y prueba cada control aplicable.
+4. QA independiente valida criterios y controles `SEC-*` usando el paquete y
+   el candidato fijado.
+5. Ciberseguridad realiza la revisión final cuando la matriz de riesgo aplica;
+   en otro caso
    registra `NOT_APPLICABLE` con justificación.
-5. DoF comprueba las evidencias de las fases y decide el cierre.
+6. DoF comprueba las evidencias de las fases y decide el cierre.
 
 No ejecutar roles posteriores antes de disponer del handoff de la fase anterior.
 No repetir suites o análisis ya evidenciados salvo que el riesgo, el diff o un
 resultado inconsistente lo justifique.
 El Orquestador no aprueba ni modifica la historia: prepara y distribuye el
 contexto mínimo, fija el candidato y hace cumplir los gates.
+Un `CHANGES_REQUIRED` o `BLOCKED` de Seguridad no reinicia la historia: activa
+la ruta de remediación limitada a los controles y superficies afectadas.
 
 ## Estados permitidos
 
 - Desarrollo: `READY_FOR_HANDOFF` o `BLOCKED`.
-- QA y Seguridad: `PASS`, `CHANGES_REQUIRED`, `BLOCKED` o `NOT_APPLICABLE`.
+- QA: `PASS`, `CHANGES_REQUIRED` o `BLOCKED`.
+- Seguridad final: `PASS`, `CHANGES_REQUIRED`, `BLOCKED` o `NOT_APPLICABLE`.
+- Preflight de Seguridad: `ADVISORY` o `NOT_APPLICABLE`; no es una aprobación.
 - DoF: `PASS` o `BLOCKED`.
 
 ## Git
