@@ -11,7 +11,7 @@
 - PR [#8 — BE-007: gestionar roles y permisos](https://github.com/nahuipum/FollwUpBussiness/pull/8) permanece `OPEN` y su `headRefOid` coincide con el candidato.
 - Los tres checks CI están `completed/success` sobre el mismo SHA.
 
-## Gates y evidencias faltantes
+## Gates
 
 | Gate | Estado | Evidencia |
 |---|---|---|
