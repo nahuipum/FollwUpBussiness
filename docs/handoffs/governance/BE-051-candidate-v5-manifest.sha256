@@ -1,0 +1,8 @@
+# BE-051 candidate v5 delta over v4
+# Start with every entry in BE-051-candidate-v4-manifest.sha256 (excluding comments),
+# replace the following two paths, add the third path, then sort by path. The aggregate
+# SHA-256 of UTF-8 `path<TAB>hash` lines joined by LF, with no final LF, is:
+# 20ac06dc9e5b27c5401e375893d5013f9248a95b2d2a871f972b51a44af3cc53
+backend\followupbussiness\src\main\java\com\nahui\followupbussiness\audit\adapter\out\persistence\JdbcAuditEntryStore.java	8aa70dd968a3fde4a3b1158df3220dd64dceaecba5a2608e8a9719e5e1432257
+backend\followupbussiness\src\main\java\com\nahui\followupbussiness\audit\config\AuditConfiguration.java	de1c82483cef78e9bc00cf1b71dd2ce0ff42eae719c7cd2b40d98b348c5815f0
+backend\followupbussiness\src\main\java\com\nahui\followupbussiness\audit\config\AuditDatabaseProperties.java	183d9d0faef5259c3c8ca48d4148bfd2cd879ce952e0872a1ec75a7bda104b51
