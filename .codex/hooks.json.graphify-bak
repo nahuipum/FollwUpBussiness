@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File .codex/hooks/pretooluse-graphify.ps1"
+            "command": "python -m graphify hook-check"
           }
         ]
       }

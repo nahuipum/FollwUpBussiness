@@ -6,6 +6,16 @@ READY_FOR_HANDOFF | BLOCKED | PASS | CHANGES_REQUIRED
 
 ## Alcance trabajado
 
+## Paquete de contexto
+
+| ID y versión | Candidato (commit/diff) | Ruta | Estado de vigencia |
+|---|---|---|---|
+
+## Lecturas excepcionales de fuentes primarias
+
+| Motivo | Ruta y sección | Hash | Hallazgo o decisión |
+|---|---|---|---|
+
 ## Criterios cubiertos
 
 | Criterio | Implementación o prueba | Evidencia |

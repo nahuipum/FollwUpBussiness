@@ -1,8 +1,29 @@
-# FieldSales CRM — Instrucciones globales
+# FollowUpBussiness — Instrucciones globales
 
 ## Fuentes de verdad y carga de contexto
 
-Leer siempre:
+### Flujo orquestado por historia
+
+Para el flujo `Desarrollo → QA → Seguridad → DoF`, el **Agente Orquestador**
+es el único que ingiere la historia y los documentos de referencia al comenzar
+la historia. Debe crear un *Paquete de Contexto de Historia* versionado, con
+criterios normalizados, reglas aplicables, rutas/secciones, hashes y el commit
+candidato. Los agentes de fase reciben ese paquete y el handoff anterior por
+referencia; no reciben el historial de conversación ni vuelven a leer la HU,
+contratos o ADR ya incluidos.
+
+Una relectura de una fuente primaria está permitida únicamente si:
+
+- el paquete cita una sección ambigua o insuficiente;
+- el diff o el riesgo revela una fuente no identificada;
+- cambió la fuente o el commit candidato; o
+- la evidencia de una fase contradice el paquete.
+
+Quien realice la excepción debe registrarla en el handoff con motivo, ruta,
+sección y hash. Si una fuente cambia, el Orquestador genera una nueva versión
+del paquete antes de avanzar de fase.
+
+Fuera de un flujo orquestado, leer siempre:
 
 1. La historia indicada en `docs/stories/`.
 2. El `AGENTS.MD` local de la aplicación afectada.
@@ -45,14 +66,16 @@ secciones y evidencia.
 
 1. Historia refinada y contratos definidos.
 2. Desarrollo implementa y prueba.
-3. QA independiente valida.
+3. QA independiente valida usando el paquete y el candidato fijado.
 4. Ciberseguridad revisa cuando la matriz de riesgo lo requiera; en otro caso
    registra `NOT_APPLICABLE` con justificación.
-5. DoF comprueba evidencias y decide el cierre.
+5. DoF comprueba las evidencias de las fases y decide el cierre.
 
 No ejecutar roles posteriores antes de disponer del handoff de la fase anterior.
 No repetir suites o análisis ya evidenciados salvo que el riesgo, el diff o un
 resultado inconsistente lo justifique.
+El Orquestador no aprueba ni modifica la historia: prepara y distribuye el
+contexto mínimo, fija el candidato y hace cumplir los gates.
 
 ## Estados permitidos
 
@@ -71,11 +94,11 @@ resultado inconsistente lo justifique.
 
 This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
 
-When the user types `$graphify` (or `/graphify`), use the installed graphify skill or instructions before doing anything else.
+When the user types `/graphify`, use the installed graphify skill or instructions before doing anything else.
 
 Rules:
-- For codebase questions, first run `python -m graphify query "<question>"` when graphify-out/graph.json exists. Use `python -m graphify path "<A>" "<B>"` for relationships and `python -m graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
 - Dirty graphify-out/ files are expected after hooks or incremental updates; dirty graph files are not a reason to skip graphify. Only skip graphify if the task is about stale or incorrect graph output, or the user explicitly says not to use it.
 - If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
 - Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
-- After modifying code, run `python -m graphify update .` to keep the graph current (AST-only, no API cost).
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
