@@ -14,13 +14,16 @@ import java.time.Clock;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import javax.sql.DataSource;
 
 @Configuration(proxyBeanMethods = false)
 @EnableScheduling
+@ConditionalOnBean(DataSource.class)
 public class AuditConfiguration {
     @Bean
     @ConfigurationProperties(prefix = "followupbussiness.audit.database")
