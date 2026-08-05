@@ -1,13 +1,23 @@
-# Paquete de Contexto de Historia — BE-004 — v1
+# Paquete de Contexto de Historia — BE-004 — v6
 
 ## Inmutabilidad
 
 | Campo | Valor |
 |---|---|
 | Historia | `docs/stories/backend/BE-004-renovar-sesion.md` |
-| Commit o diff candidato | `a7e444a684d032be4da9ee4aac48528a33bd5fd7` + worktree limpio al fijar el candidato |
+| Commit o diff candidato | `0df537f71e8c6ece12e10d95e6824e5af80255d9`; candidato inmutable resuelto desde Git, sin incluir cambios locales ajenos no preparados. |
 | Creado por | Agente Orquestador |
 | Vigente hasta | Cambio de fuente o candidato |
+
+## Registro de versión v6
+
+| Campo | Valor |
+|---|---|
+| Cambio de candidato | `0df537f` añade exclusivamente `InboundJwtAuthenticatorTest.java`: la prueba altera ahora un carácter significativo de la firma Base64URL, evitando un falso negativo dependiente de bits de relleno. |
+| Fuentes primarias | Sin cambio ni relectura; se conserva el alcance normalizado de v1–v5. |
+| Controles afectados | `SEC-BE004-01` (rechazo de firma inválida). `SEC-BE004-02..10` no cambian y reutilizan evidencia v5. |
+| Manifiesto | `docs/handoffs/governance/BE-004-candidate-v6.sha256` (23 artefactos; SHA-256 `594CA9EBC98E0F911DA0E2188C80755CC79F9C1EE2423A9B8E1D1533F8CAF575`). |
+| Ruta acotada | QA afectado → Seguridad final → DoF. No se reinicia la historia. |
 
 ## Criterios normalizados
 

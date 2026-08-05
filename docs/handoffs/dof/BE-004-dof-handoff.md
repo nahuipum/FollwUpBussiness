@@ -2,10 +2,10 @@
 
 ## Estado
 
-BLOCKED
+PASS
 
-## Gates o evidencias faltantes
+## Trazabilidad mínima
 
-- **Commit inmutable del candidato:** el candidato v5 continúa como diff sobre `a7e444a684d032be4da9ee4aac48528a33bd5fd7`; `HEAD` coincide con esa base. Falta el SHA de un commit que contenga exactamente el manifiesto v5 (`b13d15f571c94c9f7c7b8850e33979999b2d002f215dd57db7eb3e934f6fea13`).
-- **PR trazable:** no se aporta identificador/enlace de PR asociado al commit candidato.
-- **CI del mismo candidato:** no se aporta handoff, ejecución ni URL de CI vinculada al SHA de commit candidato. No existe un handoff CI de BE-004 en `docs/handoffs/`.
+- Candidato inmutable: `0df537f71e8c6ece12e10d95e6824e5af80255d9` (`HEAD` verificado), paquete v6 y manifiesto de 23 artefactos SHA-256 `594ca9ebc98e0f911da0e2188c80755cc79f9c1ee2423a9b8e1d1533f8caf575`.
+- Fases: QA afectado v6 `PASS` y Seguridad final v6 `PASS`, ambos trazados al mismo SHA/manifiesto.
+- Entrega: PR [#10](https://github.com/nahuipum/FollwUpBussiness/pull/10) sobre el candidato; CI `JDK 21 / Maven verify / SCA` run `30970066567` PASS y `JDK 21 / Maven verify / EN-011 SCA` runs `30970066523` y `30970064684` PASS.
