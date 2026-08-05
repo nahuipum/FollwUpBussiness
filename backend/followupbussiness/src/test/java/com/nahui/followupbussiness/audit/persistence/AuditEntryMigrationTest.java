@@ -103,11 +103,11 @@ class AuditEntryMigrationTest {
 
     @Test void parameterizedPurgeRejectsFutureAndNullCutoffsAndInvalidBatchSizesSeparately() {
         java.sql.Timestamp future = jdbc.queryForObject("SELECT CURRENT_TIMESTAMP + INTERVAL '1 minute'", java.sql.Timestamp.class);
-        assertThatThrownBy(() -> purgeEntries(future, 1)).isInstanceOf(Exception.class);
-        assertThatThrownBy(() -> purgeEntries(null, 1)).isInstanceOf(Exception.class);
-        assertThatThrownBy(() -> purgeEntries(java.sql.Timestamp.from(Instant.parse("2026-08-04T12:00:00Z")), null)).isInstanceOf(Exception.class);
-        assertThatThrownBy(() -> purgeEntries(java.sql.Timestamp.from(Instant.parse("2026-08-04T12:00:00Z")), 0)).isInstanceOf(Exception.class);
-        assertThatThrownBy(() -> purgeEntries(java.sql.Timestamp.from(Instant.parse("2026-08-04T12:00:00Z")), 501)).isInstanceOf(Exception.class);
+        assertSqlState("P0001", () -> purgeEntries(future, 1));
+        assertSqlState("P0001", () -> purgeEntries(null, 1));
+        assertSqlState("P0001", () -> purgeEntries(java.sql.Timestamp.from(Instant.parse("2026-08-04T12:00:00Z")), null));
+        assertSqlState("P0001", () -> purgeEntries(java.sql.Timestamp.from(Instant.parse("2026-08-04T12:00:00Z")), 0));
+        assertSqlState("P0001", () -> purgeEntries(java.sql.Timestamp.from(Instant.parse("2026-08-04T12:00:00Z")), 501));
     }
 
     @Test void parameterizedPurgeAcceptsMinimumAndMaximumBoundedBatches() {
@@ -208,14 +208,21 @@ class AuditEntryMigrationTest {
     }
 
     private static void assertPurgeFunctionsDenied(Connection connection) {
-        assertThatThrownBy(() -> connection.createStatement().executeQuery("SELECT audit_purge_entries()"))
-                .isInstanceOf(SQLException.class);
-        assertThatThrownBy(() -> connection.createStatement().executeQuery("SELECT audit_purge_network_context()"))
-                .isInstanceOf(SQLException.class);
-        assertThatThrownBy(() -> connection.createStatement().executeQuery("SELECT audit_purge_entries(CURRENT_TIMESTAMP, 1)"))
-                .isInstanceOf(SQLException.class);
-        assertThatThrownBy(() -> connection.createStatement().executeQuery("SELECT audit_purge_network_context(CURRENT_TIMESTAMP, 1)"))
-                .isInstanceOf(SQLException.class);
+        assertSqlState("42501", () -> connection.createStatement().executeQuery("SELECT audit_purge_entries()"));
+        assertSqlState("42501", () -> connection.createStatement().executeQuery("SELECT audit_purge_network_context()"));
+        assertSqlState("42501", () -> connection.createStatement().executeQuery("SELECT audit_purge_entries(CURRENT_TIMESTAMP, 1)"));
+        assertSqlState("42501", () -> connection.createStatement().executeQuery("SELECT audit_purge_network_context(CURRENT_TIMESTAMP, 1)"));
+    }
+
+    private static void assertSqlState(String expectedSqlState, org.assertj.core.api.ThrowableAssert.ThrowingCallable callable) {
+        assertThatThrownBy(callable).satisfies(throwable -> assertThat(findSqlException(throwable).getSQLState()).isEqualTo(expectedSqlState));
+    }
+
+    private static SQLException findSqlException(Throwable throwable) {
+        for (Throwable current = throwable; current != null; current = current.getCause()) {
+            if (current instanceof SQLException sqlException) return sqlException;
+        }
+        throw new AssertionError("Expected SQLException in causal chain", throwable);
     }
 
     private static void assertPurgeFunctionsAllowed(Connection connection) throws SQLException {
