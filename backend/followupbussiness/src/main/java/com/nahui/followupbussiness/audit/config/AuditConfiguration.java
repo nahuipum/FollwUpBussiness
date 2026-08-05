@@ -2,9 +2,11 @@ package com.nahui.followupbussiness.audit.config;
 
 import com.nahui.followupbussiness.audit.adapter.in.scheduling.AuditRetentionScheduler;
 import com.nahui.followupbussiness.audit.adapter.out.persistence.JdbcAuditEntryStore;
+import com.nahui.followupbussiness.audit.adapter.out.persistence.JdbcAuthenticationAuditAdapter;
 import com.nahui.followupbussiness.audit.application.PurgeAuditRetention;
 import com.nahui.followupbussiness.audit.application.RecordAuditEntry;
 import com.nahui.followupbussiness.audit.application.port.in.RecordAuditEntryUseCase;
+import com.nahui.followupbussiness.audit.application.port.in.RecordAuthenticationAuditUseCase;
 import com.nahui.followupbussiness.audit.application.port.out.AuditEntryStore;
 import com.nahui.followupbussiness.audit.application.port.out.AuditTrustedContextProvider;
 import com.nahui.followupbussiness.audit.adapter.out.security.SecurityContextAuditTrustedContextProvider;
@@ -42,6 +44,11 @@ public class AuditConfiguration {
     @Bean
     RecordAuditEntryUseCase recordAuditEntryUseCase(AuditEntryStore store, AuditTrustedContextProvider contextProvider) {
         return new RecordAuditEntry(store, contextProvider, Clock.systemUTC());
+    }
+
+    @Bean
+    RecordAuthenticationAuditUseCase recordAuthenticationAuditUseCase(JdbcTemplate jdbcTemplate) {
+        return new JdbcAuthenticationAuditAdapter(jdbcTemplate);
     }
 
     @Bean
