@@ -24,12 +24,12 @@ public final class JdbcAuditEntryStore implements AuditEntryStore {
 
     @Override
     public int deleteNetworkContextBefore(Instant before, int batchSize) {
-        return purger.queryForObject("SELECT audit_purge_network_context()", Integer.class);
+        return purger.queryForObject("SELECT audit_purge_network_context(?, ?)", Integer.class, Timestamp.from(before), batchSize);
     }
 
     @Override
     public int deleteEntriesBefore(Instant before, int batchSize) {
-        return purger.queryForObject("SELECT audit_purge_entries()", Integer.class);
+        return purger.queryForObject("SELECT audit_purge_entries(?, ?)", Integer.class, Timestamp.from(before), batchSize);
     }
 
     private static String json(java.util.Map<String, String> values) {

@@ -73,7 +73,7 @@ class AuditEntryMigrationTest {
         Instant now = Instant.parse("2026-08-04T12:00:00Z");
         AuditEntry networkExpired = entry(now.minus(java.time.Duration.ofDays(91)));
         AuditEntry entryExpired = entry(now.minus(java.time.Duration.ofDays(366)));
-        AuditEntry atCutoff = entry(now.minus(java.time.Duration.ofDays(364)));
+        AuditEntry atCutoff = entry(now.minus(java.time.Duration.ofDays(365)));
         store.append(networkExpired); store.append(entryExpired); store.append(atCutoff);
         jdbc.update("INSERT INTO audit_network_context(id, audit_entry_id, tenant_id, ip_address, occurred_at) VALUES (?, ?, ?, CAST(? AS inet), ?)",
                 UUID.randomUUID(), networkExpired.id(), networkExpired.tenantId(), "192.0.2.1", java.sql.Timestamp.from(networkExpired.occurredAt()));
