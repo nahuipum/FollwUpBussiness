@@ -29,6 +29,17 @@
   evidencia y solo reabren una fuente primaria mediante una excepción trazada.
 - Si una fuente o el candidato cambia, invalidar el paquete y crear una nueva
   versión antes del siguiente gate. No reutilizar evidencia entre candidatos.
+- Para superficies de riesgo, ejecutar un preflight de Seguridad tras crear el
+  paquete y antes de Desarrollo. El resultado es `ADVISORY`, no una aprobación:
+  entrega una matriz breve de controles `SEC-<HU>-NN`, amenaza y pruebas
+  obligatorias. No inspecciona código ni reabre fuentes ya incluidas.
+- Desarrollo no puede emitir `READY_FOR_HANDOFF` sin una evidencia de
+  implementación y prueba por cada control aplicable. QA no puede emitir
+  `PASS` sin la matriz `SEC-*` trazada a sus pruebas.
+- Tras `CHANGES_REQUIRED` o `BLOCKED` de Seguridad, ejecutar solo
+  `Remediación Dev → QA afectado → Seguridad final → DoF`. Conservar las fases
+  aprobadas y sus evidencias del mismo candidato si el cambio no las afecta.
+  No reiniciar Desarrollo ni QA completos.
 
 ## 1. Entrada mínima de una historia
 
@@ -85,6 +96,11 @@ Determina si requiere:
 - Revisión de dependencia.
 - Prueba de abuso.
 
+Antes de Desarrollo, cuando el riesgo aplica, Seguridad emite un preflight
+`ADVISORY` que transforma estas necesidades en controles concretos y pruebas
+observables. La revisión final conserva independencia y valida el diff, el
+resultado de QA y los controles implementados.
+
 ---
 
 ## 3. Orden de contratos
@@ -123,6 +139,8 @@ El handoff debe identificar el diff o commit revisable y limitarse a informació
 nueva de la historia. Las reglas permanentes permanecen en sus fuentes de verdad.
 Debe además referenciar la versión del Paquete de Contexto y declarar cualquier
 lectura excepcional de una fuente primaria.
+Para cada control `SEC-*` aplicable debe declarar implementación, prueba y
+evidencia; una fila faltante bloquea el avance a QA.
 
 ---
 
@@ -159,6 +177,27 @@ aislamiento multiempresa, datos personales, geolocalización, almacenamiento
 local, archivos, dependencias, secretos, APIs públicas, WebSocket, Redis,
 RabbitMQ, infraestructura o CI/CD. En ausencia de estas superficies puede emitir
 `NOT_APPLICABLE` con una justificación breve basada en el diff.
+
+El preflight usa la misma plantilla, se marca `ADVISORY` y solo contiene
+matriz de controles, amenazas y pruebas requeridas. La revisión final no puede
+aprobar un control que no esté trazado por Desarrollo y QA.
+
+---
+
+## 6.1 Remediación de Seguridad
+
+Cuando Seguridad emite `CHANGES_REQUIRED` o `BLOCKED`, el Orquestador fija un
+nuevo candidato y crea un handoff de remediación con los IDs `SEC-*` fallidos.
+
+1. Desarrollo modifica exclusivamente los controles fallidos y sus pruebas.
+2. QA ejecuta los casos que cubren los controles, componentes y regresión
+   afectados; reutiliza evidencia inmutable de controles no afectados.
+3. Seguridad revisa solo los hallazgos y superficies modificadas, y declara si
+   los controles previos siguen vigentes.
+4. DoF revalida la trazabilidad del nuevo candidato.
+
+Solo se reinicia la HU completa si cambian sus requisitos, contrato, diseño o
+una evidencia anterior deja de ser válida.
 
 ---
 

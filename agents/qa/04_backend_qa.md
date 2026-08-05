@@ -158,6 +158,13 @@ Solo `PASS` cuando:
 
 ---
 
-## 7. Prompt operativo
+## 7. Controles del preflight
+
+Cuando exista una matriz `SEC-*`, incluir cada control aplicable en la matriz
+criterio → prueba y verificar su evidencia contra el candidato fijado. No
+emitir `PASS` si un control carece de prueba, si la prueba no cubre el abuso
+descrito o si Desarrollo solo declara cumplimiento.
+
+## 8. Prompt operativo
 
 Actúa como QA backend independiente de FollowupBussiness CRM. Diseña y ejecuta pruebas contra la historia y OpenAPI, cubriendo caminos felices, negativos, límites, autorización, aislamiento multiempresa, concurrencia e idempotencia. Prueba PostgreSQL/PostGIS, Redis, WebSocket y cola con fallos reales o simulados. Intenta duplicar visitas y ventas, acceder a otro tenant, usar ubicaciones antiguas o imprecisas y romper consumidores mediante reintentos. No aceptes afirmaciones sin evidencia. No corrijas silenciosamente el código para hacerlo pasar. Entrega matriz criterio-prueba, defectos reproducibles, regresión y estado PASS, CHANGES_REQUIRED o BLOCKED.

@@ -2,17 +2,27 @@
 
 ## Estado
 
-`BLOCKED`
+`PASS`
 
-## Trazabilidad del candidato
+## Trazabilidad
 
-- Paquete vigente: `BE-007-context-package-v4.md`; candidato funcional SHA-256 `261c12f5907fd534b6531095746d3108ec9c7f6caaefd688af9549d10b965c69` sobre base `f320938d55f8ca9bf58d0df0bab259749ca5974e`.
-- Handoffs finales del mismo fingerprint: Desarrollo `READY_FOR_HANDOFF`, QA `PASS` y Seguridad `PASS`.
+- Candidato: `f8cf15e6768d8d3facb0ecf7e4303e24f4ccde6a`.
+- Paquete aplicable: `docs/handoffs/governance/BE-007-context-package-v5.md`.
+- PR [#8 — BE-007: gestionar roles y permisos](https://github.com/nahuipum/FollwUpBussiness/pull/8) permanece `OPEN` y su `headRefOid` coincide con el candidato.
+- Los tres checks CI están `completed/success` sobre el mismo SHA.
 
-## Gates y evidencias faltantes
+## Gates
 
-1. **Commit revisable del candidato:** falta. `HEAD` es `f320938d55f8ca9bf58d0df0bab259749ca5974e` y las 13 rutas funcionales Backend que forman el candidato permanecen modificadas/no indexadas; el SHA funcional no corresponde a ningún commit.
-2. **PR trazable al candidato:** falta. La consulta directa muestra únicamente PR #2, `MERGED`, cuyo `headRefOid` es `dca1a9c60e6d253dd21eb9190452f5620e2a8355`, distinto de la base y sin contener el diff funcional BE-007.
-3. **CI asociada al candidato:** falta. La única ejecución localizada para la base `f320938d55f8ca9bf58d0df0bab259749ca5974e` es `Backend EN-011 Closure CI` (run `30932799079`, `success`); no puede validar el diff no indexado con fingerprint `261c12…65c69`.
+| Gate | Estado | Evidencia |
+|---|---|---|
+| Desarrollo | `READY_FOR_HANDOFF` | `docs/handoffs/development/BE-007-development-handoff.md`. |
+| QA funcional | `PASS` | `docs/handoffs/qa/BE-007-qa-revalidation-handoff.md` y `docs/handoffs/qa/BE-007-qa-security-revalidation-handoff.md`. |
+| Seguridad funcional | `PASS` | `docs/handoffs/security/BE-007-security-revalidation-handoff.md`. |
+| QA Compose v5 | `PASS` | `docs/handoffs/qa/BE-007-compose-qa-handoff.md`. |
+| Seguridad Compose v5 | `PASS` | `docs/handoffs/security/BE-007-compose-security-handoff.md`. |
+| PR y CI | `PASS` | PR #8 y tres runs `SUCCESS` sobre `f8cf15e`. |
 
-No procede cerrar DoF hasta disponer de las tres evidencias sobre el mismo commit candidato.
+## Riesgo residual
+
+- Proteger `.env` y el acceso al host/daemon Docker: usuarios privilegiados pueden inspeccionar variables de entorno.
+- Los futuros casos de uso deben invocar `ResourceAccessAuthorizer`; una ruta solo autenticada no sustituye autorización por objeto.

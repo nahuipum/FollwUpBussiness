@@ -1,0 +1,134 @@
+package com.nahui.followupbussiness.identityaccess.application;
+
+import com.nahui.followupbussiness.audit.application.RecordAuthenticationAuditCommand;
+import com.nahui.followupbussiness.audit.application.port.in.RecordAuthenticationAuditUseCase;
+import com.nahui.followupbussiness.identityaccess.application.port.out.*;
+import com.nahui.followupbussiness.identityaccess.application.port.in.RefreshSessionUseCase;
+import com.nahui.followupbussiness.tenancy.application.port.in.CompanyAccessStatusQuery;
+
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.security.MessageDigest;
+import java.time.*;
+import java.util.*;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+
+public final class RefreshService implements RefreshSessionUseCase {
+    private static final SecureRandom RANDOM = new SecureRandom();
+    private final RefreshSessionPort sessions;
+    private final LoginAccountQuery accounts;
+    private final CompanyAccessStatusQuery companies;
+    private final AccessTokenPort tokens;
+    private final RecordAuthenticationAuditUseCase audit;
+    private final RefreshRateLimitPort limiter;
+    private final Clock clock;
+    private final byte[] key;
+
+    public RefreshService(RefreshSessionPort sessions, LoginAccountQuery accounts, CompanyAccessStatusQuery companies, AccessTokenPort tokens, RecordAuthenticationAuditUseCase audit, RefreshRateLimitPort limiter, Clock clock, byte[] key) {
+        this.sessions = sessions;
+        this.accounts = accounts;
+        this.companies = companies;
+        this.tokens = tokens;
+        this.audit = audit;
+        this.limiter = limiter;
+        this.clock = clock;
+        this.key = key.clone();
+    }
+
+    public Result refresh(Command c) {
+        Instant now = clock.instant();
+        byte[] presented = digest(c.refreshToken());
+        var f = sessions.resolve(presented);
+        if (f == null) throw new Rejected(Code.INVALID);
+        var limit = limiter.checkFamily(f.familyId(), c.trustedRemoteAddress());
+        if (!limit.allowed()) throw new Rejected(Code.RATE_LIMITED, limit.retryAfterSeconds());
+        if (!f.channel().equals(c.channel()) || !MessageDigest.isEqual(f.clientDigest(), digest(c.clientId().toString()))) {
+            revokeAudit(f, c, now, RecordAuthenticationAuditCommand.Reason.CHANNEL_MISMATCH);
+            throw new Rejected(Code.REUSED);
+        }
+        if ("WEB".equals(c.channel()) && (c.csrfToken() == null || !MessageDigest.isEqual(f.csrfDigest(), digest(c.csrfToken()))))
+            throw new Rejected(Code.CSRF);
+        if (f.revokedAt() != null) {
+            audit(f, c, now, RecordAuthenticationAuditCommand.Result.REJECTED, RecordAuthenticationAuditCommand.Reason.REVOKED);
+            throw new Rejected(Code.INVALID);
+        }
+        if (!now.isBefore(f.expiresAt())) {
+            audit(f, c, now, RecordAuthenticationAuditCommand.Result.REJECTED, RecordAuthenticationAuditCommand.Reason.EXPIRED);
+            throw new Rejected(Code.EXPIRED);
+        }
+        if (!f.current()) {
+            if (!now.isAfter(f.lastRotatedAt().plusSeconds(5))) {
+                audit(f, c, now, RecordAuthenticationAuditCommand.Result.ALREADY_ROTATED, RecordAuthenticationAuditCommand.Reason.REPLAY);
+                throw new Rejected(Code.ALREADY_ROTATED);
+            }
+            revokeAudit(f, c, now, RecordAuthenticationAuditCommand.Reason.REPLAY);
+            throw new Rejected(Code.REUSED);
+        }
+        var a = accounts.findById(f.accountId()).filter(this::usable).orElseGet(() -> {
+            revokeAudit(f, c, now, RecordAuthenticationAuditCommand.Reason.INVALID);
+            throw new Rejected(Code.INVALID);
+        });
+        String next = secret();
+        String nextCsrf = "WEB".equals(c.channel()) ? secret() : null;
+        if (!sessions.rotate(f, presented, digest(next), nextCsrf == null ? null : digest(nextCsrf), now).rotated()) {
+            audit(f, c, now, RecordAuthenticationAuditCommand.Result.ALREADY_ROTATED, RecordAuthenticationAuditCommand.Reason.REPLAY);
+            throw new Rejected(Code.ALREADY_ROTATED);
+        }
+        audit(f, c, now, RecordAuthenticationAuditCommand.Result.REFRESHED, null);
+        return new Result(tokens.issue(a.id(), f.familyId(), a.companyId(), a.role()), next, a, nextCsrf, c.channel());
+    }
+
+    private boolean usable(LoginAccountQuery.Account a) {
+        return "ACTIVE".equals(a.status()) && a.displayName() != null && a.email() != null && (a.companyId() == null || companies.isActive(a.companyId()));
+    }
+
+    private void revokeAudit(RefreshSessionPort.Resolution f, Command c, Instant n, RecordAuthenticationAuditCommand.Reason r) {
+        sessions.revoke(f.familyId(), n);
+        audit(f, c, n, RecordAuthenticationAuditCommand.Result.REUSED, r);
+    }
+
+    private void audit(RefreshSessionPort.Resolution f, Command c, Instant n, RecordAuthenticationAuditCommand.Result result, RecordAuthenticationAuditCommand.Reason reason) {
+        audit.record(new RecordAuthenticationAuditCommand(f.accountId(), f.familyId(), f.companyId(), c.correlationId(), RecordAuthenticationAuditCommand.Channel.valueOf(f.channel()), result, n, reason));
+    }
+
+    private String secret() {
+        byte[] b = new byte[32];
+        RANDOM.nextBytes(b);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(b);
+    }
+
+    private byte[] digest(String s) {
+        try {
+            Mac m = Mac.getInstance("HmacSHA256");
+            m.init(new SecretKeySpec(key, "HmacSHA256"));
+            return m.doFinal(s.getBytes(StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    public record Command(String refreshToken, String csrfToken, String channel, UUID clientId, UUID correlationId,
+                          String trustedRemoteAddress) {
+    }
+
+    public record Result(String accessToken, String refreshToken, LoginAccountQuery.Account account, String csrfToken,
+                         String channel) {
+    }
+
+    public enum Code {INVALID, EXPIRED, REUSED, ALREADY_ROTATED, CSRF, RATE_LIMITED}
+
+    public static final class Rejected extends RuntimeException {
+        public final Code code;
+        public final long retryAfter;
+
+        public Rejected(Code c) {
+            this(c, 0);
+        }
+
+        public Rejected(Code c, long r) {
+            code = c;
+            retryAfter = r;
+        }
+    }
+}

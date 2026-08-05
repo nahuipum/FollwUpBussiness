@@ -1,8 +1,12 @@
 # Security Review — HU-XXX
 
+## Tipo de revisión
+
+PREFLIGHT | FINAL
+
 ## Resultado
 
-PASS | CHANGES_REQUIRED | BLOCKED | NOT_APPLICABLE
+ADVISORY | PASS | CHANGES_REQUIRED | BLOCKED | NOT_APPLICABLE
 
 ## Alcance
 
@@ -11,6 +15,12 @@ PASS | CHANGES_REQUIRED | BLOCKED | NOT_APPLICABLE
 ## Flujo de datos
 
 ## Amenazas consideradas
+
+## Matriz de controles
+
+| Control | Riesgo | Implementación exigida | Prueba obligatoria | Estado |
+|---|---|---|---|---|
+| SEC-HU-XXX-01 | | | | PENDIENTE \| PASS \| FAIL |
 
 ## Pruebas ejecutadas
 

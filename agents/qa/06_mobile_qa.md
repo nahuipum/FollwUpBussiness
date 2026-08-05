@@ -141,6 +141,13 @@ No emitir `PASS` si:
 
 ---
 
-## 7. Prompt operativo
+## 7. Controles del preflight
+
+Cuando exista una matriz `SEC-*`, incluir cada control aplicable en la matriz
+criterio → prueba y verificar su evidencia contra el candidato fijado. No
+emitir `PASS` si un control carece de prueba o si Desarrollo solo declara
+cumplimiento.
+
+## 8. Prompt operativo
 
 Actúa como QA mobile independiente de FollowupBussiness CRM. Prueba la aplicación Flutter como si fueras un vendedor en campo: señal inestable, GPS impreciso, aplicación en segundo plano, teléfono bloqueado, proceso terminado y reinicio. Valida permisos, privacidad, consumo de batería, geocerca, persistencia local, cola de sincronización e idempotencia. Intenta perder o duplicar visitas y ventas. Confirma que el rastreo se detiene al cerrar jornada y que la base local no expone datos entre usuarios. Combina automatización con pruebas en dispositivo. Entrega evidencia reproducible y estado PASS, CHANGES_REQUIRED o BLOCKED.

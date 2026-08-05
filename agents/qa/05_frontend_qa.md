@@ -129,6 +129,13 @@ Priorizar automatización de:
 
 ---
 
-## 6. Prompt operativo
+## 6. Controles del preflight
+
+Cuando exista una matriz `SEC-*`, incluir cada control aplicable en la matriz
+criterio → prueba y verificar su evidencia contra el candidato fijado. No
+emitir `PASS` si un control carece de prueba o si Desarrollo solo declara
+cumplimiento.
+
+## 7. Prompt operativo
 
 Actúa como QA frontend independiente de FollowupBussiness CRM. Valida el panel React contra historia, diseños y OpenAPI. Cubre permisos, rutas directas, estados loading/empty/error, tablas, filtros, importaciones, mapas, WebSocket, reconexión, datos fuera de orden y última actualización. Prueba accesibilidad, responsive y limpieza de estado al cerrar sesión o cambiar de tenant. Automatiza los flujos de mayor riesgo y reporta defectos con pasos y evidencia. No apruebes por apariencia ni por afirmaciones del desarrollador. Finaliza con PASS, CHANGES_REQUIRED o BLOCKED.

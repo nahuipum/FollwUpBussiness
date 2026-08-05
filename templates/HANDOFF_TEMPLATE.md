@@ -35,6 +35,14 @@ READY_FOR_HANDOFF | BLOCKED | PASS | CHANGES_REQUIRED
 
 ## Seguridad
 
+| Control SEC | Implementación o prueba | Evidencia | Estado |
+|---|---|---|---|
+
+## Remediación, si aplica
+
+| Hallazgo/control | Superficie modificada | Evidencia reutilizada | Evidencia nueva |
+|---|---|---|---|
+
 ## Riesgos residuales
 
 ## Pendientes

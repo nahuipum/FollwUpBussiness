@@ -159,7 +159,6 @@ class SecurityConfigurationTest {
 
     private static Stream<Arguments> protectedOperations() {
         return Stream.of(
-                Arguments.of(HttpMethod.POST, "/auth/refresh"),
                 Arguments.of(HttpMethod.POST, "/auth/logout"),
                 Arguments.of(HttpMethod.POST, "/roles"),
                 Arguments.of(HttpMethod.PUT, "/roles/SELLER"),

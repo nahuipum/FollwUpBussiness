@@ -209,11 +209,12 @@ silenciosa. Si no puede completarse, el ámbito queda bloqueado en estado seguro
 sin captura ni acceso a sus datos, hasta completar el flujo autorizado.
 
 Retención de **visitas y ventas**: fuera de EN-016; responsable Luis Siancas,
-cierre **2026-08-14**. Política detallada de auditoría y contador D6: fuera de
-EN-016; responsable Luis Siancas, cierre **2026-08-21**. El contador futuro
-distinguirá fallos técnicos de acciones deliberadas, no contendrá coordenadas y
-no generará sanciones automáticas. Esta aceptación humana no sustituye revisión
-legal ni de seguridad independiente sobre la implementación.
+cierre **2026-08-14**. La política detallada de auditoría se define en
+ADR-020; el contador D6 continúa fuera de EN-016, con responsable Luis Siancas
+y cierre **2026-08-21**. El contador futuro distinguirá fallos técnicos de
+acciones deliberadas, no contendrá coordenadas y no generará sanciones
+automáticas. Esta aceptación humana no sustituye revisión legal ni de seguridad
+independiente sobre la implementación.
 
 Riesgos residuales: permisos/GPS/batería pueden impedir captura; una cola
 offline puede crecer hasta resolverse; backup/restore y réplicas pueden

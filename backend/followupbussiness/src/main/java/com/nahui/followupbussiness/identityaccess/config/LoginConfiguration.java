@@ -1,18 +1,23 @@
 package com.nahui.followupbussiness.identityaccess.config;
 
 import com.nahui.followupbussiness.identityaccess.adapter.in.rest.LoginRateLimiter;
+import com.nahui.followupbussiness.identityaccess.adapter.in.rest.RefreshRateLimiter;
 import com.nahui.followupbussiness.identityaccess.adapter.in.rest.LoginRequestSizeFilter;
 import com.nahui.followupbussiness.identityaccess.adapter.in.security.InboundJwtAuthenticator;
 import com.nahui.followupbussiness.identityaccess.adapter.out.persistence.*;
 import com.nahui.followupbussiness.identityaccess.adapter.out.security.*;
 import com.nahui.followupbussiness.identityaccess.application.*;
 import com.nahui.followupbussiness.identityaccess.application.port.out.*;
+import com.nahui.followupbussiness.identityaccess.application.port.in.RefreshSessionUseCase;
+import com.nahui.followupbussiness.audit.application.port.in.RecordAuthenticationAuditUseCase;
 import com.nahui.followupbussiness.tenancy.application.port.in.CompanyAccessStatusQuery;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.*;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.nio.charset.StandardCharsets;
 import java.security.*;
@@ -58,6 +63,31 @@ public class LoginConfiguration {
     @Bean
     LoginRequestSizeFilter loginRequestSizeFilter() {
         return new LoginRequestSizeFilter();
+    }
+
+    @Bean
+    RefreshSessionUseCase refreshSessionUseCase(JdbcTemplate j, CompanyAccessStatusQuery c, AuthenticationProperties.Values p,
+                                                RecordAuthenticationAuditUseCase audit, RefreshRateLimiter limiter) {
+        try {
+            PrivateKey k = KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(Base64.getDecoder().decode(p.getRs256PrivateKey())));
+            var service = new RefreshService(new JdbcRefreshSessionAdapter(j), new JdbcLoginAccountQuery(j), c,
+                    new Rs256AccessTokenAdapter(k, p.getKid(), p.getIssuer(), p.getAudience(), Clock.systemUTC()), audit, limiter,
+                    Clock.systemUTC(), p.getHmacSecret().getBytes(StandardCharsets.UTF_8));
+            var transaction = new TransactionTemplate(new DataSourceTransactionManager(j.getDataSource()));
+            return command -> {
+                Object outcome = java.util.Objects.requireNonNull(transaction.execute(status -> {
+                    try { return service.refresh(command); }
+                    catch (RefreshService.Rejected rejected) { return rejected; }
+                }));
+                if (outcome instanceof RefreshService.Rejected rejected) throw rejected;
+                return (RefreshService.Result) outcome;
+            };
+        } catch (IllegalArgumentException | GeneralSecurityException e) { throw new IllegalStateException("Invalid RS256 authentication key", e); }
+    }
+
+    @Bean
+    RefreshRateLimiter refreshRateLimiter(StringRedisTemplate redis, AuthenticationProperties.Values p) {
+        return new RefreshRateLimiter(redis, p.getHmacSecret().getBytes(StandardCharsets.UTF_8));
     }
 
     @Bean
