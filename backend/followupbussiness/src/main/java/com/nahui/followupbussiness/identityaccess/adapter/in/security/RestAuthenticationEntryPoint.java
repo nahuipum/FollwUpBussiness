@@ -20,6 +20,6 @@ public final class RestAuthenticationEntryPoint implements AuthenticationEntryPo
             HttpServletResponse response,
             AuthenticationException authenticationException) throws IOException {
 
-        SecurityErrorResponseWriter.write(response, HttpServletResponse.SC_UNAUTHORIZED, RESPONSE_BODY);
+        SecurityErrorResponseWriter.write(request, response, HttpServletResponse.SC_UNAUTHORIZED, RESPONSE_BODY);
     }
 }

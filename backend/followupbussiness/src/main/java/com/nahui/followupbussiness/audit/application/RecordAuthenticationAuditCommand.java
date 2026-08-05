@@ -9,8 +9,8 @@ public record RecordAuthenticationAuditCommand(UUID accountId, UUID sessionFamil
                                                UUID correlationId, Channel channel, Result result,
                                                Instant occurredAt, Reason reason) {
     public enum Channel { WEB, MOBILE }
-    public enum Result { REFRESHED, ALREADY_ROTATED, REUSED, REJECTED, RATE_LIMITED, UNAVAILABLE }
-    public enum Reason { INVALID, EXPIRED, REVOKED, CHANNEL_MISMATCH, CLIENT_MISMATCH, CSRF_INVALID, REPLAY }
+    public enum Result { REFRESHED, ALREADY_ROTATED, REUSED, REJECTED, RATE_LIMITED, UNAVAILABLE, LOGGED_OUT }
+    public enum Reason { INVALID, EXPIRED, REVOKED, CHANNEL_MISMATCH, CLIENT_MISMATCH, CSRF_INVALID, REPLAY, GLOBAL }
     public RecordAuthenticationAuditCommand {
         if (accountId == null || sessionFamilyId == null || correlationId == null || channel == null || result == null || occurredAt == null)
             throw new IllegalArgumentException("authentication audit technical context is required");

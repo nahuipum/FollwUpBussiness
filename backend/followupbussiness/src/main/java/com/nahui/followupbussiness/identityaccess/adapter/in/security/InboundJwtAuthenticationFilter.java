@@ -24,7 +24,8 @@ public final class InboundJwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !"POST".equals(request.getMethod()) || !request.getRequestURI().startsWith(DLQ_REPROCESS_PREFIX) || !request.getRequestURI().endsWith("/reprocess");
+        if ("POST".equals(request.getMethod()) && "/auth/logout".equals(request.getRequestURI()) && "PENDING".equals(request.getHeader("X-Logout-Intent"))) return true;
+        return request.getHeader("Authorization") == null;
     }
 
     @Override

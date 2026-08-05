@@ -2,10 +2,14 @@ package com.nahui.followupbussiness.identityaccess.adapter.in.security;
 
 import com.nahui.followupbussiness.identityaccess.adapter.out.security.Rs256AccessTokenAdapter;
 import com.nahui.followupbussiness.identityaccess.domain.model.BaseRole;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyPairGenerator;
+import java.security.PrivateKey;
+import java.security.Signature;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.Base64;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -14,9 +18,23 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class InboundJwtAuthenticatorTest {
+    @Test
+    void rejectsSignedTokenWithFutureNbfBeforeConsultingTheSession() throws Exception {
+        var keys = KeyPairGenerator.getInstance("RSA"); keys.initialize(2048); var pair = keys.generateKeyPair();
+        Instant now = Instant.parse("2026-08-04T12:00:00Z");
+        JdbcTemplate jdbc = mock(JdbcTemplate.class);
+        var authenticator = new InboundJwtAuthenticator(pair.getPublic(), "issuer", "audience", jdbc, Clock.fixed(now, ZoneOffset.UTC));
+
+        assertThatThrownBy(() -> authenticator.authenticate(futureNbfToken(pair.getPrivate(), now)))
+                .isInstanceOf(InboundJwtAuthenticator.JwtValidationException.class);
+
+        verifyNoInteractions(jdbc);
+    }
+
     @Test
     void acceptsSignedCompanyTokenOnlyWhenItsTenantComesFromThePersistedSession() throws Exception {
         var keys = KeyPairGenerator.getInstance("RSA"); keys.initialize(2048); var pair = keys.generateKeyPair();
@@ -103,6 +121,22 @@ class InboundJwtAuthenticatorTest {
 
     private String companyToken(TestAuthenticator authenticator, BaseRole role) {
         return authenticator.tokens().issue(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), role);
+    }
+
+    private static String futureNbfToken(PrivateKey key, Instant now) throws Exception {
+        String header = encoded("{\"alg\":\"RS256\",\"typ\":\"JWT\"}");
+        String claims = encoded("{\"iss\":\"issuer\",\"aud\":\"audience\",\"sub\":\"" + UUID.randomUUID()
+                + "\",\"sid\":\"" + UUID.randomUUID() + "\",\"roles\":[\"SELLER\"],\"nbf\":"
+                + now.plusSeconds(60).getEpochSecond() + ",\"exp\":" + now.plusSeconds(600).getEpochSecond() + "}");
+        String signed = header + "." + claims;
+        Signature signature = Signature.getInstance("SHA256withRSA");
+        signature.initSign(key);
+        signature.update(signed.getBytes(StandardCharsets.US_ASCII));
+        return signed + "." + Base64.getUrlEncoder().withoutPadding().encodeToString(signature.sign());
+    }
+
+    private static String encoded(String value) {
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(value.getBytes(StandardCharsets.UTF_8));
     }
 
     private record TestAuthenticator(InboundJwtAuthenticator authenticator, Rs256AccessTokenAdapter tokens) { }

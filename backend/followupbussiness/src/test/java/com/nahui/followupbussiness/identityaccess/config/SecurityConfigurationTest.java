@@ -61,12 +61,13 @@ class SecurityConfigurationTest {
     @Autowired
     private ApplicationContext applicationContext;
 
+
     @Test
     void protectedRouteRejectsUnauthenticatedRequestWithSafe401() throws Exception {
         String responseBody = mockMvc.perform(get("/api/test/protected"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(header().string("Cache-Control", "no-store"))
-                .andExpect(content().contentTypeCompatibleWith("application/json"))
+                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
                 .andExpect(jsonPath("$.status").value(401))
                 .andExpect(jsonPath("$.code").value("UNAUTHORIZED"))
                 .andExpect(jsonPath("$.message").value("Authentication is required"))
@@ -90,7 +91,7 @@ class SecurityConfigurationTest {
         String responseBody = mockMvc.perform(post("/api/test/protected").with(user("test-only-user")))
                 .andExpect(status().isForbidden())
                 .andExpect(header().string("Cache-Control", "no-store"))
-                .andExpect(content().contentTypeCompatibleWith("application/json"))
+                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
                 .andExpect(jsonPath("$.status").value(403))
                 .andExpect(jsonPath("$.code").value("FORBIDDEN"))
                 .andExpect(jsonPath("$.message").value("Access is denied"))
@@ -159,7 +160,6 @@ class SecurityConfigurationTest {
 
     private static Stream<Arguments> protectedOperations() {
         return Stream.of(
-                Arguments.of(HttpMethod.POST, "/auth/logout"),
                 Arguments.of(HttpMethod.POST, "/roles"),
                 Arguments.of(HttpMethod.PUT, "/roles/SELLER"),
                 Arguments.of(HttpMethod.PATCH, "/roles/PLATFORM_SUPERADMIN"),

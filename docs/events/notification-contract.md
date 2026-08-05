@@ -154,3 +154,6 @@ adapterId, latencia, `correlationId` e IDs técnicos protegidos. Las alertas
 cubren cuotas, DLQ, errores sostenidos, latencia y revocaciones/rotaciones
 fallidas. Secretos y configuración por ambiente siguen ADR-010; sandbox es un
 ambiente separado y no contiene credenciales versionadas.
+## Revocación de instalaciones por sesión
+
+`notifications.application.port.in.RevokeInstallationsForSession#revoke(UUID sessionFamilyId, UUID tenantId)` revoca idempotentemente las vinculaciones push de la familia de sesión indicada. La invocación interna recibe únicamente esos IDs técnicos derivados por el servidor; no transporta ticket, access token, refresh token, token push, ni datos personales.

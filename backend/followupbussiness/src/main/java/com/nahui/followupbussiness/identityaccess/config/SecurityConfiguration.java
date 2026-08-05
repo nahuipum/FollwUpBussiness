@@ -43,6 +43,7 @@ public class SecurityConfiguration {
                         .requestMatchers("/actuator/prometheus").permitAll()
                         .requestMatchers("/auth/login").permitAll()
                         .requestMatchers("/auth/refresh").permitAll()
+                        .requestMatchers("/auth/logout").permitAll()
                         .requestMatchers("/api/v1/internal/outbox/dlq/*/reprocess").hasAuthority("PLATFORM_SUPERADMIN")
                         .anyRequest().authenticated())
                 .csrf(csrf -> csrf.ignoringRequestMatchers("/api/v1/internal/outbox/dlq/*/reprocess")
