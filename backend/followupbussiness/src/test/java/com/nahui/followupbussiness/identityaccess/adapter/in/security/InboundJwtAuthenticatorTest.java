@@ -37,7 +37,11 @@ class InboundJwtAuthenticatorTest {
         org.mockito.Mockito.verify(jdbc).query(org.mockito.ArgumentMatchers.argThat(sql ->
                 sql.contains("LEFT JOIN tenancy_company company") && sql.contains("company.status = 'ACTIVE'")),
                 any(org.springframework.jdbc.core.RowMapper.class), any(), any(), any(), any());
-        assertThatThrownBy(() -> authenticator.authenticate(token.substring(0, token.length() - 2) + "aa"))
+        int signatureStart = token.lastIndexOf('.') + 1;
+        String tamperedToken = token.substring(0, signatureStart)
+                + (token.charAt(signatureStart) == 'A' ? 'B' : 'A')
+                + token.substring(signatureStart + 1);
+        assertThatThrownBy(() -> authenticator.authenticate(tamperedToken))
                 .isInstanceOf(InboundJwtAuthenticator.JwtValidationException.class);
     }
 
