@@ -227,3 +227,67 @@ Un hallazgo de Seguridad no reinicia la HU. Crear una nueva versión del paquete
 | Preflight, Desarrollo, QA y Seguridad final v14/v15 | `INVALIDATED` | La identidad se fija ahora con manifest completo; sus estados no se reutilizan sin revalidación explícita. |
 | F14-01 | `REMEDIATED` | Toda superficie funcional BE-005, incluidos archivos untracked, queda vinculada por el manifiesto verificable. |
 | Siguiente gate permitido | `PENDING` | Invocar únicamente Preflight de Seguridad v16; QA, Seguridad final y DoF siguen cerrados. |
+
+## Revisión v17 — remediación de CI para retención de auditoría (2026-08-05)
+
+### Identidad, causa y delta
+
+- Candidato fijado: commit `a40a44735715b7557c3e57671351dd6b6ef97ed7` (`fix(audit): respetar corte de retencion`), padre `dd8c14b755cfbd166c5a669060de51775c228b41`; staging vacío antes de abrir esta revisión documental.
+- Causa comprobada en los tres jobs fallidos del PR #11: `AuditEntryMigrationTest.retentionKeepsCutoffAndPurgesNetworkBeforeEntriesInBoundedBatches` esperaba una entrada purgada y recibía dos. `JdbcAuditEntryStore` aceptaba `before` y `batchSize`, pero invocaba funciones V9 sin argumentos, que usaban `CURRENT_TIMESTAMP` y `LIMIT 500`; el `Clock` fijo del caso de uso no gobernaba la purga.
+- Delta funcional: `JdbcAuditEntryStore` transmite corte y lote a funciones `SECURITY DEFINER`; V13 añade las sobrecargas parametrizadas, limita el lote a `1..500`, rechaza corte futuro y conserva `FOR UPDATE SKIP LOCKED`, append-only y privilegio exclusivo de `audit_purger`. La prueba verifica el borde exacto de 365 días con el `Clock` fijo.
+- Rutas del delta: `JdbcAuditEntryStore.java`, `V13__parameterize_audit_retention_purge.sql` y `AuditEntryMigrationTest.java`. No cambia endpoint, JWT, contrato externo ni límite hexagonal; no requiere ADR.
+
+### Evidencia y reutilización
+
+| Evidencia | Resultado | Uso en v17 |
+|---|---|---|
+| `mvn -o "-Dmaven.repo.local=C:\\Users\\LUIS\\.m2\\repository" "-Dtest=AuditEntryMigrationTest" test` con Docker local | PASS, 5 pruebas; Flyway V1–V13 | Verifica corte, lote, orden red→entrada e identidades de privilegio. |
+| CI PR #11 sobre `dd8c14b` | 3 jobs `FAIL`, mismo fallo de retención; 233 pruebas, 1 fallo | Causa cerrada por el delta v17; no es evidencia reutilizable de aprobación. |
+| Evidencia v16 de logout/revocación | PASS sobre `dd8c14b` | Reutilizable sólo como regresión no afectada; no reutiliza estados de fase. |
+| `git diff --check` | PASS antes de fijar `a40a447` | Integridad textual del delta publicado. |
+
+### Invalidez y registro de gates
+
+| Fecha | Gate | Identidad | Estado | Decisión |
+|---|---|---|---|---|
+| 2026-08-05 | Desarrollo, QA y Seguridad final v16 | `dd8c14b` | `INVALIDATED` para cierre | El candidato ahora incluye V13 y el adaptador de retención; afecta `SEC-BE005-10` y necesita revalidación explícita. |
+| 2026-08-05 | Preflight v16 | `dd8c14b` | `DEPENDENT` | Su matriz permanece como requisito, pero Seguridad debe emitir preflight acotado v17 para `SEC-BE005-10`. |
+| 2026-08-05 | Siguiente gate permitido | `a40a447` | `PENDING` | Invocar exclusivamente Preflight de Seguridad v17; QA, Seguridad final y DoF permanecen cerrados. |
+
+## Revisión v18 — evidencia de retención tras QA (2026-08-05)
+
+### Identidad y alcance
+
+- Candidato fijado: `c0ddb177e7cc2f087d28ec59f01b1c4d32423898` (`test(audit): cubrir limites de purga`), padre `a40a44735715b7557c3e57671351dd6b6ef97ed7`; staging vacío antes de esta revisión documental.
+- Delta desde v17: sólo `AuditEntryMigrationTest`. No se modifica código productivo, V13, contrato, endpoint, tenant ni arquitectura. El candidato añade evidencia para los hallazgos QA/preflight de `SEC-BE005-10`.
+- Evidencia: `AuditEntryMigrationTest` con Docker local PASS, 10 pruebas, 0 fallos/errores; cubre corte futuro/`NULL`, lotes `NULL`/0/1/500/501, migración incremental V12→V13 con datos, doble purgador sin doble conteo y permisos de ambas firmas para `PUBLIC`, `audit_writer` y `audit_purger`.
+
+### Registro de gates
+
+| Fecha | Gate | Identidad | Estado | Decisión |
+|---|---|---|---|---|
+| 2026-08-05 | QA v17 | `a40a447` | `CHANGES_REQUIRED` | Sus hallazgos quedan remediados por las pruebas del nuevo candidato; no se reutiliza su estado. |
+| 2026-08-05 | Preflight/Desarrollo v17 | `a40a447` | `REVALIDATION_REQUIRED` | El código no cambia, pero la evidencia está en otro commit; revalidar explícitamente `SEC-BE005-10` antes de QA. |
+| 2026-08-05 | Siguiente gate permitido | `c0ddb17` | `PENDING` | Preflight de Seguridad acotado v18; QA, Seguridad final y DoF siguen cerrados. |
+
+## Revisión v19 — corrección de identidad v18 (2026-08-05)
+
+- La revisión v18 transcribió de forma incompleta/incorrecta el SHA completo del candidato. El prefijo `c0ddb17` era correcto, pero el valor canónico verificable es `c0ddb1768bb785c0f027701848cf3ff58dfeb056`.
+- Verificación en disco: `git rev-parse HEAD` = `c0ddb1768bb785c0f027701848cf3ff58dfeb056`; `git diff --cached --quiet` = staging vacío; `git diff --check HEAD` = PASS.
+- v18 queda `INVALIDATED` sólo para transiciones de fase por identidad no exacta; su descripción de delta/evidencia permanece histórica. No se reutiliza `ADVISORY`, `READY_FOR_HANDOFF` ni `PASS` vinculados al SHA erróneo.
+
+| Gate | Identidad | Estado | Siguiente acción |
+|---|---|---|---|
+| Preflight/Desarrollo/QA v18 | SHA transcrito erróneo | `INVALIDATED` | Revalidar contra `c0ddb1768bb785c0f027701848cf3ff58dfeb056`. |
+| Siguiente gate permitido | `c0ddb1768bb785c0f027701848cf3ff58dfeb056` | `PENDING` | Preflight de Seguridad acotado para `SEC-BE005-10`; QA, Seguridad final y DoF permanecen cerrados. |
+
+## Revisión v20 — aserciones SQLState de QA (2026-08-05)
+
+- Candidato: `294a0e09473fba68ce88dcaaddd1d29fcc47bab0`, padre `c0ddb1768bb785c0f027701848cf3ff58dfeb056`; staging vacío antes de esta revisión.
+- Delta exclusivo: `AuditEntryMigrationTest` exige `P0001` para cada guardia V13 y `42501` para denegaciones de `PUBLIC`/`audit_writer`; no modifica producción, migración ni contrato.
+- Evidencia: integración Docker `AuditEntryMigrationTest` PASS 10/0 y `git diff --check` PASS. PR #11 actualizado con este candidato; CI pendiente.
+
+| Gate | Estado | Decisión |
+|---|---|---|
+| QA v19 | `INVALIDATED` por nuevo commit de evidencia | Sus dos hallazgos se remediaron; requiere QA independiente v20. |
+| Siguiente gate | `PENDING` | QA v20 sobre `SEC-BE005-10`; Seguridad final/DoF cerrados hasta `PASS` y CI. |

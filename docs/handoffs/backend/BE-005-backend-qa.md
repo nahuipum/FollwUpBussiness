@@ -375,3 +375,140 @@ Ninguno en el alcance revalidado.
 
 - Regresión cubierta: consumo/replay concurrente, rollback de digest-revocación-instalaciones-auditoría, V12 y datos legado V11 ambiguos, y aislamiento cross-tenant.
 - Riesgo residual: la migración V12 puede requerir saneamiento/validación operacional de datos productivos preexistentes antes de desplegar; no altera el resultado QA del candidato ni se ejecutó contra producción.
+
+---
+
+## QA independiente v17 — remediación CI de retención (2026-08-05)
+
+### Estado
+
+`CHANGES_REQUIRED`
+
+### Identidad, entradas y alcance
+
+- HU: `BE-005 — Cerrar y revocar sesión`; paquete canónico v17 (`SHA-256 47BB21546FF506A057C29C1CD88F7667724DC5AE44307853C837BA841D971A2E`), preflight canónico v17 `ADVISORY` y handoff de Desarrollo v17 `READY_FOR_HANDOFF`, verificados en disco.
+- Candidato: `HEAD a40a44735715b7557c3e57671351dd6b6ef97ed7`, padre `dd8c14b755cfbd166c5a669060de51775c228b41`; `git diff --cached --quiet` confirma staging vacío. El worktree conserva cambios documentales ajenos, sin rutas backend del commit en staging.
+- Alcance exclusivo: adaptador/migración/prueba V13, `SEC-BE005-10` y dependencia de integridad `SEC-BE005-09`. No cambian endpoint, JWT, sesión, tenant, contratos ni límites de módulos; arquitectura y tenantId son `NOT_APPLICABLE` para este delta.
+
+### Matriz resumida
+
+| Criterio/control | Implementación revisada | Prueba / evidencia | Resultado |
+|---|---|---|---|
+| `SEC-BE005-10` — corte y retención 365/90 | `PurgeAuditRetention` calcula ambos cortes con su `Clock`; `JdbcAuditEntryStore` los transmite a las sobrecargas V13. Las funciones eliminan sólo `occurred_at < p_before`, validan lote `1..500`, usan `FOR UPDATE SKIP LOCKED`, `SECURITY DEFINER`, owner fijo y `search_path` fijo. | `AuditEntryMigrationTest` ejecutada independientemente: 5 PASS sobre Flyway V1–V13. Demuestra borde 365, orden red→entrada, repetición y parte de privilegios. | `CHANGES_REQUIRED` — faltan negativos y escenarios obligatorios detallados abajo. |
+| `SEC-BE005-09` — append-only / borrado controlado | Triggers V9 siguen bloqueando DML salvo `audit.purge`; V13 activa ese contexto sólo dentro de funciones de purga. No se altera el flujo de logout ni el evento `LOGGED_OUT`. | Inspección V9/V13; la prueba dirigida confirma que `audit_writer` y `audit_purger` no pueden hacer `DELETE` directo. Handoff Dev reporta suite completa del mismo commit: 233/0 (reutilizada sólo como regresión no afectada). | `PASS` para la dependencia no modificada. |
+
+### Comandos y evidencia
+
+- `git show --stat --oneline a40a447` y `git diff --check a40a447^ a40a447` — tres rutas del delta; comprobación textual PASS.
+- `git rev-parse HEAD`; `git diff --cached --quiet`; `git status --porcelain=v1` — HEAD coincide y staging vacío; cambios documentales ajenos preservados.
+- Desde `backend/followupbussiness`: `mvn -o "-Dmaven.repo.local=C:\\Users\\LUIS\\.m2\\repository" "-Dtest=AuditEntryMigrationTest" test` — primer intento `NOT_EXECUTED` por acceso denegado al pipe Docker sandbox; repetición autorizada PASS, 5 pruebas, 0 fallos/errores, Testcontainers PostgreSQL/PostGIS y Flyway V1–V13.
+- Suite completa 233/0: evidencia declarada por Desarrollo para el mismo commit; no se repitió porque el hallazgo de cobertura dirigida ya es concluyente y el delta no toca logout.
+
+### Hallazgos
+
+- **Alta — SEC-BE005-10 carece de evidencia de controles negativos y de migración exigidos.** `AuditEntryMigrationTest` sólo prueba el lote inválido `501` junto con corte futuro (`'infinity'`), pero no separa `NULL`, corte futuro, lotes `NULL`/`0`/`1`/`500`; tampoco prueba upgrade V12→V13 con datos existentes ni dos purgadores concurrentes. Reproducción: revisar `AuditEntryMigrationTest#writerCannotReadNetworkOrMutateEvidenceAndPurgerCannotDeleteDirectly` y las cinco pruebas de la clase; no existen esos escenarios. Añadir pruebas de integración Flyway para cada guardia, upgrade y concurrencia sin doble borrado/conteo.
+- **Alta — la matriz de mínimo privilegio de las sobrecargas V13 es incompleta.** La prueba usa el rol `audit_purger` para la función heredada sin argumentos y sólo invoca la nueva sobrecarga con parámetros inválidos; no demuestra que `PUBLIC` y `audit_writer` sean denegados, ni que `audit_purger` pueda ejecutar ambas funciones parametrizadas válidas. Reproducción: las únicas llamadas de función de la prueba están en `writerCannotReadNetworkOrMutateEvidenceAndPurgerCannotDeleteDirectly` y `dedicatedLoginIdentitiesUseTheirOwnDatasourceForAppendAndPurge`. Añadir matriz explícita por rol y firma.
+
+### Regresión relevante y riesgos residuales
+
+- La corrección elimina la dependencia del reloj del servidor para el corte: el caso exacto de 365 días se conserva con el `Clock` del caso de uso y la prueba dirigida pasa.
+- Hasta cubrir los hallazgos, permanece riesgo de sobrepurga, rechazo incorrecto de parámetros nulos/límite y doble conteo/eliminación bajo concurrencia; no se observó regresión de tenant, sesión, endpoint o auditoría de logout dentro de este delta.
+
+---
+
+## QA independiente v19 — evidencia SEC-BE005-10 (2026-08-05)
+
+### Estado
+
+`CHANGES_REQUIRED`
+
+### Identidad y alcance
+
+- Entradas verificadas en disco: paquete canónico v19, preflight v19 `ADVISORY` y handoff Desarrollo v19 `READY_FOR_HANDOFF`.
+- Candidato: `HEAD c0ddb1768bb785c0f027701848cf3ff58dfeb056`; staging vacío. El delta desde v17 modifica sólo `AuditEntryMigrationTest`; V13, adaptador, contratos, endpoint, tenant y arquitectura no cambian.
+- Alcance: exclusivamente `SEC-BE005-10`; `SEC-BE005-09` es regresión append-only no modificada. TenantId, permisos de recursos y límites hexagonales: `NOT_APPLICABLE` para este delta.
+
+### Matriz resumida
+
+| Control | Implementación | Prueba/evidencia | Resultado |
+|---|---|---|---|
+| `SEC-BE005-10` | V13 parametriza corte/lote y conserva `SECURITY DEFINER`, owner, `search_path`, `FOR UPDATE SKIP LOCKED` y grants. | Surefire `AuditEntryMigrationTest`: 10/0; incluye límites, upgrade V12→V13, concurrencia y firmas/roles. | `CHANGES_REQUIRED` |
+| `SEC-BE005-09` | V9 mantiene triggers append-only; V13 sólo habilita la purga controlada. | Casos de DML directo denegado y retención existentes; sin cambio productivo en v19. | `PASS` como regresión no afectada |
+
+### Comandos/evidencia
+
+- `git rev-parse HEAD`; `git diff --cached --quiet`; `git diff --check c0ddb176^ c0ddb176` — identidad correcta, staging vacío y diff textual PASS.
+- `target/surefire-reports/TEST-com.nahui.followupbussiness.audit.persistence.AuditEntryMigrationTest.xml` — `tests=10`, `failures=0`, `errors=0`, `skipped=0`. No se repitió Maven.
+
+### Hallazgos
+
+- **Alta — las cinco denegaciones de parámetros no prueban su guardia V13 ni su `SQLState`.** `parameterizedPurgeRejectsFutureAndNullCutoffsAndInvalidBatchSizesSeparately` acepta cualquier `Exception` para corte futuro, corte nulo, lote nulo, 0 y 501. Una falla de conexión, casting, permisos o excepción distinta de las guardias V13 también pasaría. Reproducción: líneas 104–110 de `AuditEntryMigrationTest`; todas usan `.isInstanceOf(Exception.class)`. Ajustar cada caso para capturar `SQLException`/causa JDBC y afirmar el `SQLState` contractual de la guardia V13 (o declarar el código mediante `RAISE ... USING ERRCODE`), además de preservar la ausencia de eliminación.
+- **Media — las denegaciones de privilegios tampoco califican su `SQLState`.** `assertPurgeFunctionsDenied` sólo comprueba `SQLException` para las cuatro firmas, sin demostrar denegación de privilegio (`42501`) frente a otro error. Reproducción: líneas 210–218. Afirmar `SQLState 42501` para `PUBLIC` y `audit_writer` por firma.
+
+### Regresión relevante y riesgos residuales
+
+- Los XML acreditan 10 pruebas completadas, incluido upgrade, concurrencia y límites funcionales; no hay evidencia de regresión en la ruta append-only.
+- Hasta tipar los rechazos, permanece riesgo de que las pruebas acepten un fallo no relacionado como si fuera la protección V13. No se inicia Seguridad final ni DoF.
+
+---
+
+## QA independiente v20 — guardas SQLState (2026-08-05)
+
+### Estado
+
+`BLOCKED`
+
+### Matriz resumida
+
+| Criterio/control | Implementación/prueba observada | Evidencia | Resultado |
+|---|---|---|---|
+| Gate de entrada v20 | Paquete v20 fija `294a0e09473fba68ce88dcaaddd1d29fcc47bab0`, pero el preflight canónico no tiene revisión v20 y Desarrollo v20 declara `BLOCKED`. | `BE-005-security-preflight.md` termina en v19 `ADVISORY`; `BE-005-backend-handoff.md`, «Remediación v20», estado `BLOCKED`. | `BLOCKED` |
+| `SEC-BE005-10` | La prueba aserta `P0001` para las cinco guardas V13 y `42501` para las cuatro firmas denegadas a `PUBLIC`/`audit_writer`. | HEAD y staging coinciden; XML Surefire: 10/0; inspección de `assertSqlState` confirma que busca la `SQLException` causal. | Evidencia técnica correcta, no aprobada por gate |
+
+### Comandos/evidencia
+
+- `git rev-parse HEAD` → `294a0e09473fba68ce88dcaaddd1d29fcc47bab0`; `git diff --cached --quiet` → staging vacío; `git diff --check 294a0e0^ 294a0e0` → PASS.
+- Surefire `TEST-com.nahui.followupbussiness.audit.persistence.AuditEntryMigrationTest.xml` → 10 pruebas, 0 fallos, 0 errores, 0 omitidas.
+
+### Hallazgos
+
+- **Alta — gate documental previo incompleto/inconsistente.** Falta preflight canónico v20 `ADVISORY` para el candidato v20 y el handoff Dev v20 declara `BLOCKED` aunque el candidato ya está en HEAD. Reproducción: comparar las secciones v20 de los handoffs canónicos indicados. Se requiere preflight v20 y handoff Dev v20 `READY_FOR_HANDOFF` con la misma identidad antes de reabrir QA.
+
+### Regresión relevante y riesgos residuales
+
+- La especificidad requerida está presente: `P0001` vincula las negativas con las guardas V13 y `42501` las denegaciones de privilegio.
+- No se ejecutan Seguridad final ni DoF; no se emite PASS/CHANGES_REQUIRED de QA hasta que el gate anterior sea válido.
+
+---
+
+## QA independiente v20 — SQLState de guardias V13 (2026-08-05)
+
+### Estado
+
+`PASS`
+
+### Identidad, entradas y alcance
+
+- Paquete canónico v20, preflight v20 `ADVISORY` y revalidación v20 de Desarrollo `READY_FOR_HANDOFF` coinciden con `294a0e09473fba68ce88dcaaddd1d29fcc47bab0`; staging vacío. La remediación v20 provisional `BLOCKED` queda superada por la revalidación v20 con candidato fijado.
+- Alcance exclusivo: evidencia de `SEC-BE005-10`. No cambia producción, V13, endpoint, contrato, tenant ni arquitectura; `SEC-BE005-09` se conserva como regresión append-only no afectada.
+
+### Matriz resumida
+
+| Control | Implementación/prueba | Evidencia | Resultado |
+|---|---|---|---|
+| `SEC-BE005-10` | Las cinco guardas V13 se prueban con `P0001`; `PUBLIC` y `audit_writer` reciben `42501` en las cuatro firmas; `audit_purger` conserva ejecución permitida. | XML Surefire de `AuditEntryMigrationTest`: 10/0; inspección de `assertSqlState` busca la `SQLException` causal y compara el código. | PASS |
+| `SEC-BE005-09` | Triggers V9 y purga controlada V13 sin cambios. | DML directo denegado y ruta de retención incluidos en los 10 casos; no cambia logout. | PASS |
+
+### Comandos/evidencia
+
+- `git rev-parse HEAD`; `git diff --cached --quiet`; `git diff --check 294a0e0^ 294a0e0` — candidato, staging e integridad textual PASS.
+- `target/surefire-reports/TEST-com.nahui.followupbussiness.audit.persistence.AuditEntryMigrationTest.xml` — 10 pruebas, 0 fallos, 0 errores, 0 omitidas. No se repitió Maven: el delta sólo tipa aserciones y el XML corresponde al mismo candidato.
+
+### Hallazgos
+
+Ninguno en el alcance v20.
+
+### Regresión relevante y riesgos residuales
+
+- Cubre corte/lote, upgrade V12→V13, concurrencia, firmas y privilegios; los rechazos ya no pueden aprobar por una excepción genérica.
+- Riesgo residual operativo: disponibilidad de Docker/PostgreSQL para reproducción. No se inicia Seguridad final ni DoF.

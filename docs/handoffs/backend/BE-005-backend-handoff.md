@@ -224,3 +224,117 @@ Controles no modificados por H-03 (`SEC-BE005-01`, `02`, `07`, `10`) no se redis
 
 - Riesgo residual entregado a validación independiente: comportamiento de la restricción V12 sobre datos productivos preexistentes y verificación independiente de concurrencia/rollback bajo el entorno objetivo.
 - No se invocó QA, Seguridad final ni DoF. Este estado sólo habilita el handoff de Desarrollo sobre el candidato v16; no equivale a aprobación de fases posteriores.
+
+## Revalidación por remediación de CI — retención de auditoría (2026-08-05)
+
+### Estado de gate
+
+`BLOCKED` — la corrección está sólo en el worktree y requiere que el Orquestador la incluya en un commit y fije un nuevo candidato antes de cualquier fase posterior.
+
+### Identidad, alcance y causa
+
+- Identidad provisional: `HEAD dd8c14b` + diff acotado `ab9bea641c3cc5009c031e3eb5c29b068a667c41` en `backend/followupbussiness/src/test/java/com/nahui/followupbussiness/audit/persistence/AuditEntryMigrationTest.java`; el diff requiere commit.
+- Alcance exclusivo: estabilizar la prueba de integración de retención `retentionKeepsCutoffAndPurgesNetworkBeforeEntriesInBoundedBatches`; no se modificaron implementación productiva, contratos, ADR ni migraciones.
+- Causa reproducida: las funciones protegidas de `V9__secure_audit_privileges.sql` evalúan la expiración con `CURRENT_TIMESTAMP`, mientras la prueba fijaba `2026-08-04T12:00:00Z`. Al ejecutarse CI después de ese instante, el registro supuesto de corte (364 días) podía superar los 365 días y la purga devolvía 2 entradas en lugar de 1.
+- Corrección: la prueba toma el instante de referencia mediante `SELECT CURRENT_TIMESTAMP` del mismo PostgreSQL que ejecuta la purga; mantiene las fronteras de 91/366/364 días, los lotes y la comprobación de segunda purga idempotente.
+
+### Control afectado y evidencia
+
+- `SEC-BE005-10` afectado: retención de evidencia de auditoría. La corrección verifica que se conserva el registro dentro de la ventana y que se purga primero el contexto de red vencido sin depender del reloj del runner.
+- Reproducción previa: `mvn -Dtest=AuditEntryMigrationTest#retentionKeepsCutoffAndPurgesNetworkBeforeEntriesInBoundedBatches test` — FAIL reproducido, 1 prueba, aserción de entradas eliminadas: esperado 1, recibido 2.
+- Verificación posterior: el mismo comando — PASS, 1 prueba, 0 fallos/errores; Testcontainers PostgreSQL/PostGIS y Flyway V1–V12 aplicados.
+- Riesgo residual: no se reejecutó la suite completa de auditoría porque el cambio es únicamente de determinismo temporal en una prueba dirigida; debe revalidarse contra el candidato que fije el Orquestador.
+
+## Revalidación v17 — retención de auditoría (2026-08-05)
+
+### Estado
+
+`READY_FOR_HANDOFF`
+
+### Identidad, entradas y remediación
+
+- HU: `BE-005 — Cerrar y revocar sesión`; paquete canónico v17; preflight v17 `ADVISORY` en el informe canónico de Seguridad.
+- Candidato revalidado: `a40a44735715b7557c3e57671351dd6b6ef97ed7`; staging vacío antes de la documentación de fase.
+- La sección anterior de worktree queda sustituida para este candidato: la solución definitiva no sincroniza la prueba con el reloj del servidor. V13 hace que `JdbcAuditEntryStore` transmita `before` y `batchSize`; las funciones protegidas validan corte no futuro y lote `1..500`, preservando `FOR UPDATE SKIP LOCKED`, `SECURITY DEFINER` y los permisos de `audit_purger`.
+- Sólo se afectaron `SEC-BE005-10` y la dependencia de integridad de `SEC-BE005-09`; no hay cambio de interfaz pública, sesión, tenant, JWT ni contrato.
+
+### Matriz y evidencia
+
+| Control | Implementación | Prueba / resultado |
+|---|---|---|
+| `SEC-BE005-10` | Adaptador parametrizado y V13 con corte/lote validados bajo función de purga protegida. | `AuditEntryMigrationTest` PASS, 5 pruebas, Flyway V1–V13: borde 365/90, orden red→entrada, idempotencia y roles. |
+| `SEC-BE005-09` | Las funciones mantienen append-only y borrado exclusivo vía `audit_purger`; ningún endpoint de logout se altera. | Suite backend completa PASS: 233 pruebas, 0 fallos, 0 errores, 5 omitidas. |
+
+### Verificación y handoff
+
+- `mvn -o "-Dmaven.repo.local=C:\\Users\\LUIS\\.m2\\repository" "-Dtest=AuditEntryMigrationTest" test` con Docker local: PASS, 5/0.
+- `mvn -o "-Dmaven.repo.local=C:\\Users\\LUIS\\.m2\\repository" test` con Docker local: PASS, 233/0; la ejecución superó el límite interactivo, y los XML de Surefire verifican `failures=0`, `errors=0`, `skipped=5`.
+- `git diff --check`: PASS antes de fijar el commit; la prueba de integración sandbox no tenía acceso al socket Docker y se repitió con autorización.
+
+No quedan controles aplicables sin implementación, prueba o evidencia para este delta. Se entrega a QA independiente sobre el mismo candidato; este estado no equivale a `PASS` de QA ni a Seguridad final.
+
+## Revalidación v19 — evidencia QA de retención (2026-08-05)
+
+### Estado
+
+`READY_FOR_HANDOFF`
+
+- Paquete v19 y preflight v19 `ADVISORY` verificados; candidato exacto `c0ddb1768bb785c0f027701848cf3ff58dfeb056`; staging vacío.
+- `AuditEntryMigrationTest` añade evidencia para los hallazgos v17 sin cambiar producción: cortes futuro/`NULL`; lotes `NULL`/0/1/500/501; firmas de purga permitidas sólo a `audit_purger`; migración V12→V13 con datos; dos purgadores concurrentes suman exactamente 501 y dejan cero filas.
+- `mvn -o "-Dmaven.repo.local=C:\\Users\\LUIS\\.m2\\repository" "-Dtest=AuditEntryMigrationTest" test` con Docker local: PASS, 10 pruebas, 0 fallos/errores. `git diff --check` PASS previo al commit.
+
+La matriz afectada `SEC-BE005-10` queda con implementación, prueba y evidencia; `SEC-BE005-09` permanece sin regresión. Se habilita QA independiente v19, no Seguridad final ni DoF.
+
+## Revalidación v20 — SQLState de guardias
+
+`READY_FOR_HANDOFF` — paquete/preflight v20, candidato `294a0e09473fba68ce88dcaaddd1d29fcc47bab0`, staging vacío. La única variación exige `P0001` para las cinco guardias V13 y `42501` para las cuatro firmas denegadas a `PUBLIC`/`audit_writer`. `AuditEntryMigrationTest` PASS 10/0 con Docker; no cambia producción. Habilita QA v20.
+
+## Revalidación v17 — remediación de hallazgos QA de retención (2026-08-05)
+
+### Estado
+
+`READY_FOR_HANDOFF`
+
+### Alcance y archivos
+
+- Remediación limitada de `SEC-BE005-10` tras QA v17: evidencia de corte futuro y `NULL`; lotes `NULL`/`0`/`1`/`500`/`501`; mínimo privilegio de firmas heredadas y V13; upgrade V12→V13 con datos de entrada y contexto de red; y carrera de dos purgadores.
+- Modificado únicamente: `backend/followupbussiness/src/test/java/com/nahui/followupbussiness/audit/persistence/AuditEntryMigrationTest.java`.
+- No se modificaron `JdbcAuditEntryStore`, V13, endpoints, contratos, ADR, sesión, tenant ni otros módulos. V13 sigue siendo la migración aplicable: `backend/followupbussiness/src/main/resources/db/migration/V13__parameterize_audit_retention_purge.sql`.
+
+### Evidencia y criterios cubiertos
+
+- `mvn -o "-Dmaven.repo.local=C:\\Users\\LUIS\\.m2\\repository" "-Dtest=AuditEntryMigrationTest" test` con Docker local autorizado: `BUILD SUCCESS`, 10 pruebas, 0 fallos y 0 errores; Testcontainers PostgreSQL/PostGIS y Flyway V1–V13.
+- Negativos separados: V13 rechaza corte futuro y nulo; también lote nulo, `0` y `501`. Lotes `1` y `500` eliminan exactamente `1` y `500` registros, con repetición idempotente.
+- Privilegios: `PUBLIC` y `audit_writer` no ejecutan ninguna firma heredada ni parametrizada de purga; `audit_purger` ejecuta las cuatro firmas. Se conserva la denegación de `DELETE` directo.
+- Upgrade V12→V13: se conservan datos existentes de `audit_entry` y `audit_network_context`, y ambas funciones V13 los purgan con parámetros.
+- Concurrencia: dos purgadores sobre 501 entradas expiradas devuelven un total de 501 y dejan la tabla vacía; no hay doble eliminación ni doble conteo.
+
+### Riesgo y reproducción
+
+- Riesgo residual operativo: la disponibilidad de Docker/PostgreSQL fuera de pruebas; no se amplió la suite porque el delta es exclusivamente evidencia de integración de retención.
+- Reproducción: ejecutar el comando Maven anterior desde `backend/followupbussiness` con Docker disponible. `git diff --check` también pasa en el worktree actual.
+
+Esta salida habilita solamente la revalidación QA sobre el candidato que fije Orquestación incluyendo esta evidencia; no equivale a `PASS` de QA, Seguridad final ni DoF.
+
+## Remediación v20 — tipado SQLState de guardas V13 (2026-08-05)
+
+### Estado
+
+`BLOCKED` — la remediación está sólo en el worktree; Orquestación debe incluirla en un nuevo commit y fijar el candidato antes de reabrir QA.
+
+### Alcance, contratos y migraciones
+
+- Se modificó exclusivamente `backend/followupbussiness/src/test/java/com/nahui/followupbussiness/audit/persistence/AuditEntryMigrationTest.java`.
+- `SEC-BE005-10`: las cinco negativas de parámetros ahora encuentran la `SQLException` causal y afirman `SQLState P0001`, que corresponde al `RAISE EXCEPTION` sin `ERRCODE` explícito de las guardas V13.
+- Para cada firma heredada y parametrizada, tanto `PUBLIC` como `audit_writer` afirman `SQLState 42501`; `audit_purger` continúa cubierto como permitido.
+- No se modificaron contratos, producción ni migraciones. Sigue aplicando `backend/followupbussiness/src/main/resources/db/migration/V13__parameterize_audit_retention_purge.sql`.
+
+### Evidencia y reproducción
+
+- Desde `backend/followupbussiness`: `mvn -o "-Dmaven.repo.local=C:\\Users\\LUIS\\.m2\\repository" "-Dtest=AuditEntryMigrationTest" test` con Docker local autorizado: `BUILD SUCCESS`, 10 pruebas, 0 fallos, 0 errores; Testcontainers PostgreSQL/PostGIS y Flyway V1–V13.
+- Primer intento en sandbox: no ejecutable por acceso denegado a `\\.\\pipe\\docker_engine`; la repetición autorizada anterior aporta la evidencia válida.
+- `git diff --check`: PASS. Reproducción: ejecutar el comando Maven anterior con Docker disponible.
+
+### Riesgo residual
+
+- No se repitió la suite completa: el delta sólo endurece aserciones de la prueba de integración ya dirigida y satisfactoria. La disponibilidad de Docker sigue siendo prerequisito operativo de esta verificación.

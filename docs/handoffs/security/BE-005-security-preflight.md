@@ -153,3 +153,87 @@ Escenarios de abuso prioritarios: un mismo digest asociado a más de una familia
 - Riesgos residuales hasta las fases autorizadas: comportamiento real de V12 sobre datos preexistentes; exclusión mutua y cardinalidad bajo concurrencia; rollback conjunto de consumo, revocación, instalaciones y auditoría; neutralidad observable del rechazo; y ausencia de efectos cross-tenant.
 
 Este `ADVISORY` fija los controles afectados para el candidato v16. No revisa ni aprueba código, no inicia Desarrollo, QA, Seguridad final o DoF y no autoriza cierre ni fases posteriores.
+
+## Revalidación v17 — retención de auditoría parametrizada (2026-08-05)
+
+### Identidad y estado
+
+| Campo | Valor |
+|---|---|
+| HU | `BE-005 — Cerrar y revocar sesión` |
+| Tipo de revisión | `PREFLIGHT` |
+| Estado | `ADVISORY` |
+| Paquete canónico | `docs/handoffs/governance/BE-005-context-package.md`, revisión `v17`, SHA-256 `47BB21546FF506A057C29C1CD88F7667724DC5AE44307853C837BA841D971A2E` |
+| Candidato fijo | Commit y `HEAD` `a40a44735715b7557c3e57671351dd6b6ef97ed7`, padre `dd8c14b755cfbd166c5a669060de51775c228b41`, asunto `fix(audit): respetar corte de retencion`; staging `vacío` |
+| Entrada de Desarrollo consultada | `docs/handoffs/backend/BE-005-backend-handoff.md`, SHA-256 `2318A3E7430CA093B5BEE40CF5EAD92F212E493D1CF4D3C12AB09CDE76DB0B4F`; su última sección registra la corrección provisional anterior al commit y no sustituye el handoff v17 posterior a este preflight |
+| Excepciones de relectura | Ninguna fuente primaria reabierta; se inspeccionó exclusivamente el diff de las tres rutas fijadas por el paquete v17 |
+
+La identidad Git, el staging vacío y el delta exacto son `PASS`. `git diff --check a40a447^ a40a447` también es `PASS`. Estos resultados prueban integridad del candidato, no aprobación del código ni satisfacción de `SEC-BE005-10`.
+
+### Triage, superficie y modelo de riesgo
+
+El preflight aplica porque el delta cambia la ruta privilegiada que elimina evidencia de auditoría y, por tanto, la superficie de retención, integridad y mínimo privilegio de `SEC-BE005-10`. El commit contiene exactamente:
+
+- `backend/followupbussiness/src/main/java/com/nahui/followupbussiness/audit/adapter/out/persistence/JdbcAuditEntryStore.java` (`M`).
+- `backend/followupbussiness/src/main/resources/db/migration/V13__parameterize_audit_retention_purge.sql` (`A`).
+- `backend/followupbussiness/src/test/java/com/nahui/followupbussiness/audit/persistence/AuditEntryMigrationTest.java` (`M`).
+
+Activos: entradas append-only, contexto de red, ventanas 365/90 días, capacidad de purga acotada y credenciales/privilegios `audit_writer`, `audit_purger` y `audit_owner`. Actores: scheduler legítimo, identidad runtime de purga, escritor sin permiso de borrado y un actor que obtenga o herede un rol mal configurado. Límites de confianza: corte/lote calculados por la aplicación y enviados por JDBC; llamada a funciones PostgreSQL `SECURITY DEFINER`; y separación entre roles de escritura, propiedad y purga.
+
+Escenarios de abuso prioritarios: adelantar el corte para borrar evidencia vigente; usar lotes nulos, cero o excesivos para sobreborrado o agotamiento; discrepancia de reloj que elimine el borde exacto; invocar una sobrecarga heredada para eludir corte/lote seleccionados; obtener ejecución desde `PUBLIC` o `audit_writer`; manipular `search_path`; y carreras de purgadores que cuenten o eliminen dos veces. El diff observado usa parámetros JDBC, valida corte futuro y lote `1..500`, fija `search_path`, conserva `FOR UPDATE SKIP LOCKED` y revoca `PUBLIC`, pero su eficacia queda sujeta a las pruebas siguientes.
+
+### Matriz afectada y pruebas exigidas
+
+| Control | Implementación exigida para v17 | Evidencia obligatoria de Desarrollo/QA | Estado preflight |
+|---|---|---|---|
+| `SEC-BE005-10` | El `Clock` del caso de uso debe gobernar el corte transmitido por `JdbcAuditEntryStore`; las funciones parametrizadas deben borrar sólo filas con `occurred_at < p_before`, respetar lotes `1..500`, preservar el orden contexto de red antes de entrada y mantener append-only salvo la purga autorizada. `SECURITY DEFINER` debe tener propietario y `search_path` fijos, sin ejecución para `PUBLIC` o escritor. | Ejecutar `AuditEntryMigrationTest` completo sobre Flyway V1–V13 y verificar: borde exacto 365 días conservado y 366 eliminado; contexto de red 90 días antes que entradas 365; lotes 1 y 500, repetición acotada e idempotente; rechazo separado de corte futuro/nulo y lote nulo/0/501; migración V12→V13 con datos existentes; dos purgadores concurrentes sin doble eliminación/conteo; matriz de privilegios para funciones nuevas y heredadas (`audit_purger` permitido, `PUBLIC`/`audit_writer` denegados) y DML directo denegado. | `NOT_EXECUTED` |
+
+No hay otro control `SEC-BE005-*` directamente modificado por este commit: no cambia forma del evento, endpoint, JWT, tenant, Redis, WebSocket ni datos personales. `SEC-BE005-09` permanece como requisito no afectado; sólo debe comprobarse como regresión que la purga no altera registros vigentes ni introduce una vía de mutación distinta de la eliminación autorizada.
+
+### Evidencia disponible, controles no ejecutados y riesgos residuales
+
+- `PASS`: identidad exacta del commit/HEAD, padre, staging vacío, tres rutas del delta y `git diff --check`.
+- `PASS` reportado por el paquete, no ejecutado por Seguridad: `AuditEntryMigrationTest` con 5 pruebas y Flyway V1–V13. Se entrega como evidencia disponible, no como aprobación independiente.
+- `NOT_EXECUTED`: Maven, Testcontainers, migración incremental V12→V13, concurrencia de purgadores, casos inválidos separados, matriz completa de privilegios y cualquier escaneo general. No se ejecutan por diseño de este preflight acotado.
+- Riesgos residuales: las funciones sin argumentos heredadas siguen siendo una ruta alternativa hasta demostrar su necesidad y privilegios efectivos; la prueba visible agrupa corte futuro y lote 501 en una misma invocación y no demuestra cada guardia por separado; falta evidencia dirigida de `NULL`, límites de lote, upgrade con datos y concurrencia.
+
+### Siguiente gate
+
+`ADVISORY` — queda habilitado únicamente Desarrollo v17 para vincular implementación y evidencia de `SEC-BE005-10` a `a40a44735715b7557c3e57671351dd6b6ef97ed7` en el handoff Backend canónico. Este preflight no aprueba código ni inicia o autoriza QA, Seguridad final, DoF o cierre.
+
+## Revalidación v17 — retención de auditoría (2026-08-05)
+
+### Estado e identidad
+
+| Campo | Valor |
+|---|---|
+| HU / tipo / estado | `BE-005 — Cerrar y revocar sesión` / `PREFLIGHT` / `ADVISORY` |
+| Paquete | `docs/handoffs/governance/BE-005-context-package.md`, revisión `v17` |
+| Candidato | `a40a44735715b7557c3e57671351dd6b6ef97ed7`; staging verificado vacío |
+| Delta | `JdbcAuditEntryStore`, V13 de funciones de purga y `AuditEntryMigrationTest` |
+
+El delta afecta la retención de auditoría y no es una aprobación de código. Las salidas de v16 no se reutilizan como estado de fase para `a40a447`.
+
+### Matriz SEC afectada
+
+| Control | Implementación exigida | Verificación obligatoria posterior | Estado preflight |
+|---|---|---|---|
+| `SEC-BE005-10` | El corte y lote calculados por el caso de uso deben llegar a una función `SECURITY DEFINER`, con límite de lote y sin otorgar `DELETE` directo al escritor o purgador. | Integración Flyway V1–V13: borde exacto 365/90 días, lote máximo, orden red→entrada, segunda purga idempotente y roles de mínima autorización. | `NOT_EXECUTED` |
+| `SEC-BE005-09` | La purga debe conservar la protección append-only y no permitir que parámetros del adaptador eludan el mecanismo controlado. | Confirmar que la función parametrizada valida valores y que la auditoría de logout no cambia de semántica. | `NOT_EXECUTED` |
+
+Riesgo residual: un parámetro futuro fuera de límites no debe ampliar la retención ni otorgar borrado arbitrario; V13 debe rechazarlo. Desarrollo debe aportar implementación y prueba sobre esta identidad, QA debe ejecutar validación independiente y Seguridad final debe revisar el diff y los resultados. Este `ADVISORY` habilita sólo Desarrollo v17; no autoriza QA, Seguridad final ni DoF.
+
+## Revalidación v19 — identidad corregida y evidencia SEC-BE005-10 (2026-08-05)
+
+| Campo | Valor |
+|---|---|
+| Tipo / estado | `PREFLIGHT` / `ADVISORY` |
+| Paquete | Canónico, revisión v19 |
+| Candidato | `c0ddb1768bb785c0f027701848cf3ff58dfeb056`; staging vacío |
+| Delta desde v17 | Sólo pruebas de `AuditEntryMigrationTest`; V13 y adaptador no cambian |
+
+`SEC-BE005-10` exige y recibe evidencia dirigida para límites de corte/lote, mínimo privilegio, upgrade V12→V13 y exclusión de doble conteo con dos purgadores. `SEC-BE005-09` se conserva como regresión de append-only. Esta fase no aprueba código: habilita únicamente la revalidación de Desarrollo y QA v19 sobre la misma identidad; no autoriza Seguridad final ni DoF.
+
+## Revalidación v20 — SQLState verificable
+
+`ADVISORY` — candidato `294a0e09473fba68ce88dcaaddd1d29fcc47bab0`, paquete v20 y staging vacío. Sólo cambia la prueba: cada guardia V13 debe devolver `P0001` y cada denegación de funciones a `PUBLIC`/`audit_writer`, `42501`. Habilita únicamente Desarrollo/QA v20 para `SEC-BE005-10`; no Seguridad final ni DoF.

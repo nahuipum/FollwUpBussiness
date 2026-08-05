@@ -32,3 +32,22 @@
 - Falta un commit candidato revisable que contenga las 31 rutas funcionales fijadas por el manifiesto v16. La identidad verificada sigue siendo `HEAD 3a787569ca873f084e0b6f0e052988933935cda7` más un diff de trabajo `524f08838e6f2b4f8719bdd0bbf67309156082bd`; el commit `HEAD` no contiene ese diff.
 - Falta un PR trazable asociado a ese commit candidato.
 - Falta un resultado de CI aprobatorio asociado al mismo commit candidato. Los handoffs v16 no aportan identificador/enlace de ejecución CI para esa identidad.
+
+---
+
+## Decisión DoF v20 — guardias SQLState de retención (2026-08-05)
+
+### Estado
+
+`PASS`
+
+### Trazabilidad verificada
+
+- Historia `BE-005`; paquete canónico v20, preflight v20 `ADVISORY`, Desarrollo v20 `READY_FOR_HANDOFF`, QA v20 `PASS` y Seguridad final v20 `PASS` declaran el mismo candidato `294a0e09473fba68ce88dcaaddd1d29fcc47bab0`.
+- Verificación local: `HEAD` coincide con el candidato, staging vacío y `git diff --check 294a0e0^ 294a0e0` pasa. El delta es exclusivamente `AuditEntryMigrationTest`.
+- Evidencia del alcance afectado: `AuditEntryMigrationTest` acredita 10 pruebas, 0 fallos y 0 errores; QA y Seguridad v20 cierran `SEC-BE005-10` y mantienen `SEC-BE005-09` sin regresión.
+- PR #11 está asociado al mismo SHA y sus 3 checks de CI están `SUCCESS`.
+
+### Decisión
+
+`PASS` — los gates aplicables y la evidencia trazable están completos para el mismo candidato. No se realizaron cambios de implementación ni se invocaron fases.

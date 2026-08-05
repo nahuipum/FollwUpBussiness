@@ -130,3 +130,7 @@ Los resultados técnicos no eliminan F14-01: la identidad declarada no enlaza to
 ### Decisión
 
 `PASS` — F14-01/F14-02 están cerrados para v16 y los controles afectados tienen implementación y evidencia. Seguridad no invoca DoF.
+
+## Revalidación final v20 — retención de auditoría
+
+`PASS` — candidato `294a0e09473fba68ce88dcaaddd1d29fcc47bab0`, staging vacío, paquete/preflight/desarrollo/QA v20 consistentes y CI PR #11 `SUCCESS` 3/3. `SEC-BE005-10` PASS: V13 rechaza cinco guardias con `P0001`, deniega las cuatro firmas a `PUBLIC`/`audit_writer` con `42501` y conserva `audit_purger`; cubre upgrade y dos purgadores. `SEC-BE005-09` PASS por append-only, borrado controlado y sin regresión. `AuditEntryMigrationTest` PASS 10/0; `git diff --check` PASS. Sin hallazgos; riesgo residual operativo de Docker/PostgreSQL no bloqueante. Seguridad no inicia DoF.
