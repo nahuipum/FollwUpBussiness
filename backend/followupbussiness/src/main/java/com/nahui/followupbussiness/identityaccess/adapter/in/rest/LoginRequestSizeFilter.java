@@ -13,7 +13,7 @@ import java.util.UUID;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /** Caps both declared and chunked login bodies before JSON deserialization. */
-public final class LoginRequestSizeFilter extends OncePerRequestFilter {
+public class LoginRequestSizeFilter extends OncePerRequestFilter {
     public static final int MAX_LOGIN_REQUEST_BYTES = 4096;
 
     @Override

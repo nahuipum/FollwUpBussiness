@@ -42,6 +42,8 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/actuator/prometheus").permitAll()
                         .requestMatchers("/auth/login").permitAll()
+                        .requestMatchers("/auth/password-recovery-requests").permitAll()
+                        .requestMatchers("/auth/password-resets").permitAll()
                         .requestMatchers("/auth/refresh").permitAll()
                         .requestMatchers("/auth/logout").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/platform/companies").hasAuthority("PLATFORM_SUPERADMIN")

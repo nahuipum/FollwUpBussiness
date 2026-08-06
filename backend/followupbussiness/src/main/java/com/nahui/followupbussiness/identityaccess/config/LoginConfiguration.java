@@ -1,9 +1,13 @@
 package com.nahui.followupbussiness.identityaccess.config;
 
 import com.nahui.followupbussiness.identityaccess.adapter.in.rest.LoginRateLimiter;
+import com.nahui.followupbussiness.identityaccess.adapter.in.rest.PasswordRecoveryRateLimiter;
 import com.nahui.followupbussiness.identityaccess.adapter.in.rest.RefreshRateLimiter;
 import com.nahui.followupbussiness.identityaccess.adapter.in.rest.LoginRequestSizeFilter;
+import com.nahui.followupbussiness.identityaccess.adapter.in.rest.PasswordRecoveryRequestSizeFilter;
 import com.nahui.followupbussiness.identityaccess.adapter.in.security.InboundJwtAuthenticator;
+import com.nahui.followupbussiness.identityaccess.adapter.in.scheduling.IdentityNotificationDeliveryScheduler;
+import com.nahui.followupbussiness.identityaccess.adapter.in.scheduling.PasswordRecoveryRequestScheduler;
 import com.nahui.followupbussiness.identityaccess.adapter.out.persistence.*;
 import com.nahui.followupbussiness.identityaccess.adapter.out.security.*;
 import com.nahui.followupbussiness.identityaccess.application.*;
@@ -17,6 +21,8 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.*;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -25,11 +31,14 @@ import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.security.spec.*;
 import java.time.Clock;
+import java.time.Duration;
+import java.util.Random;
 import java.util.Base64;
 
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnProperty(prefix = "followupbussiness.authentication", name = "rs256-private-key")
 @EnableConfigurationProperties(AuthenticationProperties.Values.class)
+@EnableScheduling
 public class LoginConfiguration {
     @Bean
     LoginService loginService(JdbcTemplate j, CompanyAccessStatusQuery c, AuthenticationProperties.Values p) {
@@ -47,6 +56,58 @@ public class LoginConfiguration {
     @Bean
     LoginRateLimiter loginRateLimiter(StringRedisTemplate redis, AuthenticationProperties.Values p) {
         return new LoginRateLimiter(redis, p.getHmacSecret().getBytes(StandardCharsets.UTF_8));
+    }
+
+    @Bean
+    PasswordRecoveryRateLimiter passwordRecoveryRateLimiter(StringRedisTemplate redis, AuthenticationProperties.Values p) {
+        return new PasswordRecoveryRateLimiter(redis, p.getHmacSecret().getBytes(StandardCharsets.UTF_8));
+    }
+
+    @Bean
+    PasswordRecoveryService passwordRecoveryService(JdbcTemplate jdbc, AuthenticationProperties.Values p) {
+        byte[] secret = p.getHmacSecret().getBytes(StandardCharsets.UTF_8);
+        var transaction = new TransactionTemplate(new DataSourceTransactionManager(jdbc.getDataSource()));
+        var requests = new JdbcPasswordRecoveryRequestAdapter(jdbc, secret);
+        return new PasswordRecoveryService(new JdbcPasswordRecoveryAdapter(jdbc), requests, new JdbcIdentityNotificationAdapter(jdbc, secret),
+                new JdbcRefreshSessionAdapter(jdbc), new BCryptPasswordHashingAdapter(), Clock.systemUTC(), secret) {
+            @Override
+            public void accept(String identifier) {
+                transaction.executeWithoutResult(status -> super.accept(identifier));
+            }
+
+            @Override
+            public void request(String identifier) {
+                transaction.executeWithoutResult(status -> super.request(identifier));
+            }
+
+            @Override
+            public void reset(String token, char[] password) {
+                transaction.executeWithoutResult(status -> super.reset(token, password));
+            }
+        };
+    }
+
+    @Bean
+    PasswordRecoveryRequestWorker passwordRecoveryRequestWorker(JdbcTemplate jdbc, AuthenticationProperties.Values p, PasswordRecoveryService recovery) {
+        return new PasswordRecoveryRequestWorker(new JdbcPasswordRecoveryRequestAdapter(jdbc, p.getHmacSecret().getBytes(StandardCharsets.UTF_8)), recovery, Clock.systemUTC());
+    }
+
+    @Bean
+    PasswordRecoveryRequestScheduler passwordRecoveryRequestScheduler(PasswordRecoveryRequestWorker worker) {
+        return new PasswordRecoveryRequestScheduler(worker);
+    }
+
+    @Bean
+    @ConditionalOnBean(TransactionalEmailGateway.class)
+    IdentityNotificationDeliveryWorker identityNotificationDeliveryWorker(JdbcTemplate jdbc, AuthenticationProperties.Values p, TransactionalEmailGateway gateway) {
+        return new IdentityNotificationDeliveryWorker(new JdbcIdentityNotificationAdapter(jdbc, p.getHmacSecret().getBytes(StandardCharsets.UTF_8)), gateway,
+                Clock.systemUTC(), new Random(), Duration.ofSeconds(1), Duration.ofMinutes(5));
+    }
+
+    @Bean
+    @ConditionalOnBean(IdentityNotificationDeliveryWorker.class)
+    IdentityNotificationDeliveryScheduler identityNotificationDeliveryScheduler(IdentityNotificationDeliveryWorker worker) {
+        return new IdentityNotificationDeliveryScheduler(worker);
     }
 
     @Bean
@@ -68,6 +129,11 @@ public class LoginConfiguration {
     }
 
     @Bean
+    PasswordRecoveryRequestSizeFilter passwordRecoveryRequestSizeFilter() {
+        return new PasswordRecoveryRequestSizeFilter();
+    }
+
+    @Bean
     RefreshSessionUseCase refreshSessionUseCase(JdbcTemplate j, CompanyAccessStatusQuery c, AuthenticationProperties.Values p,
                                                 RecordAuthenticationAuditUseCase audit, RefreshRateLimiter limiter) {
         try {
@@ -78,13 +144,18 @@ public class LoginConfiguration {
             var transaction = new TransactionTemplate(new DataSourceTransactionManager(j.getDataSource()));
             return command -> {
                 Object outcome = java.util.Objects.requireNonNull(transaction.execute(status -> {
-                    try { return service.refresh(command); }
-                    catch (RefreshService.Rejected rejected) { return rejected; }
+                    try {
+                        return service.refresh(command);
+                    } catch (RefreshService.Rejected rejected) {
+                        return rejected;
+                    }
                 }));
                 if (outcome instanceof RefreshService.Rejected rejected) throw rejected;
                 return (RefreshService.Result) outcome;
             };
-        } catch (IllegalArgumentException | GeneralSecurityException e) { throw new IllegalStateException("Invalid RS256 authentication key", e); }
+        } catch (IllegalArgumentException | GeneralSecurityException e) {
+            throw new IllegalStateException("Invalid RS256 authentication key", e);
+        }
     }
 
     @Bean
