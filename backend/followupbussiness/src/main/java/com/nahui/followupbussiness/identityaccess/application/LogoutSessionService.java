@@ -5,6 +5,7 @@ import com.nahui.followupbussiness.audit.application.port.in.RecordAuthenticatio
 import com.nahui.followupbussiness.identityaccess.application.port.in.LogoutSessionUseCase;
 import com.nahui.followupbussiness.identityaccess.application.port.out.RefreshSessionPort;
 import com.nahui.followupbussiness.identityaccess.application.port.out.LogoutAbuseMonitor;
+import com.nahui.followupbussiness.identityaccess.domain.model.BaseRole;
 import com.nahui.followupbussiness.notifications.application.port.in.RevokeInstallationsForSession;
 
 import java.nio.charset.StandardCharsets;
@@ -62,8 +63,20 @@ public final class LogoutSessionService implements LogoutSessionUseCase {
             sessions.revoke(family.familyId(), now);
             installations.revoke(family.familyId(),family.companyId());
         }
-        audit.record(new RecordAuthenticationAuditCommand(family.accountId(), family.familyId(), family.companyId(), c.correlationId(), RecordAuthenticationAuditCommand.Channel.valueOf(family.channel()), RecordAuthenticationAuditCommand.Result.LOGGED_OUT, now, c.allSessions() ? RecordAuthenticationAuditCommand.Reason.GLOBAL : null));
+        try {
+            audit.record(new RecordAuthenticationAuditCommand(family.accountId(), family.familyId(), family.companyId(), c.correlationId(), RecordAuthenticationAuditCommand.Channel.valueOf(family.channel()), RecordAuthenticationAuditCommand.Result.LOGGED_OUT, now, c.allSessions() ? RecordAuthenticationAuditCommand.Reason.GLOBAL : null));
+        } catch (RuntimeException failure) {
+            if (isTenantlessPlatformLogout(c, family)) throw new AuditUnavailableAfterRevocation(failure);
+            throw failure;
+        }
         if (c.allSessions()) try { abuse.recordGlobal(family.accountId(), family.companyId()); } catch (RuntimeException ignored) { }
+    }
+
+    private boolean isTenantlessPlatformLogout(Command command, RefreshSessionPort.Resolution family) {
+        return command.actor() != null
+                && command.actor().role() == BaseRole.PLATFORM_SUPERADMIN
+                && command.actor().tenantId() == null
+                && family.companyId() == null;
     }
 
     private byte[] digest(String v) {
@@ -81,5 +94,9 @@ public final class LogoutSessionService implements LogoutSessionUseCase {
     }
 
     public static final class Rejected extends RuntimeException {
+    }
+    /** The transaction wrapper commits the already durable revocation, then exposes the failure. */
+    public static final class AuditUnavailableAfterRevocation extends RuntimeException {
+        public AuditUnavailableAfterRevocation(RuntimeException cause) { super(cause); }
     }
 }

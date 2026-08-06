@@ -5,11 +5,17 @@ import com.nahui.followupbussiness.audit.adapter.out.persistence.JdbcAuditEntryS
 import com.nahui.followupbussiness.audit.adapter.out.persistence.JdbcAuthenticationAuditAdapter;
 import com.nahui.followupbussiness.audit.application.PurgeAuditRetention;
 import com.nahui.followupbussiness.audit.application.RecordAuditEntry;
+import com.nahui.followupbussiness.audit.application.RecordPlatformCompanyAudit;
+import com.nahui.followupbussiness.audit.application.RecordCompanyDenialAudit;
 import com.nahui.followupbussiness.audit.application.port.in.RecordAuditEntryUseCase;
 import com.nahui.followupbussiness.audit.application.port.in.RecordAuthenticationAuditUseCase;
+import com.nahui.followupbussiness.audit.application.port.in.RecordPlatformCompanyAuditUseCase;
+import com.nahui.followupbussiness.audit.application.port.in.RecordCompanyDenialAuditUseCase;
 import com.nahui.followupbussiness.audit.application.port.out.AuditEntryStore;
 import com.nahui.followupbussiness.audit.application.port.out.AuditTrustedContextProvider;
 import com.nahui.followupbussiness.audit.adapter.out.security.SecurityContextAuditTrustedContextProvider;
+import com.nahui.followupbussiness.audit.adapter.out.security.SecurityContextPlatformAuditTrustedContextProvider;
+import com.nahui.followupbussiness.audit.adapter.out.security.SecurityContextCompanyDenialAuditTrustedContextProvider;
 import io.micrometer.core.instrument.MeterRegistry;
 
 import java.time.Clock;
@@ -44,6 +50,18 @@ public class AuditConfiguration {
     @Bean
     RecordAuditEntryUseCase recordAuditEntryUseCase(AuditEntryStore store, AuditTrustedContextProvider contextProvider) {
         return new RecordAuditEntry(store, contextProvider, Clock.systemUTC());
+    }
+
+    @Bean
+    RecordPlatformCompanyAuditUseCase recordPlatformCompanyAuditUseCase(JdbcTemplate jdbcTemplate) {
+        return new RecordPlatformCompanyAudit(new JdbcAuditEntryStore(jdbcTemplate, jdbcTemplate),
+                new SecurityContextPlatformAuditTrustedContextProvider(Clock.systemUTC()));
+    }
+
+    @Bean
+    RecordCompanyDenialAuditUseCase recordCompanyDenialAuditUseCase(JdbcTemplate jdbcTemplate) {
+        return new RecordCompanyDenialAudit(new JdbcAuditEntryStore(jdbcTemplate, jdbcTemplate),
+                new SecurityContextCompanyDenialAuditTrustedContextProvider(Clock.systemUTC()));
     }
 
     @Bean

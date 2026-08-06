@@ -92,7 +92,17 @@ public class LoginConfiguration {
         var secret = p.getHmacSecret().getBytes(StandardCharsets.UTF_8);
         var service = new LogoutSessionService(new JdbcRefreshSessionAdapter(j), audit, new RedisLogoutAbuseMonitor(redis, secret), installations, Clock.systemUTC(), secret);
         var transaction = new TransactionTemplate(new DataSourceTransactionManager(j.getDataSource()));
-        return command -> transaction.executeWithoutResult(status -> service.logout(command));
+        return command -> {
+            Object outcome = transaction.execute(status -> {
+                try {
+                    service.logout(command);
+                    return null;
+                } catch (LogoutSessionService.AuditUnavailableAfterRevocation failure) {
+                    return failure;
+                }
+            });
+            if (outcome instanceof LogoutSessionService.AuditUnavailableAfterRevocation failure) throw failure;
+        };
     }
 
     @Bean

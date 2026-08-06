@@ -101,6 +101,55 @@ class AuditEntryMigrationTest {
         }
     }
 
+    @Test void allowsPlatformEvidenceOnlyWithoutTenantAndRejectsInvalidScopeCombinations() {
+        AuditEntry platform = new AuditEntry(UUID.randomUUID(), null, UUID.randomUUID(), AuditAction.CRITICAL_MUTATION,
+                "COMPANY", UUID.randomUUID(), AuditResult.SUCCESS, UUID.randomUUID(), "PLATFORM", Map.of(), Map.of(), Instant.now());
+        assertThat(store.append(platform)).isTrue();
+        assertThatThrownBy(() -> new AuditEntry(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), AuditAction.CRITICAL_MUTATION,
+                "COMPANY", UUID.randomUUID(), AuditResult.SUCCESS, UUID.randomUUID(), "PLATFORM", Map.of(), Map.of(), Instant.now()))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test void allowsTenantBoundDenialOnlyWithTheRealTenant() {
+        UUID tenant = UUID.randomUUID();
+        AuditEntry denial = new AuditEntry(UUID.randomUUID(), tenant, UUID.randomUUID(), AuditAction.CRITICAL_MUTATION,
+                "COMPANY", UUID.randomUUID(), AuditResult.DENIED, UUID.randomUUID(), "TENANT_BOUND_DENIAL", Map.of(), Map.of(), Instant.now());
+        assertThat(store.append(denial)).isTrue();
+        assertThatThrownBy(() -> new AuditEntry(UUID.randomUUID(), null, UUID.randomUUID(), AuditAction.CRITICAL_MUTATION,
+                "COMPANY", UUID.randomUUID(), AuditResult.DENIED, UUID.randomUUID(), "TENANT_BOUND_DENIAL", Map.of(), Map.of(), Instant.now()))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> jdbc.update("INSERT INTO audit_entry(id,tenant_id,actor_id,action,resource_type,resource_id,result,correlation_id,scope,before_state,after_state,occurred_at) VALUES (?,?,?,?,?,?,?,?,'TENANT_BOUND_DENIAL','{}'::jsonb,'{}'::jsonb,CURRENT_TIMESTAMP)",
+                UUID.randomUUID(), null, UUID.randomUUID(), "CRITICAL_MUTATION", "COMPANY", UUID.randomUUID(), "DENIED", UUID.randomUUID()))
+                .isInstanceOf(Exception.class);
+    }
+
+    @Test void rejectsUnknownScopesWithAndWithoutTenantAndPreservesTheClosedScopeMatrix() {
+        assertThatThrownBy(() -> entry(UUID.randomUUID(), "UNRECOGNIZED_SCOPE"))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> entry(null, "UNRECOGNIZED_SCOPE"))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> insert(UUID.randomUUID(), "UNRECOGNIZED_SCOPE"))
+                .isInstanceOf(Exception.class);
+        assertThatThrownBy(() -> insert(null, "UNRECOGNIZED_SCOPE"))
+                .isInstanceOf(Exception.class);
+
+        assertThat(store.append(entry(UUID.randomUUID(), "AUTHORIZED_RESOURCE"))).isTrue();
+        assertThat(store.append(entry(null, "PLATFORM"))).isTrue();
+        assertThat(store.append(entry(UUID.randomUUID(), "TENANT_BOUND_DENIAL"))).isTrue();
+        assertThat(store.append(entry(null, "ANONYMOUS_AUTH"))).isTrue();
+        assertThat(store.append(entry(UUID.randomUUID(), "ANONYMOUS_AUTH"))).isTrue();
+    }
+
+    @Test void v13TenantlessAuthenticationEvidenceSurvivesV14AndTheMatrixFailsClosed() {
+        Flyway beforeV14 = flyway("13"); beforeV14.clean(); beforeV14.migrate();
+        UUID id = UUID.randomUUID();
+        jdbc = new JdbcTemplate(new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword()));
+        jdbc.update("INSERT INTO audit_entry(id,tenant_id,actor_id,action,resource_type,resource_id,result,correlation_id,scope,before_state,after_state,occurred_at) VALUES (?,?,?,?,?,?,?,?,'ANONYMOUS_AUTH','{}'::jsonb,'{\"channel\":\"MOBILE\",\"result\":\"LOGGED_OUT\"}'::jsonb,CURRENT_TIMESTAMP)", id, null, UUID.randomUUID(), "AUTHENTICATION", "SESSION_FAMILY", UUID.randomUUID(), "SUCCESS", UUID.randomUUID());
+        flyway().migrate();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM audit_entry WHERE id=?", Integer.class, id)).isEqualTo(1);
+        assertThatThrownBy(() -> jdbc.update("INSERT INTO audit_entry(id,tenant_id,actor_id,action,resource_type,resource_id,result,correlation_id,scope,before_state,after_state,occurred_at) VALUES (?,?,?,?,?,?,?,?,'PLATFORM','{}'::jsonb,'{}'::jsonb,CURRENT_TIMESTAMP)", UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), "AUTHENTICATION", "SESSION_FAMILY", UUID.randomUUID(), "SUCCESS", UUID.randomUUID())).isInstanceOf(Exception.class);
+    }
+
     @Test void parameterizedPurgeRejectsFutureAndNullCutoffsAndInvalidBatchSizesSeparately() {
         java.sql.Timestamp future = jdbc.queryForObject("SELECT CURRENT_TIMESTAMP + INTERVAL '1 minute'", java.sql.Timestamp.class);
         assertSqlState("P0001", () -> purgeEntries(future, 1));
@@ -189,8 +238,18 @@ class AuditEntryMigrationTest {
 
     private static AuditEntry entry(Instant occurredAt) {
         return new AuditEntry(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), AuditAction.CRITICAL_MUTATION,
-                "CUSTOMER", UUID.randomUUID(), AuditResult.SUCCESS, UUID.randomUUID(), "OWN_RESOURCE",
+                "CUSTOMER", UUID.randomUUID(), AuditResult.SUCCESS, UUID.randomUUID(), "AUTHORIZED_RESOURCE",
                 Map.of("status", "PENDING"), Map.of("status", "APPROVED"), occurredAt);
+    }
+
+    private static AuditEntry entry(UUID tenantId, String scope) {
+        return new AuditEntry(UUID.randomUUID(), tenantId, UUID.randomUUID(), AuditAction.CRITICAL_MUTATION,
+                "CUSTOMER", UUID.randomUUID(), AuditResult.SUCCESS, UUID.randomUUID(), scope, Map.of(), Map.of(), Instant.now());
+    }
+
+    private void insert(UUID tenantId, String scope) {
+        jdbc.update("INSERT INTO audit_entry(id,tenant_id,actor_id,action,resource_type,resource_id,result,correlation_id,scope,before_state,after_state,occurred_at) VALUES (?,?,?,?,?,?,?,?,?,'{}'::jsonb,'{}'::jsonb,CURRENT_TIMESTAMP)",
+                UUID.randomUUID(), tenantId, UUID.randomUUID(), "CRITICAL_MUTATION", "COMPANY", UUID.randomUUID(), "DENIED", UUID.randomUUID(), scope);
     }
 
     private Flyway flyway() {
