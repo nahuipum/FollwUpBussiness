@@ -1,63 +1,95 @@
 # FollowUpBussiness — Instrucciones globales
 
-## Fuentes de verdad y carga de contexto
+## Modo MVP ligero — regla predominante
 
-### Flujo orquestado por historia
+El objetivo es entregar historias seguras y comprobables con el menor contexto
+posible. Esta sección prevalece sobre cualquier instrucción más detallada de
+flujo o plantilla.
 
-Para el flujo `Desarrollo → QA → Seguridad → DoF`, el **Agente Orquestador**
-es el único que ingiere la historia y los documentos de referencia al comenzar
-la historia. Debe crear un *Paquete de Contexto de Historia* canónico, con
-criterios normalizados, reglas aplicables, rutas/secciones, hashes y el commit
-candidato. Los agentes de fase reciben ese paquete y el handoff anterior por
-referencia; no reciben el historial de conversación ni vuelven a leer la HU,
-contratos o ADR ya incluidos.
+### Carga de contexto
 
-Una relectura de una fuente primaria está permitida únicamente si:
+En un flujo `Desarrollo → QA → Seguridad → DoF`, solo el Orquestador lee la HU
+y las fuentes primarias al inicio. Busca primero por ID, endpoint o símbolo y
+abre únicamente las secciones aplicables. El paquete canónico contiene criterios
+normalizados, decisiones y rutas; no copia documentos ni guarda hashes por
+fuente.
 
-- el paquete cita una sección ambigua o insuficiente;
-- el diff o el riesgo revela una fuente no identificada;
-- cambió la fuente o el commit candidato; o
-- la evidencia de una fase contradice el paquete.
+Cada agente de fase recibe con contexto limpio únicamente:
 
-Quien realice la excepción debe registrarla en el handoff con motivo, ruta,
-sección y hash. Si una fuente o el candidato cambia materialmente, el
-Orquestador añade una revisión al paquete canónico antes de avanzar de fase;
-no crea otro archivo solo para numerar la revisión.
+- ruta del paquete;
+- `Candidate-ID`;
+- handoff inmediatamente anterior;
+- alcance de la fase y estado esperado.
 
-Fuera de un flujo orquestado, leer siempre:
+No recibe el historial de conversación ni relee HU, contrato, ADR o documentos
+compartidos. Puede abrir una fuente primaria solo si el paquete es ambiguo, el
+candidato revela una superficie no descrita o existe una contradicción. Registra
+motivo, ruta y sección; no vuelve a resumir la fuente.
 
-1. La historia indicada en `docs/stories/`.
-2. El `AGENTS.MD` local de la aplicación afectada.
-3. El diff, código y pruebas relacionados con la historia.
+Fuera del flujo orquestado, leer la historia, el `AGENTS.MD` local de la
+aplicación y el diff/pruebas relacionados. Consultar contrato, contexto, ADR y
+documentación técnica solo por referencia concreta. Usar `rg` antes de abrir
+archivos grandes.
 
-Consultar de forma selectiva:
+### Artefactos mínimos
 
-- `00_CONTRATO_FUNCIONAL.md`: buscar y leer solo las reglas o requerimientos
-  citados por la historia. Leerlo completo únicamente si el alcance es
-  transversal o existe una contradicción.
-- `shared/PROJECT_CONTEXT.md`, `shared/ENGINEERING_RULES.md` y
-  `shared/TEAM_WORKFLOW.md`: leer las secciones aplicables al rol y componente.
-- `docs/api/`, `docs/events/` y `docs/sync/`: abrir solo los
-  contratos afectados. No recorrer directorios completos sin una razón concreta.
-- ADR y documentación de seguridad: cargar los archivos vinculados por la
-  historia, el código o el riesgo observado.
+Por HU se permiten únicamente:
 
-Usar `rg` para localizar IDs funcionales, endpoints, eventos y símbolos antes de
-abrir documentos grandes. No copiar fuentes completas al handoff; citar rutas,
-secciones y evidencia.
+1. un paquete de contexto;
+2. un handoff Dev;
+3. un handoff QA;
+4. un informe final de Seguridad cuando aplique;
+5. un informe DoF.
 
-### Artefactos canónicos y economía de salida
+El preflight, si es necesario, vive como una sección breve del paquete o del
+informe de Seguridad; no crea otro artefacto. Un bloqueo previo a una fase se
+anota en el estado vigente del paquete.
 
-- Usar un único `docs/handoffs/governance/<HU>-context-package.md` por HU. Sus
-  revisiones son secciones append-only con identidad, causa, hashes y alcance
-  invalidado/reutilizable; el cuerpo vigente se actualiza en ese archivo.
-- Usar un único handoff por fase y aplicación. Las remediaciones y
-  revalidaciones se agregan como secciones al handoff canónico de esa fase.
-- No crear un `.md` para una comprobación de gate que no inicia fase: registrar
-  el bloqueo y el faltante en el **Registro de gates** del paquete canónico.
-- Crear un archivo nuevo solo si aparece un tipo de artefacto distinto o una
-  política externa exige una entrega inmutable separada. Una corrección de
-  metadatos, un estado o un número de revisión no justifican otro archivo.
+Para el mismo candidato se reemplaza el estado vigente: no se agrega una
+revisión por transición, reintento, bloqueo repetido, corrección de metadatos o
+revalidación. Se registra un delta breve solo cuando cambia el candidato, el
+alcance, un contrato, un dato sensible o una amenaza. Git conserva el historial.
+
+Paquete y handoffs contienen solo IDs, decisiones, rutas, comandos/resultados
+resumidos, hallazgos y pendientes. No incluyen logs, código, contenido de
+fuentes, listas de hashes ni narrativa histórica.
+
+### Candidato y gates
+
+El `Candidate-ID` es el commit objetivo o, antes del commit, `HEAD + digest
+corto del diff`. Se calcula una vez cuando Desarrollo cambia código. No se
+crean manifiestos con hashes por archivo. QA, Seguridad y DoF comparan el ID y
+una firma rápida basada en `git status --porcelain` o el commit.
+
+Un gate valida únicamente:
+
+- artefacto previo existente;
+- HU y estado permitido;
+- mismo `Candidate-ID`.
+
+Campos descriptivos, versiones administrativas, tablas o citas ausentes son
+advertencias si no generan ambigüedad sobre esos tres datos. El Orquestador
+corrige metadatos en la misma transición, sin crear un gate ni turno adicional.
+
+### Verificación proporcional
+
+- Desarrollo ejecuta pruebas del cambio y regresión directa.
+- QA valida independientemente criterios afectados, un negativo relevante y
+  regresión directa; amplía solo si el diff o un fallo lo justifica.
+- Seguridad interviene cuando cambia autenticación/autorización, tenant, datos
+  personales o ubicación, secretos, exposición pública, archivos, pagos o
+  infraestructura. En otro caso registra `NOT_APPLICABLE` en una frase.
+- El preflight solo se usa ante una decisión de seguridad o contrato ambigua
+  antes de implementar y define como máximo cinco controles. No se repite en
+  remediaciones que no amplíen el riesgo.
+- Seguridad final reutiliza QA y reproduce solo un abuso capaz de cambiar su
+  decisión.
+- DoF no relee fuentes ni repite suites. Comprueba estados de fase, candidato,
+  ausencia de hallazgos bloqueantes, pruebas/CI declaradas y
+  `git diff --check`. PR o CI bloquean solo si son obligatorios para integrar.
+
+Tras `CHANGES_REQUIRED`: `Dev afectado → QA afectado → Seguridad final`. No
+se reinician fases aprobadas ni se releen controles no afectados.
 
 ## Organización
 
@@ -71,64 +103,39 @@ secciones y evidencia.
 - No inventar reglas de negocio.
 - Preservar trazabilidad e aislamiento multiempresa.
 - No incluir secretos ni datos personales en código, logs o evidencias.
-- Crear un ADR para cambios de arquitectura.
-- No modificar fuera del alcance sin documentarlo.
-- No sobrescribir cambios ajenos del worktree.
+- Crear ADR solo para cambios reales de arquitectura.
+- No modificar fuera del alcance ni sobrescribir cambios ajenos.
 - Ningún agente aprueba su propio trabajo.
 
-## Flujo y roles
+## Flujo y estados
 
-1. Historia refinada y contratos definidos.
-2. El Orquestador solicita un preflight de Seguridad cuando la matriz de riesgo
-   aplica. El preflight define controles `SEC-<HU>-NN` verificables, pero no
-   aprueba código ni sustituye la revisión final.
-3. Desarrollo implementa y prueba cada control aplicable.
-4. QA independiente valida criterios y controles `SEC-*` usando el paquete y
-   el candidato fijado.
-5. Ciberseguridad realiza la revisión final cuando la matriz de riesgo aplica;
-   en otro caso
-   registra `NOT_APPLICABLE` con justificación.
-6. DoF comprueba las evidencias de las fases y decide el cierre.
+1. Desarrollo: `READY_FOR_HANDOFF` o `BLOCKED`.
+2. QA independiente: `PASS`, `CHANGES_REQUIRED` o `BLOCKED`.
+3. Seguridad, si aplica: `PASS`, `CHANGES_REQUIRED`, `BLOCKED` o
+   `NOT_APPLICABLE`. Preflight: `ADVISORY`.
+4. DoF: `PASS` o `BLOCKED`.
 
-No ejecutar roles posteriores antes de disponer del documento de salida
-requerido de la fase anterior. El Orquestador debe verificar en disco que el
-documento existe, no está vacío y declara la misma HU, paquete/version y
-candidato; una respuesta de chat no sustituye ese artefacto. Si falta o no
-coincide, la fase queda `BLOCKED` y no se puede invocar ni sugerir el rol
-siguiente. QA `CHANGES_REQUIRED`/`BLOCKED` retorna a Desarrollo; Seguridad
-`CHANGES_REQUIRED`/`BLOCKED` activa únicamente la remediación acotada. Ninguno
-de esos estados autoriza Seguridad final, DoF ni cierre.
-No repetir suites o análisis ya evidenciados salvo que el riesgo, el diff o un
-resultado inconsistente lo justifique.
-El Orquestador no aprueba ni modifica la historia: prepara y distribuye el
-contexto mínimo, fija el candidato y hace cumplir los gates.
-Un `CHANGES_REQUIRED` o `BLOCKED` de Seguridad no reinicia la historia: activa
-la ruta de remediación limitada a los controles y superficies afectadas.
-
-## Estados permitidos
-
-- Desarrollo: `READY_FOR_HANDOFF` o `BLOCKED`.
-- QA: `PASS`, `CHANGES_REQUIRED` o `BLOCKED`.
-- Seguridad final: `PASS`, `CHANGES_REQUIRED`, `BLOCKED` o `NOT_APPLICABLE`.
-- Preflight de Seguridad: `ADVISORY` o `NOT_APPLICABLE`; no es una aprobación.
-- DoF: `PASS` o `BLOCKED`.
+No se inicia una fase si el estado previo no la autoriza. QA o Seguridad con
+`CHANGES_REQUIRED`/`BLOCKED` no autorizan DoF. Una respuesta de chat no
+sustituye el artefacto canónico, pero el Orquestador puede transcribir
+literalmente el dictamen de un revisor de solo lectura sin reinterpretarlo.
 
 ## Git
 
 - Una rama por historia.
-- Commits separados por aplicación.
-- Pull requests trazables.
-- Los agentes no realizan commits salvo solicitud explícita del usuario.
+- Commits separados por aplicación cuando corresponda.
+- Pull requests trazables cuando el flujo de integración los use.
+- Los agentes no hacen commits salvo solicitud explícita.
 
 ## graphify
 
-This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+El proyecto dispone de `graphify-out/`. Para preguntas del código o
+arquitectura, ejecutar primero una consulta acotada:
 
-When the user types `/graphify`, use the installed graphify skill or instructions before doing anything else.
+- `graphify query "<pregunta>"`
+- `graphify path "<A>" "<B>"` para relaciones.
+- `graphify explain "<concepto>"` para un concepto.
 
-Rules:
-- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
-- Dirty graphify-out/ files are expected after hooks or incremental updates; dirty graph files are not a reason to skip graphify. Only skip graphify if the task is about stale or incorrect graph output, or the user explicitly says not to use it.
-- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
-- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
-- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
+No leer `GRAPH_REPORT.md` salvo revisión arquitectónica amplia o insuficiencia
+de la consulta. Después de modificar código fuente, ejecutar
+`graphify update .`; cambios solo documentales no requieren actualizarlo.
