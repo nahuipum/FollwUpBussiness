@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.nahui.followupbussiness.audit.application.port.out.AuditEntryStore;
 import com.nahui.followupbussiness.audit.domain.AuditEntry;
+import com.nahui.followupbussiness.audit.domain.AuditAction;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +27,16 @@ class RecordCompanyDenialAuditTest {
         assertThat(entry.correlationId()).isEqualTo(correlation);
         assertThat(entry.scope()).isEqualTo("TENANT_BOUND_DENIAL");
         assertThat(entry.before()).isEmpty(); assertThat(entry.after()).isEmpty();
+    }
+
+    @Test void recordsTheApprovedProvisioningActionAgainstTheTargetCompany() {
+        UUID tenant = UUID.randomUUID(); UUID actor = UUID.randomUUID(); UUID correlation = UUID.randomUUID();
+        UUID attempt = UUID.randomUUID(); UUID company = UUID.randomUUID(); CapturingStore store = new CapturingStore();
+        var useCase = new RecordCompanyDenialAudit(store,
+                () -> new CompanyDenialAuditTrustedContext(tenant, actor, correlation, Instant.EPOCH));
+        useCase.record(new RecordCompanyDenialAuditCommand(attempt, company, AuditAction.PROVISION_INITIAL_COMPANY_ADMIN));
+        assertThat(store.entries.get(0).action()).isEqualTo(AuditAction.PROVISION_INITIAL_COMPANY_ADMIN);
+        assertThat(store.entries.get(0).resourceId()).isEqualTo(company);
     }
 
     private static final class CapturingStore implements AuditEntryStore {

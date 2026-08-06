@@ -14,7 +14,15 @@ import com.nahui.followupbussiness.identityaccess.application.*;
 import com.nahui.followupbussiness.identityaccess.application.port.out.*;
 import com.nahui.followupbussiness.identityaccess.application.port.in.RefreshSessionUseCase;
 import com.nahui.followupbussiness.identityaccess.application.port.in.LogoutSessionUseCase;
+import com.nahui.followupbussiness.identityaccess.application.port.in.ProvisionInitialCompanyAdminUseCase;
+import com.nahui.followupbussiness.identityaccess.domain.model.BaseRole;
 import com.nahui.followupbussiness.audit.application.port.in.RecordAuthenticationAuditUseCase;
+import com.nahui.followupbussiness.audit.application.port.in.RecordPlatformCompanyAuditUseCase;
+import com.nahui.followupbussiness.audit.application.RecordCompanyDenialAuditCommand;
+import com.nahui.followupbussiness.audit.application.RecordPlatformCompanyAuditCommand;
+import com.nahui.followupbussiness.audit.application.port.in.RecordCompanyDenialAuditUseCase;
+import com.nahui.followupbussiness.audit.domain.AuditAction;
+import com.nahui.followupbussiness.audit.domain.AuditResult;
 import com.nahui.followupbussiness.notifications.application.port.in.RevokeInstallationsForSession;
 import com.nahui.followupbussiness.tenancy.application.port.in.CompanyAccessStatusQuery;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -34,6 +42,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.util.Random;
 import java.util.Base64;
+import java.util.UUID;
 
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnProperty(prefix = "followupbussiness.authentication", name = "rs256-private-key")
@@ -83,6 +92,34 @@ public class LoginConfiguration {
             @Override
             public void reset(String token, char[] password) {
                 transaction.executeWithoutResult(status -> super.reset(token, password));
+            }
+        };
+    }
+
+    @Bean
+    ProvisionInitialCompanyAdminUseCase provisionInitialCompanyAdminUseCase(JdbcTemplate jdbc, CompanyAccessStatusQuery companies,
+            AuthenticationProperties.Values p, RecordPlatformCompanyAuditUseCase audit, RecordCompanyDenialAuditUseCase denialAudit) {
+        byte[] secret = p.getHmacSecret().getBytes(StandardCharsets.UTF_8);
+        var service = new ProvisionInitialCompanyAdminService(new JdbcInitialCompanyAdminStore(jdbc), companies, new JdbcPasswordRecoveryAdapter(jdbc),
+                new JdbcIdentityNotificationAdapter(jdbc, secret), new BCryptPasswordHashingAdapter(), audit, Clock.systemUTC(), secret);
+        var transaction = new TransactionTemplate(new DataSourceTransactionManager(jdbc.getDataSource()));
+        return (command, actor) -> {
+            try {
+                return java.util.Objects.requireNonNull(transaction.execute(status -> service.execute(command, actor)));
+            } catch (ProvisionInitialCompanyAdminService.Conflict conflict) {
+                audit.record(new RecordPlatformCompanyAuditCommand(command.companyId(),
+                        AuditAction.PROVISION_INITIAL_COMPANY_ADMIN, AuditResult.CONFLICT));
+                throw conflict;
+            } catch (ProvisionInitialCompanyAdminService.CompanyUnavailable unavailable) {
+                audit.record(new RecordPlatformCompanyAuditCommand(command.companyId(),
+                        AuditAction.PROVISION_INITIAL_COMPANY_ADMIN, AuditResult.DENIED));
+                throw unavailable;
+            } catch (ProvisionInitialCompanyAdminService.Forbidden forbidden) {
+                if (actor != null && actor.role() == BaseRole.PLATFORM_SUPERADMIN && actor.tenantId() != null) {
+                    denialAudit.record(new RecordCompanyDenialAuditCommand(UUID.randomUUID(), command.companyId(),
+                            AuditAction.PROVISION_INITIAL_COMPANY_ADMIN));
+                }
+                throw forbidden;
             }
         };
     }

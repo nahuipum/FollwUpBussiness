@@ -4,5 +4,6 @@ package com.nahui.followupbussiness.audit.domain;
 public enum AuditAction {
     AUTHENTICATION,
     RESOURCE_ACCESS,
-    CRITICAL_MUTATION
+    CRITICAL_MUTATION,
+    PROVISION_INITIAL_COMPANY_ADMIN
 }
