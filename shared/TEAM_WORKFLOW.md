@@ -19,16 +19,34 @@
 - Detener la fase al encontrar un bloqueo concluyente; no consumir contexto en
   revisiones secundarias que no puedan cambiar el estado.
 - El Orquestador crea `docs/handoffs/governance/<HU>-context-package.md` una
-  sola vez por versión de historia/candidato. Incluye criterios normalizados,
-  reglas, contratos y ADR aplicables, todos con ruta, sección y hash.
+  sola vez por HU. Incluye criterios normalizados, reglas, contratos y ADR
+  aplicables, todos con ruta, sección y hash. Si cambia historia/candidato,
+  agrega una revisión append-only con el delta y la identidad nueva; no crea
+  otro archivo solo para incrementar una versión.
 - Cada fase recibe solo el identificador del paquete, el commit/diff fijado,
   el handoff anterior y las rutas de evidencia. Al lanzar subagentes usar
   contexto limpio (`fork_turns: "none"`); no propagar el historial completo.
+- Antes de lanzar cada fase, el Orquestador valida en disco el paquete y todos
+  los documentos de entrada: existen, no están vacíos y declaran la misma HU,
+  versión del paquete y candidato. Una respuesta de chat no es evidencia ni
+  autorización. Si una entrada falta o no coincide, persiste/solicita un
+  `BLOCKED` que identifique el faltante y detiene el flujo.
+- La ruta normal es estricta: Dev `READY_FOR_HANDOFF` documentado → QA `PASS`
+  documentado → Seguridad final `PASS`/`NOT_APPLICABLE` documentado → DoF. QA
+  `CHANGES_REQUIRED` o `BLOCKED` vuelve a Desarrollo y no permite Seguridad ni
+  DoF. Seguridad `CHANGES_REQUIRED` o `BLOCKED` permite solamente la
+  remediación acotada. Nunca interpretar la falta de hallazgos, trabajo o
+  entorno como un `PASS` implícito.
 - QA mantiene independencia ejecutando sus pruebas y contrastando los criterios
   del paquete; no vuelve a descubrir documentación. Seguridad y DoF verifican
   evidencia y solo reabren una fuente primaria mediante una excepción trazada.
-- Si una fuente o el candidato cambia, invalidar el paquete y crear una nueva
-  versión antes del siguiente gate. No reutilizar evidencia entre candidatos.
+- Si una fuente o el candidato cambia, invalidar la revisión vigente y agregar
+  una revisión nueva en el paquete canónico antes del siguiente gate. No
+  reutilizar evidencia entre candidatos sin revalidarla explícitamente.
+- Mantener un archivo canónico por fase. Un bloqueo previo a una fase se anota
+  en el Registro de gates del paquete; una remediación o revalidación se agrega
+  al handoff de su fase. No crear archivos `-vN`, de reanudación o de gate solo
+  para repetir la misma identidad y estado.
 - Para superficies de riesgo, ejecutar un preflight de Seguridad tras crear el
   paquete y antes de Desarrollo. El resultado es `ADVISORY`, no una aprobación:
   entrega una matriz breve de controles `SEC-<HU>-NN`, amenaza y pruebas
@@ -140,7 +158,9 @@ nueva de la historia. Las reglas permanentes permanecen en sus fuentes de verdad
 Debe además referenciar la versión del Paquete de Contexto y declarar cualquier
 lectura excepcional de una fuente primaria.
 Para cada control `SEC-*` aplicable debe declarar implementación, prueba y
-evidencia; una fila faltante bloquea el avance a QA.
+evidencia; una fila faltante bloquea el avance a QA. Antes de QA, el
+Orquestador verifica además que el archivo exista, no esté vacío y tenga la
+misma HU, paquete/version y candidato.
 
 ---
 
@@ -156,6 +176,10 @@ QA entrega:
 - Regresión ejecutada.
 - Riesgos residuales.
 - Estado `PASS`, `CHANGES_REQUIRED` o `BLOCKED`.
+
+Un resultado `CHANGES_REQUIRED` o `BLOCKED` no habilita Seguridad ni DoF. Debe
+existir una remediación de Desarrollo y un nuevo handoff QA sobre el candidato
+que la incorpora antes de retomar la ruta normal.
 
 ---
 

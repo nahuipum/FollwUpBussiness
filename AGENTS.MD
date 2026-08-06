@@ -6,7 +6,7 @@
 
 Para el flujo `Desarrollo → QA → Seguridad → DoF`, el **Agente Orquestador**
 es el único que ingiere la historia y los documentos de referencia al comenzar
-la historia. Debe crear un *Paquete de Contexto de Historia* versionado, con
+la historia. Debe crear un *Paquete de Contexto de Historia* canónico, con
 criterios normalizados, reglas aplicables, rutas/secciones, hashes y el commit
 candidato. Los agentes de fase reciben ese paquete y el handoff anterior por
 referencia; no reciben el historial de conversación ni vuelven a leer la HU,
@@ -20,8 +20,9 @@ Una relectura de una fuente primaria está permitida únicamente si:
 - la evidencia de una fase contradice el paquete.
 
 Quien realice la excepción debe registrarla en el handoff con motivo, ruta,
-sección y hash. Si una fuente cambia, el Orquestador genera una nueva versión
-del paquete antes de avanzar de fase.
+sección y hash. Si una fuente o el candidato cambia materialmente, el
+Orquestador añade una revisión al paquete canónico antes de avanzar de fase;
+no crea otro archivo solo para numerar la revisión.
 
 Fuera de un flujo orquestado, leer siempre:
 
@@ -44,6 +45,19 @@ Consultar de forma selectiva:
 Usar `rg` para localizar IDs funcionales, endpoints, eventos y símbolos antes de
 abrir documentos grandes. No copiar fuentes completas al handoff; citar rutas,
 secciones y evidencia.
+
+### Artefactos canónicos y economía de salida
+
+- Usar un único `docs/handoffs/governance/<HU>-context-package.md` por HU. Sus
+  revisiones son secciones append-only con identidad, causa, hashes y alcance
+  invalidado/reutilizable; el cuerpo vigente se actualiza en ese archivo.
+- Usar un único handoff por fase y aplicación. Las remediaciones y
+  revalidaciones se agregan como secciones al handoff canónico de esa fase.
+- No crear un `.md` para una comprobación de gate que no inicia fase: registrar
+  el bloqueo y el faltante en el **Registro de gates** del paquete canónico.
+- Crear un archivo nuevo solo si aparece un tipo de artefacto distinto o una
+  política externa exige una entrega inmutable separada. Una corrección de
+  metadatos, un estado o un número de revisión no justifican otro archivo.
 
 ## Organización
 
@@ -76,7 +90,14 @@ secciones y evidencia.
    registra `NOT_APPLICABLE` con justificación.
 6. DoF comprueba las evidencias de las fases y decide el cierre.
 
-No ejecutar roles posteriores antes de disponer del handoff de la fase anterior.
+No ejecutar roles posteriores antes de disponer del documento de salida
+requerido de la fase anterior. El Orquestador debe verificar en disco que el
+documento existe, no está vacío y declara la misma HU, paquete/version y
+candidato; una respuesta de chat no sustituye ese artefacto. Si falta o no
+coincide, la fase queda `BLOCKED` y no se puede invocar ni sugerir el rol
+siguiente. QA `CHANGES_REQUIRED`/`BLOCKED` retorna a Desarrollo; Seguridad
+`CHANGES_REQUIRED`/`BLOCKED` activa únicamente la remediación acotada. Ninguno
+de esos estados autoriza Seguridad final, DoF ni cierre.
 No repetir suites o análisis ya evidenciados salvo que el riesgo, el diff o un
 resultado inconsistente lo justifique.
 El Orquestador no aprueba ni modifica la historia: prepara y distribuye el

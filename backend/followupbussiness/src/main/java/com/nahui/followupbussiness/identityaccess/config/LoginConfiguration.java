@@ -9,7 +9,9 @@ import com.nahui.followupbussiness.identityaccess.adapter.out.security.*;
 import com.nahui.followupbussiness.identityaccess.application.*;
 import com.nahui.followupbussiness.identityaccess.application.port.out.*;
 import com.nahui.followupbussiness.identityaccess.application.port.in.RefreshSessionUseCase;
+import com.nahui.followupbussiness.identityaccess.application.port.in.LogoutSessionUseCase;
 import com.nahui.followupbussiness.audit.application.port.in.RecordAuthenticationAuditUseCase;
+import com.nahui.followupbussiness.notifications.application.port.in.RevokeInstallationsForSession;
 import com.nahui.followupbussiness.tenancy.application.port.in.CompanyAccessStatusQuery;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -83,6 +85,24 @@ public class LoginConfiguration {
                 return (RefreshService.Result) outcome;
             };
         } catch (IllegalArgumentException | GeneralSecurityException e) { throw new IllegalStateException("Invalid RS256 authentication key", e); }
+    }
+
+    @Bean
+    LogoutSessionUseCase logoutSessionUseCase(JdbcTemplate j, RecordAuthenticationAuditUseCase audit, StringRedisTemplate redis, RevokeInstallationsForSession installations, AuthenticationProperties.Values p) {
+        var secret = p.getHmacSecret().getBytes(StandardCharsets.UTF_8);
+        var service = new LogoutSessionService(new JdbcRefreshSessionAdapter(j), audit, new RedisLogoutAbuseMonitor(redis, secret), installations, Clock.systemUTC(), secret);
+        var transaction = new TransactionTemplate(new DataSourceTransactionManager(j.getDataSource()));
+        return command -> {
+            Object outcome = transaction.execute(status -> {
+                try {
+                    service.logout(command);
+                    return null;
+                } catch (LogoutSessionService.AuditUnavailableAfterRevocation failure) {
+                    return failure;
+                }
+            });
+            if (outcome instanceof LogoutSessionService.AuditUnavailableAfterRevocation failure) throw failure;
+        };
     }
 
     @Bean

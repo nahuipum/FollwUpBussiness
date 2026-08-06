@@ -22,17 +22,31 @@ public record AuditEntry(
         Instant occurredAt) {
 
     private static final Set<String> ALLOWED_CHANGE_FIELDS = Set.of("status");
+    private static final Set<String> ALLOWED_SCOPES = Set.of(
+            AuditScope.AUTHORIZED_RESOURCE.name(),
+            AuditScope.PLATFORM.name(),
+            AuditScope.TENANT_BOUND_DENIAL.name(),
+            "ANONYMOUS_AUTH");
 
     public AuditEntry {
         Objects.requireNonNull(id, "id is required");
-        Objects.requireNonNull(tenantId, "tenantId is required");
+        scope = requiredText(scope, "scope");
+        if (!ALLOWED_SCOPES.contains(scope)) {
+            throw new IllegalArgumentException("scope is not allowed");
+        }
+        if ("PLATFORM".equals(scope)) {
+            if (tenantId != null) throw new IllegalArgumentException("PLATFORM audit entries must not have a tenantId");
+        } else if ("TENANT_BOUND_DENIAL".equals(scope)) {
+            if (tenantId == null) throw new IllegalArgumentException("TENANT_BOUND_DENIAL audit entries require a tenantId");
+        } else if (!"ANONYMOUS_AUTH".equals(scope) && tenantId == null) {
+            throw new IllegalArgumentException("tenantId is required outside PLATFORM scope");
+        }
         Objects.requireNonNull(actorId, "actorId is required");
         Objects.requireNonNull(action, "action is required");
         resourceType = requiredText(resourceType, "resourceType");
         Objects.requireNonNull(resourceId, "resourceId is required");
         Objects.requireNonNull(result, "result is required");
         Objects.requireNonNull(correlationId, "correlationId is required");
-        scope = requiredText(scope, "scope");
         before = sanitized(before);
         after = sanitized(after);
         Objects.requireNonNull(occurredAt, "occurredAt is required");

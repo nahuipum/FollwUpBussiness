@@ -46,11 +46,13 @@ public final class InboundJwtAuthenticator {
             JsonNode header = parse(parts[0]);
             JsonNode claims = parse(parts[1]);
             if (!"RS256".equals(header.path("alg").asText()) || !verify(parts)) throw new JwtValidationException();
+            long now = clock.instant().getEpochSecond();
+            if (!issuer.equals(claims.path("iss").asText()) || !hasAudience(claims)
+                    || claims.path("exp").asLong(0) <= now || claims.path("nbf").asLong(0) > now)
+                throw new JwtValidationException();
             UUID subject = UUID.fromString(claims.path("sub").asText());
             UUID session = UUID.fromString(claims.path("sid").asText());
             String role = singleRole(claims);
-            if (!issuer.equals(claims.path("iss").asText()) || !hasAudience(claims) || claims.path("exp").asLong(0) <= clock.instant().getEpochSecond())
-                throw new JwtValidationException();
             var tenantIds = jdbcTemplate.query("""
                     SELECT account.company_id FROM identity_access_session_family session
                     JOIN identity_access_account account ON account.id = session.account_id
@@ -66,7 +68,7 @@ public final class InboundJwtAuthenticator {
             if (persistedRole.scope() == com.nahui.followupbussiness.identityaccess.domain.model.RoleScope.PLATFORM ? tenantId != null : tenantId == null)
                 throw new JwtValidationException();
             return UsernamePasswordAuthenticationToken.authenticated(
-                    new AuthenticatedActor(subject, tenantId, persistedRole), bearerToken, List.of(new SimpleGrantedAuthority(role)));
+                    new AuthenticatedActor(subject, tenantId, persistedRole, session), bearerToken, List.of(new SimpleGrantedAuthority(role)));
         } catch (GeneralSecurityException | RuntimeException exception) {
             if (exception instanceof JwtValidationException) throw (JwtValidationException) exception;
             throw new JwtValidationException();

@@ -11,8 +11,8 @@ import com.nahui.followupbussiness.audit.domain.AuditResult;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.util.Map;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -73,7 +73,7 @@ class AuditEntryMigrationTest {
         Instant now = Instant.parse("2026-08-04T12:00:00Z");
         AuditEntry networkExpired = entry(now.minus(java.time.Duration.ofDays(91)));
         AuditEntry entryExpired = entry(now.minus(java.time.Duration.ofDays(366)));
-        AuditEntry atCutoff = entry(now.minus(java.time.Duration.ofDays(364)));
+        AuditEntry atCutoff = entry(now.minus(java.time.Duration.ofDays(365)));
         store.append(networkExpired); store.append(entryExpired); store.append(atCutoff);
         jdbc.update("INSERT INTO audit_network_context(id, audit_entry_id, tenant_id, ip_address, occurred_at) VALUES (?, ?, ?, CAST(? AS inet), ?)",
                 UUID.randomUUID(), networkExpired.id(), networkExpired.tenantId(), "192.0.2.1", java.sql.Timestamp.from(networkExpired.occurredAt()));
@@ -101,6 +101,122 @@ class AuditEntryMigrationTest {
         }
     }
 
+    @Test void allowsPlatformEvidenceOnlyWithoutTenantAndRejectsInvalidScopeCombinations() {
+        AuditEntry platform = new AuditEntry(UUID.randomUUID(), null, UUID.randomUUID(), AuditAction.CRITICAL_MUTATION,
+                "COMPANY", UUID.randomUUID(), AuditResult.SUCCESS, UUID.randomUUID(), "PLATFORM", Map.of(), Map.of(), Instant.now());
+        assertThat(store.append(platform)).isTrue();
+        assertThatThrownBy(() -> new AuditEntry(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), AuditAction.CRITICAL_MUTATION,
+                "COMPANY", UUID.randomUUID(), AuditResult.SUCCESS, UUID.randomUUID(), "PLATFORM", Map.of(), Map.of(), Instant.now()))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test void allowsTenantBoundDenialOnlyWithTheRealTenant() {
+        UUID tenant = UUID.randomUUID();
+        AuditEntry denial = new AuditEntry(UUID.randomUUID(), tenant, UUID.randomUUID(), AuditAction.CRITICAL_MUTATION,
+                "COMPANY", UUID.randomUUID(), AuditResult.DENIED, UUID.randomUUID(), "TENANT_BOUND_DENIAL", Map.of(), Map.of(), Instant.now());
+        assertThat(store.append(denial)).isTrue();
+        assertThatThrownBy(() -> new AuditEntry(UUID.randomUUID(), null, UUID.randomUUID(), AuditAction.CRITICAL_MUTATION,
+                "COMPANY", UUID.randomUUID(), AuditResult.DENIED, UUID.randomUUID(), "TENANT_BOUND_DENIAL", Map.of(), Map.of(), Instant.now()))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> jdbc.update("INSERT INTO audit_entry(id,tenant_id,actor_id,action,resource_type,resource_id,result,correlation_id,scope,before_state,after_state,occurred_at) VALUES (?,?,?,?,?,?,?,?,'TENANT_BOUND_DENIAL','{}'::jsonb,'{}'::jsonb,CURRENT_TIMESTAMP)",
+                UUID.randomUUID(), null, UUID.randomUUID(), "CRITICAL_MUTATION", "COMPANY", UUID.randomUUID(), "DENIED", UUID.randomUUID()))
+                .isInstanceOf(Exception.class);
+    }
+
+    @Test void rejectsUnknownScopesWithAndWithoutTenantAndPreservesTheClosedScopeMatrix() {
+        assertThatThrownBy(() -> entry(UUID.randomUUID(), "UNRECOGNIZED_SCOPE"))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> entry(null, "UNRECOGNIZED_SCOPE"))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> insert(UUID.randomUUID(), "UNRECOGNIZED_SCOPE"))
+                .isInstanceOf(Exception.class);
+        assertThatThrownBy(() -> insert(null, "UNRECOGNIZED_SCOPE"))
+                .isInstanceOf(Exception.class);
+
+        assertThat(store.append(entry(UUID.randomUUID(), "AUTHORIZED_RESOURCE"))).isTrue();
+        assertThat(store.append(entry(null, "PLATFORM"))).isTrue();
+        assertThat(store.append(entry(UUID.randomUUID(), "TENANT_BOUND_DENIAL"))).isTrue();
+        assertThat(store.append(entry(null, "ANONYMOUS_AUTH"))).isTrue();
+        assertThat(store.append(entry(UUID.randomUUID(), "ANONYMOUS_AUTH"))).isTrue();
+    }
+
+    @Test void v13TenantlessAuthenticationEvidenceSurvivesV14AndTheMatrixFailsClosed() {
+        Flyway beforeV14 = flyway("13"); beforeV14.clean(); beforeV14.migrate();
+        UUID id = UUID.randomUUID();
+        jdbc = new JdbcTemplate(new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword()));
+        jdbc.update("INSERT INTO audit_entry(id,tenant_id,actor_id,action,resource_type,resource_id,result,correlation_id,scope,before_state,after_state,occurred_at) VALUES (?,?,?,?,?,?,?,?,'ANONYMOUS_AUTH','{}'::jsonb,'{\"channel\":\"MOBILE\",\"result\":\"LOGGED_OUT\"}'::jsonb,CURRENT_TIMESTAMP)", id, null, UUID.randomUUID(), "AUTHENTICATION", "SESSION_FAMILY", UUID.randomUUID(), "SUCCESS", UUID.randomUUID());
+        flyway().migrate();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM audit_entry WHERE id=?", Integer.class, id)).isEqualTo(1);
+        assertThatThrownBy(() -> jdbc.update("INSERT INTO audit_entry(id,tenant_id,actor_id,action,resource_type,resource_id,result,correlation_id,scope,before_state,after_state,occurred_at) VALUES (?,?,?,?,?,?,?,?,'PLATFORM','{}'::jsonb,'{}'::jsonb,CURRENT_TIMESTAMP)", UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), "AUTHENTICATION", "SESSION_FAMILY", UUID.randomUUID(), "SUCCESS", UUID.randomUUID())).isInstanceOf(Exception.class);
+    }
+
+    @Test void parameterizedPurgeRejectsFutureAndNullCutoffsAndInvalidBatchSizesSeparately() {
+        java.sql.Timestamp future = jdbc.queryForObject("SELECT CURRENT_TIMESTAMP + INTERVAL '1 minute'", java.sql.Timestamp.class);
+        assertSqlState("P0001", () -> purgeEntries(future, 1));
+        assertSqlState("P0001", () -> purgeEntries(null, 1));
+        assertSqlState("P0001", () -> purgeEntries(java.sql.Timestamp.from(Instant.parse("2026-08-04T12:00:00Z")), null));
+        assertSqlState("P0001", () -> purgeEntries(java.sql.Timestamp.from(Instant.parse("2026-08-04T12:00:00Z")), 0));
+        assertSqlState("P0001", () -> purgeEntries(java.sql.Timestamp.from(Instant.parse("2026-08-04T12:00:00Z")), 501));
+    }
+
+    @Test void parameterizedPurgeAcceptsMinimumAndMaximumBoundedBatches() {
+        Instant cutoff = Instant.parse("2026-08-04T12:00:00Z");
+        for (int i = 0; i < 501; i++) store.append(entry(cutoff.minusSeconds(1)));
+
+        assertThat(purgeEntries(java.sql.Timestamp.from(cutoff), 1)).isEqualTo(1);
+        assertThat(purgeEntries(java.sql.Timestamp.from(cutoff), 500)).isEqualTo(500);
+        assertThat(purgeEntries(java.sql.Timestamp.from(cutoff), 500)).isZero();
+    }
+
+    @Test void v12DataSurvivesUpgradeToV13AndUsesTheParameterizedPurge() {
+        Flyway beforeV13 = flyway("12");
+        beforeV13.clean();
+        beforeV13.migrate();
+        jdbc = new JdbcTemplate(new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword()));
+        store = new JdbcAuditEntryStore(jdbc, jdbc);
+        Instant cutoff = Instant.parse("2026-08-04T12:00:00Z");
+        AuditEntry expired = entry(cutoff.minusSeconds(1));
+        store.append(expired);
+        UUID networkContextId = UUID.randomUUID();
+        jdbc.update("INSERT INTO audit_network_context(id, audit_entry_id, tenant_id, ip_address, occurred_at) VALUES (?, ?, ?, CAST(? AS inet), ?)",
+                networkContextId, expired.id(), expired.tenantId(), "192.0.2.1", java.sql.Timestamp.from(cutoff.minusSeconds(1)));
+
+        flyway().migrate();
+
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM audit_entry WHERE id = ?", Integer.class, expired.id())).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM audit_network_context WHERE id = ?", Integer.class, networkContextId)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT audit_purge_network_context(CAST(? AS timestamptz), 1)", Integer.class, java.sql.Timestamp.from(cutoff))).isEqualTo(1);
+        assertThat(purgeEntries(java.sql.Timestamp.from(cutoff), 1)).isEqualTo(1);
+    }
+
+    @Test void concurrentPurgersDeleteEachExpiredEntryAndCountItOnlyOnce() throws Exception {
+        Instant cutoff = Instant.parse("2026-08-04T12:00:00Z");
+        for (int i = 0; i < 501; i++) store.append(entry(cutoff.minusSeconds(1)));
+        JdbcAuditEntryStore firstPurger = new JdbcAuditEntryStore(jdbc, new JdbcTemplate(new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())));
+        JdbcAuditEntryStore secondPurger = new JdbcAuditEntryStore(jdbc, new JdbcTemplate(new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())));
+
+        try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
+            Future<Integer> first = executor.submit(() -> firstPurger.deleteEntriesBefore(cutoff, 500));
+            Future<Integer> second = executor.submit(() -> secondPurger.deleteEntriesBefore(cutoff, 500));
+            assertThat(first.get(10, TimeUnit.SECONDS) + second.get(10, TimeUnit.SECONDS)).isEqualTo(501);
+        }
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM audit_entry", Integer.class)).isZero();
+    }
+
+    @Test void onlyAuditPurgerCanExecuteEachLegacyAndParameterizedPurgeFunction() throws Exception {
+        jdbc.execute("CREATE ROLE audit_public_runtime LOGIN PASSWORD 'BE051_PUBLIC_TEST_ONLY_0123456789'");
+        try (Connection publicRuntime = DriverManager.getConnection(postgres.getJdbcUrl(), "audit_public_runtime", "BE051_PUBLIC_TEST_ONLY_0123456789");
+             Connection writer = DriverManager.getConnection(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+             Connection purger = DriverManager.getConnection(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())) {
+            writer.createStatement().execute("SET ROLE audit_writer");
+            purger.createStatement().execute("SET ROLE audit_purger");
+
+            assertPurgeFunctionsDenied(publicRuntime);
+            assertPurgeFunctionsDenied(writer);
+            assertPurgeFunctionsAllowed(purger);
+        }
+    }
+
     @Test void dedicatedLoginIdentitiesUseTheirOwnDatasourceForAppendAndPurge() throws Exception {
         jdbc.execute("DROP ROLE IF EXISTS audit_writer_runtime");
         jdbc.execute("DROP ROLE IF EXISTS audit_purger_runtime");
@@ -122,7 +238,56 @@ class AuditEntryMigrationTest {
 
     private static AuditEntry entry(Instant occurredAt) {
         return new AuditEntry(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), AuditAction.CRITICAL_MUTATION,
-                "CUSTOMER", UUID.randomUUID(), AuditResult.SUCCESS, UUID.randomUUID(), "OWN_RESOURCE",
+                "CUSTOMER", UUID.randomUUID(), AuditResult.SUCCESS, UUID.randomUUID(), "AUTHORIZED_RESOURCE",
                 Map.of("status", "PENDING"), Map.of("status", "APPROVED"), occurredAt);
+    }
+
+    private static AuditEntry entry(UUID tenantId, String scope) {
+        return new AuditEntry(UUID.randomUUID(), tenantId, UUID.randomUUID(), AuditAction.CRITICAL_MUTATION,
+                "CUSTOMER", UUID.randomUUID(), AuditResult.SUCCESS, UUID.randomUUID(), scope, Map.of(), Map.of(), Instant.now());
+    }
+
+    private void insert(UUID tenantId, String scope) {
+        jdbc.update("INSERT INTO audit_entry(id,tenant_id,actor_id,action,resource_type,resource_id,result,correlation_id,scope,before_state,after_state,occurred_at) VALUES (?,?,?,?,?,?,?,?,?,'{}'::jsonb,'{}'::jsonb,CURRENT_TIMESTAMP)",
+                UUID.randomUUID(), tenantId, UUID.randomUUID(), "CRITICAL_MUTATION", "COMPANY", UUID.randomUUID(), "DENIED", UUID.randomUUID(), scope);
+    }
+
+    private Flyway flyway() {
+        return Flyway.configure().dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
+                .locations("classpath:db/migration").cleanDisabled(false).load();
+    }
+
+    private Flyway flyway(String target) {
+        return Flyway.configure().dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
+                .locations("classpath:db/migration").cleanDisabled(false).target(target).load();
+    }
+
+    private Integer purgeEntries(java.sql.Timestamp cutoff, Integer batchSize) {
+        return jdbc.queryForObject("SELECT audit_purge_entries(CAST(? AS timestamptz), CAST(? AS integer))", Integer.class, cutoff, batchSize);
+    }
+
+    private static void assertPurgeFunctionsDenied(Connection connection) {
+        assertSqlState("42501", () -> connection.createStatement().executeQuery("SELECT audit_purge_entries()"));
+        assertSqlState("42501", () -> connection.createStatement().executeQuery("SELECT audit_purge_network_context()"));
+        assertSqlState("42501", () -> connection.createStatement().executeQuery("SELECT audit_purge_entries(CURRENT_TIMESTAMP, 1)"));
+        assertSqlState("42501", () -> connection.createStatement().executeQuery("SELECT audit_purge_network_context(CURRENT_TIMESTAMP, 1)"));
+    }
+
+    private static void assertSqlState(String expectedSqlState, org.assertj.core.api.ThrowableAssert.ThrowingCallable callable) {
+        assertThatThrownBy(callable).satisfies(throwable -> assertThat(findSqlException(throwable).getSQLState()).isEqualTo(expectedSqlState));
+    }
+
+    private static SQLException findSqlException(Throwable throwable) {
+        for (Throwable current = throwable; current != null; current = current.getCause()) {
+            if (current instanceof SQLException sqlException) return sqlException;
+        }
+        throw new AssertionError("Expected SQLException in causal chain", throwable);
+    }
+
+    private static void assertPurgeFunctionsAllowed(Connection connection) throws SQLException {
+        assertThat(connection.createStatement().executeQuery("SELECT audit_purge_entries()").next()).isTrue();
+        assertThat(connection.createStatement().executeQuery("SELECT audit_purge_network_context()").next()).isTrue();
+        assertThat(connection.createStatement().executeQuery("SELECT audit_purge_entries(CURRENT_TIMESTAMP, 1)").next()).isTrue();
+        assertThat(connection.createStatement().executeQuery("SELECT audit_purge_network_context(CURRENT_TIMESTAMP, 1)").next()).isTrue();
     }
 }
