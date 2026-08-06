@@ -110,6 +110,17 @@ class AuditEntryMigrationTest {
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
+    @Test void persistsTheApprovedInitialCompanyAdminActionAndConflictResult() {
+        AuditEntry conflict = new AuditEntry(UUID.randomUUID(), null, UUID.randomUUID(),
+                AuditAction.PROVISION_INITIAL_COMPANY_ADMIN, "COMPANY", UUID.randomUUID(), AuditResult.CONFLICT,
+                UUID.randomUUID(), "PLATFORM", Map.of(), Map.of(), Instant.now());
+        assertThat(store.append(conflict)).isTrue();
+        assertThat(jdbc.queryForObject("SELECT action FROM audit_entry WHERE id = ?", String.class, conflict.id()))
+                .isEqualTo("PROVISION_INITIAL_COMPANY_ADMIN");
+        assertThat(jdbc.queryForObject("SELECT result FROM audit_entry WHERE id = ?", String.class, conflict.id()))
+                .isEqualTo("CONFLICT");
+    }
+
     @Test void allowsTenantBoundDenialOnlyWithTheRealTenant() {
         UUID tenant = UUID.randomUUID();
         AuditEntry denial = new AuditEntry(UUID.randomUUID(), tenant, UUID.randomUUID(), AuditAction.CRITICAL_MUTATION,
