@@ -26,6 +26,12 @@ primarias ya resumidas.
 - No suites completas por defecto.
 - No repetir preflight o fases no afectadas.
 - Detener el análisis cuando un bloqueo concluyente ya determina el estado.
+- Ejecutar el rol directamente en su sesión; no crear un agente del mismo rol.
+- Agrupar lecturas y pruebas: QA ≤10 llamadas/2 comandos, Seguridad ≤8/1 abuso,
+  DoF ≤6/sin pruebas, remediación de tests ≤12/2 comandos, salvo riesgo nuevo.
+- No usar Graphify en QA, Seguridad, DoF ni remediación solo de pruebas.
+- Tras dos rebotes sobre la misma superficie, detener y consolidar contrato,
+  defecto y prueba antes de continuar.
 
 ## Gates
 
@@ -40,6 +46,9 @@ Ruta normal:
 Ruta de corrección:
 
 `Dev afectado → QA afectado → Seguridad final si aplica → DoF`.
+
+DoF y Release son actividades distintas: commit, push, PR y merge no forman
+parte de la verificación DoF.
 
 ## Entrega mínima por fase
 

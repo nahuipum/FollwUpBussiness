@@ -19,6 +19,7 @@ public record AuditEntry(
         String scope,
         Map<String, String> before,
         Map<String, String> after,
+        String reason,
         Instant occurredAt) {
 
     private static final Set<String> ALLOWED_CHANGE_FIELDS = Set.of("status");
@@ -49,7 +50,16 @@ public record AuditEntry(
         Objects.requireNonNull(correlationId, "correlationId is required");
         before = sanitized(before);
         after = sanitized(after);
+        if (reason != null && (reason.length() < 5 || reason.length() > 500 || reason.chars().anyMatch(Character::isISOControl))) {
+            throw new IllegalArgumentException("reason must be sanitized and contain between 5 and 500 characters");
+        }
         Objects.requireNonNull(occurredAt, "occurredAt is required");
+    }
+
+    public AuditEntry(UUID id, UUID tenantId, UUID actorId, AuditAction action, String resourceType, UUID resourceId,
+            AuditResult result, UUID correlationId, String scope, Map<String, String> before,
+            Map<String, String> after, Instant occurredAt) {
+        this(id, tenantId, actorId, action, resourceType, resourceId, result, correlationId, scope, before, after, null, occurredAt);
     }
 
     private static String requiredText(String value, String name) {

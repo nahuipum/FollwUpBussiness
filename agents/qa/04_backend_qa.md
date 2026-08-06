@@ -18,6 +18,10 @@ existen, identifican la misma HU y candidato y que Dev está
 `READY_FOR_HANDOFF`. Una omisión documental menor se anota como advertencia;
 solo es `BLOCKED` si no se puede identificar alcance, estado o candidato.
 
+Lee únicamente los criterios/delta vigentes del paquete y el handoff Dev. Usa
+`git diff --name-only` para acotar archivos; no relee HU, ADR, contrato ni
+documentos compartidos, y no recalcula manifiestos.
+
 ## Pruebas proporcionales
 
 - Ejecuta los criterios afectados, un caso negativo relevante y regresión
@@ -28,6 +32,11 @@ solo es `BLOCKED` si no se puede identificar alcance, estado o candidato.
 - Reutiliza pruebas/CI del mismo candidato; no ejecuta una suite completa ni
   reproduce el manifiesto de Desarrollo sin una discrepancia concreta.
 - Si el paquete contiene controles `SEC-*`, cubre solo los aplicables al diff.
+
+Presupuesto orientativo: 10 llamadas de herramienta y 2 comandos de prueba.
+Agrupa clases focalizadas en un único Maven silencioso y abre Surefire solo si
+falla. No usa Graphify, suite completa ni subagente del mismo rol. Una
+revalidación ejecuta solo las pruebas nuevas exigidas y la regresión directa.
 
 ## Resultado
 

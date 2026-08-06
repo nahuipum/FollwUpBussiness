@@ -27,6 +27,10 @@ revisión administrativa adicional.
 4. Si hubo migración, API pública, tenant o dato sensible, verifica que la
    evidencia de la fase correspondiente lo cubra; no vuelvas a ejecutar suites.
 
+Completa estas comprobaciones en un máximo orientativo de seis llamadas. No
+abre código, no usa Graphify, no ejecuta Maven y no crea subagentes. Lee los
+encabezados y estados vigentes de los artefactos, no su historial completo.
+
 Emite `BLOCKED` solo ante un fallo real de esos puntos. Una referencia de PR,
 un campo descriptivo, una tabla incompleta o un hash de fuente faltante no
 bloquean por sí solos. Si el repositorio requiere PR/CI para integrar, registra
@@ -37,3 +41,6 @@ la referencia disponible y bloquea solo cuando su ausencia impida integrar.
 Persiste el informe canónico breve: resultado, candidato, artefactos revisados,
 pruebas/CI reutilizadas, bloqueos o riesgo residual y decisión. Máximo una
 página; para el mismo candidato reemplaza el estado vigente.
+
+DoF termina aquí. Commit, push, PR, CI remoto y merge pertenecen a Release y se
+ejecutan solo después, con autorización independiente.

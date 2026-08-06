@@ -2,7 +2,10 @@ package com.nahui.followupbussiness.tenancy.adapter.in.rest;
 
 import com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor;
 import com.nahui.followupbussiness.tenancy.application.CreateCompanyCommand;
+import com.nahui.followupbussiness.tenancy.application.ChangeCompanyStatusCommand;
+import com.nahui.followupbussiness.tenancy.application.ChangeCompanyStatusService;
 import com.nahui.followupbussiness.tenancy.application.CreateCompanyService;
+import com.nahui.followupbussiness.tenancy.application.port.in.ChangeCompanyStatusUseCase;
 import com.nahui.followupbussiness.tenancy.application.port.in.CreateCompanyUseCase;
 import com.nahui.followupbussiness.tenancy.domain.model.Company;
 import com.nahui.followupbussiness.tenancy.domain.model.CompanySettings;
@@ -24,6 +27,8 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -34,7 +39,11 @@ import org.springframework.web.bind.annotation.RestController;
 public final class CompanyController {
     static final String CORRELATION_ID_ATTRIBUTE = "com.nahui.followupbussiness.request.correlationId";
     private final CreateCompanyUseCase service;
-    public CompanyController(CreateCompanyUseCase service) { this.service = service; }
+    private final ChangeCompanyStatusUseCase statusService;
+    public CompanyController(CreateCompanyUseCase service, ChangeCompanyStatusUseCase statusService) {
+        this.service = service;
+        this.statusService = statusService;
+    }
 
     @PostMapping
     ResponseEntity<?> create(@AuthenticationPrincipal AuthenticatedActor actor, @Valid @RequestBody CreateCompanyRequest request,
@@ -50,6 +59,20 @@ public final class CompanyController {
                     .header("X-Correlation-Id", correlation.toString()).body(CompanyResponse.from(company));
         } catch (IllegalArgumentException e) { return problem(HttpStatus.UNPROCESSABLE_ENTITY, correlation); }
         catch (CreateCompanyService.AccessDeniedException e) { return problem(HttpStatus.FORBIDDEN, correlation); }
+    }
+
+    @PatchMapping("/{companyId}/status")
+    ResponseEntity<?> changeStatus(@PathVariable UUID companyId, @AuthenticationPrincipal AuthenticatedActor actor,
+            @Valid @RequestBody ChangeCompanyStatusRequest request, HttpServletRequest servletRequest) {
+        UUID correlation = correlationId(servletRequest);
+        try {
+            var result = statusService.execute(companyId,
+                    new ChangeCompanyStatusCommand(request.status(), request.reason()), actor);
+            if (!result.found()) return problem(HttpStatus.NOT_FOUND, correlation);
+            return ResponseEntity.ok().header("X-Correlation-Id", correlation.toString())
+                    .body(CompanyResponse.from(result.company()));
+        } catch (IllegalArgumentException e) { return problem(HttpStatus.UNPROCESSABLE_ENTITY, correlation); }
+        catch (ChangeCompanyStatusService.AccessDeniedException e) { return problem(HttpStatus.FORBIDDEN, correlation); }
     }
 
     static ResponseEntity<ProblemDetail> problem(HttpStatus status, UUID correlation) {
@@ -71,6 +94,8 @@ public final class CompanyController {
     record CreateCompanyRequest(@NotBlank @Size(min = 2, max = 200) String legalName, @Size(max = 200) String tradeName,
             @NotBlank @Pattern(regexp = "[A-Z0-9][A-Z0-9_-]{2,39}") String code, @Size(max = 30) String taxId,
             @NotNull @Valid SettingsRequest settings) { }
+    record ChangeCompanyStatusRequest(@NotNull com.nahui.followupbussiness.tenancy.domain.model.CompanyStatus status,
+            @NotBlank @Size(min = 5, max = 500) String reason) { }
     record SettingsRequest(@NotBlank @Size(max = 100) String timezone, @NotBlank @Pattern(regexp = "[A-Z]{3}") String currency,
             @Min(100) @Max(100) int geofenceRadiusMeters, @Min(60) @Max(60) int trackingIntervalSeconds,
             @Min(0) @Max(10080) Integer saleEditWindowMinutes) { }

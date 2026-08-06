@@ -18,8 +18,8 @@ implementa, no hace QA, no revisa seguridad ni aprueba DoF.
    Busca primero por ID o símbolo. Crea un paquete breve con criterios, rutas y
    decisiones aplicables; no copies texto de las fuentes ni hashes por fuente.
 2. Cada fase recibe solo: ruta del paquete, `Candidate-ID`, handoff anterior,
-   alcance de su fase y resultado esperado. Lánzala con contexto limpio
-   (`fork_turns: "none"`).
+   alcance de su fase y resultado esperado. Si la sesión ya corresponde a esa
+   fase, ejecuta el rol directamente: no lances un subagente del mismo rol.
 3. El `Candidate-ID` es el commit objetivo o `HEAD + digest corto del diff` si
    aún no hay commit. Se calcula cuando Desarrollo cambia código. Los demás
    roles solo comparan ese ID y `git status --porcelain`/firma corta.
@@ -50,18 +50,31 @@ Desarrollo hay una decisión de seguridad o de contrato realmente ambigua; se
 escribe como sección de máximo cinco controles en el paquete, no como fase ni
 archivo aparte.
 
+Para autorización, tenant, roles, auditoría, migraciones o límites
+transaccionales, fija antes de Desarrollo hasta cinco resultados inequívocos:
+actor/recurso, éxito, denegación, conflicto y fallo/rollback. Si alguno exige
+inventar un nombre de acción, resultado o semántica pública, deja `BLOCKED`
+antes de implementar.
+
 QA `CHANGES_REQUIRED` vuelve a Desarrollo. Seguridad `CHANGES_REQUIRED` vuelve
 solo a Desarrollo afectado y QA afectado. No repitas preflight, QA completa ni
 Seguridad por un cambio que no amplíe el riesgo.
 
+En remediación transmite únicamente hallazgo, archivos/símbolos afectados y
+pruebas exigidas; no reenvíes todo el paquete. Si la misma superficie rebota dos
+veces seguidas, detén el flujo y consolida en una sola decisión el contrato, el
+defecto y la prueba faltante. No uses Graphify para gates o fases focalizadas.
+
 ## DoF rápido
 
-DoF no relee la historia ni documentos primarios. Comprueba los artefactos de
+DoF no relee la historia ni documentos primarios. En un máximo orientativo de
+seis llamadas comprueba los artefactos de
 fase, que no queden hallazgos bloqueantes, la identidad del candidato,
 `git diff --check` y el resultado de pruebas/CI ya declarado. Solo abre otra
 fuente si falta evidencia o el candidato cambió. PR, commit o CI no son una
 fase adicional: registra la referencia disponible y bloquea únicamente si el
-repositorio exige esa referencia para integrar.
+repositorio exige esa referencia para integrar. Commit, push, PR y merge son
+Release posterior, no DoF.
 
 ## Salida
 

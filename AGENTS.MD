@@ -91,6 +91,34 @@ corrige metadatos en la misma transición, sin crear un gate ni turno adicional.
 Tras `CHANGES_REQUIRED`: `Dev afectado → QA afectado → Seguridad final`. No
 se reinician fases aprobadas ni se releen controles no afectados.
 
+### Presupuesto operativo por fase
+
+Una sesión de fase ejecuta el rol directamente; no crea otro agente del mismo
+rol. La independencia se obtiene usando sesiones separadas. Agrupar búsquedas,
+lecturas y clases de prueba en el menor número de llamadas posible; Maven se
+ejecuta en modo silencioso y solo se abren reportes detallados si falla.
+
+- QA: máximo orientativo de 10 llamadas de herramienta y 2 comandos de prueba.
+- Seguridad: máximo 8 llamadas y 1 reproducción de abuso.
+- DoF: máximo 6 llamadas; no ejecuta pruebas ni abre código.
+- Remediación solo de pruebas: máximo 12 llamadas y 2 comandos de prueba.
+
+Superar un límite requiere una contradicción o riesgo nuevo y debe explicarse;
+no se amplía el alcance para recopilar evidencia redundante. QA, Seguridad, DoF
+y una remediación solo de pruebas no usan Graphify.
+
+Antes de Desarrollo, las historias de autorización, tenant, roles, auditoría,
+migraciones o transacciones fijan como máximo cinco invariantes: actor/recurso,
+éxito, denegación, conflicto y fallo/rollback. Si falta vocabulario público o
+semántica para uno de ellos, se bloquea antes de escribir código. Así no se
+descubren decisiones contractuales durante Seguridad final.
+
+Tras una remediación, Desarrollo entrega las pruebas exactas solicitadas. Si el
+cambio es solo de pruebas, no reabre producción, arquitectura ni contratos a
+menos que la prueba nueva falle. Dos `CHANGES_REQUIRED` consecutivos sobre la
+misma superficie detienen el rebote y obligan a consolidar contrato, defecto y
+prueba faltante antes de continuar.
+
 ## Organización
 
 - `backend/`: Java y Spring Boot.
@@ -126,16 +154,21 @@ literalmente el dictamen de un revisor de solo lectura sin reinterpretarlo.
 - Commits separados por aplicación cuando corresponda.
 - Pull requests trazables cuando el flujo de integración los use.
 - Los agentes no hacen commits salvo solicitud explícita.
+- DoF termina al emitir su dictamen. Commit, push, PR y merge son una operación
+  de Release posterior y no se contabilizan ni documentan como DoF.
 
 ## graphify
 
-El proyecto dispone de `graphify-out/`. Para preguntas del código o
-arquitectura, ejecutar primero una consulta acotada:
+Usar Graphify solo ante `/graphify` explícito o una pregunta amplia de
+arquitectura, dependencias, relaciones o impacto cuyo alcance no se conozca.
+No usarlo para una fase rutinaria con archivos conocidos, QA focalizado,
+Seguridad, DoF, Git o Release. Cuando aplique, ejecutar una única consulta:
 
 - `graphify query "<pregunta>"`
 - `graphify path "<A>" "<B>"` para relaciones.
 - `graphify explain "<concepto>"` para un concepto.
 
 No leer `GRAPH_REPORT.md` salvo revisión arquitectónica amplia o insuficiencia
-de la consulta. Después de modificar código fuente, ejecutar
-`graphify update .`; cambios solo documentales no requieren actualizarlo.
+de la consulta. Desarrollo actualiza el grafo como máximo una vez al terminar
+un cambio de código de producción; cambios de pruebas o documentación no lo
+requieren y un grafo desactualizado nunca bloquea una fase.

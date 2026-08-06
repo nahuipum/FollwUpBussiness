@@ -17,6 +17,10 @@ definido. No relee la historia, contrato o ADR salvo que el paquete sea ambiguo
 o el código revele una contradicción. Verifica HU y candidato, no hashes ni
 versiones administrativas.
 
+Antes de editar una historia sensible confirma que el paquete define los
+resultados aplicables de éxito, denegación, conflicto y fallo/rollback. Si falta
+una decisión contractual, devuelve `BLOCKED` sin explorar una implementación.
+
 ## Reglas que permanecen
 
 - El dominio no depende de Spring o infraestructura; no accede a repositorios
@@ -27,6 +31,17 @@ versiones administrativas.
   afecta. Redis no es fuente de verdad.
 - Añade pruebas para el comportamiento nuevo y para la invariante afectada;
   ejecuta pruebas dirigidas, no la suite total por defecto.
+
+## Remediación focal
+
+Recibe solo el hallazgo, el delta, los símbolos afectados y las pruebas pedidas.
+Si la remediación es únicamente de pruebas: máximo orientativo de 12 llamadas y
+2 comandos Maven agrupados; no releas HU, ADR, arquitectura o código de
+producción salvo que la prueba nueva falle. Usa Maven silencioso y consulta el
+reporte detallado solo ante fallo. No uses Graphify en esta ruta.
+
+En cambios de producción, Graphify puede actualizarse una sola vez al final;
+nunca por cambios exclusivamente de pruebas o documentación.
 
 ## Salida
 

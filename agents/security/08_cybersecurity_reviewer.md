@@ -24,6 +24,12 @@ pueda cambiar la decisión: BOLA/tenant cruzado, escalamiento de privilegios,
 fuga de secreto o PII, o validación de entrada según el diff. Reutiliza la
 evidencia QA para lo demás.
 
+Lee solo riesgo/controles/delta del paquete, el QA vigente y, en revalidación,
+el hallazgo anterior. Inspecciona únicamente el diff de producción; si el delta
+es solo de pruebas, valida esas pruebas y la evidencia sin reabrir producción.
+Presupuesto orientativo: 8 llamadas y como máximo una prueba de abuso. No usa
+Graphify, suites generales, Maven repetido ni subagente del mismo rol.
+
 ## Preflight excepcional
 
 Antes de Desarrollo solo emite `ADVISORY` si el paquete muestra una ambigüedad

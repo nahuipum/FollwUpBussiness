@@ -2,7 +2,10 @@ package com.nahui.followupbussiness.tenancy.config;
 
 import com.nahui.followupbussiness.tenancy.adapter.out.persistence.JdbcCompanyAccessStatusQuery;
 import com.nahui.followupbussiness.tenancy.adapter.out.persistence.JdbcCompanyCreationStore;
+import com.nahui.followupbussiness.tenancy.adapter.out.persistence.JdbcCompanyStatusStore;
+import com.nahui.followupbussiness.tenancy.application.ChangeCompanyStatusService;
 import com.nahui.followupbussiness.tenancy.application.CreateCompanyService;
+import com.nahui.followupbussiness.tenancy.application.port.in.ChangeCompanyStatusUseCase;
 import com.nahui.followupbussiness.tenancy.application.port.in.CompanyAccessStatusQuery;
 import com.nahui.followupbussiness.tenancy.application.port.in.CreateCompanyUseCase;
 import com.nahui.followupbussiness.audit.application.port.in.RecordPlatformCompanyAuditUseCase;
@@ -33,6 +36,20 @@ public class TenancyConfiguration {
         return (command, actor) -> {
             var result = transaction.execute(status -> service.execute(command, actor));
             if (result.denied()) throw new CreateCompanyService.AccessDeniedException();
+            return result;
+        };
+    }
+
+    @Bean
+    public ChangeCompanyStatusUseCase changeCompanyStatusUseCase(JdbcTemplate jdbcTemplate,
+            PlatformTransactionManager transactionManager, RecordPlatformCompanyAuditUseCase audit,
+            RecordCompanyDenialAuditUseCase denialAudit) {
+        var service = new ChangeCompanyStatusService(new JdbcCompanyStatusStore(jdbcTemplate), audit, denialAudit,
+                Clock.systemUTC());
+        var transaction = new TransactionTemplate(transactionManager);
+        return (companyId, command, actor) -> {
+            var result = transaction.execute(status -> service.execute(companyId, command, actor));
+            if (result.denied()) throw new ChangeCompanyStatusService.AccessDeniedException();
             return result;
         };
     }

@@ -41,6 +41,7 @@ public final class RefreshService implements RefreshSessionUseCase {
         byte[] presented = digest(c.refreshToken());
         var f = sessions.resolve(presented);
         if (f == null) throw new Rejected(Code.INVALID);
+        if (!companyCanOperate(f.companyId())) throw new Rejected(Code.INVALID);
         var limit = limiter.checkFamily(f.familyId(), c.trustedRemoteAddress());
         if (!limit.allowed()) throw new Rejected(Code.RATE_LIMITED, limit.retryAfterSeconds());
         if (!f.channel().equals(c.channel()) || !MessageDigest.isEqual(f.clientDigest(), digest(c.clientId().toString()))) {
@@ -65,10 +66,11 @@ public final class RefreshService implements RefreshSessionUseCase {
             revokeAudit(f, c, now, RecordAuthenticationAuditCommand.Reason.REPLAY);
             throw new Rejected(Code.REUSED);
         }
-        var a = accounts.findById(f.accountId()).filter(this::usable).orElseGet(() -> {
+        var a = accounts.findById(f.accountId()).filter(this::accountUsable).orElseGet(() -> {
             revokeAudit(f, c, now, RecordAuthenticationAuditCommand.Reason.INVALID);
             throw new Rejected(Code.INVALID);
         });
+        if (!companyCanOperate(a.companyId())) throw new Rejected(Code.INVALID);
         String next = secret();
         String nextCsrf = "WEB".equals(c.channel()) ? secret() : null;
         if (!sessions.rotate(f, presented, digest(next), nextCsrf == null ? null : digest(nextCsrf), now).rotated()) {
@@ -79,8 +81,12 @@ public final class RefreshService implements RefreshSessionUseCase {
         return new Result(tokens.issue(a.id(), f.familyId(), a.companyId(), a.role()), next, a, nextCsrf, c.channel());
     }
 
-    private boolean usable(LoginAccountQuery.Account a) {
-        return "ACTIVE".equals(a.status()) && a.displayName() != null && a.email() != null && (a.companyId() == null || companies.isActive(a.companyId()));
+    private boolean accountUsable(LoginAccountQuery.Account a) {
+        return "ACTIVE".equals(a.status()) && a.displayName() != null && a.email() != null;
+    }
+
+    private boolean companyCanOperate(UUID companyId) {
+        return companyId == null || companies.isActive(companyId);
     }
 
     private void revokeAudit(RefreshSessionPort.Resolution f, Command c, Instant n, RecordAuthenticationAuditCommand.Reason r) {
