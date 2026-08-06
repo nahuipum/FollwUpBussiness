@@ -1,55 +1,32 @@
-# DoF Report — HU-XXX
+# DoF — HU-XXX
 
-Este es el informe DoF canónico de la HU. Toda reevaluación se agrega como una
-sección en este archivo; no crear archivos `-vN`.
-
-## Control de revisiones
-
-| Revisión | Fecha | Paquete/candidato | Motivo y delta | Estado |
-|---|---|---|---|---|
-| r1 | | | Evaluación inicial | |
+> Informe vigente, máximo una página. No releer fuentes ni repetir suites.
 
 ## Resultado
 
 PASS | BLOCKED
 
-## Versión revisada
+## Identidad
 
-## Evidencia recibida
+- HU:
+- Candidate-ID:
+- Paquete:
 
-## Paquete de contexto verificado
+## Gates recibidos
 
-| ID y versión | Candidato (commit/PR/CI) | Handoff Dev | QA | Seguridad |
-|---|---|---|---|---|
-
-Los cinco valores son obligatorios y deben corresponder al mismo candidato:
-paquete vigente, Dev `READY_FOR_HANDOFF`, QA `PASS`, Seguridad `PASS` o
-`NOT_APPLICABLE` justificado, y referencias verificables de commit/PR/CI. Si
-falta, está vacío o no coincide cualquiera de ellos, el resultado es `BLOCKED`;
-DoF no reemplaza el documento con una interpretación conversacional.
-
-## Lecturas excepcionales de fuentes primarias
-
-| Motivo | Ruta y sección | Hash | Resultado |
+| Fase | Estado | Artefacto | Mismo candidato |
 |---|---|---|---|
+| Desarrollo | | | |
+| QA | | | |
+| Seguridad | PASS \| NOT_APPLICABLE | | |
 
-## Trazabilidad
+## Verificación final
 
-| Criterio | Implementación | QA | Seguridad | Estado |
-|---|---|---|---|---|
+- `git status --porcelain`:
+- `git diff --check`:
+- Pruebas/CI reutilizadas:
+- Hallazgos Critical/High abiertos:
 
-## Desarrollo
+## Bloqueo o riesgo residual
 
-## QA
-
-## Seguridad
-
-## Operación
-
-## Documentación
-
-## Hallazgos bloqueantes
-
-## Riesgos aceptados
-
-## Decisión final
+## Decisión
