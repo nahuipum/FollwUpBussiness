@@ -1,24 +1,23 @@
-# BE-058 — Remediación Backend CI ApplicationContext
+# BE-058 — Remediación final CI de `CompanyUserControllerTest`
 
 - **Estado:** `READY_FOR_HANDOFF`
-- **Candidate-ID:** `HEAD 4320f3325ca53ad2c5e9d3769ba018222171b6bc + ci-context-fixture bb5fb5d`
-- **Alcance:** fixture de prueba mínimo para los contextos que CI no pudo cargar; sin cambio de producción ni de los controles funcionales BE-058.
+- **Candidate-ID:** `HEAD d6c3460b54ef8223531b1672e233ababb95a8424 + test-isolation 329a72f4e739`
+- **Alcance:** aislamiento determinista de `CompanyUserControllerTest`; sin producción, contrato ni migraciones.
 
-## Causa y cambio
+## Consolidación contrato → defecto → prueba
 
-Los tres errores comparten causa: `CompanyUserController` se registra en los contextos de prueba con `DataSourceAutoConfiguration` excluida y requiere `CompanyUserService`, que no es un bean en ese fixture. `SecurityConfigurationTest` ya lo suplía mediante `@MockitoBean`; se declara el mismo mock únicamente en `FollowupbussinessApplicationTests` y `PrometheusMetricsEndpointTest`.
+- Contrato: `@AuthenticationPrincipal` debe entregar al caso de uso el actor autenticado; lista conserva exactamente `page`, `pageSize`, `search`, `role` y `status`.
+- Defecto reproducible: el job `31144503460`/`92761066338` ejecuta `LogoutControllerTest` antes de esta clase y deja un `SELLER` en `SecurityContext`; los tests suponían actor `null`, por lo que fallan la verificación de rutas y el stub de lista devuelve cuerpo vacío.
+- Cierre: cada prueba fija un `COMPANY_ADMIN` propio en `SecurityContext`, lo limpia con `@AfterEach` y verifica actor/filtros enviados al servicio.
 
-## Archivos, contratos y migraciones
+## Archivos y evidencia
 
-- Pruebas: `backend/followupbussiness/src/test/java/com/nahui/followupbussiness/FollowupbussinessApplicationTests.java`; `backend/followupbussiness/src/test/java/com/nahui/followupbussiness/identityaccess/config/PrometheusMetricsEndpointTest.java`.
-- Producción, contratos y migraciones: sin cambios.
-
-## Evidencia
-
-- Log CI run `31143556396`, job `92758287149`: `NoSuchBeanDefinitionException` de `CompanyUserService` al construir `CompanyUserController`; el segundo error de la clase de aplicación es el umbral posterior del mismo fallo.
-- `mvn -q "-Dmaven.repo.local=C:\Users\LUIS\.m2\repository" "-Dtest=FollowupbussinessApplicationTests,PrometheusMetricsEndpointTest" test` — PASS (3 pruebas): carga de contexto, ausencia de bootstrap y endpoint Prometheus.
-- `git diff --check` — PASS antes de actualizar este handoff.
+- Prueba: `backend/followupbussiness/src/test/java/com/nahui/followupbussiness/identityaccess/adapter/in/rest/CompanyUserControllerTest.java`.
+- Contratos/migraciones/producción: sin cambios.
+- `mvnw.cmd -q -Dtest=CompanyUserControllerTest test` — PASS (5 pruebas).
+- `mvnw.cmd -q '-Dtest=LogoutControllerTest,CompanyUserControllerTest' test` — PASS (11 pruebas); combinación mínima con la clase que deja el contexto residual.
+- `git diff --check` — PASS.
 
 ## Riesgo y siguiente fase
 
-Riesgo residual bajo: la cobertura dirigida confirma los dos fixtures aislados; `Maven verify` completo y SCA quedan para CI. Siguiente fase: QA afectado, validando el Candidate-ID y los tres escenarios de contexto.
+Riesgo residual bajo: se valida la contaminación concreta y el aislamiento del actor; `Maven verify` y SCA completos quedan para CI. Siguiente fase: QA afectado sobre el mismo Candidate-ID.

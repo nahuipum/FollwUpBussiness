@@ -1,28 +1,32 @@
-# BE-058 — QA Backend (segunda remediación CI)
+# BE-058 — QA Backend: remediación de aislamiento CI
 
 - **Estado:** `PASS`
-- **Candidate-ID:** `HEAD 4320f3325ca53ad2c5e9d3769ba018222171b6bc + ci-context-fixture bb5fb5d`.
-- **Firma validada:** `HEAD` coincide; los únicos deltas BE-058 revisados son los dos fixtures de prueba. Los demás cambios del árbol son ajenos al alcance.
-- **Alcance:** remediación solo de tests; no se reabrieron producción, arquitectura ni contratos.
+- **Candidate-ID:** `HEAD d6c3460b54ef8223531b1672e233ababb95a8424 + test-isolation 329a72f4e739`.
+- **Firma validada:** `HEAD` coincide. El único delta BE-058 evaluado es `CompanyUserControllerTest`; los demás cambios locales son ajenos y se preservaron.
+- **Alcance:** solo pruebas; no se reabrieron producción, contratos, migraciones ni arquitectura.
 
 ## Matriz resumida
 
 | Criterio | Implementación | Prueba/evidencia | Resultado |
 |---|---|---|---|
-| Contexto de aplicación carga sin datasource real | `@MockitoBean CompanyUserService` en `FollowupbussinessApplicationTests` | `contextLoads` | PASS |
-| Arranque ordinario no registra comando bootstrap | Fixture de aplicación preserva las aserciones de ausencia | `ordinaryStartupDoesNotRegisterBootstrapCommand` | PASS |
-| Métrica Prometheus sigue expuesta por endpoint técnico | `@MockitoBean CompanyUserService` en `PrometheusMetricsEndpointTest`; aserción HTTP 200 y contador | `exposesOutboxPublishFailuresOnlyThroughTheTechnicalPrometheusEndpoint` | PASS |
+| Actor aislado por prueba | `@BeforeEach` instala `COMPANY_ADMIN` y `@AfterEach` limpia `SecurityContext` | Ejecución junto a `LogoutControllerTest`, que deja `SELLER` | PASS |
+| Rutas por ID conservan actor | Stubs y verificaciones usan el actor fijado en `get`, `update` y `status` | 3 rutas HTTP 200; 5 pruebas de controller | PASS |
+| Paginación y filtros sin deriva | `list` verifica exactamente `page`, `pageSize`, `search`, `role`, `status` y actor | Respuesta paginada y verificación Mockito | PASS |
+| Negativos de entrada permanecen sin caso de uso | Pruebas existentes mantienen `verifyNoInteractions` | UUID/JSON inválidos: 400, sin interacción | PASS |
 
 ## Evidencia
 
-- `mvn -q "-Dmaven.repo.local=C:\Users\LUIS\.m2\repository" "-Dtest=FollowupbussinessApplicationTests,PrometheusMetricsEndpointTest" test` — PASS: 3 pruebas, 0 fallos, 0 errores, 0 omitidas.
+- `mvn -q "-Dmaven.repo.local=C:\Users\LUIS\.m2\repository" "-Dtest=LogoutControllerTest,CompanyUserControllerTest" test` — PASS: 11 pruebas, 0 fallos, 0 errores, 0 omitidas.
+- Informes Surefire: `LogoutControllerTest` 6 PASS; `CompanyUserControllerTest` 5 PASS.
 - `git diff --check` — PASS.
+- Intentos no ejecutados: `mvnw.cmd` no pudo iniciar y `mvn` sin repositorio explícito apuntó a `C:\.m2`; no son fallos del candidato.
 
-## Hallazgos y riesgo residual
+## Hallazgos, regresión y riesgo residual
 
 - Hallazgos abiertos: ninguno.
-- Riesgo residual bajo: la validación dirigida cubre los tres errores de contexto de CI; `verify` completo y SCA permanecen a cargo de CI.
+- Regresión relevante: la combinación contaminante conocida pasa con el actor aislado; la clase de logout conserva sus 6 pruebas.
+- Riesgo residual bajo: la evidencia dirigida cubre la contaminación conocida; `verify` completo y SCA quedan para CI.
 
 ## Siguiente fase autorizada
 
-- Seguridad final, conforme al flujo posterior a `CHANGES_REQUIRED`.
+- Seguridad final, conforme al flujo posterior a QA `PASS`.
