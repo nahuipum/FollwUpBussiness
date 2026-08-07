@@ -1,0 +1,4 @@
+interface:
+  display_name: "Frontend Mockup Guidance"
+  short_description: "Reusable visual standards for frontend HU mockups."
+  default_prompt: "Use $frontend-mockup-guidance to implement this frontend story consistently."

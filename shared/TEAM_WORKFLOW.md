@@ -7,7 +7,8 @@ se carga en cada fase salvo ambigüedad.
 
 1. El Orquestador crea un paquete breve leyendo una vez la HU y referencias
    aplicables.
-2. Desarrollo implementa y ejecuta pruebas dirigidas.
+2. Desarrollo implementa, ejecuta pruebas dirigidas y una validación local de
+   integración cuando cambia composición o infraestructura compartida.
 3. QA independiente valida criterios afectados y regresión directa.
 4. Seguridad revisa solo superficies de riesgo; de lo contrario es
    `NOT_APPLICABLE`.
@@ -23,15 +24,20 @@ primarias ya resumidas.
 - Para el mismo candidato se reemplaza el estado vigente.
 - No hashes por fuente ni manifiestos por archivo.
 - No logs, código, matrices repetidas o narrativa histórica en handoffs.
-- No suites completas por defecto.
+- Una sola validación de integración antes del primer handoff cuando aplique;
+  QA y Seguridad reutilizan su resultado.
 - No repetir preflight o fases no afectadas.
 - Detener el análisis cuando un bloqueo concluyente ya determina el estado.
-- Ejecutar el rol directamente en su sesión; no crear un agente del mismo rol.
+- Desde un chat genérico invocar el agente de fase con `fork_turns: "none"`; el
+  main solo orquesta. Una sesión ya especializada no anida el mismo rol.
 - Agrupar lecturas y pruebas: QA ≤10 llamadas/2 comandos, Seguridad ≤8/1 abuso,
   DoF ≤6/sin pruebas, remediación de tests ≤12/2 comandos, salvo riesgo nuevo.
 - No usar Graphify en QA, Seguridad, DoF ni remediación solo de pruebas.
-- Tras dos rebotes sobre la misma superficie, detener y consolidar contrato,
-  defecto y prueba antes de continuar.
+- Objetivo: una ejecución por rol; máximo 7 sesiones incluida una corrección.
+- Una segunda corrección detiene el flujo y consolida contrato, defecto y
+  prueba/comando de cierre.
+- Las reglas de efectos laterales, preflight y consolidación viven únicamente
+  en `AGENTS.MD`; los roles no las vuelven a copiar.
 
 ## Gates
 
@@ -45,7 +51,7 @@ Ruta normal:
 
 Ruta de corrección:
 
-`Dev afectado → QA afectado → Seguridad final si aplica → DoF`.
+`Dev afectado → QA afectado → Seguridad solo si cambia el riesgo → DoF final`.
 
 DoF y Release son actividades distintas: commit, push, PR y merge no forman
 parte de la verificación DoF.

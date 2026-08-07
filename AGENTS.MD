@@ -8,11 +8,9 @@ flujo o plantilla.
 
 ### Carga de contexto
 
-En un flujo `Desarrollo → QA → Seguridad → DoF`, solo el Orquestador lee la HU
-y las fuentes primarias al inicio. Busca primero por ID, endpoint o símbolo y
-abre únicamente las secciones aplicables. El paquete canónico contiene criterios
-normalizados, decisiones y rutas; no copia documentos ni guarda hashes por
-fuente.
+En `Desarrollo → QA → Seguridad → DoF`, solo el Orquestador lee al inicio la HU
+y las secciones aplicables, buscadas primero por ID, endpoint o símbolo. Resume
+criterios, decisiones y rutas en el paquete; no copia fuentes ni sus hashes.
 
 Cada agente de fase recibe con contexto limpio únicamente:
 
@@ -21,10 +19,8 @@ Cada agente de fase recibe con contexto limpio únicamente:
 - handoff inmediatamente anterior;
 - alcance de la fase y estado esperado.
 
-No recibe el historial de conversación ni relee HU, contrato, ADR o documentos
-compartidos. Puede abrir una fuente primaria solo si el paquete es ambiguo, el
-candidato revela una superficie no descrita o existe una contradicción. Registra
-motivo, ruta y sección; no vuelve a resumir la fuente.
+No recibe historial ni relee HU, contrato o ADR. Abre una fuente solo ante
+ambigüedad, superficie nueva o contradicción y registra motivo, ruta y sección.
 
 Fuera del flujo orquestado, leer la historia, el `AGENTS.MD` local de la
 aplicación y el diff/pruebas relacionados. Consultar contrato, contexto, ADR y
@@ -41,18 +37,20 @@ Por HU se permiten únicamente:
 4. un informe final de Seguridad cuando aplique;
 5. un informe DoF.
 
-El preflight, si es necesario, vive como una sección breve del paquete o del
-informe de Seguridad; no crea otro artefacto. Un bloqueo previo a una fase se
-anota en el estado vigente del paquete.
+El preflight vive como sección breve del paquete o informe de Seguridad; no crea
+otro artefacto. Un bloqueo previo se anota en el paquete vigente.
 
-Para el mismo candidato se reemplaza el estado vigente: no se agrega una
-revisión por transición, reintento, bloqueo repetido, corrección de metadatos o
-revalidación. Se registra un delta breve solo cuando cambia el candidato, el
-alcance, un contrato, un dato sensible o una amenaza. Git conserva el historial.
+Para el mismo candidato se reemplaza el estado vigente. Solo se registra delta
+si cambia candidato, alcance, contrato, dato sensible o amenaza; Git conserva
+el historial.
 
-Paquete y handoffs contienen solo IDs, decisiones, rutas, comandos/resultados
-resumidos, hallazgos y pendientes. No incluyen logs, código, contenido de
-fuentes, listas de hashes ni narrativa histórica.
+Paquete y handoffs solo contienen IDs, decisiones, rutas, resultados resumidos,
+hallazgos y pendientes; no logs, código, fuentes copiadas ni narrativa histórica.
+
+Límites orientativos: paquete de contexto de hasta 900 palabras, handoffs Dev,
+QA y Seguridad de hasta 300 palabras cada uno, e informe DoF de hasta 150
+palabras. Si el alcance exige excederlos, se enlaza la fuente o prueba en vez de
+copiarla y se explica la excepción en una línea.
 
 ### Candidato y gates
 
@@ -61,19 +59,26 @@ corto del diff`. Se calcula una vez cuando Desarrollo cambia código. No se
 crean manifiestos con hashes por archivo. QA, Seguridad y DoF comparan el ID y
 una firma rápida basada en `git status --porcelain` o el commit.
 
+El paquete mantiene un único `Candidate-ID vigente`; al cambiar, reemplaza el
+anterior y añade solo el delta. El candidato pre-Desarrollo no sigue activo.
+
 Un gate valida únicamente:
 
 - artefacto previo existente;
 - HU y estado permitido;
 - mismo `Candidate-ID`.
 
-Campos descriptivos, versiones administrativas, tablas o citas ausentes son
-advertencias si no generan ambigüedad sobre esos tres datos. El Orquestador
-corrige metadatos en la misma transición, sin crear un gate ni turno adicional.
+Omisiones descriptivas son advertencias si esos tres datos son inequívocos. El
+Orquestador corrige metadatos sin crear gate ni turno adicional.
 
-### Verificación proporcional
+### Verificación proporcional y paridad de integración
 
-- Desarrollo ejecuta pruebas del cambio y regresión directa.
+- Desarrollo ejecuta pruebas dirigidas y regresión directa. Antes del primer
+  handoff añade una sola validación local de integración si cambia composición
+  compartida: contexto/beans, seguridad, configuración, migraciones,
+  transacciones, serialización, fixtures, dependencias o build. Usa `clean
+  verify` silencioso en Backend y el equivalente de CI en Frontend/Mobile; QA y
+  Seguridad reutilizan el resultado.
 - QA valida independientemente criterios afectados, un negativo relevante y
   regresión directa; amplía solo si el diff o un fallo lo justifica.
 - Seguridad interviene cuando cambia autenticación/autorización, tenant, datos
@@ -84,40 +89,54 @@ corrige metadatos en la misma transición, sin crear un gate ni turno adicional.
   remediaciones que no amplíen el riesgo.
 - Seguridad final reutiliza QA y reproduce solo un abuso capaz de cambiar su
   decisión.
-- DoF no relee fuentes ni repite suites. Comprueba estados de fase, candidato,
-  ausencia de hallazgos bloqueantes, pruebas/CI declaradas y
-  `git diff --check`. PR o CI bloquean solo si son obligatorios para integrar.
+- DoF se ejecuta una vez sobre el candidato final. Comprueba estados, candidato,
+  hallazgos, validación aplicable y `git diff --check`; no relee ni repite
+  suites. Si CI obligatorio carece de equivalente local, espera su resultado.
 
-Tras `CHANGES_REQUIRED`: `Dev afectado → QA afectado → Seguridad final`. No
-se reinician fases aprobadas ni se releen controles no afectados.
+Tras `CHANGES_REQUIRED`: `Dev afectado → QA afectado`. Seguridad solo se reabre
+si cambia superficie sensible, amenaza/control o evidencia decisiva. Para tests,
+documentación o metadatos no sensibles se registra `NOT_APPLICABLE` en una
+frase. DoF no se ejecuta entre remediaciones.
 
 ### Presupuesto operativo por fase
 
-Una sesión de fase ejecuta el rol directamente; no crea otro agente del mismo
-rol. La independencia se obtiene usando sesiones separadas. Agrupar búsquedas,
-lecturas y clases de prueba en el menor número de llamadas posible; Maven se
-ejecuta en modo silencioso y solo se abren reportes detallados si falla.
+Un chat genérico solo orquesta e invoca la fase con `fork_turns: "none"`; una
+sesión especializada ejecuta su rol sin anidarlo. Agrupa lecturas y pruebas,
+usa Maven silencioso y abre reportes detallados solo si falla.
 
 - QA: máximo orientativo de 10 llamadas de herramienta y 2 comandos de prueba.
 - Seguridad: máximo 8 llamadas y 1 reproducción de abuso.
 - DoF: máximo 6 llamadas; no ejecuta pruebas ni abre código.
 - Remediación solo de pruebas: máximo 12 llamadas y 2 comandos de prueba.
 
+Por HU: una ejecución inicial por rol y como máximo una vuelta `Dev → QA`; no
+más de 7 sesiones incluyendo Orquestación. Una segunda corrección o la sesión 8
+detiene el flujo hasta consolidar causa, condición de cierre y comando.
+
+Cada fase abre solo paquete, handoff anterior, diff y archivos/pruebas afectados.
+Otra fuente exige ambigüedad, contradicción o riesgo nuevo registrado. No abre
+árboles, documentos completos, logs ni reportes exitosos como contexto general.
+
 Superar un límite requiere una contradicción o riesgo nuevo y debe explicarse;
 no se amplía el alcance para recopilar evidencia redundante. QA, Seguridad, DoF
 y una remediación solo de pruebas no usan Graphify.
 
-Antes de Desarrollo, las historias de autorización, tenant, roles, auditoría,
-migraciones o transacciones fijan como máximo cinco invariantes: actor/recurso,
-éxito, denegación, conflicto y fallo/rollback. Si falta vocabulario público o
-semántica para uno de ellos, se bloquea antes de escribir código. Así no se
-descubren decisiones contractuales durante Seguridad final.
-
-Tras una remediación, Desarrollo entrega las pruebas exactas solicitadas. Si el
-cambio es solo de pruebas, no reabre producción, arquitectura ni contratos a
-menos que la prueba nueva falle. Dos `CHANGES_REQUIRED` consecutivos sobre la
-misma superficie detienen el rebote y obligan a consolidar contrato, defecto y
-prueba faltante antes de continuar.
+- Antes de Dev, historias de autorización, tenant, roles, auditoría, migraciones
+  o transacciones fijan hasta cinco invariantes: actor/recurso, éxito,
+  denegación, conflicto y fallo/rollback. Falta de semántica pública bloquea.
+- Cada rechazo/no-op define respuesta, escrituras/revocaciones,
+  eventos/auditoría y credenciales/sesiones. Enumera puertos alcanzables; texto
+  libre define política por sink: omitir, marcador o categoría aprobada.
+- Dev mantiene en memoria control→prueba y verifica ausencia de todos los
+  efectos prohibidos antes del primer handoff.
+- QA recorre toda la superficie y consolida hallazgos en un solo dictamen; solo
+  corta ante Critical/High. La revalidación cubre la corrección, no criterios
+  nuevos sin riesgo o contradicción aparecidos en el delta.
+- En remediación, Dev ejecuta la prueba solicitada y, si falló CI/suite
+  compartida, el comando fallido completo. Un cambio solo de tests no reabre
+  producción, arquitectura ni contratos salvo que la prueba falle.
+- Seguridad final no reabre controles conocidos. Un hallazgo nuevo identifica
+  amenaza no cubierta y condición observable de cierre.
 
 ## Organización
 
@@ -125,6 +144,16 @@ prueba faltante antes de continuar.
 - `frontend/`: React y TypeScript.
 - `mobile/`: Flutter.
 - `infrastructure/` y `docker-compose.yml`: infraestructura compartida.
+
+### Referencia visual en Desarrollo Frontend
+
+Solo al desarrollar una HU Frontend, buscar primero el mockup HTML exacto por
+ID en `docs/frontendMockups/` (por ejemplo, `FE-001.html`). Si existe, es la
+referencia visual de la implementación. Si no existe, revisar los mockups HTML
+ya disponibles para conservar sus patrones y el agente puede crear
+`docs/frontendMockups/<HU-ID>.html` como propuesta estática coherente. El
+mockup no crea reglas de negocio ni sustituye los criterios, contratos o
+requisitos de accesibilidad de la HU.
 
 ## Principios no negociables
 

@@ -16,13 +16,17 @@ implementa, no hace QA, no revisa seguridad ni aprueba DoF.
 
 1. Lee una vez la HU y únicamente las reglas, contrato o ADR citados por ella.
    Busca primero por ID o símbolo. Crea un paquete breve con criterios, rutas y
-   decisiones aplicables; no copies texto de las fuentes ni hashes por fuente.
+   decisiones aplicables, hasta 900 palabras; no copies texto de las fuentes ni
+   hashes por fuente.
 2. Cada fase recibe solo: ruta del paquete, `Candidate-ID`, handoff anterior,
-   alcance de su fase y resultado esperado. Si la sesión ya corresponde a esa
-   fase, ejecuta el rol directamente: no lances un subagente del mismo rol.
+   alcance de su fase y resultado esperado. Desde un chat genérico invoca al
+   agente especializado con `fork_turns: "none"` y no ejecutes su trabajo en el
+   main. Si la sesión ya corresponde directamente a ese rol, ejecútalo sin
+   lanzar otro agente del mismo rol.
 3. El `Candidate-ID` es el commit objetivo o `HEAD + digest corto del diff` si
-   aún no hay commit. Se calcula cuando Desarrollo cambia código. Los demás
-   roles solo comparan ese ID y `git status --porcelain`/firma corta.
+   aún no hay commit. Se calcula cuando Desarrollo cambia código y reemplaza el
+   campo vigente del paquete; no quedan dos candidatos activos. Los demás roles
+   solo comparan ese ID y `git status --porcelain`/firma corta.
 4. No crees revisiones, archivos ni gates por una corrección de metadatos. Para
    el mismo candidato se reemplaza el estado vigente del paquete o handoff. Se
    agrega un delta breve solo si cambian candidato, alcance, contrato, dato
@@ -56,25 +60,33 @@ actor/recurso, éxito, denegación, conflicto y fallo/rollback. Si alguno exige
 inventar un nombre de acción, resultado o semántica pública, deja `BLOCKED`
 antes de implementar.
 
-QA `CHANGES_REQUIRED` vuelve a Desarrollo. Seguridad `CHANGES_REQUIRED` vuelve
-solo a Desarrollo afectado y QA afectado. No repitas preflight, QA completa ni
-Seguridad por un cambio que no amplíe el riesgo.
+Para resultados negativos, efectos laterales, texto libre y sinks aplica la
+regla común de `AGENTS.MD`; no la copies en el prompt de cada fase.
+
+QA `CHANGES_REQUIRED` vuelve a Desarrollo y después a QA afectado. Seguridad
+`CHANGES_REQUIRED` usa la misma vuelta. Reabre Seguridad únicamente si el delta
+toca superficie sensible, cambia amenaza/control o altera su evidencia
+decisiva; para pruebas, documentación o metadatos no sensibles registra
+`NOT_APPLICABLE` en una frase. No ejecutes DoF hasta el candidato final.
 
 En remediación transmite únicamente hallazgo, archivos/símbolos afectados y
-pruebas exigidas; no reenvíes todo el paquete. Si la misma superficie rebota dos
-veces seguidas, detén el flujo y consolida en una sola decisión el contrato, el
-defecto y la prueba faltante. No uses Graphify para gates o fases focalizadas.
+pruebas exigidas; no reenvíes todo el paquete. Una segunda corrección o más de
+7 sesiones por HU detiene el flujo: consolida contrato, defecto y prueba/comando
+de cierre antes de continuar. No uses Graphify para gates o fases focalizadas.
+
+No autorices el segundo handoff Dev si el hallazgo no tiene condición de cierre
+observable o si la prueba pedida omite un puerto lateral nombrado por el flujo.
 
 ## DoF rápido
 
 DoF no relee la historia ni documentos primarios. En un máximo orientativo de
 seis llamadas comprueba los artefactos de
 fase, que no queden hallazgos bloqueantes, la identidad del candidato,
-`git diff --check` y el resultado de pruebas/CI ya declarado. Solo abre otra
-fuente si falta evidencia o el candidato cambió. PR, commit o CI no son una
-fase adicional: registra la referencia disponible y bloquea únicamente si el
-repositorio exige esa referencia para integrar. Commit, push, PR y merge son
-Release posterior, no DoF.
+`git diff --check` y la validación de integración aplicable ya declarada. Solo
+abre otra fuente si falta evidencia o el candidato cambió. PR, commit o CI no
+son una fase adicional. Si CI es obligatorio y no hay evidencia local
+equivalente, espera su resultado; commit, push, PR y merge son Release
+posterior, no DoF.
 
 ## Salida
 

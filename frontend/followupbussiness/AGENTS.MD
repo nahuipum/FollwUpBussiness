@@ -4,6 +4,9 @@
 
 - Aplicar `../../AGENTS.MD`.
 - Leer completa la historia Frontend indicada.
+- Buscar primero `../../docs/frontendMockups/<HU-ID>.html`. Si existe, usarlo
+  como referencia visual; si no, tomar como patrón los otros mockups HTML y se
+  puede crear el de la HU sin introducir reglas de negocio nuevas.
 - Abrir solo los fragmentos OpenAPI y contratos WebSocket afectados.
 - Inspeccionar primero el diff, la feature y sus pruebas.
 

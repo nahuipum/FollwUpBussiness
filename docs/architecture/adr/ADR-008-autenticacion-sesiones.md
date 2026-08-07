@@ -130,6 +130,19 @@ creación, cuota, fallo o entrega del trabajo.
 
 El servidor envía `Cache-Control: no-store` y `Pragma: no-cache` en toda respuesta que contenga o rote credenciales.
 
+### Navegación web post-login
+
+Tras un login WEB exitoso, el cliente redirige según el rol devuelto por el
+servidor; esta navegación no concede autorización ni sustituye las guardas de
+cada recurso:
+
+| Rol | Ruta inicial post-login |
+|---|---|
+| `PLATFORM_SUPERADMIN` | `/platform/companies` |
+| `COMPANY_ADMIN` | `/company/dashboard` |
+| `SUPERVISOR` | `/supervisor/dashboard` |
+| `SELLER` | `/seller/dashboard` |
+
 ### CSRF y CORS
 
 Los endpoints de negocio usan access token explícito en `Authorization` y no autenticación por cookie, por lo que no dependen de CSRF. Web refresh y logout normal usan una credencial ambiental y requieren el token CSRF. La única excepción es el cierre WEB pendiente definido abajo: exige `X-Logout-Intent: PENDING`, `Origin` allowlisted exacto y cookie `SameSite=Strict`, solo puede revocar/borrar y jamás renovar, emitir o leer una credencial. Token CSRF ausente o incorrecto en refresh/logout normal responde `403 CSRF_TOKEN_INVALID` sin consumir el refresh.

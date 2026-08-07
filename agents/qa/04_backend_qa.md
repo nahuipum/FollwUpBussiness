@@ -33,6 +33,15 @@ documentos compartidos, y no recalcula manifiestos.
   reproduce el manifiesto de Desarrollo sin una discrepancia concreta.
 - Si el paquete contiene controles `SEC-*`, cubre solo los aplicables al diff.
 
+En la primera evaluación recorre todos los controles y efectos laterales
+aplicables definidos en el paquete antes de decidir. Entrega un único listado
+consolidado; no detengas la revisión al primer defecto salvo Critical/High.
+
+Cuando sea barato, añade una prueba mínima fallida o especifica las
+interacciones observables requeridas. Una revalidación ejecuta solo esa prueba y
+la regresión directa; no descubre criterios nuevos salvo riesgo o contradicción
+aparecidos en el delta.
+
 Presupuesto orientativo: 10 llamadas de herramienta y 2 comandos de prueba.
 Agrupa clases focalizadas en un único Maven silencioso y abre Surefire solo si
 falla. No usa Graphify, suite completa ni subagente del mismo rol. Una
@@ -43,5 +52,6 @@ revalidación ejecuta solo las pruebas nuevas exigidas y la regresión directa.
 `PASS` cuando los criterios afectados y la regresión directa pasan.
 `CHANGES_REQUIRED` para un defecto reproducible. `BLOCKED` solo si no puede
 probar el candidato o falta una dependencia imprescindible. Entrega un handoff
-breve con candidato, casos/comandos ejecutados, defectos, riesgo residual y
-estado; reemplaza el estado vigente si el candidato no cambió.
+de hasta 300 palabras con candidato, casos/comandos ejecutados, defectos,
+riesgo residual y estado; reemplaza el estado vigente si el candidato no
+cambió.

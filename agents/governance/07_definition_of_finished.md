@@ -22,8 +22,9 @@ revisión administrativa adicional.
    `NOT_APPLICABLE` documentado.
 2. Los artefactos identifican la misma HU y candidato; `git status --porcelain`
    y `git diff --check` no contradicen ese candidato.
-3. Las pruebas/CI declaradas para el cambio pasaron y no hay hallazgos críticos
-   o altos abiertos.
+3. Las pruebas y la validación de integración aplicable declaradas para el
+   cambio pasaron y no hay hallazgos críticos o altos abiertos. Si CI es
+   obligatorio y no existe equivalente local, su resultado ya está disponible.
 4. Si hubo migración, API pública, tenant o dato sensible, verifica que la
    evidencia de la fase correspondiente lo cubra; no vuelvas a ejecutar suites.
 
@@ -38,9 +39,11 @@ la referencia disponible y bloquea solo cuando su ausencia impida integrar.
 
 ## Salida
 
-Persiste el informe canónico breve: resultado, candidato, artefactos revisados,
-pruebas/CI reutilizadas, bloqueos o riesgo residual y decisión. Máximo una
-página; para el mismo candidato reemplaza el estado vigente.
+Persiste un informe de hasta 150 palabras: resultado, candidato, estados de
+fase, validación reutilizada, bloqueos o riesgo residual y decisión. Para el
+mismo candidato reemplaza el estado vigente. DoF se ejecuta una sola vez, sobre
+el candidato final; no se usa como gate intermedio antes de CI o remediaciones.
 
-DoF termina aquí. Commit, push, PR, CI remoto y merge pertenecen a Release y se
-ejecutan solo después, con autorización independiente.
+DoF termina aquí. Commit, push, PR y merge pertenecen a Release. CI remoto
+también, salvo cuando sea el gate obligatorio sin equivalente local: en ese caso
+su resultado debe existir antes del dictamen DoF.
