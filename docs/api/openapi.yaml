@@ -463,7 +463,7 @@ paths:
       tags: [Company users]
       operationId: listCompanyUsers
       summary: Listar usuarios de la empresa
-      x-required-roles: [COMPANY_ADMIN]
+      x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
       x-story-ids: [BE-058, FE-004]
       parameters:
         - $ref: '#/components/parameters/Page'
@@ -471,7 +471,7 @@ paths:
         - $ref: '#/components/parameters/Search'
         - name: role
           in: query
-          schema: { $ref: '#/components/schemas/CompanyRole' }
+          schema: { $ref: '#/components/schemas/CompanyManagementRole' }
         - name: status
           in: query
           schema: { $ref: '#/components/schemas/UserStatus' }
@@ -2748,6 +2748,9 @@ components:
     CompanyRole:
       type: string
       enum: [COMPANY_ADMIN, SUPERVISOR, SELLER]
+    CompanyManagementRole:
+      type: string
+      enum: [COMPANY_ADMIN, SUPERVISOR]
     UserRole:
       oneOf:
         - $ref: '#/components/schemas/PlatformRole'
@@ -2966,7 +2969,7 @@ components:
     User:
       type: object
       additionalProperties: false
-      required: [id, displayName, email, status, roles, createdAt, updatedAt, version]
+      required: [id, displayName, email, status, role, createdAt, updatedAt, version]
       properties:
         id: { type: string, format: uuid, readOnly: true }
         displayName: { type: string, maxLength: 160 }
@@ -2974,11 +2977,7 @@ components:
         email: { type: string, format: email, maxLength: 254 }
         phone: { type: string, maxLength: 30 }
         status: { $ref: '#/components/schemas/UserStatus' }
-        roles:
-          type: array
-          minItems: 1
-          uniqueItems: true
-          items: { $ref: '#/components/schemas/CompanyRole' }
+        role: { $ref: '#/components/schemas/CompanyManagementRole' }
         createdAt: { type: string, format: date-time, readOnly: true }
         updatedAt: { type: string, format: date-time, readOnly: true }
         version: { type: integer, minimum: 1, readOnly: true }
@@ -2994,37 +2993,27 @@ components:
     InviteCompanyUserRequest:
       type: object
       additionalProperties: false
-      required: [displayName, email, roles]
+      required: [displayName, email, role]
       properties:
         displayName: { type: string, minLength: 2, maxLength: 160 }
         username: { type: string, minLength: 3, maxLength: 100 }
         email: { type: string, format: email, maxLength: 254 }
-        phone: { type: string, maxLength: 30 }
-        roles:
-          type: array
-          minItems: 1
-          uniqueItems: true
-          items: { $ref: '#/components/schemas/CompanyRole' }
+        role: { $ref: '#/components/schemas/CompanyManagementRole' }
     UpdateCompanyUserRequest:
       type: object
       additionalProperties: false
-      minProperties: 1
+      required: [displayName, email, role]
       properties:
         displayName: { type: string, minLength: 2, maxLength: 160 }
         username: { type: string, minLength: 3, maxLength: 100 }
-        phone: { type: string, maxLength: 30 }
-        roles:
-          type: array
-          minItems: 1
-          uniqueItems: true
-          items: { $ref: '#/components/schemas/CompanyRole' }
+        email: { type: string, format: email, maxLength: 254 }
+        role: { $ref: '#/components/schemas/CompanyManagementRole' }
     ChangeUserStatusRequest:
       type: object
       additionalProperties: false
-      required: [status, reason]
+      required: [status]
       properties:
         status: { $ref: '#/components/schemas/UserStatus' }
-        reason: { type: string, minLength: 5, maxLength: 500 }
 
     Territory:
       type: object

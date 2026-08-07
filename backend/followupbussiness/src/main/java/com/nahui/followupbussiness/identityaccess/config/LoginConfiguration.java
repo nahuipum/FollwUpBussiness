@@ -22,7 +22,9 @@ import com.nahui.followupbussiness.audit.application.RecordCompanyDenialAuditCom
 import com.nahui.followupbussiness.audit.application.RecordPlatformCompanyAuditCommand;
 import com.nahui.followupbussiness.audit.application.port.in.RecordCompanyDenialAuditUseCase;
 import com.nahui.followupbussiness.audit.domain.AuditAction;
+import com.nahui.followupbussiness.audit.domain.AuditEntry;
 import com.nahui.followupbussiness.audit.domain.AuditResult;
+import com.nahui.followupbussiness.audit.domain.AuditScope;
 import com.nahui.followupbussiness.notifications.application.port.in.RevokeInstallationsForSession;
 import com.nahui.followupbussiness.tenancy.application.port.in.CompanyAccessStatusQuery;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -34,6 +36,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.transaction.TransactionDefinition;
 
 import java.nio.charset.StandardCharsets;
 import java.security.*;
@@ -49,6 +52,33 @@ import java.util.UUID;
 @EnableConfigurationProperties(AuthenticationProperties.Values.class)
 @EnableScheduling
 public class LoginConfiguration {
+    @Bean
+    public CompanyUserService companyUserService(JdbcTemplate jdbc, AuthenticationProperties.Values properties) {
+        byte[] secret = properties.getHmacSecret().getBytes(StandardCharsets.UTF_8);
+        var delegate = new CompanyUserService(jdbc, Clock.systemUTC(), new JdbcPasswordRecoveryAdapter(jdbc), new JdbcIdentityNotificationAdapter(jdbc, secret),
+                new JdbcCompanyUserAuditStore(jdbc), new JdbcCompanyUserOutboxStore(jdbc), secret);
+        var transaction = new TransactionTemplate(new DataSourceTransactionManager(jdbc.getDataSource()));
+        var deniedTransaction = new TransactionTemplate(new DataSourceTransactionManager(jdbc.getDataSource()));
+        deniedTransaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        var denialStore = new JdbcCompanyUserAuditStore(jdbc);
+        return new CompanyUserService(jdbc, Clock.systemUTC()) {
+            @Override public CompanyUserService.UserPage list(int page, int pageSize, String search, BaseRole role, String status, com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor actor) { try { return delegate.list(page,pageSize,search,role,status,actor); } catch (CompanyUserService.Forbidden denied) { denial(actor, actor == null ? null : actor.accountId(), new java.util.UUID(0L,0L)); throw denied; } }
+            @Override public CompanyUserService.User get(java.util.UUID id, com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor actor) { return get(id,actor,new java.util.UUID(0L,0L)); }
+            @Override public CompanyUserService.User get(java.util.UUID id, com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor actor, java.util.UUID correlation) { try { return delegate.get(id,actor,correlation); } catch (CompanyUserService.Forbidden | CompanyUserService.NotFound denied) { denial(actor,id,correlation); throw denied; } }
+            @Override public CompanyUserService.User invite(CompanyUserService.Invite c, com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor a) { return invite(c,a,new java.util.UUID(0L,0L)); }
+            @Override public CompanyUserService.User invite(CompanyUserService.Invite c, com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor a, java.util.UUID correlation) { try { return java.util.Objects.requireNonNull(transaction.execute(s -> delegate.invite(c,a,correlation))); } catch (CompanyUserService.Forbidden denied) { denial(a,a == null ? null : a.accountId(),correlation); throw denied; } }
+            @Override public CompanyUserService.User update(java.util.UUID id, CompanyUserService.Update c, com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor a) { return update(id,c,a,new java.util.UUID(0L,0L)); }
+            @Override public CompanyUserService.User update(java.util.UUID id, CompanyUserService.Update c, com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor a, java.util.UUID correlation) { try { return java.util.Objects.requireNonNull(transaction.execute(s -> delegate.update(id,c,a,correlation))); } catch (CompanyUserService.Forbidden | CompanyUserService.NotFound denied) { denial(a,id,correlation); throw denied; } }
+            @Override public CompanyUserService.User status(java.util.UUID id, String target, com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor a) { return status(id,target,a,new java.util.UUID(0L,0L)); }
+            @Override public CompanyUserService.User status(java.util.UUID id, String target, com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor a, java.util.UUID correlation) { try { return java.util.Objects.requireNonNull(transaction.execute(s -> delegate.status(id,target,a,correlation))); } catch (CompanyUserService.Forbidden | CompanyUserService.NotFound denied) { denial(a,id,correlation); throw denied; } }
+            private void denial(com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor actor, java.util.UUID resource, java.util.UUID correlation) {
+                if (actor == null || actor.accountId() == null || actor.tenantId() == null) return;
+                java.util.UUID safeResource = resource == null ? actor.accountId() : resource;
+                deniedTransaction.executeWithoutResult(s -> denialStore.append(new AuditEntry(java.util.UUID.randomUUID(), actor.tenantId(), actor.accountId(), AuditAction.CRITICAL_MUTATION,
+                        "COMPANY_USER", safeResource, AuditResult.DENIED, correlation, AuditScope.TENANT_BOUND_DENIAL.name(), java.util.Map.of(), java.util.Map.of(), Clock.systemUTC().instant())));
+            }
+        };
+    }
     @Bean
     LoginService loginService(JdbcTemplate j, CompanyAccessStatusQuery c, AuthenticationProperties.Values p) {
         try {
