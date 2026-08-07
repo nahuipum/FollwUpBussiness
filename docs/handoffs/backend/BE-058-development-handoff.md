@@ -1,33 +1,24 @@
-# BE-058 — Remediación Backend SEC-BE058-001
+# BE-058 — Remediación Backend CI ApplicationContext
 
 - **Estado:** `READY_FOR_HANDOFF`
-- **Candidate-ID:** `HEAD 4568105563a17136a29e5e063b5d858658b40a52 + ci-fix 611b2b6`
-- **Alcance:** cierre de `SEC-BE058-001` y remediación mínima del contexto CI afectado por `CompanyUserController`. Los controles previamente aprobados no se modificaron.
+- **Candidate-ID:** `HEAD 4320f3325ca53ad2c5e9d3769ba018222171b6bc + ci-context-fixture bb5fb5d`
+- **Alcance:** fixture de prueba mínimo para los contextos que CI no pudo cargar; sin cambio de producción ni de los controles funcionales BE-058.
 
-## Cambio
+## Causa y cambio
 
-Se extendió `LoginValidationErrorHandler`, el advice de validación/parsing existente en identidad/acceso, a `CompanyUserController`. Su manejo ya cubría `HttpMessageNotReadableException` con HTTP 400, `application/problem+json`, tipo `urn:followupbussiness:auth:validation-failed`, título/detalle controlados, `correlationId` y cabeceras sin caché. Se preservó el handler local de `MethodArgumentNotValidException` de `CompanyUserController` y no se tocaron caso de uso, puertos, persistencia, autorización, auditoría, OpenAPI ni migraciones.
-
-El contexto aislado de `SecurityConfigurationTest` ahora declara `CompanyUserService` como `@MockitoBean`, igual que sus dependencias de controladores ya aisladas. Esto satisface la dependencia del controlador incorporado por BE-058 sin activar infraestructura ni alterar producción.
-
-## Evidencia
-
-- `patchWithMalformedJsonContainingLiteralCrLfReturnsSafeProblemDetailBeforeTheUseCase`: JSON realmente malformado por CR literal retorna 400 Problem Detail, contiene estructura/tipo/título/estado/detalle/correlationId controlados y no contiene email ni el mensaje interno de Jackson; `verifyNoInteractions(service)` demuestra que no alcanza el caso de uso ni sus puertos.
-- `patchWithEscapedCrLfReachesValidationAndReturnsSafeProblemDetailBeforeTheUseCase`: JSON válido con `\\r`/`\\n` escapados se deserializa, Bean Validation lo rechaza y devuelve 400 Problem Detail; no refleja el email y tampoco alcanza el caso de uso ni sus puertos.
+Los tres errores comparten causa: `CompanyUserController` se registra en los contextos de prueba con `DataSourceAutoConfiguration` excluida y requiere `CompanyUserService`, que no es un bean en ese fixture. `SecurityConfigurationTest` ya lo suplía mediante `@MockitoBean`; se declara el mismo mock únicamente en `FollowupbussinessApplicationTests` y `PrometheusMetricsEndpointTest`.
 
 ## Archivos, contratos y migraciones
 
-- Producción: `backend/followupbussiness/src/main/java/com/nahui/followupbussiness/identityaccess/adapter/in/rest/LoginValidationErrorHandler.java`.
-- Pruebas: `backend/followupbussiness/src/test/java/com/nahui/followupbussiness/identityaccess/adapter/in/rest/CompanyUserControllerTest.java`; `backend/followupbussiness/src/test/java/com/nahui/followupbussiness/identityaccess/config/SecurityConfigurationTest.java`.
-- Contratos y migraciones: sin cambios.
+- Pruebas: `backend/followupbussiness/src/test/java/com/nahui/followupbussiness/FollowupbussinessApplicationTests.java`; `backend/followupbussiness/src/test/java/com/nahui/followupbussiness/identityaccess/config/PrometheusMetricsEndpointTest.java`.
+- Producción, contratos y migraciones: sin cambios.
 
-## Verificación
+## Evidencia
 
-- `mvn -q "-Dtest=CompanyUserServiceTest,CompanyUserControllerTest" test` — PASS.
-- `mvn -q "-Dmaven.repo.local=C:\Users\LUIS\.m2\repository" -Dtest=SecurityConfigurationTest test` — PASS (18 s); reproduce el fallo CI y confirma el contexto completo.
-- `git diff --check` — PASS.
-- `graphify update .` — PASS.
+- Log CI run `31143556396`, job `92758287149`: `NoSuchBeanDefinitionException` de `CompanyUserService` al construir `CompanyUserController`; el segundo error de la clase de aplicación es el umbral posterior del mismo fallo.
+- `mvn -q "-Dmaven.repo.local=C:\Users\LUIS\.m2\repository" "-Dtest=FollowupbussinessApplicationTests,PrometheusMetricsEndpointTest" test` — PASS (3 pruebas): carga de contexto, ausencia de bootstrap y endpoint Prometheus.
+- `git diff --check` — PASS antes de actualizar este handoff.
 
-## Riesgo y reproducción
+## Riesgo y siguiente fase
 
-Riesgo residual bajo: el advice reutiliza el tipo genérico de validación del módulo de identidad/acceso. Para reproducir, enviar PATCH `/company/users/{id}` con email que contenga CR literal dentro del JSON o con `\\r`/`\\n` JSON escapados: ambos retornan 400 `application/problem+json`, sin eco de PII/payload y sin invocar el caso de uso.
+Riesgo residual bajo: la cobertura dirigida confirma los dos fixtures aislados; `Maven verify` completo y SCA quedan para CI. Siguiente fase: QA afectado, validando el Candidate-ID y los tres escenarios de contexto.

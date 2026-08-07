@@ -1,10 +1,12 @@
 package com.nahui.followupbussiness.identityaccess.config;
 
+import com.nahui.followupbussiness.identityaccess.application.CompanyUserService;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalManagementPort;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -22,6 +24,9 @@ import static org.assertj.core.api.Assertions.assertThat;
         "management.endpoints.web.exposure.include=prometheus"
 })
 class PrometheusMetricsEndpointTest {
+
+    @MockitoBean
+    private CompanyUserService companyUserService;
 
     @Autowired
     private MeterRegistry meterRegistry;

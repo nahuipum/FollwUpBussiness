@@ -1,11 +1,13 @@
 package com.nahui.followupbussiness;
 
 import com.nahui.followupbussiness.identityaccess.adapter.in.cli.PlatformSuperadminBootstrapRunner;
+import com.nahui.followupbussiness.identityaccess.application.CompanyUserService;
 import com.nahui.followupbussiness.identityaccess.application.port.in.BootstrapPlatformSuperadminUseCase;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -15,6 +17,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 		"followupbussiness.outbox.enabled=false"
 })
 class FollowupbussinessApplicationTests {
+
+	@MockitoBean
+	private CompanyUserService companyUserService;
 
 	@Autowired
 	private ApplicationContext applicationContext;
