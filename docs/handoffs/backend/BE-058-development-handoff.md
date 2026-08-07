@@ -1,12 +1,14 @@
 # BE-058 — Remediación Backend SEC-BE058-001
 
 - **Estado:** `READY_FOR_HANDOFF`
-- **Candidate-ID:** `HEAD 79870ec + be058-sec-remediation 31edbcca7cd1`
-- **Alcance:** únicamente el cierre de `SEC-BE058-001`: Problem Detail seguro para parsing JSON en PATCH de usuarios de empresa. Los controles previamente aprobados no se modificaron.
+- **Candidate-ID:** `HEAD 4568105563a17136a29e5e063b5d858658b40a52 + ci-fix 611b2b6`
+- **Alcance:** cierre de `SEC-BE058-001` y remediación mínima del contexto CI afectado por `CompanyUserController`. Los controles previamente aprobados no se modificaron.
 
 ## Cambio
 
 Se extendió `LoginValidationErrorHandler`, el advice de validación/parsing existente en identidad/acceso, a `CompanyUserController`. Su manejo ya cubría `HttpMessageNotReadableException` con HTTP 400, `application/problem+json`, tipo `urn:followupbussiness:auth:validation-failed`, título/detalle controlados, `correlationId` y cabeceras sin caché. Se preservó el handler local de `MethodArgumentNotValidException` de `CompanyUserController` y no se tocaron caso de uso, puertos, persistencia, autorización, auditoría, OpenAPI ni migraciones.
+
+El contexto aislado de `SecurityConfigurationTest` ahora declara `CompanyUserService` como `@MockitoBean`, igual que sus dependencias de controladores ya aisladas. Esto satisface la dependencia del controlador incorporado por BE-058 sin activar infraestructura ni alterar producción.
 
 ## Evidencia
 
@@ -16,12 +18,13 @@ Se extendió `LoginValidationErrorHandler`, el advice de validación/parsing exi
 ## Archivos, contratos y migraciones
 
 - Producción: `backend/followupbussiness/src/main/java/com/nahui/followupbussiness/identityaccess/adapter/in/rest/LoginValidationErrorHandler.java`.
-- Pruebas: `backend/followupbussiness/src/test/java/com/nahui/followupbussiness/identityaccess/adapter/in/rest/CompanyUserControllerTest.java`.
+- Pruebas: `backend/followupbussiness/src/test/java/com/nahui/followupbussiness/identityaccess/adapter/in/rest/CompanyUserControllerTest.java`; `backend/followupbussiness/src/test/java/com/nahui/followupbussiness/identityaccess/config/SecurityConfigurationTest.java`.
 - Contratos y migraciones: sin cambios.
 
 ## Verificación
 
 - `mvn -q "-Dtest=CompanyUserServiceTest,CompanyUserControllerTest" test` — PASS.
+- `mvn -q "-Dmaven.repo.local=C:\Users\LUIS\.m2\repository" -Dtest=SecurityConfigurationTest test` — PASS (18 s); reproduce el fallo CI y confirma el contexto completo.
 - `git diff --check` — PASS.
 - `graphify update .` — PASS.
 

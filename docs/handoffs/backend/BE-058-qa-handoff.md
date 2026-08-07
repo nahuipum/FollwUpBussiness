@@ -1,33 +1,27 @@
-# BE-058 — QA Backend (revalidación terminal)
+# BE-058 — QA Backend (remediación CI)
 
 - **Estado:** `PASS`
-- **Candidate-ID:** `HEAD 79870ec + be058-sec-remediation 31edbcca7cd1` — `HEAD` validado: `79870ec898495c34cb26cf253bb3884c33226186`; firma rápida congruente con el handoff de Desarrollo y el delta declarado (`LoginValidationErrorHandler`, `CompanyUserControllerTest`).
-- **Alcance:** cierre exclusivo de `SEC-BE058-001`. No se reabrieron los controles reutilizados.
+- **Candidate-ID:** `HEAD 4568105563a17136a29e5e063b5d858658b40a52 + ci-fix 611b2b6`.
+- **Firma validada:** `HEAD` coincide; el único delta BE-058 bajo revisión es `SecurityConfigurationTest.java`, que incorpora `CompanyUserService` como `@MockitoBean`. Los demás cambios del árbol son ajenos al alcance.
+- **Alcance:** remediación solo de prueba del contexto CI; no se reabrieron producción, arquitectura ni contratos.
 
 ## Matriz resumida
 
 | Criterio | Implementación | Prueba/evidencia | Resultado |
 |---|---|---|---|
-| JSON malformado con CR/LF literal | `LoginValidationErrorHandler` se aplica también a `CompanyUserController` y maneja `HttpMessageNotReadableException` | `patchWithMalformedJsonContainingLiteralCrLfReturnsSafeProblemDetailBeforeTheUseCase`: 400, `application/problem+json`, Problem Detail controlado, sin email ni mensaje de Jackson, `verifyNoInteractions(service)` | PASS |
-| JSON válido con `\\r`/`\\n` escapado | Bean Validation del PATCH; se conserva el handler local de validación del controlador | `patchWithEscapedCrLfReachesValidationAndReturnsSafeProblemDetailBeforeTheUseCase`: 400, `application/problem+json`, Problem Detail controlado, sin email, `verifyNoInteractions(service)` | PASS |
-| Alcance del advice y regresión web directa | `assignableTypes` limita el advice a login y `CompanyUserController`; no se modificaron otros handlers | `idRoutesBindTheOpenApiUserIdVariableAndReachTheUseCase` conserva GET/PATCH/status exitosos | PASS |
-| `SEC-BE058-002` | Sin delta | Estado reutilizado | PASS |
+| Contexto de seguridad incorpora `CompanyUserController` sin infraestructura real | Mock explícito de `CompanyUserService` mediante `@MockitoBean` | `SecurityConfigurationTest` inicia el contexto Spring completo | PASS |
+| Regresión/negativo directo de seguridad | La clase conserva sus rutas protegidas, 401 seguro y rechazo de rutas no públicas | 29 pruebas, 0 errores, 0 fallos, 0 omitidas | PASS |
 
 ## Evidencia
 
-- JSON malformado: produce `HttpMessageNotReadableException` manejada con 400 y `application/problem+json`; el cuerpo no refleja email, payload, detalle interno de Jackson ni stack trace, y no invoca el caso de uso.
-- JSON válido con CR/LF escapado: se deserializa y Bean Validation lo rechaza con 400 y `application/problem+json`; el cuerpo no refleja PII ni el valor inválido y no invoca el caso de uso.
-- `mvn -q "-Dtest=CompanyUserServiceTest,CompanyUserControllerTest" test` — PASS.
-- `git diff --check` — PASS (solo avisos de normalización LF/CRLF, sin errores).
+- `mvn -q "-Dmaven.repo.local=C:\Users\LUIS\.m2\repository" -Dtest=SecurityConfigurationTest test` — PASS (29 pruebas; 0 errores/fallos/omitidas).
+- `git diff --check -- backend/followupbussiness/src/test/java/com/nahui/followupbussiness/identityaccess/config/SecurityConfigurationTest.java` — PASS; solo aviso local LF/CRLF.
 
-## Hallazgos abiertos
+## Hallazgos y riesgo residual
 
-Ninguno.
+- Hallazgos abiertos: ninguno.
+- Riesgo residual bajo: la validación cubre la clase de contexto afectada, no sustituye el `verify` completo de CI ni el análisis SCA, que no llegaron a ejecutarse en el job fallido.
 
-## Regresión relevante y riesgos residuales
+## Siguiente fase autorizada
 
-- `SEC-BE058-001`: `PASS` terminal.
-- `SEC-BE058-002`: `PASS` reutilizado.
-- Riesgo residual bajo: ninguno atribuible al delta web revisado.
-
-Ruta: `docs/handoffs/backend/BE-058-qa-handoff.md`.
+- Seguridad final, conforme al flujo posterior a `CHANGES_REQUIRED` y sin reabrir controles no afectados.
