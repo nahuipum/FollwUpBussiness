@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 import com.nahui.followupbussiness.outbox.application.PlatformOperator;
 import com.nahui.followupbussiness.outbox.adapter.in.rest.DlqReprocessRateLimiter;
+import com.nahui.followupbussiness.identityaccess.application.CompanyUserService;
 import com.nahui.followupbussiness.identityaccess.adapter.in.security.InboundJwtAuthenticator;
 import java.util.stream.Stream;
 
@@ -54,6 +55,9 @@ class SecurityConfigurationTest {
 
     @MockitoBean
     private InboundJwtAuthenticator inboundJwtAuthenticator;
+
+    @MockitoBean
+    private CompanyUserService companyUserService;
 
     @Autowired
     private MockMvc mockMvc;

@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 
 /** Keeps malformed and validation-rejected credential values out of logs and responses. */
-@RestControllerAdvice(assignableTypes = LoginController.class)
+@RestControllerAdvice(assignableTypes = {LoginController.class, CompanyUserController.class})
 public final class LoginValidationErrorHandler {
     @ExceptionHandler({MethodArgumentNotValidException.class, HttpMessageNotReadableException.class})
     ResponseEntity<ProblemDetail> invalidRequest(Exception ignored, WebRequest request) {
