@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, expect, test, vi } from 'vitest'
+import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { App } from './App'
 import { canAccessPath, clearSession, hasPendingLogout, hasSession, login, logout, retryPendingLogout } from '../features/auth/auth'
 
@@ -14,8 +14,13 @@ afterEach(() => {
   cleanup()
   clearSession()
   vi.unstubAllGlobals()
+  vi.unstubAllEnvs()
   window.localStorage.removeItem('followupbusiness.logout-pending')
   window.history.replaceState({}, '', '/')
+})
+
+beforeEach(() => {
+  vi.stubEnv('VITE_API_BASE_URL', 'https://backend.test')
 })
 
 test('validates credentials before sending them', () => {
@@ -50,7 +55,7 @@ test('uses WEB headers and redirects each contractual role', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(webResponse(role)), { status: 200 }))
     vi.stubGlobal('fetch', fetchMock)
     const view = render(<App />)
-    fireEvent.change(screen.getByLabelText('Correo electrónico'), { target: { value: 'seller@example.com' } })
+    fireEvent.change(screen.getByLabelText('Correo o nombre de usuario'), { target: { value: 'seller@example.com' } })
     fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'correct-password' } })
     fireEvent.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
     await waitFor(() => expect(window.location.pathname).toBe(expectedPath))
@@ -64,18 +69,26 @@ test('uses WEB headers and redirects each contractual role', async () => {
 test('shows the same generic error and clears the password after a failed login', async () => {
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ code: 'AUTHENTICATION_FAILED' }), { status: 401 })))
   render(<App />)
-  fireEvent.change(screen.getByLabelText('Correo electrónico'), { target: { value: 'seller@example.com' } })
+  fireEvent.change(screen.getByLabelText('Correo o nombre de usuario'), { target: { value: 'seller@example.com' } })
   fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'correct-password' } })
-  fireEvent.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
+  const submitButton = screen.getByRole('button', { name: 'Iniciar sesión' })
+  submitButton.focus()
+  fireEvent.click(submitButton)
 
-  await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('No fue posible iniciar sesión'))
+  const dialog = await screen.findByRole('dialog', { name: 'Inicio de sesión fallido' })
+  expect(dialog.textContent).toContain('No fue posible iniciar sesión')
+  expect(screen.getByRole('button', { name: 'Cerrar' })).toBe(document.activeElement)
   expect(screen.getByLabelText('Contraseña')).toHaveProperty('value', '')
+
+  fireEvent.keyDown(document, { key: 'Escape' })
+  expect(screen.queryByRole('dialog', { name: 'Inicio de sesión fallido' })).toBeNull()
+  expect(submitButton).toBe(document.activeElement)
 })
 
 test('honors Retry-After after a rate-limited response', async () => {
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 429, headers: { 'Retry-After': '60' } })))
   render(<App />)
-  fireEvent.change(screen.getByLabelText('Correo electrónico'), { target: { value: 'seller@example.com' } })
+  fireEvent.change(screen.getByLabelText('Correo o nombre de usuario'), { target: { value: 'seller@example.com' } })
   fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'correct-password' } })
   fireEvent.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
 
@@ -89,16 +102,16 @@ test('closes a cookie-bearing invalid 200 without navigating or retaining a loca
     .mockResolvedValueOnce(new Response(null, { status: 204 }))
   vi.stubGlobal('fetch', fetchMock)
   render(<App />)
-  fireEvent.change(screen.getByLabelText('Correo electrónico'), { target: { value: 'seller@example.com' } })
+  fireEvent.change(screen.getByLabelText('Correo o nombre de usuario'), { target: { value: 'seller@example.com' } })
   fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'correct-password' } })
   fireEvent.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
 
-  await waitFor(() => expect(screen.getByRole('alert').textContent).toBe('No fue posible iniciar sesión. Verifica tus credenciales e inténtalo nuevamente.'))
+  await waitFor(() => expect(screen.getByRole('dialog', { name: 'Inicio de sesión fallido' }).textContent).toContain('No fue posible iniciar sesión. Verifica tus credenciales e inténtalo nuevamente.'))
   expect(window.location.pathname).toBe('/')
   expect(hasSession()).toBe(false)
   expect(canAccessPath('/seller/dashboard')).toBe(false)
   expect(fetchMock).toHaveBeenCalledTimes(2)
-  expect(fetchMock.mock.calls[1]).toEqual(['/auth/logout', expect.objectContaining({
+  expect(fetchMock.mock.calls[1]).toEqual(['https://backend.test/auth/logout', expect.objectContaining({
     method: 'POST', credentials: 'include', headers: expect.objectContaining({
       'X-Auth-Client': 'WEB', 'X-Logout-Intent': 'PENDING',
     }),

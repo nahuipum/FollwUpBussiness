@@ -1,3 +1,5 @@
+import { apiRequest } from '../../lib/api'
+
 export type UserRole = 'PLATFORM_SUPERADMIN' | 'COMPANY_ADMIN' | 'SUPERVISOR' | 'SELLER'
 
 export type LoginResult =
@@ -105,7 +107,7 @@ export async function login(credentials: { identifier: string; password: string 
   }
   clearSession()
   try {
-    const response = await fetch('/auth/login', {
+    const response = await apiRequest('/auth/login', {
       method: 'POST',
       credentials: 'include',
       headers: {
@@ -168,7 +170,7 @@ export async function logout(): Promise<void> {
   if (currentSession === null) return
 
   try {
-    const response = await fetch('/auth/logout', {
+    const response = await apiRequest('/auth/logout', {
       method: 'POST',
       credentials: 'include',
       headers: {
@@ -187,7 +189,7 @@ export async function logout(): Promise<void> {
 export async function retryPendingLogout(): Promise<boolean> {
   if (!hasPendingLogout()) return true
   try {
-    const response = await fetch('/auth/logout', {
+    const response = await apiRequest('/auth/logout', {
       method: 'POST',
       credentials: 'include',
       headers: {

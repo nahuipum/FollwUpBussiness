@@ -1,0 +1,1037 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FE-001 — Login States</title>
+
+<!--
+  FE-001 — REFERENCIA VISUAL PARA CODEX
+  ======================================
+  Este archivo es un prototipo visual. NO copiar directamente como código productivo.
+
+  Estados disponibles mediante query param:
+
+    FE-001-login-states.html
+    FE-001-login-states.html?state=loading
+    FE-001-login-states.html?state=validation
+    FE-001-login-states.html?state=auth-error
+    FE-001-login-states.html?state=invalid-session
+
+  Responsive:
+    Desktop: viewport >= 701px
+    Mobile:  viewport <= 700px
+
+  Alcance:
+    - Inicio de sesión normal.
+    - Validación visual de campos.
+    - Carga durante autenticación.
+    - Error genérico de autenticación.
+    - Sesión inválida/expirada.
+    - Mostrar/ocultar contraseña.
+
+  Fuera de alcance:
+    - Recuperar contraseña.
+    - Registro público.
+    - Selección manual de rol.
+-->
+
+<style>
+:root{
+  --navy:#102a43;
+  --navy-2:#163b62;
+  --teal:#176d77;
+  --teal-dark:#145f68;
+  --teal-soft:#7dd3d7;
+  --text:#14213d;
+  --muted:#67778a;
+  --line:#cfd9e4;
+  --danger:#d83b57;
+  --danger-bg:#fff3f5;
+  --danger-line:#f2b6c0;
+  --surface:#ffffff;
+  --shadow:0 18px 48px rgba(16,42,67,.17);
+}
+
+*{box-sizing:border-box}
+
+html,body{
+  margin:0;
+  width:100%;
+  min-height:100%;
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  color:var(--text);
+  background:#f7f9fc;
+}
+
+body{min-height:100vh}
+
+button,input{font:inherit}
+
+.app{
+  min-height:100vh;
+  display:grid;
+  grid-template-columns:minmax(0,1.04fr) minmax(520px,.96fr);
+  background:#fff;
+}
+
+/* LEFT BRAND PANEL */
+.brand-panel{
+  position:relative;
+  overflow:hidden;
+  padding:54px 64px;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  background:linear-gradient(145deg,#102a43 0%,#163b62 55%,#0f6b78 100%);
+  color:#fff;
+}
+
+.brand-panel:before{
+  content:"";
+  position:absolute;
+  width:500px;
+  height:500px;
+  border-radius:50%;
+  right:-190px;
+  top:-170px;
+  background:rgba(255,255,255,.055);
+}
+
+.brand-panel:after{
+  content:"";
+  position:absolute;
+  width:370px;
+  height:370px;
+  border-radius:50%;
+  left:-170px;
+  bottom:-170px;
+  background:rgba(255,255,255,.045);
+}
+
+.brand{
+  position:relative;
+  z-index:2;
+  display:flex;
+  align-items:center;
+  gap:13px;
+  font-size:22px;
+  font-weight:750;
+  letter-spacing:-.4px;
+}
+
+.logo{
+  width:38px;
+  height:38px;
+  border-radius:11px;
+  background:#fff;
+  display:grid;
+  place-items:center;
+  box-shadow:0 8px 24px rgba(0,0,0,.12);
+}
+
+.logo svg{width:23px;height:23px}
+
+.hero{
+  position:relative;
+  z-index:2;
+  max-width:570px;
+  margin-bottom:24px;
+}
+
+.eyebrow{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  font-size:13px;
+  font-weight:700;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:#a9dfe3;
+  margin-bottom:20px;
+}
+
+.eyebrow:before{
+  content:"";
+  width:28px;
+  height:2px;
+  border-radius:2px;
+  background:#7dd3d7;
+}
+
+h1{
+  margin:0;
+  font-size:52px;
+  line-height:1.06;
+  letter-spacing:-1.7px;
+  font-weight:780;
+  max-width:560px;
+}
+
+.hero p{
+  margin:22px 0 0;
+  font-size:18px;
+  line-height:1.6;
+  color:#d7e6f1;
+  max-width:530px;
+}
+
+.visual{
+  position:relative;
+  margin-top:42px;
+  width:520px;
+  height:250px;
+}
+
+.route-card{
+  position:absolute;
+  inset:0;
+  background:rgba(255,255,255,.095);
+  border:1px solid rgba(255,255,255,.17);
+  border-radius:26px;
+  backdrop-filter:blur(8px);
+  box-shadow:0 28px 55px rgba(4,22,37,.22);
+}
+
+.route-card .top{
+  height:55px;
+  border-bottom:1px solid rgba(255,255,255,.12);
+  display:flex;
+  align-items:center;
+  padding:0 20px;
+  gap:7px;
+}
+
+.dot{
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:#7dd3d7;
+  opacity:.85;
+}
+
+.map{position:absolute;inset:72px 24px 24px 24px}
+
+.route{
+  position:absolute;
+  left:70px;
+  top:64px;
+  width:330px;
+  height:90px;
+  border-top:3px solid rgba(125,211,215,.88);
+  border-right:3px solid rgba(125,211,215,.88);
+  border-radius:0 48px 0 0;
+  transform:rotate(-4deg);
+}
+
+.route:after{
+  content:"";
+  position:absolute;
+  width:120px;
+  border-top:3px solid rgba(125,211,215,.88);
+  right:-5px;
+  bottom:-14px;
+  transform:rotate(18deg);
+  transform-origin:right center;
+}
+
+.pin{
+  position:absolute;
+  width:16px;
+  height:16px;
+  border-radius:50%;
+  background:#fff;
+  border:4px solid #38b2ac;
+  box-shadow:0 0 0 5px rgba(56,178,172,.15);
+}
+
+.p1{left:54px;top:55px}
+.p2{left:226px;top:34px}
+.p3{right:53px;bottom:32px}
+
+.mini-card{
+  position:absolute;
+  right:24px;
+  top:88px;
+  width:155px;
+  height:70px;
+  border-radius:14px;
+  background:#fff;
+  color:#102a43;
+  padding:13px 14px;
+  box-shadow:0 12px 25px rgba(0,0,0,.13);
+}
+
+.mini-card b{display:block;font-size:12px;margin-bottom:8px}
+.mini-card span{display:block;height:6px;border-radius:9px;background:#e5edf3;margin-top:5px}
+.mini-card span:last-child{width:67%}
+
+.brand-foot{
+  position:relative;
+  z-index:2;
+  color:#bfd4df;
+  font-size:13px;
+}
+
+/* LOGIN */
+.login-panel{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:56px 76px;
+  background:#fff;
+}
+
+.form-wrap{
+  width:100%;
+  max-width:410px;
+}
+
+.mobile-brand{display:none}
+
+.title{
+  font-size:34px;
+  line-height:1.15;
+  letter-spacing:-1.1px;
+  margin:0 0 10px;
+  font-weight:760;
+  color:#12263f;
+}
+
+.subtitle{
+  margin:0 0 36px;
+  color:#67778a;
+  font-size:15.5px;
+  line-height:1.55;
+}
+
+.field{margin-bottom:20px}
+
+label{
+  display:block;
+  font-size:14px;
+  font-weight:650;
+  color:#26384a;
+  margin-bottom:8px;
+}
+
+.input-wrap{
+  height:52px;
+  border:1px solid #cfd9e4;
+  border-radius:12px;
+  display:flex;
+  align-items:center;
+  background:#fff;
+  transition:.2s;
+  box-shadow:0 1px 0 rgba(16,42,67,.02);
+}
+
+.input-wrap:focus-within{
+  border-color:#247b85;
+  box-shadow:0 0 0 3px rgba(36,123,133,.12);
+}
+
+.input-wrap svg{
+  width:19px;
+  height:19px;
+  margin-left:16px;
+  stroke:#728396;
+  flex:0 0 auto;
+}
+
+input{
+  height:100%;
+  border:0;
+  outline:0;
+  background:transparent;
+  width:100%;
+  padding:0 14px;
+  font-size:15px;
+  color:#13293d;
+}
+
+input::placeholder{color:#96a4b2}
+
+input:disabled{
+  color:#536476;
+  cursor:not-allowed;
+}
+
+.eye{
+  border:0;
+  background:transparent;
+  display:grid;
+  place-items:center;
+  padding:0 15px 0 4px;
+  cursor:pointer;
+}
+
+.eye:disabled{cursor:not-allowed;opacity:.6}
+
+.eye svg{
+  margin:0;
+  width:19px;
+  height:19px;
+}
+
+.helper-row{
+  display:flex;
+  justify-content:flex-start;
+  align-items:center;
+  margin:-2px 0 26px;
+  gap:15px;
+}
+
+.check{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  color:#556779;
+  font-size:13.5px;
+}
+
+.checkbox{
+  width:17px;
+  height:17px;
+  border:1px solid #b9c6d2;
+  border-radius:5px;
+  background:#fff;
+}
+
+.button{
+  height:52px;
+  border:0;
+  border-radius:12px;
+  width:100%;
+  background:#176d77;
+  color:white;
+  font-size:15px;
+  font-weight:730;
+  letter-spacing:.01em;
+  box-shadow:0 9px 20px rgba(23,109,119,.2);
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+}
+
+.button:hover{background:#145f68}
+
+.button:disabled{
+  cursor:not-allowed;
+  background:#9ec2c6;
+  box-shadow:none;
+}
+
+.spinner{
+  width:18px;
+  height:18px;
+  border:2px solid rgba(255,255,255,.45);
+  border-top-color:#fff;
+  border-radius:50%;
+  animation:spin .85s linear infinite;
+}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.loading-status{
+  display:none;
+  margin:16px auto 0;
+  color:#758698;
+  font-size:12.5px;
+  text-align:center;
+}
+
+.loading-status svg{
+  width:14px;
+  height:14px;
+  stroke:#758698;
+  vertical-align:-2px;
+  margin-right:5px;
+}
+
+.loading-progress{
+  display:none;
+  margin:12px 0 0;
+}
+
+.loading-progress-track{
+  width:100%;
+  height:8px;
+  border-radius:999px;
+  background:#dbe7ee;
+  overflow:hidden;
+  box-shadow:inset 0 1px 2px rgba(16,42,67,.08);
+}
+
+.loading-progress-bar{
+  width:42%;
+  height:100%;
+  border-radius:999px;
+  background:linear-gradient(90deg,#176d77 0%, #38b2ac 100%);
+  animation:progress-slide 1.15s ease-in-out infinite;
+}
+
+@keyframes progress-slide{
+  0%{transform:translateX(-105%);width:34%}
+  50%{transform:translateX(68%);width:48%}
+  100%{transform:translateX(220%);width:34%}
+}
+
+.secure{
+  margin:22px auto 0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  color:#8090a0;
+  font-size:12.5px;
+  text-align:center;
+}
+
+.secure svg{
+  width:15px;
+  height:15px;
+  stroke:#8090a0;
+}
+
+.footer{
+  position:absolute;
+  bottom:22px;
+  right:32px;
+  font-size:11.5px;
+  color:#9aa7b4;
+}
+
+/* FIELD VALIDATION */
+.field-error{
+  display:none;
+  margin:7px 2px 0;
+  color:#c6324b;
+  font-size:12px;
+  line-height:1.35;
+}
+
+.field.has-error .input-wrap{
+  border-color:#e28a99;
+  box-shadow:0 0 0 3px rgba(216,59,87,.07);
+}
+
+.field.has-error .field-error{display:block}
+
+/* GENERIC AUTH ERROR */
+.auth-alert{
+  display:none;
+  border:1px solid var(--danger-line);
+  background:var(--danger-bg);
+  color:#8f2b3c;
+  border-radius:11px;
+  padding:12px 13px;
+  margin:-4px 0 20px;
+  font-size:12.7px;
+  line-height:1.45;
+}
+
+.auth-alert strong{
+  display:block;
+  margin-bottom:2px;
+  font-size:13px;
+  color:#7e2333;
+}
+
+/* MODAL */
+.modal-layer{
+  position:fixed;
+  inset:0;
+  z-index:50;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  background:rgba(15,33,55,.56);
+  backdrop-filter:blur(1.5px);
+}
+
+.modal{
+  width:min(100%,405px);
+  border-radius:20px;
+  background:#fff;
+  padding:30px 34px 24px;
+  box-shadow:0 28px 70px rgba(7,25,43,.28);
+  text-align:center;
+}
+
+.modal-icon{
+  width:70px;
+  height:70px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  background:#fdecef;
+  margin:0 auto 18px;
+}
+
+.modal-icon svg{
+  width:36px;
+  height:36px;
+  stroke:#d83b57;
+}
+
+.modal h3{
+  margin:0 0 10px;
+  color:#12263f;
+  font-size:23px;
+  letter-spacing:-.45px;
+}
+
+.modal p{
+  margin:0 auto 22px;
+  max-width:310px;
+  color:#596b7d;
+  font-size:14px;
+  line-height:1.55;
+}
+
+.modal-primary{
+  width:100%;
+  height:48px;
+  border:0;
+  border-radius:11px;
+  background:#176d77;
+  color:#fff;
+  font-weight:720;
+  cursor:pointer;
+  box-shadow:0 8px 18px rgba(23,109,119,.18);
+}
+
+.modal-secondary{
+  display:inline-block;
+  border:0;
+  background:transparent;
+  color:#637588;
+  font-weight:650;
+  margin-top:16px;
+  cursor:pointer;
+  padding:5px 10px;
+}
+
+/* STATE RULES */
+body.state-loading .button .default-label{display:none}
+body.state-loading .button .loading-label{display:inline}
+body:not(.state-loading) .button .loading-label{display:none}
+body.state-loading .loading-status{display:block}
+body.state-loading .loading-progress{display:block}
+
+body.state-auth-error .auth-alert{display:block}
+body.state-invalid-session .modal-layer{display:flex}
+
+/* MOBILE */
+@media(max-width:700px){
+  body{
+    overflow:auto;
+    background:#f7f9fc;
+  }
+
+  .app{
+    display:block;
+    min-height:100vh;
+    background:linear-gradient(180deg,#edf6f7 0,#f7f9fc 22%,#fff 22%,#fff 100%);
+  }
+
+  .brand-panel{display:none}
+
+  .login-panel{
+    min-height:100vh;
+    padding:31px 24px 28px;
+    display:block;
+    background:transparent;
+  }
+
+  .form-wrap{max-width:none}
+
+  .mobile-brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-size:18px;
+    font-weight:760;
+    color:#133b50;
+    margin-bottom:82px;
+  }
+
+  .mobile-brand .logo{
+    width:34px;
+    height:34px;
+    background:#176d77;
+    box-shadow:none;
+  }
+
+  .mobile-brand .logo svg path,
+  .mobile-brand .logo svg circle{
+    stroke:#fff;
+  }
+
+  .title{
+    font-size:28px;
+    letter-spacing:-.7px;
+    margin-bottom:9px;
+  }
+
+  .subtitle{
+    font-size:14.5px;
+    margin-bottom:29px;
+    max-width:315px;
+  }
+
+  .field{margin-bottom:18px}
+
+  .input-wrap{
+    height:51px;
+    border-radius:11px;
+  }
+
+  .helper-row{
+    margin-top:0;
+    margin-bottom:24px;
+  }
+
+  .check{font-size:12.5px}
+
+  .button{height:51px}
+
+  .secure{
+    margin-top:20px;
+    font-size:11.8px;
+  }
+
+  .footer{
+    position:static;
+    text-align:center;
+    margin-top:92px;
+    font-size:10.5px;
+  }
+
+  .modal-layer{
+    align-items:flex-end;
+    padding:18px;
+  }
+
+  .modal{
+    width:100%;
+    border-radius:24px;
+    padding:28px 22px 24px;
+    margin-bottom:10px;
+  }
+
+  .modal h3{font-size:25px}
+
+  .modal p{
+    font-size:14px;
+    max-width:300px;
+  }
+
+  .modal-primary{height:50px}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .spinner{animation:none}
+  .loading-progress-bar{animation:none;transform:none;width:62%}
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+  <section class="brand-panel">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M5 18.5V9.5M5 9.5l5 2.7 4.5-5.2 4.5 2.4" stroke="#176d77" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="5" cy="9" r="1.7" stroke="#176d77" stroke-width="2"/>
+          <circle cx="10" cy="12.2" r="1.7" stroke="#176d77" stroke-width="2"/>
+          <circle cx="14.5" cy="7" r="1.7" stroke="#176d77" stroke-width="2"/>
+          <circle cx="19" cy="9.4" r="1.7" stroke="#176d77" stroke-width="2"/>
+        </svg>
+      </div>
+      FollowUpBusiness
+    </div>
+
+    <div class="hero">
+      <div class="eyebrow">Gestión comercial en campo</div>
+      <h1>Tu operación, organizada desde el primer contacto.</h1>
+      <p>Accede al panel para gestionar clientes, seguimiento y rutas de trabajo desde un solo lugar.</p>
+
+      <div class="visual" aria-hidden="true">
+        <div class="route-card">
+          <div class="top">
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+          </div>
+        </div>
+        <div class="map">
+          <div class="route"></div>
+          <span class="pin p1"></span>
+          <span class="pin p2"></span>
+          <span class="pin p3"></span>
+        </div>
+        <div class="mini-card">
+          <b>Próxima visita</b>
+          <span></span>
+          <span></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="brand-foot">Plataforma de uso interno · Acceso protegido</div>
+  </section>
+
+  <main class="login-panel">
+    <div class="form-wrap">
+      <div class="mobile-brand">
+        <div class="logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M5 18.5V9.5M5 9.5l5 2.7 4.5-5.2 4.5 2.4" stroke="#176d77" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="5" cy="9" r="1.7" stroke="#176d77" stroke-width="2"/>
+            <circle cx="10" cy="12.2" r="1.7" stroke="#176d77" stroke-width="2"/>
+            <circle cx="14.5" cy="7" r="1.7" stroke="#176d77" stroke-width="2"/>
+            <circle cx="19" cy="9.4" r="1.7" stroke="#176d77" stroke-width="2"/>
+          </svg>
+        </div>
+        FollowUpBusiness
+      </div>
+
+      <h2 class="title">Inicia sesión</h2>
+      <p class="subtitle">Ingresa con las credenciales asignadas para acceder a tu panel.</p>
+
+      <form id="loginForm" novalidate>
+        <div class="auth-alert" role="alert">
+          <strong>No pudimos iniciar sesión.</strong>
+          Verifica tus credenciales e inténtalo nuevamente.
+        </div>
+
+        <div class="field" id="emailField">
+          <label for="email">Correo electrónico</label>
+          <div class="input-wrap">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M4 6.5h16v11H4zM4.5 7l7.5 6 7.5-6" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <input
+              id="email"
+              type="email"
+              autocomplete="username"
+              placeholder="nombre@empresa.com"
+              aria-describedby="emailError"
+            />
+          </div>
+          <div class="field-error" id="emailError">Ingresa un correo electrónico válido.</div>
+        </div>
+
+        <div class="field" id="passwordField">
+          <label for="password">Contraseña</label>
+          <div class="input-wrap">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <rect x="5" y="10" width="14" height="10" rx="2" stroke-width="1.7"/>
+              <path d="M8 10V7a4 4 0 0 1 8 0v3" stroke-width="1.7" stroke-linecap="round"/>
+            </svg>
+
+            <input
+              id="password"
+              type="password"
+              autocomplete="current-password"
+              placeholder="Ingresa tu contraseña"
+              aria-describedby="passwordError"
+            />
+
+            <button class="eye" id="eyeButton" type="button" aria-label="Mostrar contraseña">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M2.8 12s3.4-5 9.2-5 9.2 5 9.2 5-3.4 5-9.2 5-9.2-5-9.2-5Z" stroke-width="1.6"/>
+                <circle cx="12" cy="12" r="2.2" stroke-width="1.6"/>
+              </svg>
+            </button>
+          </div>
+          <div class="field-error" id="passwordError">Ingresa tu contraseña.</div>
+        </div>
+
+        <div class="helper-row">
+          <label class="check">
+            <input type="checkbox" id="remember" style="position:absolute;opacity:0;pointer-events:none" />
+            <span class="checkbox" aria-hidden="true"></span>
+            <span>Recordarme</span>
+          </label>
+        </div>
+
+        <button class="button" id="loginButton" type="submit">
+          <span class="spinner" id="spinner" style="display:none" aria-hidden="true"></span>
+          <span class="default-label">Iniciar sesión</span>
+          <span class="loading-label">Iniciando sesión...</span>
+        </button>
+
+        <div class="loading-status" id="loadingStatus">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 3 5.5 5.7v5.4c0 4.4 2.6 7.9 6.5 9.9 3.9-2 6.5-5.5 6.5-9.9V5.7L12 3Z" stroke-width="1.6" stroke-linejoin="round"/>
+          </svg>
+          Validando credenciales y cargando tu panel
+        </div>
+
+        <div class="loading-progress" aria-hidden="true">
+          <div class="loading-progress-track">
+            <div class="loading-progress-bar"></div>
+          </div>
+        </div>
+
+        <div class="secure">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 3 5.5 5.7v5.4c0 4.4 2.6 7.9 6.5 9.9 3.9-2 6.5-5.5 6.5-9.9V5.7L12 3Z" stroke-width="1.6" stroke-linejoin="round"/>
+          </svg>
+          Tus credenciales se procesan de forma segura.
+        </div>
+      </form>
+
+      <div class="footer">© 2026 FollowUpBusiness</div>
+    </div>
+  </main>
+</div>
+
+<!-- INVALID / EXPIRED SESSION -->
+<div class="modal-layer" id="invalidSessionModal" role="dialog" aria-modal="true" aria-labelledby="invalidSessionTitle">
+  <div class="modal">
+    <div class="modal-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M12 3 5.5 5.7v5.4c0 4.4 2.6 7.9 6.5 9.9 3.9-2 6.5-5.5 6.5-9.9V5.7L12 3Z" stroke-width="1.7" stroke-linejoin="round"/>
+        <path d="m9.4 9.4 5.2 5.2m0-5.2-5.2 5.2" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+    </div>
+
+    <h3 id="invalidSessionTitle">Sesión inválida</h3>
+
+    <p>
+      Tu sesión ya no es válida o ha expirado.
+      Vuelve a iniciar sesión para continuar.
+    </p>
+
+    <button class="modal-primary" id="goLoginButton" type="button">
+      Ir al inicio de sesión
+    </button>
+
+    <button class="modal-secondary" id="closeModalButton" type="button">
+      Cerrar
+    </button>
+  </div>
+</div>
+
+<script>
+(function () {
+  const params = new URLSearchParams(window.location.search)
+  const state = params.get('state') || 'default'
+
+  const body = document.body
+  const form = document.getElementById('loginForm')
+  const email = document.getElementById('email')
+  const password = document.getElementById('password')
+  const emailField = document.getElementById('emailField')
+  const passwordField = document.getElementById('passwordField')
+  const loginButton = document.getElementById('loginButton')
+  const eyeButton = document.getElementById('eyeButton')
+  const spinner = document.getElementById('spinner')
+  const closeModalButton = document.getElementById('closeModalButton')
+  const goLoginButton = document.getElementById('goLoginButton')
+
+  function setLoading(active) {
+    body.classList.toggle('state-loading', active)
+    loginButton.disabled = active
+    email.disabled = active
+    password.disabled = active
+    eyeButton.disabled = active
+    spinner.style.display = active ? 'inline-block' : 'none'
+  }
+
+  function clearFieldErrors() {
+    emailField.classList.remove('has-error')
+    passwordField.classList.remove('has-error')
+  }
+
+  function applyState() {
+    body.className = ''
+    clearFieldErrors()
+    setLoading(false)
+
+    switch (state) {
+      case 'loading':
+        email.value = 'usuario@empresa.com'
+        password.value = 'FollowUpDemo1!'
+        setLoading(true)
+        break
+
+      case 'validation':
+        email.value = ''
+        password.value = ''
+        emailField.classList.add('has-error')
+        passwordField.classList.add('has-error')
+        break
+
+      case 'auth-error':
+        body.classList.add('state-auth-error')
+        email.value = 'usuario@empresa.com'
+        password.value = ''
+        break
+
+      case 'invalid-session':
+        body.classList.add('state-invalid-session')
+        email.value = ''
+        password.value = ''
+        break
+
+      default:
+        email.value = ''
+        password.value = ''
+        break
+    }
+  }
+
+  eyeButton.addEventListener('click', function () {
+    const showing = password.type === 'text'
+    password.type = showing ? 'password' : 'text'
+    eyeButton.setAttribute('aria-label', showing ? 'Mostrar contraseña' : 'Ocultar contraseña')
+  })
+
+  form.addEventListener('submit', function (event) {
+    event.preventDefault()
+
+    clearFieldErrors()
+
+    const emailValue = email.value.trim()
+    const passwordValue = password.value
+
+    let valid = true
+
+    if (!emailValue || !emailValue.includes('@')) {
+      emailField.classList.add('has-error')
+      valid = false
+    }
+
+    if (!passwordValue) {
+      passwordField.classList.add('has-error')
+      valid = false
+    }
+
+    if (!valid) return
+
+    setLoading(true)
+  })
+
+  closeModalButton.addEventListener('click', function () {
+    body.classList.remove('state-invalid-session')
+  })
+
+  goLoginButton.addEventListener('click', function () {
+    window.location.href = window.location.pathname
+  })
+
+  applyState()
+})()
+</script>
+</body>
+</html>
