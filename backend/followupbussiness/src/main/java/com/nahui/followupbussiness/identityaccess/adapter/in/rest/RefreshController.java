@@ -14,13 +14,13 @@ import jakarta.validation.constraints.Size;
 import java.net.URI;
 import java.util.*;
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/auth")
-@ConditionalOnBean(RefreshSessionUseCase.class)
+@ConditionalOnProperty(prefix = "followupbussiness.authentication", name = "rs256-private-key")
 public class RefreshController {
     private final RefreshSessionUseCase service;
     private final WebOriginPolicy origins;

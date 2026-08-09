@@ -18,13 +18,13 @@ import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@ConditionalOnBean(LoginService.class)
+@ConditionalOnProperty(prefix = "followupbussiness.authentication", name = "rs256-private-key")
 @RequestMapping("/auth")
 public class LoginController {
     private static final Logger LOG = LoggerFactory.getLogger(LoginController.class);

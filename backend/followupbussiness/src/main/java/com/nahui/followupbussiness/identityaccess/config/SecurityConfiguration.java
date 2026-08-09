@@ -4,6 +4,7 @@ import com.nahui.followupbussiness.identityaccess.adapter.in.security.RestAccess
 import com.nahui.followupbussiness.identityaccess.adapter.in.security.RestAuthenticationEntryPoint;
 import com.nahui.followupbussiness.identityaccess.adapter.in.security.InboundJwtAuthenticationFilter;
 import com.nahui.followupbussiness.identityaccess.adapter.in.security.InboundJwtAuthenticator;
+import jakarta.servlet.DispatcherType;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -40,6 +41,7 @@ public class SecurityConfiguration {
 
         http
                 .authorizeHttpRequests(authorize -> authorize
+                        .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers("/actuator/prometheus").permitAll()
                         .requestMatchers("/auth/login").permitAll()
                         .requestMatchers("/auth/password-recovery-requests").permitAll()

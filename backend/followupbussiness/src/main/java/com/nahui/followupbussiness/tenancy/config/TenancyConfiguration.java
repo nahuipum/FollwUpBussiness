@@ -19,7 +19,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.time.Clock;
 
 @Configuration(proxyBeanMethods = false)
-@ConditionalOnBean(JdbcTemplate.class)
 public class TenancyConfiguration {
 
     @Bean

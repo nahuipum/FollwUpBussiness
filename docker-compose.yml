@@ -7,6 +7,17 @@ services:
       dockerfile: backend/followupbussiness/Dockerfile
     environment:
       FOLLOWUPBUSSINESS_SECURITY_LOCALSECRET: ${FOLLOW_UP_BUSSINESS_SECURITY_LOCAL_SECRET:?FOLLOW_UP_BUSSINESS_SECURITY_LOCAL_SECRET must be set in .env}
+      FOLLOWUPBUSSINESS_AUTHENTICATION_RS256PRIVATEKEY: ${AUTH_RS256_PRIVATE_KEY:?AUTH_RS256_PRIVATE_KEY must be set in .env}
+      FOLLOWUPBUSSINESS_AUTHENTICATION_HMACSECRET: ${AUTH_HMAC_SECRET:?AUTH_HMAC_SECRET must be set in .env}
+      FOLLOWUPBUSSINESS_AUTHENTICATION_KID: ${AUTH_KID:?AUTH_KID must be set in .env}
+      FOLLOWUPBUSSINESS_AUTHENTICATION_ISSUER: ${AUTH_ISSUER:?AUTH_ISSUER must be set in .env}
+      FOLLOWUPBUSSINESS_AUTHENTICATION_AUDIENCE: ${AUTH_AUDIENCE:?AUTH_AUDIENCE must be set in .env}
+      AUDIT_WRITER_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-followupbussiness}?ApplicationName=followupbussiness-audit-writer
+      AUDIT_WRITER_USERNAME: audit_writer_local
+      AUDIT_WRITER_PASSWORD: ${AUDIT_WRITER_PASSWORD:?AUDIT_WRITER_PASSWORD must be set in .env}
+      AUDIT_PURGER_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-followupbussiness}?ApplicationName=followupbussiness-audit-purger
+      AUDIT_PURGER_USERNAME: audit_purger_local
+      AUDIT_PURGER_PASSWORD: ${AUDIT_PURGER_PASSWORD:?AUDIT_PURGER_PASSWORD must be set in .env}
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       POSTGRES_DB: ${POSTGRES_DB:-followupbussiness}
@@ -22,6 +33,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      postgres-audit-roles:
+        condition: service_completed_successfully
       rabbitmq:
         condition: service_healthy
     networks:
@@ -46,6 +59,25 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
+    networks:
+      - infrastructure
+
+  postgres-audit-roles:
+    image: postgis/postgis:17-3.5
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-followupbussiness}
+      POSTGRES_USER: ${POSTGRES_USER:-followupbussiness_local}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
+      AUDIT_WRITER_PASSWORD: ${AUDIT_WRITER_PASSWORD:?AUDIT_WRITER_PASSWORD must be set in .env}
+      AUDIT_PURGER_PASSWORD: ${AUDIT_PURGER_PASSWORD:?AUDIT_PURGER_PASSWORD must be set in .env}
+    command: ["sh", "/usr/local/bin/provision-audit-roles.sh"]
+    volumes:
+      - ./infrastructure/postgres/provision-audit-roles.sh:/usr/local/bin/provision-audit-roles.sh:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - infrastructure
 

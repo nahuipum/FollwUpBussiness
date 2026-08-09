@@ -31,7 +31,6 @@ import javax.sql.DataSource;
 
 @Configuration(proxyBeanMethods = false)
 @EnableScheduling
-@ConditionalOnBean(DataSource.class)
 public class AuditConfiguration {
     @Bean
     @ConfigurationProperties(prefix = "followupbussiness.audit.database")

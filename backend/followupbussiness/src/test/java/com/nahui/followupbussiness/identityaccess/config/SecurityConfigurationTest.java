@@ -11,8 +11,10 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.HttpMethod;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,7 +23,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import com.nahui.followupbussiness.outbox.application.PlatformOperator;
 import com.nahui.followupbussiness.outbox.adapter.in.rest.DlqReprocessRateLimiter;
 import com.nahui.followupbussiness.identityaccess.application.CompanyUserService;
+import com.nahui.followupbussiness.identityaccess.application.PasswordRecoveryService;
 import com.nahui.followupbussiness.identityaccess.adapter.in.security.InboundJwtAuthenticator;
+import com.nahui.followupbussiness.identityaccess.application.port.in.LogoutSessionUseCase;
+import com.nahui.followupbussiness.identityaccess.application.port.in.ProvisionInitialCompanyAdminUseCase;
+import com.nahui.followupbussiness.identityaccess.application.port.in.RefreshSessionUseCase;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -31,6 +37,7 @@ import static org.springframework.security.core.authority.AuthorityUtils.createA
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -40,6 +47,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest(properties = {
         "followupbussiness.security.local-secret=TEST_ONLY_NON_SECRET_012345678901234567890123456789",
+        "followupbussiness.authentication.web-origin=https://localhost:5173",
         "spring.autoconfigure.exclude=org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration",
         "followupbussiness.outbox.enabled=false"
 })
@@ -58,6 +66,24 @@ class SecurityConfigurationTest {
 
     @MockitoBean
     private CompanyUserService companyUserService;
+
+    @MockitoBean
+    private ProvisionInitialCompanyAdminUseCase provisionInitialCompanyAdminUseCase;
+
+    @MockitoBean
+    private LogoutSessionUseCase logoutSessionUseCase;
+
+    @MockitoBean
+    private PasswordRecoveryService passwordRecoveryService;
+
+    @MockitoBean
+    private RefreshSessionUseCase refreshSessionUseCase;
+
+    @MockitoBean
+    private JdbcTemplate jdbcTemplate;
+
+    @MockitoBean
+    private PlatformTransactionManager transactionManager;
 
     @Autowired
     private MockMvc mockMvc;
@@ -109,6 +135,31 @@ class SecurityConfigurationTest {
     @Test
     void applicationDoesNotCreateDefaultUsers() {
         assertThat(applicationContext.getBeansOfType(UserDetailsService.class)).isEmpty();
+    }
+
+    @Test
+    void authenticationCorsAllowsOnlyTheConfiguredLocalHttpsOriginWithCredentials() throws Exception {
+        mockMvc.perform(options("/auth/login")
+                        .header("Origin", "https://localhost:5173")
+                        .header("Access-Control-Request-Method", "POST")
+                        .header("Access-Control-Request-Headers", "Content-Type,X-Auth-Client,X-Client-Instance-Id"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Access-Control-Allow-Origin", "https://localhost:5173"))
+                .andExpect(header().string("Access-Control-Allow-Credentials", "true"))
+                .andExpect(header().string("Access-Control-Allow-Methods", org.hamcrest.Matchers.containsString("POST")))
+                .andExpect(header().string("Access-Control-Allow-Headers", org.hamcrest.Matchers.allOf(
+                        org.hamcrest.Matchers.containsString("Content-Type"),
+                        org.hamcrest.Matchers.containsString("X-Auth-Client"),
+                        org.hamcrest.Matchers.containsString("X-Client-Instance-Id"))));
+    }
+
+    @Test
+    void authenticationCorsRejectsAnUnconfiguredOrigin() throws Exception {
+        mockMvc.perform(options("/auth/login")
+                        .header("Origin", "https://untrusted.example")
+                        .header("Access-Control-Request-Method", "POST"))
+                .andExpect(status().isForbidden())
+                .andExpect(header().doesNotExist("Access-Control-Allow-Origin"));
     }
 
     @Test

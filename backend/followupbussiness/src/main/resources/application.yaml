@@ -1,13 +1,20 @@
 spring:
+  config:
+    import: "optional:file:./.env[.properties]"
   jackson:
     deserialization:
       fail-on-unknown-properties: true
   application:
     name: followupbussiness
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD}
   datasource:
     url: jdbc:postgresql://${POSTGRES_HOST:127.0.0.1}:${POSTGRES_PORT:5432}/${POSTGRES_DB:followupbussiness}
     username: ${POSTGRES_USER:followupbussiness_local}
-    password: ${POSTGRES_PASSWORD}
+    password: ${POSTGRES_PASSWORD:followupbussiness_password}
   flyway:
     locations: classpath:db/migration
     validate-migration-naming: true
@@ -22,6 +29,15 @@ spring:
   rabbitmq.template:
     mandatory: true
 
+server:
+  port: ${SERVER_PORT:8080}
+  ssl:
+    enabled: ${SERVER_SSL_ENABLED:false}
+    key-store: ${SERVER_SSL_KEY_STORE:}
+    key-store-password: ${SERVER_SSL_KEY_STORE_PASSWORD:}
+    key-store-type: ${SERVER_SSL_KEY_STORE_TYPE:PKCS12}
+    key-alias: ${SERVER_SSL_KEY_ALIAS:}
+
 management:
   server:
     address: ${MANAGEMENT_ADDRESS:127.0.0.1}
@@ -32,6 +48,23 @@ management:
         include: prometheus
 
 followupbussiness:
+  security:
+    local-secret: ${FOLLOW_UP_BUSSINESS_SECURITY_LOCAL_SECRET:}
+  authentication:
+    rs256-private-key: ${AUTH_RS256_PRIVATE_KEY:}
+    kid: ${AUTH_KID:}
+    issuer: ${AUTH_ISSUER:}
+    audience: ${AUTH_AUDIENCE:}
+    hmac-secret: ${AUTH_HMAC_SECRET:}
+    web-origin: ${AUTH_WEB_ORIGIN:https://localhost:5173}
+  audit:
+    database:
+      writer-url: ${AUDIT_WRITER_URL:}
+      writer-username: ${AUDIT_WRITER_USERNAME:}
+      writer-password: ${AUDIT_WRITER_PASSWORD:}
+      purger-url: ${AUDIT_PURGER_URL:}
+      purger-username: ${AUDIT_PURGER_USERNAME:}
+      purger-password: ${AUDIT_PURGER_PASSWORD:}
   outbox:
     enabled: ${OUTBOX_ENABLED:true}
     poll-delay-ms: ${OUTBOX_POLL_DELAY_MS:1000}

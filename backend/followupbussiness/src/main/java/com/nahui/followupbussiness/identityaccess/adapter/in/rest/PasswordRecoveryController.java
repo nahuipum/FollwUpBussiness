@@ -14,13 +14,13 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@ConditionalOnBean(PasswordRecoveryService.class)
+@ConditionalOnProperty(prefix = "followupbussiness.authentication", name = "rs256-private-key")
 @RequestMapping("/auth")
 public final class PasswordRecoveryController {
     private final PasswordRecoveryService service;

@@ -10,7 +10,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.net.URI;
 import java.util.UUID;
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.*;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import jakarta.validation.Valid;
@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/auth")
-@ConditionalOnBean(LogoutSessionUseCase.class)
+@ConditionalOnProperty(prefix = "followupbussiness.authentication", name = "rs256-private-key")
 public final class LogoutController {
     private final LogoutSessionUseCase service;
     private final WebOriginPolicy origins;
@@ -49,7 +49,7 @@ public final class LogoutController {
             service.logout(new LogoutSessionUseCase.Command(actor, allSessions, csrf, pending ? ticket : null, pending ? cookie : null, correlation));
             response.setHeader(HttpHeaders.CACHE_CONTROL, "no-store");
             response.setHeader("X-Correlation-Id", correlation.toString());
-            if (pending && cookie != null)
+            if (cookie != null)
                 response.addHeader(HttpHeaders.SET_COOKIE, "__Host-fs-refresh=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Strict");
             return ResponseEntity.noContent().build();
         } catch (LogoutSessionService.Rejected e) {
