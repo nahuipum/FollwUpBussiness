@@ -1,27 +1,26 @@
-# FE-001 — Revisión de Seguridad
+# FE-001 — Seguridad
 
-**Candidate-ID:** `HEAD 12dd1eb + diff e82d07dfae52d73092db127b4a5be79610e57848` (coincide con QA).
+**Estado:** PASS
+**Candidate-ID:** `HEAD 7099a83644a10efd2979626bcb8acfaba9318f29 + worktree-product 6526367c21ecf761c765419888c6a03c80e7ff8cac6003233dc9b670fc17fbfd`
 
-**Dictamen:** `PASS`
+## Superficie y modelo de amenaza
 
-**Superficie revisada:** login WEB, validación de respuesta, access token/CSRF en memoria, cookie refresh implícita, logout compensatorio, marcador local y guardas por rol.
+- Superficie: `SecurityConfiguration`, `LogoutController`, pruebas afectadas, `auth.ts` y cliente API; autenticación, revocación, cookie, CORS y `DispatcherType.ERROR`.
+- Activos: access/refresh token, CSRF, familia de sesión, `tenantId` y cookie `__Host-fs-refresh`.
+- Actores: usuario WEB, cliente MOBILE y atacante con origen, ticket o token previo/manipulado.
+- Límites: navegador/cliente → API HTTPS/CORS → filtros Spring Security/controlador → almacén transaccional de sesiones.
+- Abusos revisados: reutilización post-logout, replay de ticket, origen no permitido, mezcla WEB/MOBILE y bypass de autorización mediante error dispatch.
 
-## Modelo de riesgo
+## Resultados y evidencia
 
-- **Activos:** credenciales, tokens, cookie HttpOnly, identidad/roles y separación de rutas.
-- **Actores:** usuario legítimo, atacante con respuesta manipulada o estado local controlado y backend de autenticación.
-- **Límites:** navegador↔`/auth/*`; respuesta no confiable↔sesión en memoria; `localStorage`↔marcador/UUID no autoritativos.
+- **PASS:** borrado real tras revocación exitosa: valor vacío, `Path=/`, `Max-Age=0`, `Secure`, `HttpOnly`, `SameSite=Strict`, sin `Domain`; QA Backend y Edge/CDP confirman almacén final sin cookie.
+- **PASS:** token anterior `401`, refresh anterior `400`; revocación ligada a familia/cuenta/`tenantId`, replay consumido una vez. Evidencia QA Backend/Frontend del mismo candidato.
+- **PASS:** WEB exige cookie y origen permitido; MOBILE pendiente usa ticket y no emite `Set-Cookie`; mezclas se rechazan sin invocar el caso de uso.
+- **PASS:** CORS refleja únicamente el origen HTTPS configurado con credenciales; origen no configurado `403` sin `Access-Control-Allow-Origin`.
+- **PASS (reproducido):** `mvn -q -Dtest=SecurityErrorDispatchIntegrationTest test`; `ERROR` permitido conserva `404` autenticado y el `REQUEST` sin Bearer conserva `401`.
+- **PASS:** tokens/CSRF permanecen en memoria; almacenamiento local solo contiene ID de instancia y marcador no sensible; no hay logging ni exposición de secretos en la superficie.
+- **FAIL:** ninguno. **NOT_EXECUTED:** escaneos generales/SCA y una segunda sesión navegador, por no cambiar dependencias y existir evidencia QA TLS/CDP verificable.
 
-## Resultado y evidencia
+## Controles no aplicables y riesgo residual
 
-- **PASS — Abuso reproducido:** `200` con rol no contractual tras una posible emisión de cookie. Vitest dirigido: 1 prueba PASS; sin navegación, `hasSession=false`, ruta denegada y segunda petición `POST /auth/logout` con `X-Logout-Intent: PENDING`. El cierre pendiente no incluye access token, CSRF, identificador ni contraseña; tras `204` no queda marcador renovable.
-- **PASS — Secretos/PII:** access token y CSRF solo viven en memoria; contraseña se limpia; persistencia limitada a UUID de instancia y booleano no secreto.
-- **PASS — Autorización cliente:** correspondencia exacta ruta→rol y denegación cerrada; no se deriva tenant ni autoridad desde entrada del formulario.
-- Evidencia QA reutilizada: 9 Vitest, typecheck, lint, build y `git diff --check` — **PASS**.
-- Revocación/borrado real de cookie en navegador contra backend — **NOT_EXECUTED**.
-
-**Hallazgos:** ninguno Critical/High/Medium/Low.
-
-**No aplicables:** ubicación, WebSocket, cache/Redis, mensajería, archivos, secretos, pagos e infraestructura. El lockfile raíz de frontend está vacío; no introduce dependencias.
-
-**Riesgos residuales:** la eficacia del `PENDING` depende del contrato backend; `X-Client-Instance-Id` es controlable por cliente y el servidor no debe tratarlo como identidad. El paquete conserva Candidate-ID pre-Desarrollo, advertencia de trazabilidad no decisiva porque QA y esta revisión coinciden.
+PII/ubicación, WebSocket, Redis/cache, mensajería, archivos, dependencias e infraestructura: no cambian en este diff sensible. Riesgo residual bajo: Seguridad no repitió el flujo TLS completo; reutiliza la evidencia QA real del mismo candidato.

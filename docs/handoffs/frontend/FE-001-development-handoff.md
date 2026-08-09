@@ -1,16 +1,21 @@
-# FE-001 — Desarrollo Frontend
+# FE-001 — Desarrollo Backend (remediación de prueba logout WEB)
 
-**Estado:** READY_FOR_HANDOFF  
-**Candidate-ID:** `HEAD 12dd1eb + diff a13dcd39b48e678fee225ce3417d5b090bd94803`
+**Estado:** READY_FOR_HANDOFF
+**Candidate-ID:** `HEAD 7099a83644a10efd2979626bcb8acfaba9318f29 + worktree-product 6526367c21ecf761c765419888c6a03c80e7ff8cac6003233dc9b670fc17fbfd`.
 
-Alcance exclusivo: fidelidad visual del login. Consultado sin modificar `docs/frontendMockups/FE-001.html`.
+## Alcance y archivos
 
-- Instalado `lucide-react` y actualizado `frontend/followupbussiness/package-lock.json`.
-- Reemplazados los símbolos/textos visuales por iconos Lucide de marca, correo, candado, visibilidad (ojo/oj o tachado) y seguridad; controles y nombres accesibles conservados.
-- Ajustados geometría de la ilustración, espaciado de iconos, fuente `Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif` y copyright: absoluto `bottom:22px; right:32px` en desktop y estático/centrado en mobile.
-- Corrección mínima posterior: la tarjeta “Próxima visita” queda por encima de la línea de ruta (`z-index:2`); captura `C:\tmp\fe-001-desktop-route-layering.png` revisada.
-- Capturas revisadas: desktop 1440×900 (`C:\tmp\fe-001-desktop.png`) y mobile 390×844 (`C:\tmp\fe-001-mobile.png`). Edge headless impone un mínimo interno de 500 px en la segunda captura, pero activó el media query mobile; la regla CSS coincide con el mockup a 390 px.
+- `backend/followupbussiness/src/test/java/com/nahui/followupbussiness/identityaccess/adapter/in/rest/LogoutControllerTest.java`
 
-Validaciones: `npm run typecheck`, `npm test` (9/9), `npm run lint`, `npm run build` y `git diff --check`: PASS.
+Solo se ajustó la prueba respecto a `abe62489…`. No cambiaron producción, OpenAPI, seguridad, cookies productivas ni migraciones.
 
-No se modificaron autenticación, sesión, solicitudes ni redirecciones. Seguridad: `NOT_APPLICABLE`; el delta es estrictamente visual y de dependencia de iconos.
+## Evidencia
+
+- `mvn -q '-Dtest=LogoutControllerTest' test` — PASS sobre el Candidate-ID vigente tras el ajuste case-insensitive.
+- `mvn -q '-Dtest=LoginControllerTest,LogoutControllerTest,RefreshControllerTest,SecurityErrorDispatchIntegrationTest,SecurityConfigurationTest,InboundJwtAuthenticatorTest,InboundJwtAuthenticationFilterTest,LoginServiceTest' test` — PASS antes del último ajuste case-insensitive.
+
+La prueba valida el logout WEB 204 y el `Set-Cookie` contractual por atributos independientes: `__Host-fs-refresh` vacío, `Path=/`, `Max-Age=0`, `Secure`, `HttpOnly`, `SameSite=Strict`, sin `Domain`; tolera `Expires` adicional. MOBILE y rechazos no emiten `Set-Cookie`.
+
+## Riesgo y reproducción
+
+La regresión agrupada permanece PASS y la dirigida fue reejecutada sobre el diff exacto. Desarrollo queda listo para handoff; QA Backend debe validar independientemente el candidato vigente.

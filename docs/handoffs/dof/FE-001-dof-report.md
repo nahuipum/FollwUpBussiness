@@ -1,10 +1,10 @@
 # FE-001 — Definition of Finished
 
-**Dictamen:** `PASS`  
-**Candidate-ID:** `HEAD 12dd1eb + diff e82d07dfae52d73092db127b4a5be79610e57848` (firma actual verificada).
+**Dictamen:** PASS
+**Candidate-ID verificado:** `HEAD 7099a83644a10efd2979626bcb8acfaba9318f29 + worktree-product 6526367c21ecf761c765419888c6a03c80e7ff8cac6003233dc9b670fc17fbfd`
 
-Los handoffs de Desarrollo (`READY_FOR_HANDOFF`), QA (`PASS`) y Seguridad (`PASS`) existen y refieren el mismo candidato. Seguridad aplica a la superficie de autenticación y no mantiene hallazgos abiertos; la revocación efectiva de la cookie HttpOnly queda como riesgo residual de integración backend, sin impedir la sesión local cerrada indicada por los handoffs.
-
-Validación aplicable: evidencia dirigida y regresión directa reportadas por QA/Seguridad; no se repitieron suites. `git diff --check`: PASS.
-
-Advertencia no bloqueante: el paquete conserva Candidate-ID pre-Desarrollo; los handoffs finales y la firma vigente son coincidentes.
+- Desarrollo `READY_FOR_HANDOFF`; QA Backend `PASS`; QA Frontend `PASS`; Seguridad `PASS`, todos sobre el mismo Candidate-ID.
+- Firma rápida sin `docs/handoffs/**`: `326f6089cde9ead5ff0ab685feabf2c06aa7e114a00755f55cfdf9972fcec74f`, coincidente con el paquete y QA.
+- La evidencia QA documenta integración runtime HTTPS/CDP, build/typecheck y cierre sin hallazgos; Seguridad confirma controles sensibles y no deja fallos abiertos.
+- Archivos fuera de alcance identificados en el paquete (`CompanyUser*`, mockup `-v2`, IDE); no se proponen para FE-001.
+- `git diff --check`: PASS.
