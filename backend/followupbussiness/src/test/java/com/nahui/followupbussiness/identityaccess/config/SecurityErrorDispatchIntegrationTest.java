@@ -6,6 +6,7 @@ import static org.springframework.security.core.authority.AuthorityUtils.createA
 
 import com.nahui.followupbussiness.identityaccess.adapter.in.security.InboundJwtAuthenticator;
 import com.nahui.followupbussiness.identityaccess.application.CompanyUserService;
+import com.nahui.followupbussiness.identityaccess.application.LoginService;
 import com.nahui.followupbussiness.identityaccess.application.PasswordRecoveryService;
 import com.nahui.followupbussiness.identityaccess.application.port.in.LogoutSessionUseCase;
 import com.nahui.followupbussiness.identityaccess.application.port.in.ProvisionInitialCompanyAdminUseCase;
@@ -36,6 +37,7 @@ class SecurityErrorDispatchIntegrationTest {
     @MockitoBean private DlqReprocessRateLimiter dlqReprocessRateLimiter;
     @MockitoBean private InboundJwtAuthenticator inboundJwtAuthenticator;
     @MockitoBean private CompanyUserService companyUserService;
+    @MockitoBean private LoginService loginService;
     @MockitoBean private ProvisionInitialCompanyAdminUseCase provisionInitialCompanyAdminUseCase;
     @MockitoBean private LogoutSessionUseCase logoutSessionUseCase;
     @MockitoBean private PasswordRecoveryService passwordRecoveryService;

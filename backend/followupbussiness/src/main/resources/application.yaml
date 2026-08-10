@@ -56,7 +56,7 @@ followupbussiness:
     issuer: ${AUTH_ISSUER:}
     audience: ${AUTH_AUDIENCE:}
     hmac-secret: ${AUTH_HMAC_SECRET:}
-    web-origin: ${AUTH_WEB_ORIGIN:https://localhost:5173}
+    web-origin: ${AUTH_WEB_ORIGIN:http://localhost:5173}
   audit:
     database:
       writer-url: ${AUDIT_WRITER_URL:}

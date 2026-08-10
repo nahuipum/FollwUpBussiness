@@ -1,12 +1,19 @@
 package com.nahui.followupbussiness.identityaccess.config;
 
 import com.nahui.followupbussiness.identityaccess.application.CompanyUserService;
+import com.nahui.followupbussiness.identityaccess.application.LoginService;
+import com.nahui.followupbussiness.identityaccess.application.PasswordRecoveryService;
+import com.nahui.followupbussiness.identityaccess.application.port.in.LogoutSessionUseCase;
+import com.nahui.followupbussiness.identityaccess.application.port.in.ProvisionInitialCompanyAdminUseCase;
+import com.nahui.followupbussiness.identityaccess.application.port.in.RefreshSessionUseCase;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalManagementPort;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -27,6 +34,27 @@ class PrometheusMetricsEndpointTest {
 
     @MockitoBean
     private CompanyUserService companyUserService;
+
+    @MockitoBean
+    private LoginService loginService;
+
+    @MockitoBean
+    private ProvisionInitialCompanyAdminUseCase provisionInitialCompanyAdminUseCase;
+
+    @MockitoBean
+    private LogoutSessionUseCase logoutSessionUseCase;
+
+    @MockitoBean
+    private PasswordRecoveryService passwordRecoveryService;
+
+    @MockitoBean
+    private RefreshSessionUseCase refreshSessionUseCase;
+
+    @MockitoBean
+    private JdbcTemplate jdbcTemplate;
+
+    @MockitoBean
+    private PlatformTransactionManager transactionManager;
 
     @Autowired
     private MeterRegistry meterRegistry;
