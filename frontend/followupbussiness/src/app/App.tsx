@@ -8,7 +8,8 @@ import { useSessionRoute } from "./hooks/useSessionRoute";
 import { canAccessPath, hasSession, logout } from "../features/auth/auth";
 
 export function App() {
-  const { path, showInvalidSession, closeInvalidSession } = useSessionRoute();
+  const { path, showInvalidSession, closeInvalidSession, refreshUnavailable } =
+    useSessionRoute();
 
   if (path === "/") return <LoginScreen />;
   if (path === "/password-recovery")
@@ -30,6 +31,18 @@ export function App() {
           void logout();
           navigate("/");
         }}
+      />
+    );
+  }
+
+  if (refreshUnavailable) {
+    return (
+      <SessionStatusPage
+        eyebrow="Sesión no verificada"
+        title="No pudimos renovar tu sesión"
+        description="Por seguridad se cerró la sesión local. Verifica tu conexión e inicia sesión nuevamente."
+        actionLabel="Ir al inicio de sesión"
+        onAction={() => navigate("/", { replace: true })}
       />
     );
   }

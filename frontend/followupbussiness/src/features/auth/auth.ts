@@ -24,11 +24,29 @@ type LoginResponse = {
   };
 };
 
-type Session = { accessToken: string; csrfToken: string; roles: UserRole[] };
+type Session = {
+  accessToken: string;
+  csrfToken: string;
+  roles: UserRole[];
+  user: LoginResponse["user"];
+  expiresAt: number;
+};
+
+export type RefreshResult =
+  | "refreshed"
+  | "expired"
+  | "unavailable"
+  | "superseded";
 
 let session: Session | null = null;
 let fallbackClientInstanceId: string | null = null;
 let logoutPendingInMemory = false;
+let sessionGeneration = 0;
+let refreshInFlight: {
+  generation: number;
+  promise: Promise<RefreshResult>;
+} | null = null;
+const sessionListeners = new Set<() => void>();
 
 const genericError =
   "No fue posible iniciar sesión. Verifica tus credenciales e inténtalo nuevamente.";
@@ -66,6 +84,30 @@ function setLogoutPending(value: boolean) {
   } catch {
     // The in-memory marker still prevents a refresh during this page lifetime.
   }
+}
+
+function notifySessionChange() {
+  sessionListeners.forEach((listener) => listener());
+}
+
+function createSession(response: LoginResponse): Session {
+  return {
+    accessToken: response.credentials.accessToken,
+    csrfToken: response.csrfToken,
+    roles: response.user.roles,
+    user: response.user,
+    expiresAt: Date.now() + response.credentials.expiresIn * 1000,
+  };
+}
+
+export function subscribeToSession(listener: () => void): () => void {
+  sessionListeners.add(listener);
+  return () => sessionListeners.delete(listener);
+}
+
+export function millisecondsUntilRefresh(): number | null {
+  if (session === null) return null;
+  return Math.max(0, session.expiresAt - Date.now() - 1000);
 }
 
 export function hasPendingLogout(): boolean {
@@ -170,11 +212,8 @@ export async function login(credentials: {
     const redirectTo = redirectFor(body.user.roles);
     if (redirectTo === null) return await rejectCookieBearingLogin();
 
-    session = {
-      accessToken: body.credentials.accessToken,
-      csrfToken: body.csrfToken,
-      roles: body.user.roles,
-    };
+    session = createSession(body);
+    notifySessionChange();
     return { ok: true, redirectTo };
   } catch {
     clearSession();
@@ -183,12 +222,19 @@ export async function login(credentials: {
 }
 
 export function clearSession() {
+  sessionGeneration += 1;
   session = null;
+  refreshInFlight = null;
   setLogoutPending(false);
+  notifySessionChange();
 }
 
 export function hasSession(): boolean {
   return session !== null;
+}
+
+export function getSessionIdentity(): Readonly<LoginResponse["user"]> | null {
+  return session?.user ?? null;
 }
 
 export function canAccessPath(path: string): boolean {
@@ -200,6 +246,68 @@ export function canAccessPath(path: string): boolean {
   };
   const role = requiredRole[path];
   return session !== null && role !== undefined && session.roles.includes(role);
+}
+
+export function refreshSession(): Promise<RefreshResult> {
+  if (
+    refreshInFlight !== null &&
+    refreshInFlight.generation === sessionGeneration
+  )
+    return refreshInFlight.promise;
+  if (session === null || hasPendingLogout()) return Promise.resolve("expired");
+
+  const currentSession = session;
+  const generation = sessionGeneration;
+  const isCurrentSession = () =>
+    generation === sessionGeneration && session === currentSession;
+  const promise = (async () => {
+    try {
+      const response = await apiRequest("/auth/refresh", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "X-Auth-Client": "WEB",
+          "X-Client-Instance-Id": getClientInstanceId(),
+          "X-CSRF-Token": currentSession.csrfToken,
+        },
+      });
+      if (!isCurrentSession()) return "superseded";
+      if (response.status === 401 || response.status === 403 || response.status === 409) {
+        clearSession();
+        return "expired";
+      }
+      if (response.status !== 200) {
+        clearSession();
+        return "unavailable";
+      }
+
+      let body: unknown;
+      try {
+        body = await response.json();
+      } catch {
+        if (!isCurrentSession()) return "superseded";
+        clearSession();
+        return "expired";
+      }
+      if (!isCurrentSession()) return "superseded";
+      if (!isLoginResponse(body)) {
+        clearSession();
+        return "expired";
+      }
+
+      session = createSession(body);
+      notifySessionChange();
+      return "refreshed";
+    } catch {
+      if (!isCurrentSession()) return "superseded";
+      clearSession();
+      return "unavailable";
+    } finally {
+      if (refreshInFlight?.generation === generation) refreshInFlight = null;
+    }
+  })();
+  refreshInFlight = { generation, promise };
+  return promise;
 }
 
 export async function logout(): Promise<void> {

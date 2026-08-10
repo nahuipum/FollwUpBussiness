@@ -40,6 +40,7 @@ afterEach(() => {
   clearSession();
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
+  vi.useRealTimers();
   window.localStorage.removeItem("followupbusiness.logout-pending");
   window.history.replaceState({}, "", "/");
 });
@@ -289,4 +290,27 @@ test("retries only a pending logout without keeping a renewable session", async 
     headers: expect.objectContaining({ "X-Logout-Intent": "PENDING" }),
   });
   expect(hasPendingLogout()).toBe(false);
+});
+
+test("redirects once to login after a terminal scheduled refresh", async () => {
+  vi.useFakeTimers();
+  window.history.replaceState({}, "", "/seller/dashboard");
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValueOnce(
+      new Response(JSON.stringify(webResponse("SELLER")), { status: 200 }),
+    )
+    .mockResolvedValueOnce(new Response(null, { status: 401 }));
+  vi.stubGlobal("fetch", fetchMock);
+  await login({
+    identifier: "seller@example.com",
+    password: "correct-password",
+  });
+
+  render(<App />);
+  await vi.advanceTimersByTimeAsync(599_000);
+
+  expect(window.location.pathname).toBe("/");
+  expect(hasSession()).toBe(false);
+  expect(fetchMock).toHaveBeenCalledTimes(2);
 });

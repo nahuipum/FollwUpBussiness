@@ -1,11 +1,19 @@
 import { useCallback, useEffect, useState } from "react";
-import { hasSession, retryPendingLogout } from "../../features/auth/auth";
+import { navigate } from "../navigation";
+import {
+  hasSession,
+  millisecondsUntilRefresh,
+  refreshSession,
+  retryPendingLogout,
+  subscribeToSession,
+} from "../../features/auth/auth";
 
 export function useSessionRoute() {
   const [path, setPath] = useState(() => window.location.pathname);
   const [showInvalidSession, setShowInvalidSession] = useState(
     () => window.location.pathname !== "/" && !hasSession(),
   );
+  const [refreshUnavailable, setRefreshUnavailable] = useState(false);
 
   useEffect(() => {
     const updateRoute = () => {
@@ -15,6 +23,36 @@ export function useSessionRoute() {
     };
     window.addEventListener("popstate", updateRoute);
     return () => window.removeEventListener("popstate", updateRoute);
+  }, []);
+
+  useEffect(() => {
+    let timer: number | undefined;
+    const scheduleRefresh = () => {
+      if (timer !== undefined) window.clearTimeout(timer);
+      const delay = millisecondsUntilRefresh();
+      if (delay === null) return;
+      timer = window.setTimeout(() => {
+        void refreshSession().then((result) => {
+          if (result === "refreshed") {
+            setRefreshUnavailable(false);
+            scheduleRefresh();
+            return;
+          }
+          if (result === "expired") {
+            navigate("/", { replace: true });
+            return;
+          }
+          if (result === "superseded") return;
+          setRefreshUnavailable(true);
+        });
+      }, delay);
+    };
+    const unsubscribe = subscribeToSession(scheduleRefresh);
+    scheduleRefresh();
+    return () => {
+      unsubscribe();
+      if (timer !== undefined) window.clearTimeout(timer);
+    };
   }, []);
 
   useEffect(() => {
@@ -31,5 +69,5 @@ export function useSessionRoute() {
     [],
   );
 
-  return { path, showInvalidSession, closeInvalidSession };
+  return { path, showInvalidSession, closeInvalidSession, refreshUnavailable };
 }

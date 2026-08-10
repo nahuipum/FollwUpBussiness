@@ -1,5 +1,12 @@
 import { afterEach, expect, test, vi } from "vitest";
-import { clearSession, login } from "./auth";
+import {
+  canAccessPath,
+  clearSession,
+  getSessionIdentity,
+  login,
+  logout,
+  refreshSession,
+} from "./auth";
 
 const webResponse = {
   channel: "WEB",
@@ -97,4 +104,91 @@ test("returns the generic error for an HTTP failure without exposing credentials
       "No fue posible iniciar sesión. Verifica tus credenciales e inténtalo nuevamente.",
     retryAfterSeconds: null,
   });
+});
+
+test("renews WEB credentials once with the in-memory CSRF token", async () => {
+  vi.stubEnv("VITE_API_BASE_URL", "https://backend.test");
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValueOnce(new Response(JSON.stringify(webResponse), { status: 200 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify(webResponse), { status: 200 }));
+  vi.stubGlobal("fetch", fetchMock);
+
+  await login({ identifier: "seller@example.com", password: "correct-password" });
+  await expect(Promise.all([refreshSession(), refreshSession()])).resolves.toEqual([
+    "refreshed",
+    "refreshed",
+  ]);
+
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+  expect(fetchMock.mock.calls[1]).toEqual([
+    "https://backend.test/auth/refresh",
+    expect.objectContaining({
+      method: "POST",
+      credentials: "include",
+      headers: expect.objectContaining({
+        "X-Auth-Client": "WEB",
+        "X-CSRF-Token": "c".repeat(43),
+      }),
+    }),
+  ]);
+});
+
+test.each([401, 403, 409])(
+  "clears local access and roles when refresh is terminal (%i)",
+  async (status) => {
+    vi.stubEnv("VITE_API_BASE_URL", "https://backend.test");
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(new Response(JSON.stringify(webResponse), { status: 200 }))
+        .mockResolvedValueOnce(new Response(null, { status })),
+    );
+    await login({ identifier: "seller@example.com", password: "correct-password" });
+
+    await expect(refreshSession()).resolves.toBe("expired");
+    expect(canAccessPath("/seller/dashboard")).toBe(false);
+  },
+);
+
+test("does not restore a late refresh after logout and a tenant-changing login", async () => {
+  vi.stubEnv("VITE_API_BASE_URL", "https://backend.test");
+  let resolveRefresh: ((response: Response) => void) | undefined;
+  const lateRefresh = new Promise<Response>((resolve) => {
+    resolveRefresh = resolve;
+  });
+  const tenantA = {
+    ...webResponse,
+    user: { ...webResponse.user, id: "seller-a", roles: ["SELLER"], company: "tenant-a" },
+  };
+  const tenantB = {
+    ...webResponse,
+    user: {
+      ...webResponse.user,
+      id: "admin-b",
+      roles: ["COMPANY_ADMIN"],
+      company: "tenant-b",
+    },
+  };
+  vi.stubGlobal(
+    "fetch",
+    vi
+      .fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify(tenantA), { status: 200 }))
+      .mockReturnValueOnce(lateRefresh)
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(tenantB), { status: 200 })),
+  );
+
+  await login({ identifier: "seller@example.com", password: "correct-password" });
+  const refresh = refreshSession();
+  await logout();
+  await login({ identifier: "admin@example.com", password: "correct-password" });
+  resolveRefresh?.(new Response(JSON.stringify(tenantA), { status: 200 }));
+
+  await expect(refresh).resolves.toBe("superseded");
+  expect(canAccessPath("/company/dashboard")).toBe(true);
+  expect(canAccessPath("/seller/dashboard")).toBe(false);
+  expect(getSessionIdentity()).toMatchObject({ id: "admin-b", company: "tenant-b" });
 });
