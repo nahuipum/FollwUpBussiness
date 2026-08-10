@@ -26,6 +26,7 @@ import com.nahui.followupbussiness.outbox.adapter.in.rest.DlqReprocessRateLimite
 import com.nahui.followupbussiness.identityaccess.application.CompanyUserService;
 import com.nahui.followupbussiness.identityaccess.application.LoginService;
 import com.nahui.followupbussiness.identityaccess.application.PasswordRecoveryService;
+import com.nahui.followupbussiness.identityaccess.application.PasswordRecoveryRequestWorker;
 import com.nahui.followupbussiness.identityaccess.adapter.in.security.InboundJwtAuthenticator;
 import com.nahui.followupbussiness.identityaccess.application.port.in.LogoutSessionUseCase;
 import com.nahui.followupbussiness.identityaccess.application.port.in.ProvisionInitialCompanyAdminUseCase;
@@ -92,6 +93,9 @@ class SecurityConfigurationTest {
 
     @MockitoBean
     private AuditEntryStore auditEntryStore;
+
+    @MockitoBean
+    private PasswordRecoveryRequestWorker passwordRecoveryRequestWorker;
 
     @Autowired
     private MockMvc mockMvc;

@@ -1,9 +1,11 @@
 package com.nahui.followupbussiness.identityaccess.config;
 
 import com.nahui.followupbussiness.audit.application.port.out.AuditEntryStore;
+import com.nahui.followupbussiness.identityaccess.adapter.in.security.InboundJwtAuthenticator;
 import com.nahui.followupbussiness.identityaccess.application.CompanyUserService;
 import com.nahui.followupbussiness.identityaccess.application.LoginService;
 import com.nahui.followupbussiness.identityaccess.application.PasswordRecoveryService;
+import com.nahui.followupbussiness.identityaccess.application.PasswordRecoveryRequestWorker;
 import com.nahui.followupbussiness.identityaccess.application.port.in.LogoutSessionUseCase;
 import com.nahui.followupbussiness.identityaccess.application.port.in.ProvisionInitialCompanyAdminUseCase;
 import com.nahui.followupbussiness.identityaccess.application.port.in.RefreshSessionUseCase;
@@ -59,6 +61,12 @@ class PrometheusMetricsEndpointTest {
 
     @MockitoBean
     private AuditEntryStore auditEntryStore;
+
+    @MockitoBean
+    private PasswordRecoveryRequestWorker passwordRecoveryRequestWorker;
+
+    @MockitoBean
+    private InboundJwtAuthenticator inboundJwtAuthenticator;
 
     @Autowired
     private MeterRegistry meterRegistry;

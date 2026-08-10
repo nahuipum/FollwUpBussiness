@@ -9,6 +9,7 @@ import com.nahui.followupbussiness.identityaccess.adapter.in.security.InboundJwt
 import com.nahui.followupbussiness.identityaccess.application.CompanyUserService;
 import com.nahui.followupbussiness.identityaccess.application.LoginService;
 import com.nahui.followupbussiness.identityaccess.application.PasswordRecoveryService;
+import com.nahui.followupbussiness.identityaccess.application.PasswordRecoveryRequestWorker;
 import com.nahui.followupbussiness.identityaccess.application.port.in.LogoutSessionUseCase;
 import com.nahui.followupbussiness.identityaccess.application.port.in.ProvisionInitialCompanyAdminUseCase;
 import com.nahui.followupbussiness.identityaccess.application.port.in.RefreshSessionUseCase;
@@ -46,6 +47,7 @@ class SecurityErrorDispatchIntegrationTest {
     @MockitoBean private JdbcTemplate jdbcTemplate;
     @MockitoBean private PlatformTransactionManager transactionManager;
     @MockitoBean private AuditEntryStore auditEntryStore;
+    @MockitoBean private PasswordRecoveryRequestWorker passwordRecoveryRequestWorker;
 
     @LocalServerPort
     private int port;

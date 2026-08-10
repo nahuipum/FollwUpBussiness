@@ -2,9 +2,11 @@ package com.nahui.followupbussiness;
 
 import com.nahui.followupbussiness.audit.application.port.out.AuditEntryStore;
 import com.nahui.followupbussiness.identityaccess.adapter.in.cli.PlatformSuperadminBootstrapRunner;
+import com.nahui.followupbussiness.identityaccess.adapter.in.security.InboundJwtAuthenticator;
 import com.nahui.followupbussiness.identityaccess.application.CompanyUserService;
 import com.nahui.followupbussiness.identityaccess.application.LoginService;
 import com.nahui.followupbussiness.identityaccess.application.PasswordRecoveryService;
+import com.nahui.followupbussiness.identityaccess.application.PasswordRecoveryRequestWorker;
 import com.nahui.followupbussiness.identityaccess.application.port.in.BootstrapPlatformSuperadminUseCase;
 import com.nahui.followupbussiness.identityaccess.application.port.in.LogoutSessionUseCase;
 import com.nahui.followupbussiness.identityaccess.application.port.in.ProvisionInitialCompanyAdminUseCase;
@@ -52,6 +54,12 @@ class FollowupbussinessApplicationTests {
 
 	@MockitoBean
 	private AuditEntryStore auditEntryStore;
+
+	@MockitoBean
+	private PasswordRecoveryRequestWorker passwordRecoveryRequestWorker;
+
+	@MockitoBean
+	private InboundJwtAuthenticator inboundJwtAuthenticator;
 
 	@Autowired
 	private ApplicationContext applicationContext;
