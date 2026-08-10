@@ -34,7 +34,8 @@ export function resolveDevApiProxyTarget(value: string | undefined): string {
 
 export function developmentProxy(env: Record<string, string | undefined>) {
   const target = resolveDevApiProxyTarget(env.VITE_DEV_API_PROXY_TARGET)
-  return Object.fromEntries(proxiedPaths.map((path) => [path, { target, secure: false }]))
+  const verifyTargetCertificate = !isLocalHostname(new URL(target).hostname)
+  return Object.fromEntries(proxiedPaths.map((path) => [path, { target, secure: verifyTargetCertificate }]))
 }
 
 export function developmentServer(env: Record<string, string | undefined>) {

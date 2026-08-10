@@ -19,6 +19,14 @@ test('accepts local HTTP or HTTPS overrides and rejects remote HTTP or malformed
   expect(() => resolveDevApiProxyTarget('not-a-url')).toThrow('HTTP(S)')
 })
 
+test('disables certificate verification only for loopback targets', () => {
+  const localProxy = developmentProxy({ VITE_DEV_API_PROXY_TARGET: 'https://localhost:8080' })
+  const remoteProxy = developmentProxy({ VITE_DEV_API_PROXY_TARGET: 'https://api.example.test:8443' })
+
+  expect(Object.values(localProxy).every(({ secure }) => secure === false)).toBe(true)
+  expect(Object.values(remoteProxy).every(({ secure }) => secure === true)).toBe(true)
+})
+
 test('does not include the insecure development proxy in production configuration', () => {
   expect(viteConfiguration('production', {})).not.toHaveProperty('server')
 })
