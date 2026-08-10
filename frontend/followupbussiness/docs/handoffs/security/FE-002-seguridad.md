@@ -1,0 +1,3 @@
+# FE-002 — Seguridad
+
+`NOT_APPLICABLE` — Candidate-ID `1ffbd50 + FE-002-d5977bcf5fc6`: la superficie revisada se limita a dos textos literales de éxito separados, CSS presentacional y aserciones/agrupación Vitest-Playwright, con QA `PASS` y sin cambios en sanitización, API, persistencia, routing, limpieza o exposición de token ni datos sensibles; no hay hallazgos de seguridad ni abuso reproducible, `SEC-FE002-01` queda `NOT_EXECUTED` por no poder alterar el veredicto, no aplican controles adicionales de autenticación/autorización, tenant, secretos, entrada no confiable, datos personales o de ubicación, almacenamiento local, WebSocket, caché/Redis, mensajería, archivos, dependencias o infraestructura, y no se identifica riesgo residual específico del delta.

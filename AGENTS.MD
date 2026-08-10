@@ -1,203 +1,81 @@
-# FollowUpBussiness — Instrucciones globales
+# FollowUpBussiness — Global Agent Instructions
 
-## Modo MVP ligero — regla predominante
+## Language and lightweight MVP mode
 
-El objetivo es entregar historias seguras y comprobables con el menor contexto
-posible. Esta sección prevalece sobre cualquier instrucción más detallada de
-flujo o plantilla.
+Operational instructions, agent prompts, and project skills are written in English to reduce context cost. User-facing replies and canonical artifacts (context packages, handoffs, Security reports, and DoF reports) must be written in Spanish. Preserve identifiers, commands, code, contract terms, and source-language quotations.
 
-### Carga de contexto
+Deliver safe, verifiable stories with the least necessary context. This lightweight workflow overrides more detailed templates.
 
-En `Desarrollo → QA → Seguridad → DoF`, solo el Orquestador lee al inicio la HU
-y las secciones aplicables, buscadas primero por ID, endpoint o símbolo. Resume
-criterios, decisiones y rutas en el paquete; no copia fuentes ni sus hashes.
+## Context loading
 
-Cada agente de fase recibe con contexto limpio únicamente:
+In `Development → QA → Security → DoF`, only the Orchestrator initially reads the full story and applicable source sections, located first by ID, endpoint, or symbol. It summarizes criteria, decisions, and paths in the context package; never copy sources or per-file hashes.
 
-- ruta del paquete;
-- `Candidate-ID`;
-- handoff inmediatamente anterior;
-- alcance de la fase y estado esperado.
+Each phase receives a clean context containing only the package path, current `Candidate-ID`, immediately previous handoff, phase scope, and expected state. It must not receive chat history or reread the story, contract, or ADR. Open a primary source only for an ambiguity, new surface, or contradiction; record the reason, path, and section.
 
-No recibe historial ni relee HU, contrato o ADR. Abre una fuente solo ante
-ambigüedad, superficie nueva o contradicción y registra motivo, ruta y sección.
+Outside the orchestrated workflow, read the story, the application's local `AGENTS.MD`, and the related diff/tests. Consult contracts, context, ADRs, or technical documentation only through a concrete reference. Use `rg` before opening large files.
 
-Fuera del flujo orquestado, leer la historia, el `AGENTS.MD` local de la
-aplicación y el diff/pruebas relacionados. Consultar contrato, contexto, ADR y
-documentación técnica solo por referencia concreta. Usar `rg` antes de abrir
-archivos grandes.
+## Minimal artifacts
 
-### Artefactos mínimos
+Per story allow only: one context package; one Dev handoff; one QA handoff; one final Security report when applicable; and one DoF report. Security preflight is a short package/report section, never a separate artifact. Record an early block in the current package.
 
-Por HU se permiten únicamente:
+For the same candidate, replace current state. Add only a delta when candidate, scope, contract, sensitive data, or threat changes. Git preserves history. Artifacts contain IDs, decisions, paths, summarized results, findings, and pending work—no logs, copied code/sources, or historical narrative.
 
-1. un paquete de contexto;
-2. un handoff Dev;
-3. un handoff QA;
-4. un informe final de Seguridad cuando aplique;
-5. un informe DoF.
+Suggested limits: package 900 words; Dev/QA/Security handoffs 300 words each; DoF 150 words. Link evidence instead of copying it and explain any necessary exception in one line.
 
-El preflight vive como sección breve del paquete o informe de Seguridad; no crea
-otro artefacto. Un bloqueo previo se anota en el paquete vigente.
+## Candidate and gates
 
-Para el mismo candidato se reemplaza el estado vigente. Solo se registra delta
-si cambia candidato, alcance, contrato, dato sensible o amenaza; Git conserva
-el historial.
+`Candidate-ID` is the target commit, or before commit `HEAD + short diff digest`. Compute it once after Development changes code. Do not create per-file hash manifests. QA, Security, and DoF compare the ID plus a quick `git status --porcelain` or commit signature.
 
-Paquete y handoffs solo contienen IDs, decisiones, rutas, resultados resumidos,
-hallazgos y pendientes; no logs, código, fuentes copiadas ni narrativa histórica.
+The package holds one current Candidate-ID; replace the previous value and record only the delta. A gate checks only: previous artifact exists, story/state permits transition, and Candidate-ID matches. Missing descriptive metadata is a warning when those three facts are clear; the Orchestrator may fix it without a new gate or session.
 
-Límites orientativos: paquete de contexto de hasta 900 palabras, handoffs Dev,
-QA y Seguridad de hasta 300 palabras cada uno, e informe DoF de hasta 150
-palabras. Si el alcance exige excederlos, se enlaza la fuente o prueba en vez de
-copiarla y se explica la excepción en una línea.
+## Proportional verification
 
-### Candidato y gates
+- Development runs focused tests and direct regression. Before its first handoff, run one local CI-equivalent validation when shared composition changes: context/beans, security, configuration, migrations, transactions, serialization, shared fixtures, dependencies, or build. Use quiet `clean verify` for Backend and the Frontend/Mobile CI equivalent. QA and Security reuse it.
+- QA independently validates affected criteria, one relevant negative case, and direct regression; expand only when the diff or a failure warrants it.
+- Security applies only to authentication/authorization, tenant isolation, personal/location data, secrets, public exposure, files, payments, or infrastructure. Otherwise record `NOT_APPLICABLE` in one sentence.
+- Use preflight only for a genuinely ambiguous security/contract decision before implementation; define at most five controls. Do not repeat it during remediation unless risk expands.
+- Final Security reuses QA and reproduces only an abuse case capable of changing its decision.
+- Run DoF once on the final candidate. Verify states, candidate, findings, applicable validation, and `git diff --check`; do not reread sources or rerun suites. Wait for mandatory CI only when no local equivalent exists.
 
-El `Candidate-ID` es el commit objetivo o, antes del commit, `HEAD + digest
-corto del diff`. Se calcula una vez cuando Desarrollo cambia código. No se
-crean manifiestos con hashes por archivo. QA, Seguridad y DoF comparan el ID y
-una firma rápida basada en `git status --porcelain` o el commit.
+After `CHANGES_REQUIRED`: affected Dev → affected QA. Reopen Security only if sensitive surface, threat/control, or decisive evidence changes; test/docs/metadata-only changes are `NOT_APPLICABLE` in one sentence. Never run DoF between remediations.
 
-El paquete mantiene un único `Candidate-ID vigente`; al cambiar, reemplaza el
-anterior y añade solo el delta. El candidato pre-Desarrollo no sigue activo.
+## Phase budgets and security invariants
 
-Un gate valida únicamente:
+Generic chats only orchestrate and invoke a specialized role with `fork_turns: "none"`; specialized sessions execute their role without nesting it. Batch reads/tests, use quiet commands, and open detailed reports only on failure.
 
-- artefacto previo existente;
-- HU y estado permitido;
-- mismo `Candidate-ID`.
+- QA: about 10 tool calls and 2 test commands.
+- Security: 8 calls and 1 abuse reproduction.
+- DoF: 6 calls; no tests or source reads.
+- Test-only remediation: 12 calls and 2 test commands.
+- Per story: one initial run per role and at most one `Dev → QA` correction; stop before session 8 and consolidate cause, closure condition, and command.
 
-Omisiones descriptivas son advertencias si esos tres datos son inequívocos. El
-Orquestador corrige metadatos sin crear gate ni turno adicional.
+Each phase opens only package, previous handoff, diff, and affected code/tests. Another source requires a recorded ambiguity, contradiction, or new risk. QA, Security, DoF, and test-only remediation do not use Graphify.
 
-### Verificación proporcional y paridad de integración
+Before Development, stories involving authorization, tenant, roles, audit, migrations, or transactions define up to five invariants: actor/resource, success, denial, conflict, and failure/rollback. Missing public semantics blocks implementation. For every rejection/no-op define response, writes/revocations, events/audit, and credentials/sessions. Enumerate reachable ports. Free text requires a per-sink policy: omit, marker, or approved category.
 
-- Desarrollo ejecuta pruebas dirigidas y regresión directa. Antes del primer
-  handoff añade una sola validación local de integración si cambia composición
-  compartida: contexto/beans, seguridad, configuración, migraciones,
-  transacciones, serialización, fixtures, dependencias o build. Usa `clean
-  verify` silencioso en Backend y el equivalente de CI en Frontend/Mobile; QA y
-  Seguridad reutilizan el resultado.
-- QA valida independientemente criterios afectados, un negativo relevante y
-  regresión directa; amplía solo si el diff o un fallo lo justifica.
-- Seguridad interviene cuando cambia autenticación/autorización, tenant, datos
-  personales o ubicación, secretos, exposición pública, archivos, pagos o
-  infraestructura. En otro caso registra `NOT_APPLICABLE` en una frase.
-- El preflight solo se usa ante una decisión de seguridad o contrato ambigua
-  antes de implementar y define como máximo cinco controles. No se repite en
-  remediaciones que no amplíen el riesgo.
-- Seguridad final reutiliza QA y reproduce solo un abuso capaz de cambiar su
-  decisión.
-- DoF se ejecuta una vez sobre el candidato final. Comprueba estados, candidato,
-  hallazgos, validación aplicable y `git diff --check`; no relee ni repite
-  suites. Si CI obligatorio carece de equivalente local, espera su resultado.
+Development keeps control→test mapping in memory and verifies the absence of every forbidden effect before handoff. QA covers the complete affected surface and consolidates findings; stop early only for Critical/High. Revalidation covers the fix, not unrelated criteria. Test-only changes do not reopen production, architecture, or contracts unless the test fails. A new Security finding must identify a previously uncovered threat and an observable closure condition.
 
-Tras `CHANGES_REQUIRED`: `Dev afectado → QA afectado`. Seguridad solo se reabre
-si cambia superficie sensible, amenaza/control o evidencia decisiva. Para tests,
-documentación o metadatos no sensibles se registra `NOT_APPLICABLE` en una
-frase. DoF no se ejecuta entre remediaciones.
+## Repository and non-negotiable rules
 
-### Presupuesto operativo por fase
+- `backend/`: Java/Spring Boot; `frontend/`: React/TypeScript; `mobile/`: Flutter; `infrastructure/` and `docker-compose.yml`: shared infrastructure.
+- Never invent business rules. Preserve traceability and tenant isolation. Never expose secrets or personal data in code, logs, or evidence.
+- Create an ADR only for a real architecture decision. Do not modify out of scope or overwrite others' changes. No agent approves its own work.
 
-Un chat genérico solo orquesta e invoca la fase con `fork_turns: "none"`; una
-sesión especializada ejecuta su rol sin anidarlo. Agrupa lecturas y pruebas,
-usa Maven silencioso y abre reportes detallados solo si falla.
+## Frontend visual reference
 
-- QA: máximo orientativo de 10 llamadas de herramienta y 2 comandos de prueba.
-- Seguridad: máximo 8 llamadas y 1 reproducción de abuso.
-- DoF: máximo 6 llamadas; no ejecuta pruebas ni abre código.
-- Remediación solo de pruebas: máximo 12 llamadas y 2 comandos de prueba.
+During Frontend Development only, look first for the exact `docs/frontendMockups/<HU-ID>.html`. If present, use it as visual reference. Otherwise inspect existing HTML mockups for patterns and optionally create that file as a static proposal. A mockup does not define business rules or replace acceptance criteria, contracts, or accessibility.
 
-Por HU: una ejecución inicial por rol y como máximo una vuelta `Dev → QA`; no
-más de 7 sesiones incluyendo Orquestación. Una segunda corrección o la sesión 8
-detiene el flujo hasta consolidar causa, condición de cierre y comando.
+## Workflow states
 
-Cada fase abre solo paquete, handoff anterior, diff y archivos/pruebas afectados.
-Otra fuente exige ambigüedad, contradicción o riesgo nuevo registrado. No abre
-árboles, documentos completos, logs ni reportes exitosos como contexto general.
+1. Development: `READY_FOR_HANDOFF` or `BLOCKED`.
+2. Independent QA: `PASS`, `CHANGES_REQUIRED`, or `BLOCKED`.
+3. Security when applicable: `PASS`, `CHANGES_REQUIRED`, `BLOCKED`, or `NOT_APPLICABLE`; preflight: `ADVISORY`.
+4. DoF: `PASS` or `BLOCKED`.
 
-Superar un límite requiere una contradicción o riesgo nuevo y debe explicarse;
-no se amplía el alcance para recopilar evidencia redundante. QA, Seguridad, DoF
-y una remediación solo de pruebas no usan Graphify.
+Do not start a phase unless the previous state permits it. QA/Security `CHANGES_REQUIRED` or `BLOCKED` prevents DoF. Chat text does not replace the canonical artifact, though the Orchestrator may transcribe a read-only reviewer's verdict verbatim.
 
-- Antes de Dev, historias de autorización, tenant, roles, auditoría, migraciones
-  o transacciones fijan hasta cinco invariantes: actor/recurso, éxito,
-  denegación, conflicto y fallo/rollback. Falta de semántica pública bloquea.
-- Cada rechazo/no-op define respuesta, escrituras/revocaciones,
-  eventos/auditoría y credenciales/sesiones. Enumera puertos alcanzables; texto
-  libre define política por sink: omitir, marcador o categoría aprobada.
-- Dev mantiene en memoria control→prueba y verifica ausencia de todos los
-  efectos prohibidos antes del primer handoff.
-- QA recorre toda la superficie y consolida hallazgos en un solo dictamen; solo
-  corta ante Critical/High. La revalidación cubre la corrección, no criterios
-  nuevos sin riesgo o contradicción aparecidos en el delta.
-- En remediación, Dev ejecuta la prueba solicitada y, si falló CI/suite
-  compartida, el comando fallido completo. Un cambio solo de tests no reabre
-  producción, arquitectura ni contratos salvo que la prueba falle.
-- Seguridad final no reabre controles conocidos. Un hallazgo nuevo identifica
-  amenaza no cubierta y condición observable de cierre.
+## Git and Graphify
 
-## Organización
+Use one branch per story and separate commits per application when applicable. Agents do not commit unless explicitly requested. DoF ends at its verdict; commit, push, PR, merge, and release CI are later Release operations.
 
-- `backend/`: Java y Spring Boot.
-- `frontend/`: React y TypeScript.
-- `mobile/`: Flutter.
-- `infrastructure/` y `docker-compose.yml`: infraestructura compartida.
-
-### Referencia visual en Desarrollo Frontend
-
-Solo al desarrollar una HU Frontend, buscar primero el mockup HTML exacto por
-ID en `docs/frontendMockups/` (por ejemplo, `FE-001.html`). Si existe, es la
-referencia visual de la implementación. Si no existe, revisar los mockups HTML
-ya disponibles para conservar sus patrones y el agente puede crear
-`docs/frontendMockups/<HU-ID>.html` como propuesta estática coherente. El
-mockup no crea reglas de negocio ni sustituye los criterios, contratos o
-requisitos de accesibilidad de la HU.
-
-## Principios no negociables
-
-- No inventar reglas de negocio.
-- Preservar trazabilidad e aislamiento multiempresa.
-- No incluir secretos ni datos personales en código, logs o evidencias.
-- Crear ADR solo para cambios reales de arquitectura.
-- No modificar fuera del alcance ni sobrescribir cambios ajenos.
-- Ningún agente aprueba su propio trabajo.
-
-## Flujo y estados
-
-1. Desarrollo: `READY_FOR_HANDOFF` o `BLOCKED`.
-2. QA independiente: `PASS`, `CHANGES_REQUIRED` o `BLOCKED`.
-3. Seguridad, si aplica: `PASS`, `CHANGES_REQUIRED`, `BLOCKED` o
-   `NOT_APPLICABLE`. Preflight: `ADVISORY`.
-4. DoF: `PASS` o `BLOCKED`.
-
-No se inicia una fase si el estado previo no la autoriza. QA o Seguridad con
-`CHANGES_REQUIRED`/`BLOCKED` no autorizan DoF. Una respuesta de chat no
-sustituye el artefacto canónico, pero el Orquestador puede transcribir
-literalmente el dictamen de un revisor de solo lectura sin reinterpretarlo.
-
-## Git
-
-- Una rama por historia.
-- Commits separados por aplicación cuando corresponda.
-- Pull requests trazables cuando el flujo de integración los use.
-- Los agentes no hacen commits salvo solicitud explícita.
-- DoF termina al emitir su dictamen. Commit, push, PR y merge son una operación
-  de Release posterior y no se contabilizan ni documentan como DoF.
-
-## graphify
-
-Usar Graphify solo ante `/graphify` explícito o una pregunta amplia de
-arquitectura, dependencias, relaciones o impacto cuyo alcance no se conozca.
-No usarlo para una fase rutinaria con archivos conocidos, QA focalizado,
-Seguridad, DoF, Git o Release. Cuando aplique, ejecutar una única consulta:
-
-- `graphify query "<pregunta>"`
-- `graphify path "<A>" "<B>"` para relaciones.
-- `graphify explain "<concepto>"` para un concepto.
-
-No leer `GRAPH_REPORT.md` salvo revisión arquitectónica amplia o insuficiencia
-de la consulta. Desarrollo actualiza el grafo como máximo una vez al terminar
-un cambio de código de producción; cambios de pruebas o documentación no lo
-requieren y un grafo desactualizado nunca bloquea una fase.
+Use Graphify only for explicit `/graphify` or broad unknown-scope architecture/dependency/impact questions. Never use it for routine phases, focused QA/Security/DoF, Git, or Release. When needed, run exactly one `graphify query`, `graphify path`, or `graphify explain`. Read `GRAPH_REPORT.md` only for broad architecture review or insufficient query output. Production Development may update the graph once at the end; test/docs-only changes do not require it.

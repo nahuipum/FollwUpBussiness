@@ -1,26 +1,13 @@
 ---
 name: frontend-mockup-guidance
-description: Apply and evolve the HTML visual mockup convention for FollowUpBussiness frontend stories. Use when implementing or visually changing a React/TypeScript HU with an ID such as FE-001.
+description: Apply or evolve FollowUpBussiness HTML visual mockups when implementing or visually changing a React/TypeScript story such as FE-001 or FE-002. Use during Frontend Development only, not QA, Security, or DoF.
 ---
 
-# Frontend Mockup Guidance
+# Apply Frontend Mockups
 
-Usar únicamente durante Desarrollo Frontend; no cargar esta guía para QA,
-Seguridad o DoF.
-
-1. Identificar el ID de la HU y buscar primero el archivo exacto
-   `docs/frontendMockups/<HU-ID>.html`.
-2. Si existe, tratarlo como referencia visual: composición, jerarquía,
-   espaciado, tipografía, colores, componentes, comportamiento responsive y
-   estados dibujados. Implementar la interfaz en React/TypeScript sin copiar el
-   HTML como código de producción.
-3. Si no existe, revisar los mockups HTML existentes y extraer patrones
-   reutilizables antes de diseñar. Mantener sus tokens y convenciones, y crear
-   `docs/frontendMockups/<HU-ID>.html` si hace falta dejar la nueva propuesta
-   visual como referencia para implementaciones futuras.
-4. Dar prioridad a la HU, contrato y accesibilidad cuando contradigan o
-   completen un mockup. No inferir permisos, flujos, datos ni reglas de negocio
-   desde el diseño.
-5. No modificar un mockup existente como efecto lateral de implementar la HU.
-   Indicar en el handoff la ruta consultada o creada.
-
+1. Use the exact mockup path identified in the context package. Outside an orchestrated flow, locate it first by story ID under `docs/frontendMockups/`.
+2. Read it once as the visual reference for composition, hierarchy, spacing, typography, color, components, responsive behavior, and represented states. Implement in React/TypeScript; never copy mockup HTML into production.
+3. If no exact file exists, inspect only the closest existing mockup patterns and optionally create the missing static proposal.
+4. Acceptance criteria, contracts, and accessibility override mockups. Never infer permissions, flows, data, or business rules from visual design.
+5. Do not modify an existing mockup as an implementation side effect. Record only the consulted/created path in the Spanish handoff.
+6. When scope explicitly asks one story to adopt another mockup's visual shell, list protected regions/states first and change only unprotected visual composition/tokens; preserve behavior and overlays outside scope.

@@ -1,29 +1,26 @@
-# Frontend — Instrucciones locales
+# Frontend — Local Instructions
 
-## Contexto
+## Language
 
-- Aplicar `../../AGENTS.MD`.
-- Leer completa la historia Frontend indicada.
-- Buscar primero `../../docs/frontendMockups/<HU-ID>.html`. Si existe, usarlo
-  como referencia visual; si no, tomar como patrón los otros mockups HTML y se
-  puede crear el de la HU sin introducir reglas de negocio nuevas.
-- Abrir solo los fragmentos OpenAPI y contratos WebSocket afectados.
-- Inspeccionar primero el diff, la feature y sus pruebas.
+Keep operational reasoning and instructions in English. Write user-facing replies and canonical context/handoff/review artifacts in Spanish.
 
-## Invariantes
+## Context
 
-- Usar React y TypeScript estricto; evitar `any` sin justificación.
-- Derivar tipos del contrato cuando el proyecto lo permita.
-- Organizar por features y no duplicar reglas de negocio del backend.
-- La autorización visual no sustituye la autorización del servidor.
-- Cubrir carga, vacío, error, falta de permiso y datos desactualizados.
-- Mostrar la última actualización; nunca presentar ubicación antigua como actual.
-- Proveer reconexión/fallback para WebSocket y alternativa accesible al mapa.
-- Limpiar estado y caché al cerrar sesión o cambiar de empresa.
-- No guardar tokens en mecanismos inseguros ni registrar datos personales.
+- Apply `../../AGENTS.MD`.
+- Read the complete referenced Frontend story only outside an orchestrated flow. In an orchestrated flow, use the package and do not reread primary sources unless ambiguity, contradiction, or new risk requires it.
+- During Development, look first for `../../docs/frontendMockups/<HU-ID>.html`. If absent, reuse patterns from existing HTML mockups and optionally create the missing proposal without inventing business rules.
+- Open only affected OpenAPI/WebSocket fragments.
+- Inspect the diff, feature, and nearby tests first.
 
-## Verificación
+## Invariants
 
-Ejecutar pruebas dirigidas y type-check primero. Ejecutar lint y build completos
-cuando el cambio, el gate o un fallo lo justifique. Reportar resultados de forma
-resumida.
+- Use strict React/TypeScript; avoid unjustified `any` and derive types from contracts when supported.
+- Organize by feature and responsibility. Keep pages/routes as composition; separate components, hooks, API/services, state, types, utilities, and tests only when each has real responsibility or reuse.
+- Do not duplicate Backend business rules. UI authorization never replaces server authorization.
+- Cover loading, empty, error, forbidden, and stale-data states. Show last update and never present old location as current.
+- Provide WebSocket reconnect/fallback and an accessible map alternative when applicable.
+- Clear state/cache on logout or company change. Never store tokens insecurely or log personal data.
+
+## Verification
+
+Run focused tests and type-check first. Run full lint/build when risk, a gate, shared composition, or a failure warrants it. Report summarized results only.

@@ -1,46 +1,18 @@
 ---
 name: spring-hexagonal-scaffold
-description: Crear o extender código Spring Boot dentro de la arquitectura hexagonal y modular de FollowUpBussiness. Usar al iniciar un caso de uso, puerto, adaptador REST/persistencia/mensajería, configuración o dominio Backend, sin generar capas o abstracciones innecesarias.
+description: Create or extend Spring Boot code within FollowUpBussiness modular hexagonal architecture. Use when starting a Backend use case, port, REST/persistence/messaging adapter, configuration, or domain behavior without unnecessary layers.
 ---
 
-# Crear estructura hexagonal Spring
+# Scaffold Spring Hexagonal Code
 
-## Antes de crear archivos
+Read the story/package once, locate the owning domain, inspect one nearby feature, and confirm required contracts/persistence/events. Stop for a decision/ADR when domain boundaries or unapproved infrastructure would change. Use root `com.nahui.followupbussiness.<domain>` and create only necessary pieces.
 
-1. Leer la historia y localizar el dominio propietario de la capacidad.
-2. Inspeccionar una feature existente cercana; preferir sus nombres y patrones.
-3. Confirmar contratos, persistencia y eventos realmente requeridos.
-4. Detenerse y solicitar una decisión/ADR si la capacidad cambia límites de
-   dominio o introduce infraestructura no aprobada.
+- `domain`: pure entities, value objects, invariants, services, events.
+- `application/port/in`: exposed use cases; `application/port/out`: required external capabilities.
+- `application`: commands, results, transactional orchestration.
+- `adapter/in`: REST, CLI, WebSocket, consumers; `adapter/out`: persistence, security, Redis, RabbitMQ, external services.
+- `config`: Spring wiring/properties.
 
-Usar como raíz `com.nahui.followupbussiness.<dominio>` y crear únicamente las
-piezas necesarias.
+Never place Spring/JPA annotations or transport DTOs in domain, expose persistence entities, or access another domain's repository. Derive tenant from trusted context; filter by tenant in repositories/cache/events/subscriptions. PostgreSQL is authoritative. Add idempotency, audit, and correlation ID only when required. Add new Flyway migrations rather than editing old ones; update affected public contracts before handoff.
 
-## Ubicar responsabilidades
-
-- `domain`: entidades, value objects, invariantes, servicios y eventos puros.
-- `application/port/in`: casos de uso expuestos.
-- `application/port/out`: capacidades externas requeridas por la aplicación.
-- `application`: comandos, resultados y orquestación transaccional.
-- `adapter/in`: REST, CLI, WebSocket o consumidores que traducen transporte.
-- `adapter/out`: persistencia, seguridad, Redis, RabbitMQ o servicios externos.
-- `config`: wiring y propiedades Spring.
-
-No colocar anotaciones Spring/JPA ni DTO de transporte en `domain`. No exponer
-entidades de persistencia. No acceder a repositorios de otro dominio; usar un
-puerto, contrato o evento explícito.
-
-## Aplicar reglas transversales
-
-- Derivar el tenant de la sesión/contexto confiable, no del cuerpo sin validar.
-- Filtrar por tenant en repositorios, claves de cache, eventos y suscripciones.
-- Mantener PostgreSQL como fuente de verdad.
-- Añadir idempotencia, auditoría y correlation ID cuando la historia los exija.
-- Crear migración Flyway para cambios de esquema sin modificar migraciones previas.
-- Actualizar contratos antes del handoff si cambia una interfaz pública.
-
-## Verificar
-
-Agregar pruebas del dominio/caso de uso y las integraciones afectadas. Ejecutar
-pruebas dirigidas más `HexagonalArchitectureTest` y `ModuleBoundaryTest` cuando
-cambien paquetes. Entregar archivos, decisiones, comandos y riesgos de forma breve.
+Add domain/use-case and affected integration tests. Run focused tests plus architecture tests when packages change. Write concise Spanish output with files, decisions, commands, and risks.
