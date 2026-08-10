@@ -29,20 +29,21 @@ no entra a sprint si sus predecesoras o contratos no están listos.
 | BE-051 | Registrar acciones críticas | BE-003, BE-007 | BE-001, BE-002, BE-038, BE-039, BE-041, BE-044, BE-052, BE-054, BE-057, BE-058, BE-062, INT-025, INT-031, INT-037 |
 | BE-004 | Renovar sesión | BE-003, EN-013 | BE-005, FE-003, INT-002, INT-003, INT-038, MOB-002 |
 | BE-005 | Cerrar y revocar sesión | BE-003, BE-004 | BE-002, BE-010, FE-003, INT-002, INT-003, INT-038, MOB-002 |
-| BE-001 | Crear una empresa | BE-003, BE-007, BE-051 | BE-002, BE-054, BE-057, INT-001 |
+| BE-001 | Crear una empresa | BE-003, BE-007, BE-051 | BE-002, BE-054, BE-057, FE-039, INT-001 |
 | BE-006 | Recuperar contraseña | BE-003, EN-013, EN-017 | BE-057, BE-058, FE-002, INT-001, INT-002 |
-| BE-057 | Provisionar administrador inicial de empresa | BE-001, BE-006, BE-007, BE-051 | BE-058, INT-001 |
+| BE-057 | Provisionar administrador inicial de empresa | BE-001, BE-006, BE-007, BE-051 | BE-058, FE-039, INT-001 |
 | BE-002 | Suspender y reactivar empresa | BE-001, BE-005, BE-051 | INT-038 |
 | BE-058 | Gestionar usuarios de empresa | BE-006, BE-007, BE-051, BE-057 | BE-008, BE-011, BE-041, BE-062, FE-004, INT-033 |
 | FE-001 | Pantalla de inicio de sesión | BE-003, EN-013 | FE-003, INT-001, INT-002, INT-038 |
 | FE-002 | Recuperación de contraseña | BE-006, EN-013, EN-017 | INT-002 |
 | FE-003 | Gestión de sesión | BE-004, BE-005, FE-001 | FE-004, FE-005, FE-008, FE-014, FE-020, FE-022, FE-023, FE-026, FE-030, FE-032, FE-033, FE-035, FE-037, INT-002 |
 | FE-034 | Manejo global de errores y permisos | BE-003, BE-007 | FE-004, FE-005, FE-008, FE-014, FE-020, FE-022, FE-023, FE-026, FE-030, FE-032, FE-033, FE-035, FE-037, FE-038, INT-002 |
+| FE-039 | Onboarding de empresa desde plataforma | BE-001, BE-057, FE-003, FE-034 | INT-001 |
 | FE-004 | Gestión de usuarios y roles | BE-058, FE-003, FE-034 | INT-033 |
 | MOB-001 | Iniciar sesión móvil | BE-003, EN-013 | INT-003, INT-004, MOB-002, MOB-003, MOB-027 |
 | MOB-002 | Renovar y cerrar sesión | BE-004, BE-005, MOB-001 | INT-003, MOB-004 |
 | MOB-027 | Proteger datos locales | EN-015, MOB-001 | INT-003, MOB-004, MOB-015, MOB-019, MOB-028 |
-| INT-001 | Onboarding completo de empresa | BE-001, BE-006, BE-057, FE-001 | Cierre/DoF |
+| INT-001 | Onboarding completo de empresa | BE-001, BE-006, BE-057, FE-001, FE-039 | Cierre/DoF |
 | INT-002 | Autenticación web completa | BE-003, BE-004, BE-005, BE-006, BE-007, FE-001, FE-002, FE-003, FE-034 | Cierre/DoF |
 | INT-003 | Autenticación móvil completa | BE-003, BE-004, BE-005, MOB-001, MOB-002, MOB-027 | INT-032 |
 | INT-038 | Suspensión y reactivación de empresa E2E | BE-002, BE-003, BE-004, BE-005, FE-001 | Cierre/DoF |

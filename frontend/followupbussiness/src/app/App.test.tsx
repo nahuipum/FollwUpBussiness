@@ -10,12 +10,14 @@ import { App } from "./App";
 import {
   canAccessPath,
   clearSession,
+  getSessionIdentity,
   hasPendingLogout,
   hasSession,
   login,
   logout,
   retryPendingLogout,
 } from "../features/auth/auth";
+import { ApiRequestObsoleteError, apiRequest } from "../lib/api";
 
 const webResponse = (role: string) => ({
   channel: "WEB",
@@ -313,4 +315,137 @@ test("redirects once to login after a terminal scheduled refresh", async () => {
   expect(window.location.pathname).toBe("/");
   expect(hasSession()).toBe(false);
   expect(fetchMock).toHaveBeenCalledTimes(2);
+});
+
+test("clears one active session and shows the expired-session flow after an API 401", async () => {
+  window.history.replaceState({}, "", "/seller/dashboard");
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValueOnce(
+      new Response(JSON.stringify(webResponse("SELLER")), { status: 200 }),
+    )
+    .mockResolvedValueOnce(
+      new Response(JSON.stringify({ correlationId: "corr-401" }), { status: 401 }),
+    );
+  vi.stubGlobal("fetch", fetchMock);
+  await login({ identifier: "seller@example.com", password: "correct-password" });
+  render(<App />);
+
+  await apiRequest("/protected-resource", { method: "GET" });
+
+  await waitFor(() =>
+    expect(screen.getByRole("dialog", { name: "Tu sesión terminó" })).toBeTruthy(),
+  );
+  expect(screen.getByText("Correlation ID: corr-401")).toBeTruthy();
+  expect(hasSession()).toBe(false);
+  expect(window.location.pathname).toBe("/");
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+});
+
+test.each([
+  [403, "No tienes acceso a esta sección"],
+  [404, "No encontramos lo que buscas"],
+  [409, "La información cambió"],
+  [422, "Revisa la información ingresada"],
+  [500, "Ocurrió un problema temporal"],
+] as const)("presents the safe global state for API %i", async (status, text) => {
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValueOnce(
+      new Response(JSON.stringify(webResponse("SELLER")), { status: 200 }),
+    )
+    .mockResolvedValueOnce(
+      new Response(JSON.stringify({ detail: "do not show", correlationId: "corr-safe" }), { status }),
+    );
+  vi.stubGlobal("fetch", fetchMock);
+  await login({ identifier: "seller@example.com", password: "correct-password" });
+  window.history.replaceState({}, "", "/seller/dashboard");
+  render(<App />);
+
+  await apiRequest("/protected-resource", { method: "GET" });
+
+  await waitFor(() => expect(screen.getByText(text)).toBeTruthy());
+  expect(screen.queryByText("do not show")).toBeNull();
+  expect(canAccessPath("/seller/dashboard")).toBe(true);
+  if (status === 409) {
+    fireEvent.click(screen.getByRole("button", { name: "Recargar y revisar" }));
+    expect(screen.queryByText("La información cambió")).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  }
+});
+
+test("clears a pending API error when a different tenant replaces the session", async () => {
+  const tenantA = {
+    ...webResponse("SELLER"),
+    user: { ...webResponse("SELLER").user, id: "seller-a", company: "tenant-a" },
+  };
+  const tenantB = {
+    ...webResponse("COMPANY_ADMIN"),
+    user: { ...webResponse("COMPANY_ADMIN").user, id: "admin-b", company: "tenant-b" },
+  };
+  vi.stubGlobal(
+    "fetch",
+    vi
+      .fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify(tenantA), { status: 200 }))
+      .mockResolvedValueOnce(new Response(null, { status: 409 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(tenantB), { status: 200 })),
+  );
+  await login({ identifier: "seller@example.com", password: "correct-password" });
+  window.history.replaceState({}, "", "/seller/dashboard");
+  render(<App />);
+  await apiRequest("/protected-resource", { method: "GET" });
+  await waitFor(() => expect(screen.getByText("La información cambió")).toBeTruthy());
+
+  await login({ identifier: "admin@example.com", password: "correct-password" });
+
+  await waitFor(() => expect(screen.queryByText("La información cambió")).toBeNull());
+  expect(canAccessPath("/seller/dashboard")).toBe(false);
+  expect(canAccessPath("/company/dashboard")).toBe(true);
+});
+
+test("discards a delayed 401 from tenant A after tenant B replaces its session", async () => {
+  let resolveA: (response: Response) => void = () => undefined;
+  const delayedA = new Promise<Response>((resolve) => {
+    resolveA = resolve;
+  });
+  const tenantA = {
+    ...webResponse("SELLER"),
+    user: { ...webResponse("SELLER").user, id: "seller-a", company: "tenant-a" },
+  };
+  const tenantB = {
+    ...webResponse("COMPANY_ADMIN"),
+    user: { ...webResponse("COMPANY_ADMIN").user, id: "admin-b", company: "tenant-b" },
+  };
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValueOnce(new Response(JSON.stringify(tenantA), { status: 200 }))
+    .mockImplementationOnce(() => delayedA)
+    .mockResolvedValueOnce(new Response(JSON.stringify(tenantB), { status: 200 }))
+    .mockResolvedValueOnce(
+      new Response(JSON.stringify({ correlationId: "corr-b" }), { status: 401 }),
+    );
+  vi.stubGlobal("fetch", fetchMock);
+  await login({ identifier: "seller@example.com", password: "correct-password" });
+  window.history.replaceState({}, "", "/seller/dashboard");
+  render(<App />);
+
+  const requestA = apiRequest("/protected-resource", { method: "GET" });
+  await login({ identifier: "admin@example.com", password: "correct-password" });
+  resolveA(new Response(JSON.stringify({ correlationId: "corr-a" }), { status: 401 }));
+
+  await expect(requestA).rejects.toBeInstanceOf(ApiRequestObsoleteError);
+  expect(getSessionIdentity()).toMatchObject({ id: "admin-b", company: "tenant-b" });
+  expect(canAccessPath("/company/dashboard")).toBe(true);
+  expect(canAccessPath("/seller/dashboard")).toBe(false);
+  expect(screen.queryByRole("dialog", { name: "Tu sesión terminó" })).toBeNull();
+  expect(screen.queryByText("Correlation ID: corr-a")).toBeNull();
+
+  await apiRequest("/protected-resource", { method: "GET" });
+
+  await waitFor(() =>
+    expect(screen.getByRole("dialog", { name: "Tu sesión terminó" })).toBeTruthy(),
+  );
+  expect(screen.getByText("Correlation ID: corr-b")).toBeTruthy();
+  expect(hasSession()).toBe(false);
 });

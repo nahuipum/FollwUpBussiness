@@ -1,4 +1,4 @@
-import { apiRequest } from "../../lib/api";
+import { apiRequest, setApiSessionGeneration } from "../../lib/api";
 
 export type UserRole =
   | "PLATFORM_SUPERADMIN"
@@ -180,6 +180,7 @@ export async function login(credentials: {
     return { ok: false, message: genericError, retryAfterSeconds: null };
   }
   clearSession();
+  const loginGeneration = sessionGeneration;
   try {
     const response = await apiRequest("/auth/login", {
       method: "POST",
@@ -216,17 +217,22 @@ export async function login(credentials: {
     notifySessionChange();
     return { ok: true, redirectTo };
   } catch {
-    clearSession();
+    if (sessionGeneration === loginGeneration) clearSession();
     return { ok: false, message: genericError, retryAfterSeconds: null };
   }
 }
 
 export function clearSession() {
   sessionGeneration += 1;
+  setApiSessionGeneration(sessionGeneration);
   session = null;
   refreshInFlight = null;
   setLogoutPending(false);
   notifySessionChange();
+}
+
+export function getSessionGeneration(): number {
+  return sessionGeneration;
 }
 
 export function hasSession(): boolean {

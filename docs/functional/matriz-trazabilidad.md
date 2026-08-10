@@ -63,6 +63,7 @@
 | FE-002 — Recuperación de contraseña | Frontend | RF-AUT-002 |
 | FE-003 — Gestión de sesión | Frontend | RF-AUT-004 |
 | FE-004 — Gestión de usuarios y roles | Frontend | RF-AUT-003; RF-AUT-005 |
+| FE-039 — Onboarding de empresa desde plataforma | Frontend | Flujo 12.1; RF-AUT-003; RF-AUT-005; RN-001; RN-002 |
 | FE-005 — Listado de vendedores | Frontend | RF-VEN-001..005 |
 | FE-006 — Formulario de vendedor | Frontend | RF-VEN-001; RF-VEN-002 |
 | FE-007 — Activar o inactivar vendedor | Frontend | RF-VEN-003 |

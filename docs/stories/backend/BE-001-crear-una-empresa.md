@@ -54,7 +54,7 @@
 
 - **Sprint objetivo:** Sprint 1 — Empresa, identidad y acceso utilizable.
 - **Predecesoras obligatorias:** `BE-003` — Autenticar usuario; `BE-007` — Gestionar roles y permisos; `BE-051` — Registrar acciones críticas
-- **Historias consecuentes que habilita:** `BE-002` — Suspender y reactivar empresa; `BE-054` — Configurar geocerca y tracking; `BE-057` — Provisionar administrador inicial de empresa; `INT-001` — Onboarding completo de empresa
+- **Historias consecuentes que habilita:** `BE-002` — Suspender y reactivar empresa; `BE-054` — Configurar geocerca y tracking; `BE-057` — Provisionar administrador inicial de empresa; `FE-039` — Onboarding de empresa desde plataforma; `INT-001` — Onboarding completo de empresa
 - **Validación vertical:** `INT-001` — Onboarding completo de empresa
 
 ## Contratos y superficies

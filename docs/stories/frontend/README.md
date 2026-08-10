@@ -1,6 +1,6 @@
 ﻿# Historias — Frontend
 
-Total: **38**
+Total: **39**
 
 | ID | Épica | Historia | Prioridad | Fase |
 |---|---|---|---|---|
@@ -42,3 +42,4 @@ Total: **38**
 | [FE-036](./FE-036-asignar-cartera-de-clientes.md) | Clientes | Asignar cartera de clientes | Must Have | MVP |
 | [FE-037](./FE-037-gestionar-zonas-y-territorios.md) | Vendedores | Gestionar zonas y territorios | Must Have | MVP |
 | [FE-038](./FE-038-autorizar-excepcion-de-geocerca.md) | Visitas | Autorizar excepción de geocerca | Should Have | MVP condicionado |
+| [FE-039](./FE-039-onboarding-de-empresa-desde-plataforma.md) | Onboarding | Onboarding de empresa desde plataforma | Must Have | MVP |

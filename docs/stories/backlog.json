@@ -2315,6 +2315,33 @@
         "type":  "Historia de usuario"
     },
     {
+        "area":  "Frontend",
+        "id":  "FE-039",
+        "epic":  "Onboarding",
+        "title":  "Onboarding de empresa desde plataforma",
+        "actor":  "superadministrador de plataforma",
+        "want":  "crear una empresa y provisionar su administrador inicial",
+        "value":  "habilitar un nuevo tenant sin intervención manual",
+        "scope":  "Panel web de plataforma para listar empresas, crear una empresa con configuración inicial y provisionar su administrador inicial mediante invitación.",
+        "acceptance":  [
+                           "Solo PLATFORM_SUPERADMIN accede al flujo y el Backend mantiene la autoridad.",
+                           "Crea una empresa con los campos y valores iniciales permitidos por contrato.",
+                           "Provisiona únicamente el administrador inicial COMPANY_ADMIN sin credenciales predeterminadas ni roles arbitrarios.",
+                           "Lista y estado se actualizan; errores y correlationId usan el manejo global seguro.",
+                           "No expone token/enlace de activación ni datos de otras empresas."
+                       ],
+        "refs":  [
+                     "Flujo 12.1",
+                     "RF-AUT-003",
+                     "RF-AUT-005",
+                     "RN-001",
+                     "RN-002"
+                 ],
+        "priority":  "Must Have",
+        "phase":  "MVP",
+        "type":  "Historia de usuario"
+    },
+    {
         "area":  "Mobile",
         "id":  "MOB-001",
         "epic":  "Acceso",

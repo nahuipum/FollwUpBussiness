@@ -1,0 +1,855 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FE-034 — Sistema global de errores y permisos</title>
+
+<!--
+  FE-034 — MOCKUP VISUAL PARA CODEX
+  ==================================
+  Archivo HTML autocontenido que documenta y demuestra los componentes
+  reutilizables del manejo global de errores y permisos de FollowUpBussiness.
+
+  IMPORTANTE
+  ----------
+  - No es una pantalla de negocio ni un dashboard.
+  - Cada bloque indica explícitamente para qué sirve.
+  - No copiar directamente como código productivo sin separar componentes,
+    conectar contratos, telemetría, router y sistema real de autenticación.
+
+  VISTAS DISPONIBLES MEDIANTE QUERY PARAM
+  ---------------------------------------
+  ?view=kit      Lámina completa / UI kit (vista predeterminada)
+  ?view=409      Alerta inline por conflicto de información
+  ?view=422      Alerta inline por validación
+  ?view=401      Diálogo modal de sesión terminada
+  ?view=403      Estado de página de acceso denegado
+  ?view=404      Estado de página no encontrada
+  ?view=500      Estado de página por error temporal
+  ?view=mobile   Muestras compactas para mobile
+
+  API VISUAL PARA QA / CODEX
+  --------------------------
+  window.__FE034.setView('500')
+  window.__FE034.getView()
+  window.__FE034.openSessionModal()
+  window.__FE034.closeSessionModal()
+
+  CRITERIOS DE SEGURIDAD Y PRIVACIDAD REPRESENTADOS
+  -------------------------------------------------
+  - No mostrar stack traces, tokens, correos, tenantId, roles ni datos personales.
+  - El correlationId / ID de seguimiento es información secundaria de soporte.
+  - 401 no explica motivos técnicos ni conserva contexto previo.
+  - 403 no revela recursos ni permisos internos adicionales.
+  - Mensajes calmados, accionables y sin contenido alarmista.
+
+  RESOLUCIONES DE REFERENCIA
+  --------------------------
+  Desktop: 1440 × 1024 o superior
+  Mobile:   390 × 844
+-->
+
+<style>
+:root{
+  --navy:#102A43;
+  --navy-2:#163B62;
+  --navy-3:#0F6B78;
+  --teal:#176D77;
+  --teal-dark:#145F68;
+  --teal-light:#7DD3D7;
+  --teal-mid:#38B2AC;
+  --text:#14213D;
+  --text-secondary:#67778A;
+  --form-text:#26384A;
+  --muted:#8090A0;
+  --line:#CFD9E4;
+  --line-soft:#E3EAF1;
+  --background:#F7F9FC;
+  --white:#FFFFFF;
+
+  --warning:#A16800;
+  --warning-strong:#D89000;
+  --warning-bg:#FFF8E9;
+  --warning-border:#F1CE82;
+
+  --danger:#D83B57;
+  --danger-dark:#8F2B3C;
+  --danger-bg:#FFF3F5;
+  --danger-border:#F2B6C0;
+
+  --info:#176D77;
+  --info-bg:#F1FAFA;
+  --info-border:#B9E0E2;
+
+  --shadow-card:0 14px 34px rgba(16,42,67,.075);
+  --shadow-button:0 10px 22px rgba(23,109,119,.18);
+  --shadow-modal:0 28px 80px rgba(8,28,48,.28);
+  --font:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+html,body{margin:0;min-width:320px;min-height:100%;font-family:var(--font);color:var(--text);background:var(--background)}
+body{min-height:100vh}
+button,a{font:inherit;-webkit-tap-highlight-color:transparent}
+button{cursor:pointer}
+button:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:3px solid rgba(56,178,172,.28);outline-offset:3px}
+svg{display:block}
+[hidden]{display:none!important}
+
+.icon{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.icon.small{width:18px;height:18px}
+.icon.tiny{width:15px;height:15px}
+
+.app-shell{min-height:100vh;padding:22px;background:
+  radial-gradient(circle at 3% 7%,rgba(125,211,215,.11),transparent 25%),
+  radial-gradient(circle at 96% 94%,rgba(22,59,98,.065),transparent 25%),
+  var(--background)}
+
+.board{
+  width:min(1580px,100%);
+  margin:0 auto;
+  overflow:hidden;
+  border:1px solid #E0E7EF;
+  border-radius:24px;
+  background:rgba(255,255,255,.96);
+  box-shadow:0 24px 70px rgba(16,42,67,.09);
+}
+
+/* HEADER DEL ARTEFACTO */
+.board-header{
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  align-items:center;
+  gap:28px;
+  min-height:116px;
+  padding:25px 30px;
+  border-bottom:1px solid var(--line-soft);
+  background:linear-gradient(180deg,#FFFFFF 0%,#FCFDFE 100%);
+}
+
+.brand-lockup{display:flex;align-items:center;gap:14px;white-space:nowrap}
+.brand-mark{
+  width:50px;height:50px;display:grid;place-items:center;flex:0 0 auto;
+  border-radius:14px;background:#fff;box-shadow:0 10px 26px rgba(16,42,67,.12)
+}
+.brand-mark svg{width:34px;height:34px}
+.brand-name{font-size:26px;font-weight:790;letter-spacing:-.8px;color:var(--navy)}
+.brand-name span{color:#14808A;font-weight:650}
+
+.header-copy{min-width:0;padding-left:28px;border-left:1px solid var(--line-soft)}
+.header-copy h1{margin:0;color:var(--navy);font-size:25px;line-height:1.2;letter-spacing:-.65px}
+.header-copy p{margin:7px 0 0;color:var(--text-secondary);font-size:15px;line-height:1.45}
+
+.view-switcher{display:flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+.view-chip{
+  min-height:34px;padding:0 11px;border:1px solid var(--line);border-radius:999px;
+  color:#52677C;background:#fff;font-size:12px;font-weight:720;transition:.18s
+}
+.view-chip:hover{border-color:#8FC8CD;color:var(--teal);background:#F7FCFC}
+.view-chip.is-active{border-color:var(--teal);color:#fff;background:var(--teal);box-shadow:0 6px 14px rgba(23,109,119,.16)}
+
+.board-body{display:grid;grid-template-columns:minmax(0,1fr) 322px;gap:20px;padding:20px}
+.desktop-canvas{display:grid;gap:18px;min-width:0}
+.top-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(380px,.66fr);gap:18px}
+.inline-stack{display:grid;gap:16px}
+.fullpage-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+
+.component-card{
+  position:relative;min-width:0;overflow:hidden;
+  border:1px solid #DCE5ED;border-radius:18px;background:#fff;box-shadow:var(--shadow-card)
+}
+.component-card::after{
+  content:"";position:absolute;right:-28px;bottom:-38px;width:110px;height:110px;border-radius:50%;
+  background:radial-gradient(circle,rgba(125,211,215,.10),transparent 68%);pointer-events:none
+}
+
+.component-heading{
+  display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;
+  padding:18px 18px 14px;border-bottom:1px solid #EDF1F5;background:#FCFDFE
+}
+.index-badge{
+  width:28px;height:28px;display:grid;place-items:center;border-radius:50%;
+  color:#fff;background:var(--teal);font-size:13px;font-weight:800;box-shadow:0 5px 12px rgba(23,109,119,.18)
+}
+.index-badge.warning{background:#D89A00}
+.component-heading h2{margin:0;font-size:15px;line-height:1.3;color:var(--navy);letter-spacing:-.15px}
+.component-heading .case{display:block;margin-top:3px;color:var(--muted);font-size:12px;font-weight:600}
+.purpose{
+  margin:9px 0 0;padding:9px 11px;border-left:3px solid #AEDBDD;border-radius:0 9px 9px 0;
+  color:#5B7085;background:#F6FBFB;font-size:12px;line-height:1.45
+}
+.purpose strong{color:#2A5C64}
+.component-content{position:relative;padding:18px}
+
+/* COMPONENTES INLINE */
+.inline-alert{
+  display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:center;
+  min-height:78px;padding:14px 15px;border:1px solid;border-radius:13px
+}
+.inline-alert.warning{color:#76500D;border-color:var(--warning-border);background:var(--warning-bg)}
+.inline-alert.validation{color:#285F66;border-color:var(--info-border);background:var(--info-bg)}
+.alert-icon{
+  width:42px;height:42px;display:grid;place-items:center;flex:0 0 auto;border-radius:50%;background:rgba(255,255,255,.62)
+}
+.warning .alert-icon{color:#C98300}
+.validation .alert-icon{color:#13828C}
+.alert-message{min-width:0;font-size:14px;line-height:1.45;font-weight:580}
+.inline-action{
+  min-height:40px;padding:0 15px;border:1px solid currentColor;border-radius:9px;
+  color:inherit;background:rgba(255,255,255,.72);font-size:12.5px;font-weight:760;white-space:nowrap
+}
+.inline-action:hover{background:#fff}
+.tracking-row{display:flex;align-items:center;gap:7px;margin:12px 8px 0;color:#76899E;font-size:12px}
+.tracking-code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.01em}
+
+/* EJEMPLO MODAL 401 */
+.modal-spec .component-content{padding:0}
+.demo-backdrop{
+  min-height:404px;display:grid;place-items:center;padding:26px;
+  background:
+    linear-gradient(rgba(16,42,67,.58),rgba(16,42,67,.58)),
+    linear-gradient(135deg,#E8EEF4,#D9E2EB)
+}
+.abstract-context{position:absolute;inset:0;opacity:.2;pointer-events:none}
+.abstract-context span{position:absolute;border-radius:11px;background:#fff}
+.abstract-context span:nth-child(1){left:7%;top:9%;width:54%;height:46px}
+.abstract-context span:nth-child(2){left:7%;top:26%;width:26%;height:105px}
+.abstract-context span:nth-child(3){left:36%;top:26%;width:57%;height:105px}
+.abstract-context span:nth-child(4){left:7%;bottom:9%;width:86%;height:96px}
+
+.dialog-card{
+  position:relative;z-index:2;width:min(100%,342px);padding:28px 27px 23px;
+  border:1px solid rgba(255,255,255,.75);border-radius:18px;background:#fff;box-shadow:var(--shadow-modal);text-align:center
+}
+.dialog-close{
+  position:absolute;right:13px;top:12px;width:36px;height:36px;display:grid;place-items:center;
+  border:0;border-radius:50%;color:#70849A;background:transparent
+}
+.dialog-close:hover{background:#F2F5F8}
+.hero-icon{
+  width:84px;height:84px;display:grid;place-items:center;margin:0 auto 18px;border-radius:50%;
+  color:var(--navy);background:radial-gradient(circle at 35% 30%,#F5FCFC,#E7F4F5);box-shadow:0 0 0 9px rgba(125,211,215,.08)
+}
+.hero-icon .icon{width:50px;height:50px}
+.dialog-card h3{margin:0;color:var(--navy);font-size:22px;letter-spacing:-.45px}
+.dialog-card p{margin:10px auto 20px;color:#5E7287;font-size:13.5px;line-height:1.5;max-width:270px}
+
+.primary-button,.secondary-button{
+  width:100%;min-height:48px;display:flex;align-items:center;justify-content:center;gap:9px;
+  padding:0 18px;border-radius:10px;font-size:13.5px;font-weight:760;transition:.16s
+}
+.primary-button{border:0;color:#fff;background:linear-gradient(180deg,#18838D,#176D77);box-shadow:var(--shadow-button)}
+.primary-button:hover{background:linear-gradient(180deg,#177680,#145F68);transform:translateY(-1px)}
+.primary-button:active{transform:none}
+.secondary-button{margin-top:10px;border:1px solid #9FB2C6;color:#31566D;background:#fff}
+.secondary-button:hover{border-color:var(--teal);color:var(--teal);background:#F7FCFC}
+.text-button{margin-top:13px;padding:5px 9px;border:0;color:#087686;background:transparent;font-size:13px;font-weight:720}
+.text-button:hover{text-decoration:underline;text-underline-offset:3px}
+.preview-trigger{position:absolute;right:14px;bottom:13px;z-index:3;border:0;border-radius:999px;padding:8px 11px;color:#fff;background:rgba(16,42,67,.78);font-size:11px;font-weight:720}
+
+/* ESTADOS DE PÁGINA */
+.page-state-card{min-height:448px;display:flex;flex-direction:column}
+.page-state-card .component-content{display:flex;flex:1;flex-direction:column;align-items:center;text-align:center;padding:22px 22px 20px}
+.state-illustration{
+  position:relative;width:132px;height:118px;display:grid;place-items:center;margin:3px auto 17px;color:var(--navy)
+}
+.state-illustration::before{
+  content:"";position:absolute;width:94px;height:94px;border-radius:38% 62% 55% 45% / 48% 44% 56% 52%;
+  background:linear-gradient(145deg,#F3FAFA,#E8F2F7);transform:rotate(-9deg)
+}
+.state-illustration::after{
+  content:"";position:absolute;right:1px;top:13px;width:45px;height:40px;opacity:.55;
+  background-image:radial-gradient(circle,#9BD6DA 1.5px,transparent 1.8px);background-size:10px 10px
+}
+.state-illustration .icon{position:relative;z-index:2;width:76px;height:76px}
+.state-title{margin:0;color:var(--navy);font-size:20px;line-height:1.22;letter-spacing:-.35px}
+.state-message{max-width:260px;margin:11px auto 20px;color:#60758B;font-size:13px;line-height:1.5}
+.state-actions{width:100%;margin-top:auto}
+.correlation{
+  width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  margin-top:14px;padding-top:12px;border-top:1px dashed #CBD6E1;color:#788BA0;font-size:11px;text-align:left
+}
+.correlation code{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+.copy-button{width:34px;height:34px;display:grid;place-items:center;flex:0 0 auto;border:1px solid #D4DEE8;border-radius:9px;color:#587087;background:#fff}
+.copy-button:hover{border-color:#9BCFD3;color:var(--teal);background:#F6FBFB}
+
+/* COLUMNA MOBILE REFERENCIAL */
+.mobile-showcase{
+  position:relative;min-width:0;padding:15px;border:1px solid #DCE5ED;border-radius:18px;
+  background:linear-gradient(180deg,#FBFDFE,#F5F8FA);box-shadow:var(--shadow-card)
+}
+.mobile-title{display:flex;align-items:center;gap:9px;margin:0 0 13px;color:var(--navy);font-size:13px}
+.mobile-title span{color:var(--muted);font-size:10px;font-weight:600}
+.phone-list{display:grid;gap:12px}
+.phone{
+  min-height:280px;overflow:hidden;border:1px solid #DAE3EC;border-radius:17px;background:#fff;
+  box-shadow:0 9px 22px rgba(16,42,67,.08)
+}
+.phone-status{display:flex;align-items:center;justify-content:space-between;padding:10px 13px 3px;color:#172738;font-size:9px;font-weight:800}
+.phone-icons{display:flex;gap:3px;align-items:center}
+.phone-body{display:flex;min-height:246px;flex-direction:column;align-items:center;padding:10px 17px 17px;text-align:center}
+.phone .hero-icon{width:62px;height:62px;margin:5px auto 13px;box-shadow:0 0 0 6px rgba(125,211,215,.07)}
+.phone .hero-icon .icon{width:37px;height:37px}
+.phone h3{margin:0;color:var(--navy);font-size:15px;line-height:1.23;letter-spacing:-.2px}
+.phone p{margin:8px auto 14px;color:#65798E;font-size:9.5px;line-height:1.48;max-width:198px}
+.phone .primary-button{min-height:36px;border-radius:8px;font-size:10px;box-shadow:none}
+.phone .secondary-button{min-height:35px;margin-top:7px;border-radius:8px;font-size:10px}
+.phone .text-button{margin-top:9px;font-size:9.5px}
+.phone .correlation{margin-top:9px;padding-top:8px;font-size:8px}
+.phone .copy-button{width:27px;height:27px;border-radius:7px}
+
+/* PIE DE LA LÁMINA */
+.board-footer{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;padding:0 20px 20px}
+.legend,.access-note{border:1px solid #DCE5ED;border-radius:14px;background:#fff;box-shadow:0 9px 25px rgba(16,42,67,.05)}
+.legend{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:13px 16px}
+.legend-title{padding:6px 10px;border-radius:999px;color:#415C72;background:#EDF3F7;font-size:11px;font-weight:800}
+.legend-item{display:flex;align-items:center;gap:6px;color:#687C90;font-size:10.5px}
+.legend-item.warning-tone{color:#B57800}
+.legend-item.info-tone{color:#13828C}
+.access-note{display:flex;align-items:center;gap:10px;max-width:380px;padding:13px 15px;color:#64798E;font-size:10.5px;line-height:1.4}
+.access-note .icon{color:#5C7690;flex:0 0 auto}
+
+/* VISTA AISLADA POR QUERY PARAM */
+.isolated-root{display:none;min-height:calc(100vh - 44px);align-items:center;justify-content:center;padding:32px}
+.isolated-frame{width:min(900px,100%)}
+.isolated-frame .component-card{box-shadow:0 26px 70px rgba(16,42,67,.13)}
+body.is-isolated .board{display:none}
+body.is-isolated .isolated-root{display:flex}
+body.is-isolated .app-shell{padding:22px}
+body.is-isolated .isolated-frame[data-isolated="403"] .page-state-card,
+body.is-isolated .isolated-frame[data-isolated="404"] .page-state-card,
+body.is-isolated .isolated-frame[data-isolated="500"] .page-state-card{min-height:680px}
+body.is-isolated .isolated-frame[data-isolated="403"] .component-content,
+body.is-isolated .isolated-frame[data-isolated="404"] .component-content,
+body.is-isolated .isolated-frame[data-isolated="500"] .component-content{padding:46px}
+body.is-isolated .isolated-frame[data-isolated="403"] .state-illustration,
+body.is-isolated .isolated-frame[data-isolated="404"] .state-illustration,
+body.is-isolated .isolated-frame[data-isolated="500"] .state-illustration{width:200px;height:170px}
+body.is-isolated .isolated-frame[data-isolated="403"] .state-illustration::before,
+body.is-isolated .isolated-frame[data-isolated="404"] .state-illustration::before,
+body.is-isolated .isolated-frame[data-isolated="500"] .state-illustration::before{width:145px;height:145px}
+body.is-isolated .isolated-frame[data-isolated="403"] .state-illustration .icon,
+body.is-isolated .isolated-frame[data-isolated="404"] .state-illustration .icon,
+body.is-isolated .isolated-frame[data-isolated="500"] .state-illustration .icon{width:104px;height:104px}
+body.is-isolated .isolated-frame[data-isolated="403"] .state-title,
+body.is-isolated .isolated-frame[data-isolated="404"] .state-title,
+body.is-isolated .isolated-frame[data-isolated="500"] .state-title{font-size:32px}
+body.is-isolated .isolated-frame[data-isolated="403"] .state-message,
+body.is-isolated .isolated-frame[data-isolated="404"] .state-message,
+body.is-isolated .isolated-frame[data-isolated="500"] .state-message{max-width:470px;font-size:16px}
+body.is-isolated .isolated-frame[data-isolated="403"] .state-actions,
+body.is-isolated .isolated-frame[data-isolated="404"] .state-actions,
+body.is-isolated .isolated-frame[data-isolated="500"] .state-actions{max-width:430px}
+body.is-isolated .isolated-frame[data-isolated="401"]{width:min(1100px,100%)}
+body.is-isolated .isolated-frame[data-isolated="401"] .demo-backdrop{min-height:720px}
+body.is-isolated .isolated-frame[data-isolated="401"] .dialog-card{width:min(100%,440px);padding:38px 38px 31px}
+body.is-isolated .isolated-frame[data-isolated="401"] .dialog-card h3{font-size:29px}
+body.is-isolated .isolated-frame[data-isolated="401"] .dialog-card p{font-size:16px;max-width:340px}
+body.is-isolated .isolated-frame[data-isolated="409"],
+body.is-isolated .isolated-frame[data-isolated="422"]{width:min(950px,100%)}
+body.is-isolated .isolated-frame[data-isolated="409"] .component-content,
+body.is-isolated .isolated-frame[data-isolated="422"] .component-content{padding:42px}
+body.is-isolated .isolated-frame[data-isolated="409"] .inline-alert,
+body.is-isolated .isolated-frame[data-isolated="422"] .inline-alert{min-height:108px;padding:20px 22px}
+
+/* MODAL REAL DE DEMOSTRACIÓN */
+.global-modal-layer{
+  position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;padding:22px;
+  background:rgba(13,31,50,.62);backdrop-filter:blur(2px)
+}
+.global-modal-layer.is-visible{display:flex}
+.global-modal-layer .dialog-card{width:min(100%,430px);padding:36px 36px 30px;animation:modal-in .2s ease-out both}
+@keyframes modal-in{from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:none}}
+
+/* TOAST */
+.toast{
+  position:fixed;left:50%;bottom:26px;z-index:130;max-width:calc(100% - 32px);transform:translate(-50%,20px);
+  display:flex;align-items:center;gap:9px;padding:12px 15px;border-radius:11px;color:#fff;background:#173C52;
+  box-shadow:0 16px 38px rgba(9,29,45,.24);font-size:12.5px;font-weight:680;opacity:0;pointer-events:none;transition:.2s
+}
+.toast.is-visible{opacity:1;transform:translate(-50%,0)}
+
+.spinner{width:17px;height:17px;border:2px solid rgba(255,255,255,.42);border-top-color:#fff;border-radius:50%;animation:spin .75s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* RESPONSIVE */
+@media(max-width:1220px){
+  .board-header{grid-template-columns:auto 1fr}.view-switcher{grid-column:1/-1;justify-content:flex-start}
+  .board-body{grid-template-columns:1fr}.mobile-showcase{order:2}.phone-list{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+
+@media(max-width:980px){
+  .top-grid{grid-template-columns:1fr}.fullpage-grid{grid-template-columns:1fr 1fr}.page-state-card:last-child{grid-column:1/-1}
+  .board-footer{grid-template-columns:1fr}.access-note{max-width:none}
+}
+
+@media(max-width:720px){
+  .app-shell{padding:0}.board{border:0;border-radius:0;box-shadow:none}
+  .board-header{grid-template-columns:1fr;gap:16px;padding:22px 20px}.header-copy{padding:0;border-left:0}.view-switcher{overflow:auto;flex-wrap:nowrap;justify-content:flex-start;padding-bottom:2px}
+  .brand-lockup{white-space:normal}.brand-name{font-size:23px}
+  .board-body{padding:14px}.fullpage-grid{grid-template-columns:1fr}.page-state-card:last-child{grid-column:auto}.phone-list{grid-template-columns:1fr}
+  .board-footer{padding:0 14px 16px}.legend{gap:12px}.access-note{font-size:11px}
+  .inline-alert{grid-template-columns:auto 1fr}.inline-action{grid-column:1/-1;width:100%}
+  .top-grid{gap:14px}.inline-stack{gap:14px}.desktop-canvas{gap:14px}.fullpage-grid{gap:14px}
+  .page-state-card{min-height:420px}
+  .mobile-showcase{padding:14px}.phone{min-height:300px}.phone-body{min-height:265px}
+  .isolated-root{min-height:100vh;padding:14px}.isolated-frame .component-heading{padding:16px}
+  body.is-isolated .isolated-frame[data-isolated="403"] .component-content,
+  body.is-isolated .isolated-frame[data-isolated="404"] .component-content,
+  body.is-isolated .isolated-frame[data-isolated="500"] .component-content{padding:28px 20px}
+  body.is-isolated .isolated-frame[data-isolated="403"] .state-title,
+  body.is-isolated .isolated-frame[data-isolated="404"] .state-title,
+  body.is-isolated .isolated-frame[data-isolated="500"] .state-title{font-size:27px}
+  body.is-isolated .isolated-frame[data-isolated="409"] .component-content,
+  body.is-isolated .isolated-frame[data-isolated="422"] .component-content{padding:20px}
+  .global-modal-layer{align-items:flex-end;padding:0}.global-modal-layer .dialog-card{width:100%;max-width:none;border-radius:24px 24px 0 0;padding:32px 24px 28px}
+}
+
+@media(max-width:430px){
+  .board-header{padding:20px 17px}.brand-mark{width:45px;height:45px}.brand-name{font-size:20px}.header-copy h1{font-size:21px}.header-copy p{font-size:13.5px}
+  .component-heading{padding:15px}.component-content{padding:15px}.purpose{font-size:11.5px}
+  .inline-alert{gap:10px;padding:13px}.alert-icon{width:38px;height:38px}.alert-message{font-size:13px}
+  .demo-backdrop{min-height:390px;padding:18px}.dialog-card{padding:27px 20px 22px}.hero-icon{width:76px;height:76px}
+  .state-title{font-size:19px}.state-message{font-size:12.5px}
+  .phone-list{gap:10px}.phone{min-height:286px}
+  .legend{align-items:flex-start}.legend-title{width:100%;text-align:center}
+}
+
+@media(prefers-reduced-motion:reduce){
+  *,*:before,*:after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+</style>
+</head>
+
+<body>
+<!-- Sprite SVG reutilizable -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-warning" viewBox="0 0 24 24"><path d="M10.4 4.1 2.9 17.4A2 2 0 0 0 4.7 20h14.6a2 2 0 0 0 1.8-2.6L13.6 4.1a1.8 1.8 0 0 0-3.2 0Z"/><path d="M12 9v4.4"/><path d="M12 17h.01"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 10.7v5"/><path d="M12 7.4h.01"/></symbol>
+  <symbol id="i-shield-clock" viewBox="0 0 24 24"><path d="M12 3 5.5 5.7v5.4c0 4.4 2.6 7.9 6.5 9.9 3.9-2 6.5-5.5 6.5-9.9V5.7L12 3Z"/><circle cx="12" cy="11.2" r="4.1"/><path d="M12 8.8v2.7l1.8 1"/></symbol>
+  <symbol id="i-shield-lock" viewBox="0 0 24 24"><path d="M12 3 5.5 5.7v5.4c0 4.4 2.6 7.9 6.5 9.9 3.9-2 6.5-5.5 6.5-9.9V5.7L12 3Z"/><rect x="9" y="10.3" width="6" height="5.2" rx="1"/><path d="M10.4 10.3V9a1.6 1.6 0 0 1 3.2 0v1.3"/></symbol>
+  <symbol id="i-file-search" viewBox="0 0 24 24"><path d="M6 3.5h8l4 4V13"/><path d="M14 3.5V8h4"/><path d="M6 3.5v17h7"/><circle cx="16.3" cy="16.4" r="3.2"/><path d="m18.7 18.8 2.1 2.1"/><path d="M9 11h5M9 14h3"/></symbol>
+  <symbol id="i-cloud-warning" viewBox="0 0 24 24"><path d="M7.2 18.5h10.9a3.9 3.9 0 0 0 .6-7.7A6.2 6.2 0 0 0 6.9 9.2 4.7 4.7 0 0 0 7.2 18.5Z"/><path d="M12 12.2v2.8M12 17.1h.01"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 7v5h-5"/><path d="M4 17v-5h5"/><path d="M6.1 8.4A7 7 0 0 1 18.5 7L20 8.5M4 15.5 5.5 17a7 7 0 0 0 12.4-1.4"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="m3.5 11 8.5-7 8.5 7"/><path d="M5.5 10v10h13V10M9.5 20v-6h5v6"/></symbol>
+  <symbol id="i-login" viewBox="0 0 24 24"><path d="M9 4H5.5A1.5 1.5 0 0 0 4 5.5v13A1.5 1.5 0 0 0 5.5 20H9"/><path d="m14 8 4 4-4 4M8 12h10"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="10" height="11" rx="2"/><path d="M15 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h2"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="m7 7 10 10M17 7 7 17"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M10.3 5h3.4M11.4 18.5h1.2"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.2 4.2L19 7"/></symbol>
+</svg>
+
+<div class="app-shell">
+  <main class="board" id="kitBoard">
+    <header class="board-header">
+      <div class="brand-lockup" aria-label="FollowUpBussiness">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 48 48" fill="none">
+            <defs><linearGradient id="logoGradient" x1="6" y1="7" x2="41" y2="31" gradientUnits="userSpaceOnUse"><stop stop-color="#38B2AC"/><stop offset="1" stop-color="#087A86"/></linearGradient></defs>
+            <path d="M10 11.5c0-2.5 2-4.5 4.5-4.5H39c1.8 0 2.9 2 1.9 3.5l-4.7 6.8c-.9 1.3-2.4 2.1-4 2.1H10v-7.9Z" fill="url(#logoGradient)"/>
+            <path d="M10 20h19.9c1.8 0 2.9 2 1.9 3.5l-4.4 6.3c-.9 1.3-2.4 2.1-4 2.1H17.8L14.9 40H7.7L10 20Z" fill="#102A60"/>
+          </svg>
+        </div>
+        <div class="brand-name">FollowUp<span>Bussiness</span></div>
+      </div>
+
+      <div class="header-copy">
+        <h1>Sistema global de errores y permisos · FE-034</h1>
+        <p>Componentes reutilizables para estados de error, sesión, validación y acceso.</p>
+      </div>
+
+      <nav class="view-switcher" aria-label="Vistas del prototipo">
+        <button class="view-chip is-active" type="button" data-view-link="kit">Kit completo</button>
+        <button class="view-chip" type="button" data-view-link="409">409</button>
+        <button class="view-chip" type="button" data-view-link="422">422</button>
+        <button class="view-chip" type="button" data-view-link="401">401</button>
+        <button class="view-chip" type="button" data-view-link="403">403</button>
+        <button class="view-chip" type="button" data-view-link="404">404</button>
+        <button class="view-chip" type="button" data-view-link="500">500</button>
+        <button class="view-chip" type="button" data-view-link="mobile">Mobile</button>
+      </nav>
+    </header>
+
+    <div class="board-body">
+      <div class="desktop-canvas">
+        <div class="top-grid">
+          <div class="inline-stack">
+            <!-- 1. 409: conflicto de información -->
+            <section class="component-card" data-component="409" aria-labelledby="title409">
+              <div class="component-heading">
+                <span class="index-badge warning">1</span>
+                <div>
+                  <h2 id="title409">Alerta inline de advertencia <span class="case">Caso 409 · Conflicto de información</span></h2>
+                  <p class="purpose"><strong>Para qué sirve:</strong> informa que los datos cambiaron mientras el usuario trabajaba y le permite actualizar la vista antes de volver a intentar la acción.</p>
+                </div>
+              </div>
+              <div class="component-content">
+                <div class="inline-alert warning" role="alert">
+                  <span class="alert-icon" aria-hidden="true"><svg class="icon"><use href="#i-warning"/></svg></span>
+                  <div class="alert-message">No se pudo completar la acción porque la información cambió.</div>
+                  <button class="inline-action" type="button" data-action="refresh-data">Actualizar datos</button>
+                </div>
+                <div class="tracking-row"><span>ID de seguimiento:</span><span class="tracking-code">8f3a…c91e</span></div>
+              </div>
+            </section>
+
+            <!-- 2. 422: validación -->
+            <section class="component-card" data-component="422" aria-labelledby="title422">
+              <div class="component-heading">
+                <span class="index-badge">2</span>
+                <div>
+                  <h2 id="title422">Alerta inline de validación <span class="case">Caso 422 · Información inválida</span></h2>
+                  <p class="purpose"><strong>Para qué sirve:</strong> resume errores de entrada y dirige al usuario hacia los campos marcados, sin exponer detalles técnicos ni información sensible.</p>
+                </div>
+              </div>
+              <div class="component-content">
+                <div class="inline-alert validation" role="alert">
+                  <span class="alert-icon" aria-hidden="true"><svg class="icon"><use href="#i-info"/></svg></span>
+                  <div class="alert-message">Revisa los campos marcados e inténtalo nuevamente.</div>
+                  <button class="inline-action" type="button" data-action="correct-info">Corregir información</button>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <!-- 3. 401: modal de sesión -->
+          <section class="component-card modal-spec" data-component="401" aria-labelledby="title401">
+            <div class="component-heading">
+              <span class="index-badge">3</span>
+              <div>
+                <h2 id="title401">Diálogo modal de sesión terminada <span class="case">Caso 401 · Sesión no válida</span></h2>
+                <p class="purpose"><strong>Para qué sirve:</strong> interrumpe de manera segura una tarea cuando la sesión ya no es válida y conduce nuevamente al inicio de sesión sin revelar información interna.</p>
+              </div>
+            </div>
+            <div class="component-content">
+              <div class="demo-backdrop">
+                <div class="abstract-context" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+                <div class="dialog-card" role="dialog" aria-modal="false" aria-labelledby="embedded401Title" aria-describedby="embedded401Message">
+                  <button class="dialog-close" type="button" aria-label="Cerrar ejemplo"><svg class="icon"><use href="#i-close"/></svg></button>
+                  <div class="hero-icon" aria-hidden="true"><svg class="icon"><use href="#i-shield-clock"/></svg></div>
+                  <h3 id="embedded401Title">Tu sesión terminó</h3>
+                  <p id="embedded401Message">Por seguridad, inicia sesión nuevamente para continuar.</p>
+                  <button class="primary-button" type="button" data-action="login"><svg class="icon small"><use href="#i-login"/></svg>Iniciar sesión</button>
+                  <button class="text-button" type="button" data-action="home">Volver al inicio</button>
+                </div>
+                <button class="preview-trigger" type="button" data-action="open-modal">Ver modal a tamaño real</button>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="fullpage-grid">
+          <!-- 4. 403: acceso denegado -->
+          <section class="component-card page-state-card" data-component="403" aria-labelledby="title403">
+            <div class="component-heading">
+              <span class="index-badge">4</span>
+              <div>
+                <h2 id="title403">Estado de página · Acceso denegado <span class="case">Caso 403 · Permiso insuficiente</span></h2>
+                <p class="purpose"><strong>Para qué sirve:</strong> reemplaza el contenido solicitado cuando un usuario autenticado no tiene permiso para acceder a esa sección.</p>
+              </div>
+            </div>
+            <div class="component-content">
+              <div class="state-illustration" aria-hidden="true"><svg class="icon"><use href="#i-shield-lock"/></svg></div>
+              <h3 class="state-title">No tienes permiso para acceder</h3>
+              <p class="state-message">Esta sección no está disponible para tu perfil actual.</p>
+              <div class="state-actions">
+                <button class="primary-button" type="button" data-action="home"><svg class="icon small"><use href="#i-home"/></svg>Volver al inicio</button>
+              </div>
+            </div>
+          </section>
+
+          <!-- 5. 404: no encontrado -->
+          <section class="component-card page-state-card" data-component="404" aria-labelledby="title404">
+            <div class="component-heading">
+              <span class="index-badge">5</span>
+              <div>
+                <h2 id="title404">Estado de página · No encontrado <span class="case">Caso 404 · Ruta o recurso inexistente</span></h2>
+                <p class="purpose"><strong>Para qué sirve:</strong> comunica que la página solicitada no existe, cambió de dirección o dejó de estar disponible.</p>
+              </div>
+            </div>
+            <div class="component-content">
+              <div class="state-illustration" aria-hidden="true"><svg class="icon"><use href="#i-file-search"/></svg></div>
+              <h3 class="state-title">No encontramos esta página</h3>
+              <p class="state-message">Es posible que el enlace ya no exista o haya cambiado.</p>
+              <div class="state-actions">
+                <button class="primary-button" type="button" data-action="home"><svg class="icon small"><use href="#i-home"/></svg>Ir al inicio</button>
+              </div>
+            </div>
+          </section>
+
+          <!-- 6. 500: error temporal -->
+          <section class="component-card page-state-card" data-component="500" aria-labelledby="title500">
+            <div class="component-heading">
+              <span class="index-badge">6</span>
+              <div>
+                <h2 id="title500">Estado de página · Error temporal <span class="case">Caso 500 · Falla temporal o dependencia degradada</span></h2>
+                <p class="purpose"><strong>Para qué sirve:</strong> ofrece recuperación mediante reintento y entrega un correlation ID secundario para soporte sin mostrar detalles técnicos.</p>
+              </div>
+            </div>
+            <div class="component-content">
+              <div class="state-illustration" aria-hidden="true"><svg class="icon"><use href="#i-cloud-warning"/></svg></div>
+              <h3 class="state-title">Ocurrió un problema temporal</h3>
+              <p class="state-message">Inténtalo nuevamente en unos momentos.</p>
+              <div class="state-actions">
+                <button class="primary-button" type="button" data-action="retry"><svg class="icon small"><use href="#i-refresh"/></svg><span>Reintentar</span></button>
+                <button class="secondary-button" type="button" data-action="home"><svg class="icon small"><use href="#i-home"/></svg>Ir al inicio</button>
+                <div class="correlation">
+                  <code>Correlation ID: corr-7B29-4F1A-92C0</code>
+                  <button class="copy-button" type="button" data-copy="corr-7B29-4F1A-92C0" aria-label="Copiar correlation ID"><svg class="icon small"><use href="#i-copy"/></svg></button>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <!-- Vista mobile compacta -->
+      <aside class="mobile-showcase" data-component="mobile" aria-labelledby="mobileTitle">
+        <h2 class="mobile-title" id="mobileTitle"><svg class="icon small"><use href="#i-phone"/></svg>Vista móvil <span>(referencial)</span></h2>
+        <div class="phone-list">
+          <article class="phone" aria-label="Vista móvil de sesión terminada">
+            <div class="phone-status"><span>9:41</span><span class="phone-icons">▮▮▮ ◒ ▰</span></div>
+            <div class="phone-body">
+              <div class="hero-icon" aria-hidden="true"><svg class="icon"><use href="#i-shield-clock"/></svg></div>
+              <h3>Tu sesión terminó</h3>
+              <p>Por seguridad, inicia sesión nuevamente para continuar.</p>
+              <button class="primary-button" type="button" data-action="login"><svg class="icon tiny"><use href="#i-login"/></svg>Iniciar sesión</button>
+              <button class="text-button" type="button" data-action="home">Volver al inicio</button>
+            </div>
+          </article>
+
+          <article class="phone" aria-label="Vista móvil de acceso denegado">
+            <div class="phone-status"><span>9:41</span><span class="phone-icons">▮▮▮ ◒ ▰</span></div>
+            <div class="phone-body">
+              <div class="hero-icon" aria-hidden="true"><svg class="icon"><use href="#i-shield-lock"/></svg></div>
+              <h3>No tienes permiso para acceder</h3>
+              <p>Esta sección no está disponible para tu perfil actual.</p>
+              <button class="primary-button" type="button" data-action="home">Volver al inicio</button>
+            </div>
+          </article>
+
+          <article class="phone" aria-label="Vista móvil de error temporal">
+            <div class="phone-status"><span>9:41</span><span class="phone-icons">▮▮▮ ◒ ▰</span></div>
+            <div class="phone-body">
+              <div class="hero-icon" aria-hidden="true"><svg class="icon"><use href="#i-cloud-warning"/></svg></div>
+              <h3>Ocurrió un problema temporal</h3>
+              <p>Inténtalo nuevamente en unos momentos.</p>
+              <button class="primary-button" type="button" data-action="retry"><svg class="icon tiny"><use href="#i-refresh"/></svg><span>Reintentar</span></button>
+              <button class="secondary-button" type="button" data-action="home">Ir al inicio</button>
+              <div class="correlation"><code>corr-7B29-4F1A-92C0</code><button class="copy-button" type="button" data-copy="corr-7B29-4F1A-92C0" aria-label="Copiar correlation ID"><svg class="icon tiny"><use href="#i-copy"/></svg></button></div>
+            </div>
+          </article>
+        </div>
+      </aside>
+    </div>
+
+    <footer class="board-footer">
+      <div class="legend" aria-label="Leyenda de iconografía">
+        <span class="legend-title">Iconografía utilizada</span>
+        <span class="legend-item warning-tone"><svg class="icon small"><use href="#i-warning"/></svg>Advertencia</span>
+        <span class="legend-item info-tone"><svg class="icon small"><use href="#i-info"/></svg>Información</span>
+        <span class="legend-item"><svg class="icon small"><use href="#i-shield-clock"/></svg>Sesión</span>
+        <span class="legend-item"><svg class="icon small"><use href="#i-shield-lock"/></svg>Permiso</span>
+        <span class="legend-item"><svg class="icon small"><use href="#i-file-search"/></svg>No encontrado</span>
+        <span class="legend-item"><svg class="icon small"><use href="#i-cloud-warning"/></svg>Error temporal</span>
+      </div>
+      <div class="access-note"><svg class="icon"><use href="#i-info"/></svg><span>Componentes con contraste accesible, foco visible, etiquetas semánticas y soporte para lector de pantalla.</span></div>
+    </footer>
+  </main>
+
+  <!-- Contenedor usado por ?view=409 / 422 / 401 / 403 / 404 / 500 / mobile -->
+  <div class="isolated-root" id="isolatedRoot" aria-live="polite">
+    <div class="isolated-frame" id="isolatedFrame"></div>
+  </div>
+</div>
+
+<!-- Modal real reutilizable para demostración -->
+<div class="global-modal-layer" id="globalSessionModal" role="dialog" aria-modal="true" aria-labelledby="global401Title" aria-describedby="global401Message">
+  <div class="dialog-card">
+    <button class="dialog-close" type="button" data-action="close-modal" aria-label="Cerrar diálogo"><svg class="icon"><use href="#i-close"/></svg></button>
+    <div class="hero-icon" aria-hidden="true"><svg class="icon"><use href="#i-shield-clock"/></svg></div>
+    <h3 id="global401Title">Tu sesión terminó</h3>
+    <p id="global401Message">Por seguridad, inicia sesión nuevamente para continuar.</p>
+    <button class="primary-button" type="button" data-action="login"><svg class="icon small"><use href="#i-login"/></svg>Iniciar sesión</button>
+    <button class="text-button" type="button" data-action="home">Volver al inicio</button>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"><svg class="icon small"><use href="#i-check"/></svg><span id="toastText">Acción completada.</span></div>
+
+<script>
+(function(){
+  'use strict'
+
+  const allowedViews = new Set(['kit','409','422','401','403','404','500','mobile'])
+  const params = new URLSearchParams(window.location.search)
+  let currentView = params.get('view') || 'kit'
+  if(!allowedViews.has(currentView)) currentView = 'kit'
+
+  const body = document.body
+  const board = document.getElementById('kitBoard')
+  const isolatedRoot = document.getElementById('isolatedRoot')
+  const isolatedFrame = document.getElementById('isolatedFrame')
+  const modal = document.getElementById('globalSessionModal')
+  const toast = document.getElementById('toast')
+  const toastText = document.getElementById('toastText')
+  let lastModalTrigger = null
+  let toastTimer = null
+
+  function announce(message){
+    toastText.textContent = message
+    toast.classList.add('is-visible')
+    clearTimeout(toastTimer)
+    toastTimer = setTimeout(() => toast.classList.remove('is-visible'), 2200)
+  }
+
+  function componentSelector(view){
+    if(view === 'mobile') return '[data-component="mobile"]'
+    return '[data-component="' + view + '"]'
+  }
+
+  function renderView(view, updateUrl){
+    if(!allowedViews.has(view)) view = 'kit'
+    currentView = view
+
+    document.querySelectorAll('[data-view-link]').forEach(btn => {
+      btn.classList.toggle('is-active', btn.dataset.viewLink === view)
+    })
+
+    if(view === 'kit'){
+      body.classList.remove('is-isolated')
+      isolatedFrame.innerHTML = ''
+      isolatedFrame.removeAttribute('data-isolated')
+    } else {
+      const source = board.querySelector(componentSelector(view))
+      if(!source){
+        body.classList.remove('is-isolated')
+        currentView = 'kit'
+        return
+      }
+      const clone = source.cloneNode(true)
+      clone.querySelectorAll('[id]').forEach(node => node.removeAttribute('id'))
+      isolatedFrame.innerHTML = ''
+      isolatedFrame.setAttribute('data-isolated', view)
+      isolatedFrame.appendChild(clone)
+      body.classList.add('is-isolated')
+    }
+
+    if(updateUrl){
+      const url = new URL(window.location.href)
+      if(view === 'kit') url.searchParams.delete('view')
+      else url.searchParams.set('view', view)
+      history.replaceState({}, '', url)
+    }
+
+    window.scrollTo({top:0,behavior:'smooth'})
+  }
+
+  function openSessionModal(trigger){
+    lastModalTrigger = trigger || document.activeElement
+    modal.classList.add('is-visible')
+    const first = modal.querySelector('button')
+    requestAnimationFrame(() => first && first.focus())
+  }
+
+  function closeSessionModal(){
+    modal.classList.remove('is-visible')
+    if(lastModalTrigger && typeof lastModalTrigger.focus === 'function') lastModalTrigger.focus()
+  }
+
+  async function copyText(value, button){
+    try{
+      await navigator.clipboard.writeText(value)
+    }catch(error){
+      const textarea = document.createElement('textarea')
+      textarea.value = value
+      textarea.style.position = 'fixed'
+      textarea.style.opacity = '0'
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand('copy')
+      textarea.remove()
+    }
+    if(button){
+      const original = button.innerHTML
+      button.innerHTML = '<svg class="icon small"><use href="#i-check"></use></svg>'
+      setTimeout(() => button.innerHTML = original, 1400)
+    }
+    announce('Correlation ID copiado.')
+  }
+
+  function simulate(button, activeLabel, doneMessage){
+    if(!button || button.disabled) return
+    const original = button.innerHTML
+    button.disabled = true
+    button.innerHTML = '<span class="spinner" aria-hidden="true"></span><span>' + activeLabel + '</span>'
+    setTimeout(() => {
+      button.disabled = false
+      button.innerHTML = original
+      announce(doneMessage)
+    }, 1000)
+  }
+
+  document.addEventListener('click', function(event){
+    const viewButton = event.target.closest('[data-view-link]')
+    if(viewButton){
+      renderView(viewButton.dataset.viewLink, true)
+      return
+    }
+
+    const copyButton = event.target.closest('[data-copy]')
+    if(copyButton){
+      copyText(copyButton.dataset.copy, copyButton)
+      return
+    }
+
+    const action = event.target.closest('[data-action]')
+    if(!action) return
+
+    switch(action.dataset.action){
+      case 'open-modal':
+        openSessionModal(action)
+        break
+      case 'close-modal':
+        closeSessionModal()
+        break
+      case 'refresh-data':
+        simulate(action, 'Actualizando…', 'Datos actualizados. Puedes volver a intentar la acción.')
+        break
+      case 'correct-info':
+        announce('Dirigiendo al primer campo que requiere corrección.')
+        break
+      case 'retry':
+        simulate(action, 'Reintentando…', 'Se volvió a intentar la operación.')
+        break
+      case 'login':
+        announce('Referencia visual: redirigir al inicio de sesión.')
+        break
+      case 'home':
+        announce('Referencia visual: volver a la página inicial permitida.')
+        break
+    }
+  })
+
+  modal.addEventListener('click', function(event){
+    if(event.target === modal) closeSessionModal()
+  })
+
+  document.addEventListener('keydown', function(event){
+    if(event.key === 'Escape' && modal.classList.contains('is-visible')) closeSessionModal()
+  })
+
+  window.__FE034 = {
+    setView(view){ renderView(String(view), true) },
+    getView(){ return currentView },
+    openSessionModal(){ openSessionModal() },
+    closeSessionModal
+  }
+
+  renderView(currentView, false)
+})()
+</script>
+</body>
+</html>

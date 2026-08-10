@@ -337,7 +337,7 @@ paths:
       operationId: listCompanies
       summary: Listar empresas de la plataforma
       x-required-roles: [PLATFORM_SUPERADMIN]
-      x-story-ids: [BE-001, BE-002]
+      x-story-ids: [BE-001, BE-002, FE-039]
       parameters:
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/PageSize'
@@ -361,7 +361,7 @@ paths:
       operationId: createCompany
       summary: Crear una empresa con configuración inicial
       x-required-roles: [PLATFORM_SUPERADMIN]
-      x-story-ids: [BE-001, INT-001]
+      x-story-ids: [BE-001, FE-039, INT-001]
       requestBody:
         required: true
         content:
@@ -438,7 +438,7 @@ paths:
       operationId: provisionInitialCompanyAdmin
       summary: Invitar al administrador inicial de una empresa
       x-required-roles: [PLATFORM_SUPERADMIN]
-      x-story-ids: [BE-057, INT-001]
+      x-story-ids: [BE-057, FE-039, INT-001]
       requestBody:
         required: true
         content:

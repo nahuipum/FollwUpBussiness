@@ -51,7 +51,7 @@
 ## Secuencia de entrega y trazabilidad
 
 - **Sprint objetivo:** Sprint 1 — Empresa, identidad y acceso utilizable.
-- **Predecesoras obligatorias:** `BE-001` — Crear una empresa; `BE-006` — Recuperar contraseña; `BE-057` — Provisionar administrador inicial de empresa; `FE-001` — Pantalla de inicio de sesión
+- **Predecesoras obligatorias:** `BE-001` — Crear una empresa; `BE-006` — Recuperar contraseña; `BE-057` — Provisionar administrador inicial de empresa; `FE-001` — Pantalla de inicio de sesión; `FE-039` — Onboarding de empresa desde plataforma
 - **Historias consecuentes que habilita:** No tiene sucesora directa; su cierre alimenta la regresión y el DoF del MVP.
 - **Validación vertical:** Esta historia es la validación vertical E2E y constituye la puerta de salida de su capacidad.
 

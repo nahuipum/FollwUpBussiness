@@ -77,7 +77,7 @@ una contraseña predeterminada.
 
 - **Sprint objetivo:** Sprint 1 — Empresa, identidad y acceso utilizable.
 - **Predecesoras obligatorias:** `BE-001` — Crear una empresa; `BE-006` — Recuperar contraseña; `BE-007` — Gestionar roles y permisos; `BE-051` — Registrar acciones críticas
-- **Historias consecuentes que habilita:** `BE-058` — Gestionar usuarios de empresa; `INT-001` — Onboarding completo de empresa
+- **Historias consecuentes que habilita:** `BE-058` — Gestionar usuarios de empresa; `FE-039` — Onboarding de empresa desde plataforma; `INT-001` — Onboarding completo de empresa
 - **Validación vertical:** `INT-001` — Onboarding completo de empresa
 
 ## Contratos y superficies

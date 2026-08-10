@@ -56,7 +56,7 @@ historia y sus flechas de dependencia está en
 
 ### Ola 1C — Clientes web/mobile de identidad
 
-- FE-001, FE-002, FE-003, FE-034 y FE-004.
+- FE-001, FE-002, FE-003, FE-034, FE-039 y FE-004.
 - MOB-001, MOB-002 y MOB-027.
 
 ### Ola 1D — Validación vertical

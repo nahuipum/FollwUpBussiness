@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { ApiConfigurationError, resolveApiUrl } from "./api";
+import { ApiConfigurationError, normalizeApiError, resolveApiUrl } from "./api";
 
 test("resolves login against an HTTPS backend base URL", () => {
   expect(resolveApiUrl("https://localhost:8080", "/auth/login")).toBe(
@@ -25,5 +25,31 @@ test.each([undefined, "", "   ", "http://localhost:8080"])(
     expect(() => resolveApiUrl(baseUrl, "/auth/login")).toThrow(
       ApiConfigurationError,
     );
+  },
+);
+
+test.each([401, 403, 404, 409, 422, 500] as const)(
+  "normalizes HTTP %i without exposing problem details",
+  async (status) => {
+    const error = await normalizeApiError(
+      new Response(
+        JSON.stringify({
+          correlationId: "body-correlation",
+          detail: "token=secret@example.test",
+          instance: "/private/resource",
+          fieldErrors: [
+            { field: "email", code: "INVALID", message: "private message" },
+            { field: "<script>", code: "INVALID", message: "unsafe" },
+          ],
+        }),
+        { status, headers: { "X-Correlation-Id": "header-correlation" } },
+      ),
+    );
+
+    expect(error).toEqual({
+      status,
+      correlationId: "header-correlation",
+      fieldErrors: [{ field: "email", code: "INVALID" }],
+    });
   },
 );
