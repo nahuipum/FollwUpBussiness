@@ -1,5 +1,6 @@
 package com.nahui.followupbussiness.identityaccess.config;
 
+import com.nahui.followupbussiness.audit.application.port.out.AuditEntryStore;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -88,6 +89,9 @@ class SecurityConfigurationTest {
 
     @MockitoBean
     private PlatformTransactionManager transactionManager;
+
+    @MockitoBean
+    private AuditEntryStore auditEntryStore;
 
     @Autowired
     private MockMvc mockMvc;

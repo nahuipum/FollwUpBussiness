@@ -1,5 +1,6 @@
 package com.nahui.followupbussiness.identityaccess.config;
 
+import com.nahui.followupbussiness.audit.application.port.out.AuditEntryStore;
 import com.nahui.followupbussiness.identityaccess.application.CompanyUserService;
 import com.nahui.followupbussiness.identityaccess.application.LoginService;
 import com.nahui.followupbussiness.identityaccess.application.PasswordRecoveryService;
@@ -55,6 +56,9 @@ class PrometheusMetricsEndpointTest {
 
     @MockitoBean
     private PlatformTransactionManager transactionManager;
+
+    @MockitoBean
+    private AuditEntryStore auditEntryStore;
 
     @Autowired
     private MeterRegistry meterRegistry;

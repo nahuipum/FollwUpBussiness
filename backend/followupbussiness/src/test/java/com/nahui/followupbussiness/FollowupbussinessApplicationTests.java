@@ -1,5 +1,6 @@
 package com.nahui.followupbussiness;
 
+import com.nahui.followupbussiness.audit.application.port.out.AuditEntryStore;
 import com.nahui.followupbussiness.identityaccess.adapter.in.cli.PlatformSuperadminBootstrapRunner;
 import com.nahui.followupbussiness.identityaccess.application.CompanyUserService;
 import com.nahui.followupbussiness.identityaccess.application.LoginService;
@@ -48,6 +49,9 @@ class FollowupbussinessApplicationTests {
 
 	@MockitoBean
 	private PlatformTransactionManager transactionManager;
+
+	@MockitoBean
+	private AuditEntryStore auditEntryStore;
 
 	@Autowired
 	private ApplicationContext applicationContext;

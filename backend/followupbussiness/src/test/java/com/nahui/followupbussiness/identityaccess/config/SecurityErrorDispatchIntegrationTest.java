@@ -1,5 +1,6 @@
 package com.nahui.followupbussiness.identityaccess.config;
 
+import com.nahui.followupbussiness.audit.application.port.out.AuditEntryStore;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.core.authority.AuthorityUtils.createAuthorityList;
@@ -44,6 +45,7 @@ class SecurityErrorDispatchIntegrationTest {
     @MockitoBean private RefreshSessionUseCase refreshSessionUseCase;
     @MockitoBean private JdbcTemplate jdbcTemplate;
     @MockitoBean private PlatformTransactionManager transactionManager;
+    @MockitoBean private AuditEntryStore auditEntryStore;
 
     @LocalServerPort
     private int port;
