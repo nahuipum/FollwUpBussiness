@@ -6,7 +6,6 @@ import com.nahui.followupbussiness.identityaccess.adapter.in.rest.RefreshRateLim
 import com.nahui.followupbussiness.identityaccess.adapter.in.rest.LoginRequestSizeFilter;
 import com.nahui.followupbussiness.identityaccess.adapter.in.rest.PasswordRecoveryRequestSizeFilter;
 import com.nahui.followupbussiness.identityaccess.adapter.in.security.InboundJwtAuthenticator;
-import com.nahui.followupbussiness.identityaccess.adapter.in.scheduling.IdentityNotificationDeliveryScheduler;
 import com.nahui.followupbussiness.identityaccess.adapter.in.scheduling.PasswordRecoveryRequestScheduler;
 import com.nahui.followupbussiness.identityaccess.adapter.out.persistence.*;
 import com.nahui.followupbussiness.identityaccess.adapter.out.security.*;
@@ -14,6 +13,7 @@ import com.nahui.followupbussiness.identityaccess.application.*;
 import com.nahui.followupbussiness.identityaccess.application.port.out.*;
 import com.nahui.followupbussiness.identityaccess.application.port.in.RefreshSessionUseCase;
 import com.nahui.followupbussiness.identityaccess.application.port.in.LogoutSessionUseCase;
+import com.nahui.followupbussiness.identityaccess.application.port.in.ListCompanyAdminInvitationsUseCase;
 import com.nahui.followupbussiness.identityaccess.application.port.in.ProvisionInitialCompanyAdminUseCase;
 import com.nahui.followupbussiness.identityaccess.domain.model.BaseRole;
 import com.nahui.followupbussiness.audit.application.port.in.RecordAuthenticationAuditUseCase;
@@ -29,9 +29,9 @@ import com.nahui.followupbussiness.notifications.application.port.in.RevokeInsta
 import com.nahui.followupbussiness.tenancy.application.port.in.CompanyAccessStatusQuery;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.*;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
@@ -128,12 +128,14 @@ public class LoginConfiguration {
 
     @Bean
     ProvisionInitialCompanyAdminUseCase provisionInitialCompanyAdminUseCase(JdbcTemplate jdbc, CompanyAccessStatusQuery companies,
-            AuthenticationProperties.Values p, RecordPlatformCompanyAuditUseCase audit, RecordCompanyDenialAuditUseCase denialAudit) {
+            AuthenticationProperties.Values p, RecordPlatformCompanyAuditUseCase audit, RecordCompanyDenialAuditUseCase denialAudit,
+            @Value("${followupbussiness.email.enabled:false}") boolean emailEnabled) {
         byte[] secret = p.getHmacSecret().getBytes(StandardCharsets.UTF_8);
         var service = new ProvisionInitialCompanyAdminService(new JdbcInitialCompanyAdminStore(jdbc), companies, new JdbcPasswordRecoveryAdapter(jdbc),
                 new JdbcIdentityNotificationAdapter(jdbc, secret), new BCryptPasswordHashingAdapter(), audit, Clock.systemUTC(), secret);
         var transaction = new TransactionTemplate(new DataSourceTransactionManager(jdbc.getDataSource()));
         return (command, actor) -> {
+            if (!emailEnabled) throw new ProvisionInitialCompanyAdminService.DeliveryUnavailable();
             try {
                 return java.util.Objects.requireNonNull(transaction.execute(status -> service.execute(command, actor)));
             } catch (ProvisionInitialCompanyAdminService.Conflict conflict) {
@@ -155,6 +157,11 @@ public class LoginConfiguration {
     }
 
     @Bean
+    ListCompanyAdminInvitationsUseCase listCompanyAdminInvitationsUseCase(JdbcTemplate jdbc) {
+        return new ListCompanyAdminInvitationsService(new JdbcCompanyAdminInvitationQuery(jdbc));
+    }
+
+    @Bean
     PasswordRecoveryRequestWorker passwordRecoveryRequestWorker(JdbcTemplate jdbc, AuthenticationProperties.Values p, PasswordRecoveryService recovery) {
         return new PasswordRecoveryRequestWorker(new JdbcPasswordRecoveryRequestAdapter(jdbc, p.getHmacSecret().getBytes(StandardCharsets.UTF_8)), recovery, Clock.systemUTC());
     }
@@ -162,19 +169,6 @@ public class LoginConfiguration {
     @Bean
     PasswordRecoveryRequestScheduler passwordRecoveryRequestScheduler(PasswordRecoveryRequestWorker worker) {
         return new PasswordRecoveryRequestScheduler(worker);
-    }
-
-    @Bean
-    @ConditionalOnBean(TransactionalEmailGateway.class)
-    IdentityNotificationDeliveryWorker identityNotificationDeliveryWorker(JdbcTemplate jdbc, AuthenticationProperties.Values p, TransactionalEmailGateway gateway) {
-        return new IdentityNotificationDeliveryWorker(new JdbcIdentityNotificationAdapter(jdbc, p.getHmacSecret().getBytes(StandardCharsets.UTF_8)), gateway,
-                Clock.systemUTC(), new Random(), Duration.ofSeconds(1), Duration.ofMinutes(5));
-    }
-
-    @Bean
-    @ConditionalOnBean(IdentityNotificationDeliveryWorker.class)
-    IdentityNotificationDeliveryScheduler identityNotificationDeliveryScheduler(IdentityNotificationDeliveryWorker worker) {
-        return new IdentityNotificationDeliveryScheduler(worker);
     }
 
     @Bean

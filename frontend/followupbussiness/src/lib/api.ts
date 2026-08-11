@@ -5,7 +5,7 @@ export class ApiConfigurationError extends Error {
   }
 }
 
-export type ApiErrorStatus = 401 | 403 | 404 | 409 | 422 | 500;
+export type ApiErrorStatus = 401 | 403 | 404 | 409 | 422 | 500 | 503;
 
 export type ApiFieldError = Readonly<{
   field: string;
@@ -30,7 +30,7 @@ type ProblemResponse = {
   fieldErrors?: unknown;
 };
 
-const handledStatuses = new Set<number>([401, 403, 404, 409, 422, 500]);
+const handledStatuses = new Set<number>([401, 403, 404, 409, 422, 500, 503]);
 const correlationIdPattern = /^[\x20-\x7e]{1,100}$/;
 const fieldPattern = /^[a-zA-Z][a-zA-Z0-9_.-]{0,63}$/;
 const apiErrorListeners = new Set<
@@ -104,17 +104,16 @@ async function publishApiError(
     apiErrorListeners.forEach((listener) => listener(error, sessionGeneration));
 }
 
-function isLocalHostname(hostname: string): boolean {
-  return (
-    hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]"
-  );
-}
-
 export function resolveApiUrl(
   apiBaseUrl: string | undefined,
   path: string,
-  allowInsecureLocalhost = false,
+  development = false,
 ): string {
+  // Development requests use a namespace that cannot collide with SPA routes.
+  // The proxy target is server-side configuration, so an old VITE_API_BASE_URL
+  // cannot make the browser bypass it (and expose the backend's CORS policy).
+  if (development) return `/api/${path.replace(/^\/+/, "")}`;
+
   if (apiBaseUrl === undefined || apiBaseUrl.trim() === "") {
     throw new ApiConfigurationError(
       "VITE_API_BASE_URL debe configurar la URL base de la API.",
@@ -126,16 +125,9 @@ export function resolveApiUrl(
       path.replace(/^\/+/, ""),
       `${apiBaseUrl.replace(/\/+$/, "")}/`,
     );
-    if (
-      url.protocol !== "https:" &&
-      !(
-        allowInsecureLocalhost &&
-        url.protocol === "http:" &&
-        isLocalHostname(url.hostname)
-      )
-    ) {
+    if (url.protocol !== "https:") {
       throw new ApiConfigurationError(
-        "VITE_API_BASE_URL solo permite HTTP para loopback durante desarrollo local.",
+        "VITE_API_BASE_URL debe usar HTTPS fuera de desarrollo.",
       );
     }
     return url.toString();
@@ -154,7 +146,11 @@ export function apiUrl(path: string): string {
   );
 }
 
-export async function apiRequest(path: string, init: RequestInit): Promise<Response> {
+export async function apiRequest(
+  path: string,
+  init: RequestInit,
+  { publishErrors = true }: { publishErrors?: boolean } = {},
+): Promise<Response> {
   const sessionGeneration = activeSessionGeneration;
   const controller = new AbortController();
   pendingRequestControllers.set(controller, sessionGeneration);
@@ -167,7 +163,8 @@ export async function apiRequest(path: string, init: RequestInit): Promise<Respo
     const response = await fetch(apiUrl(path), { ...init, signal });
     if (sessionGeneration !== activeSessionGeneration)
       throw new ApiRequestObsoleteError();
-    if (!response.ok) void publishApiError(response, sessionGeneration);
+    if (!response.ok && publishErrors)
+      void publishApiError(response, sessionGeneration);
     return response;
   } catch (error) {
     if (sessionGeneration !== activeSessionGeneration)

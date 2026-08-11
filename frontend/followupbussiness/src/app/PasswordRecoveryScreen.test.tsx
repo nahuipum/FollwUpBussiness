@@ -19,6 +19,19 @@ afterEach(() => {
 
 beforeEach(() => vi.stubEnv("VITE_API_BASE_URL", "https://backend.test"));
 
+test("actualiza cada regla de contraseña mientras se escribe", () => {
+  window.history.replaceState({}, "", `/password-reset?token=${"r".repeat(43)}`);
+  render(<App />);
+
+  fireEvent.change(screen.getByLabelText("Nueva contraseña"), {
+    target: { value: "Abcdef1!" },
+  });
+
+  for (const rule of ["Mínimo 8 caracteres", "Una letra mayúscula", "Una letra minúscula", "Un número", "Un carácter especial"]) {
+    expect(screen.getByText(rule).closest("li")?.classList.contains("is-valid")).toBe(true);
+  }
+});
+
 test("validates recovery email locally and confirms accepted requests neutrally", async () => {
   const fetchMock = vi
     .fn()
@@ -212,9 +225,11 @@ test("renders request and reset API failures directly", async () => {
   fireEvent.click(
     screen.getByRole("button", { name: "Enviar enlace de recuperación" }),
   );
-  expect((await screen.findByRole("alert")).textContent).toContain(
-    "No pudimos procesar la solicitud",
-  );
+  expect(
+    await screen.findByRole("heading", {
+      name: "Ocurrió un problema temporal",
+    }),
+  ).toBeTruthy();
   view.unmount();
 
   window.history.replaceState(

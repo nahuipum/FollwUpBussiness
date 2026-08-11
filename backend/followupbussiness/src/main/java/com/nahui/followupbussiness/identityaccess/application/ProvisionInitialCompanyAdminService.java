@@ -52,5 +52,5 @@ public final class ProvisionInitialCompanyAdminService implements ProvisionIniti
     private static String secret() { byte[] value=new byte[32]; RANDOM.nextBytes(value); return Base64.getUrlEncoder().withoutPadding().encodeToString(value); }
     private byte[] digest(String value) { try { var mac=Mac.getInstance("HmacSHA256"); mac.init(new SecretKeySpec(hmacKey,"HmacSHA256")); return mac.doFinal(value.getBytes(StandardCharsets.UTF_8)); } catch (Exception e) { throw new IllegalStateException("Unable to digest activation token",e); } }
     public static final class Forbidden extends RuntimeException { } public static final class CompanyUnavailable extends RuntimeException { }
-    public static final class Conflict extends RuntimeException { } public static final class Invalid extends RuntimeException { }
+    public static final class Conflict extends RuntimeException { } public static final class DeliveryUnavailable extends RuntimeException { } public static final class Invalid extends RuntimeException { }
 }

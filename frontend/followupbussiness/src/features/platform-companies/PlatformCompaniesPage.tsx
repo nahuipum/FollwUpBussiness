@@ -1,0 +1,342 @@
+import {
+  Building2,
+  ClipboardList,
+  LayoutDashboard,
+  Plus,
+  Settings,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { navigate } from "../../app/navigation";
+import { getSessionIdentity, subscribeToSession } from "../auth/auth";
+import {
+  ApiRequestObsoleteError,
+  normalizeApiError,
+  type ApiError,
+} from "../../lib/api";
+import { DashboardLayout } from "../../shared/layout/DashboardLayout";
+import { PasswordRecoveryBrandMark } from "../auth/components/BrandPanel";
+import {
+  createCompany,
+  listCompanyAdminInvitations,
+  listCompanies,
+  listCompanyCurrencies,
+  provisionInitialAdmin,
+} from "./api";
+import { CompanyTable } from "./components/CompanyTable";
+import { CreateCompanyModal } from "./components/CreateCompanyModal";
+import { OnboardingSuccess } from "./components/OnboardingSuccess";
+import { ProvisionAdminPanel } from "./components/ProvisionAdminPanel";
+import type {
+  Company,
+  CompanyAdminInvitation,
+  CompanyCurrency,
+  CompanyPage,
+  CompanyStatus,
+  CreateCompanyInput,
+  ProvisionInitialAdminInput,
+} from "./types";
+import "./platform-companies.css";
+
+type View = "list" | "create" | "provision" | "success";
+const pageSize = 20;
+
+export function PlatformCompaniesPage() {
+  const identity = getSessionIdentity();
+  const identityKey =
+    identity === null ? null : `${identity.id}:${String(identity.company)}`;
+  const identityRef = useRef(identityKey);
+  const loadRef = useRef(0);
+  const [view, setView] = useState<View>("list");
+  const [companies, setCompanies] = useState<readonly Company[]>([]);
+  const [page, setPage] = useState(0);
+  const [pageInfo, setPageInfo] = useState<CompanyPage["page"] | null>(null);
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState<CompanyStatus | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<ApiError | null>(null);
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [currencies, setCurrencies] = useState<readonly CompanyCurrency[]>([]);
+  const [currenciesLoading, setCurrenciesLoading] = useState(true);
+  const [currenciesUnavailable, setCurrenciesUnavailable] = useState(false);
+  const [invitations, setInvitations] = useState<readonly CompanyAdminInvitation[]>([]);
+  const [invitationsLoading, setInvitationsLoading] = useState(false);
+  const [invitationsUnavailable, setInvitationsUnavailable] = useState(false);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        const requestId = ++loadRef.current;
+        setLoading(true);
+        try {
+          const result = await listCompanies({
+            page,
+            pageSize,
+            search,
+            status,
+          });
+          if (requestId !== loadRef.current) return;
+          if (result.response.status === 200 && result.page !== null) {
+            setCompanies(result.page.items);
+            setPageInfo(result.page.page);
+            setError(null);
+          } else setError(await normalizeApiError(result.response));
+        } catch (reason) {
+          if (
+            requestId === loadRef.current &&
+            !(reason instanceof ApiRequestObsoleteError)
+          )
+            setError({ status: 500, correlationId: null, fieldErrors: [] });
+        } finally {
+          if (requestId === loadRef.current) setLoading(false);
+        }
+      })();
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [page, reloadKey, search, status]);
+  const loadCurrencies = () => {
+    setCurrenciesLoading(true);
+    setCurrenciesUnavailable(false);
+    void listCompanyCurrencies()
+      .then(({ response, currencies: options }) => {
+        if (response.status === 200 && options) setCurrencies(options);
+        else setCurrenciesUnavailable(true);
+      })
+      .catch(() => setCurrenciesUnavailable(true))
+      .finally(() => setCurrenciesLoading(false));
+  };
+  useEffect(() => {
+    void listCompanyCurrencies()
+      .then(({ response, currencies: options }) => {
+        if (response.status === 200 && options) setCurrencies(options);
+        else setCurrenciesUnavailable(true);
+      })
+      .catch(() => setCurrenciesUnavailable(true))
+      .finally(() => setCurrenciesLoading(false));
+  }, []);
+  useEffect(
+    () =>
+      subscribeToSession(() => {
+        const next = getSessionIdentity();
+        const nextKey =
+          next === null ? null : `${next.id}:${String(next.company)}`;
+        if (identityRef.current !== nextKey) {
+          loadRef.current += 1;
+          identityRef.current = nextKey;
+          setView("list");
+          setCompanies([]);
+          setPage(0);
+          setPageInfo(null);
+          setSearch("");
+          setStatus(null);
+          setSelectedCompany(null);
+          setInvitations([]);
+          setError(null);
+        }
+      }),
+    [],
+  );
+  useEffect(() => {
+    if (!selectedCompany || (view !== "provision" && view !== "success")) return;
+    let cancelled = false;
+    setInvitationsLoading(true);
+    setInvitationsUnavailable(false);
+    const loadInvitations = () => listCompanyAdminInvitations(selectedCompany.id)
+      .then(({ response, invitations: items }) => {
+        if (cancelled) return;
+        if (response.status === 200 && items !== null) setInvitations(items);
+        else setInvitationsUnavailable(true);
+      })
+      .catch(() => { if (!cancelled) setInvitationsUnavailable(true); })
+      .finally(() => { if (!cancelled) setInvitationsLoading(false); });
+    void loadInvitations();
+    const poll = window.setInterval(() => { void loadInvitations(); }, 5_000);
+    return () => { cancelled = true; window.clearInterval(poll); };
+  }, [reloadKey, selectedCompany?.id, view]);
+
+  const submitCompany = async (input: CreateCompanyInput) => {
+    setSubmitting(true);
+    setError(null);
+    try {
+      const result = await createCompany(input);
+      if (result.response.status === 201 && result.company) {
+        setSelectedCompany(result.company);
+        setView("provision");
+        setReloadKey((value) => value + 1);
+      } else setError(await normalizeApiError(result.response));
+    } catch (reason) {
+      if (!(reason instanceof ApiRequestObsoleteError))
+        setError({ status: 500, correlationId: null, fieldErrors: [] });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+  const submitAdmin = async (input: ProvisionInitialAdminInput) => {
+    if (!selectedCompany) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const response = await provisionInitialAdmin(selectedCompany.id, input);
+      if (response.status === 202) {
+        setView("success");
+        setReloadKey((value) => value + 1);
+      } else setError(await normalizeApiError(response));
+    } catch (reason) {
+      if (!(reason instanceof ApiRequestObsoleteError))
+        setError({ status: 500, correlationId: null, fieldErrors: [] });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+  const goList = () => {
+    setView("list");
+    setSelectedCompany(null);
+    setError(null);
+  };
+  const displayName = identity?.displayName ?? "";
+
+  return (
+    <DashboardLayout
+      brand={
+        <>
+          <span className="platform-logo">
+            <PasswordRecoveryBrandMark />
+          </span>
+          FollowUpBusiness
+        </>
+      }
+      contextLabel="Plataforma"
+      navigationLabel="Empresas"
+      profile={{
+        initials: displayName.slice(0, 2).toUpperCase(),
+        name: displayName,
+        role: "Superadministrador",
+        scopeLabel: "Acceso de plataforma",
+      }}
+      breadcrumbs={[
+        "Plataforma",
+        view === "provision"
+          ? "Administrador inicial"
+          : view === "success"
+            ? "Confirmación"
+            : "Empresas",
+      ]}
+      topbarContext="Plataforma"
+      navigation={[
+        {
+          id: "dashboard",
+          label: "Resumen",
+          icon: <LayoutDashboard />,
+          onSelect: () => navigate("/platform/dashboard"),
+        },
+        {
+          id: "companies",
+          label: "Gestión de empresas",
+          description: "Onboarding y gestión",
+          icon: <Building2 />,
+          active: true,
+          onSelect: goList,
+        },
+        { id: "audit", label: "Auditoría", icon: <ClipboardList /> },
+        { id: "settings", label: "Configuración", icon: <Settings /> },
+      ]}
+    >
+      {view === "provision" && selectedCompany ? (
+        <ProvisionAdminPanel
+          company={selectedCompany}
+          busy={submitting}
+          error={error}
+          invitations={invitations}
+          invitationsLoading={invitationsLoading}
+          invitationsUnavailable={invitationsUnavailable}
+          onBack={goList}
+          onSubmit={submitAdmin}
+        />
+      ) : view === "success" && selectedCompany ? (
+        <OnboardingSuccess
+          company={selectedCompany}
+          invitations={invitations}
+          invitationsLoading={invitationsLoading}
+          invitationsUnavailable={invitationsUnavailable}
+          onCompanies={goList}
+          onCreateAnother={() => {
+            setError(null);
+            setView("create");
+          }}
+        />
+      ) : (
+        <>
+          <header className="company-page-head">
+            <div>
+              <h1>Empresas</h1>
+              <p>
+                Administra el registro y onboarding inicial de las empresas
+                desde la plataforma.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="company-button company-button--primary"
+              onClick={() => {
+                setError(null);
+                setView("create");
+              }}
+            >
+              <Plus aria-hidden="true" />
+              Crear empresa
+            </button>
+          </header>
+          {error?.status === 500 ? (
+            <section className="company-empty" role="alert">
+              <h2>Ocurrió un problema temporal</h2>
+              <p>Inténtalo nuevamente en unos momentos.</p>
+              <button
+                type="button"
+                className="company-button company-button--secondary"
+                onClick={() => setReloadKey((value) => value + 1)}
+              >
+                Reintentar
+              </button>
+            </section>
+          ) : (
+            <CompanyTable
+              companies={companies}
+              page={pageInfo}
+              search={search}
+              status={status}
+              loading={loading}
+              onSearchChange={(value) => {
+                setPage(0);
+                setSearch(value);
+              }}
+              onStatusChange={(value) => {
+                setPage(0);
+                setStatus(value);
+              }}
+              onPageChange={setPage}
+              onProvision={(company) => {
+                setSelectedCompany(company);
+                setInvitations([]);
+                setError(null);
+                setView("provision");
+              }}
+            />
+          )}
+        </>
+      )}
+      {view === "create" && (
+        <CreateCompanyModal
+          busy={submitting}
+          error={error}
+          currencies={currencies}
+          currenciesLoading={currenciesLoading}
+          currenciesUnavailable={currenciesUnavailable}
+          onRetryCurrencies={loadCurrencies}
+          onClose={goList}
+          onSubmit={submitCompany}
+        />
+      )}
+    </DashboardLayout>
+  );
+}

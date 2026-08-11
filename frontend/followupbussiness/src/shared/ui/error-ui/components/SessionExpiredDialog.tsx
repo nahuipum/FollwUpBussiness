@@ -1,4 +1,5 @@
 import { LogIn, ShieldAlert, X } from "lucide-react";
+import { createPortal } from "react-dom";
 import type { VisualAction } from "./InlineAlert";
 import { CorrelationId } from "./CorrelationId";
 import "../styles/error-ui.css";
@@ -13,7 +14,7 @@ type SessionExpiredDialogProps = {
 };
 
 export function SessionExpiredDialog({ title, message, primaryAction, secondaryAction, dismissAction, correlationId }: SessionExpiredDialogProps) {
-  return (
+  return createPortal(
     <div className="error-ui-dialog-backdrop">
       <section className="error-ui-dialog" role="dialog" aria-modal="true" aria-labelledby="session-expired-title" aria-describedby="session-expired-message">
         {dismissAction && <button className="error-ui-dialog__dismiss" type="button" aria-label={dismissAction.label} onClick={dismissAction.onClick}><X aria-hidden="true" /></button>}
@@ -25,5 +26,6 @@ export function SessionExpiredDialog({ title, message, primaryAction, secondaryA
         {correlationId && <CorrelationId correlationId={correlationId} />}
       </section>
     </div>
+    , document.body
   );
 }

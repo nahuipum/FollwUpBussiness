@@ -7,16 +7,17 @@ test("resolves login against an HTTPS backend base URL", () => {
   );
 });
 
-test("allows HTTP only for loopback when local development opts in", () => {
-  expect(resolveApiUrl("http://localhost:8080", "/auth/login", true)).toBe(
-    "http://localhost:8080/auth/login",
+test("keeps every development API request on the Vite origin", () => {
+  expect(resolveApiUrl("/", "/platform/companies?page=0", true)).toBe(
+    "/api/platform/companies?page=0",
   );
-  expect(resolveApiUrl("http://127.0.0.1:8080", "/auth/login", true)).toBe(
-    "http://127.0.0.1:8080/auth/login",
+  expect(resolveApiUrl("http://localhost:8080", "/platform/companies", true)).toBe(
+    "/api/platform/companies",
   );
-  expect(() =>
-    resolveApiUrl("http://api.example.test", "/auth/login", true),
-  ).toThrow(ApiConfigurationError);
+  expect(resolveApiUrl("https://backend.example.test", "/auth/refresh", true)).toBe(
+    "/api/auth/refresh",
+  );
+  expect(resolveApiUrl(undefined, "/auth/login", true)).toBe("/api/auth/login");
 });
 
 test.each([undefined, "", "   ", "http://localhost:8080"])(

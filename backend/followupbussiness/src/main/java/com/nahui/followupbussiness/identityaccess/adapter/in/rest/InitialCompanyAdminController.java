@@ -1,6 +1,7 @@
 package com.nahui.followupbussiness.identityaccess.adapter.in.rest;
 
 import com.nahui.followupbussiness.identityaccess.application.*;
+import com.nahui.followupbussiness.identityaccess.application.port.in.ListCompanyAdminInvitationsUseCase;
 import com.nahui.followupbussiness.identityaccess.application.port.in.ProvisionInitialCompanyAdminUseCase;
 import com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,9 +22,30 @@ import org.springframework.web.bind.annotation.*;
 @ConditionalOnProperty(prefix = "followupbussiness.authentication", name = "rs256-private-key")
 public final class InitialCompanyAdminController {
     private final ProvisionInitialCompanyAdminUseCase service;
+    private final ListCompanyAdminInvitationsUseCase invitations;
 
     public InitialCompanyAdminController(ProvisionInitialCompanyAdminUseCase service) {
+        this(service, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public InitialCompanyAdminController(ProvisionInitialCompanyAdminUseCase service,
+            ListCompanyAdminInvitationsUseCase invitations) {
         this.service = service;
+        this.invitations = invitations;
+    }
+
+    @GetMapping("/{companyId}/admins")
+    ResponseEntity<?> list(@PathVariable UUID companyId, @AuthenticationPrincipal AuthenticatedActor actor,
+            HttpServletRequest servlet) {
+        UUID correlation = correlation(servlet);
+        if (invitations == null) return problem(HttpStatus.SERVICE_UNAVAILABLE, correlation);
+        try {
+            return ResponseEntity.ok().header("X-Correlation-Id", correlation.toString())
+                    .header(HttpHeaders.CACHE_CONTROL, "no-store").body(invitations.execute(companyId, actor));
+        } catch (ListCompanyAdminInvitationsService.Forbidden e) {
+            return problem(HttpStatus.FORBIDDEN, correlation);
+        }
     }
 
     @PostMapping("/{companyId}/initial-admin")
@@ -39,6 +61,8 @@ public final class InitialCompanyAdminController {
             return problem(HttpStatus.NOT_FOUND, correlation);
         } catch (ProvisionInitialCompanyAdminService.Conflict e) {
             return problem(HttpStatus.CONFLICT, correlation);
+        } catch (ProvisionInitialCompanyAdminService.DeliveryUnavailable e) {
+            return problem(HttpStatus.SERVICE_UNAVAILABLE, correlation);
         } catch (ProvisionInitialCompanyAdminService.Invalid | IllegalArgumentException e) {
             return problem(HttpStatus.BAD_REQUEST, correlation);
         }

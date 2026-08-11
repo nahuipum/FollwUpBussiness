@@ -38,12 +38,26 @@ public final class LoginRateLimiter {
         }
     }
 
+    void reset(String identifier, String remoteAddress) {
+        try {
+            redis.delete(List.of(
+                    key("identifier", identifier),
+                    key("identifier-ip", identifier + "|" + remoteAddress)));
+        } catch (RuntimeException ignored) {
+            // A successful authentication must not be turned into a failure when the ephemeral limiter is unavailable.
+        }
+    }
+
     private Decision consume(String scope, String value, long limit) {
-        List<?> result = redis.execute(INCREMENT_WINDOW, List.of("auth:rate:" + scope + ":" + hmac(value)), String.valueOf(WINDOW_SECONDS));
+        List<?> result = redis.execute(INCREMENT_WINDOW, List.of(key(scope, value)), String.valueOf(WINDOW_SECONDS));
         if (result == null || result.size() != 2 || !(result.get(0) instanceof Number count) || !(result.get(1) instanceof Number ttl)) {
             throw new IllegalStateException("Unexpected Redis rate-limit response");
         }
         return new Decision(count.longValue() <= limit, Math.max(1, ttl.longValue()));
+    }
+
+    private String key(String scope, String value) {
+        return "auth:rate:" + scope + ":" + hmac(value);
     }
 
     private String hmac(String value) {

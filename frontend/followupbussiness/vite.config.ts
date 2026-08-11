@@ -16,7 +16,6 @@ export function localHttpsCredentials(env: Record<string, string | undefined>) {
 }
 
 const defaultApiProxyTarget = 'http://localhost:8080'
-const proxiedPaths = ['/auth', '/platform', '/api'] as const
 
 function isLocalHostname(hostname: string): boolean {
   return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]'
@@ -35,7 +34,13 @@ export function resolveDevApiProxyTarget(value: string | undefined): string {
 export function developmentProxy(env: Record<string, string | undefined>) {
   const target = resolveDevApiProxyTarget(env.VITE_DEV_API_PROXY_TARGET)
   const verifyTargetCertificate = !isLocalHostname(new URL(target).hostname)
-  return Object.fromEntries(proxiedPaths.map((path) => [path, { target, secure: verifyTargetCertificate }]))
+  return {
+    '/api': {
+      target,
+      secure: verifyTargetCertificate,
+      rewrite: (path: string) => path.replace(/^\/api(?=\/|$)/, '') || '/',
+    },
+  }
 }
 
 export function developmentServer(env: Record<string, string | undefined>) {

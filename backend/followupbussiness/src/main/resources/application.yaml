@@ -1,6 +1,6 @@
 spring:
   config:
-    import: "optional:file:./.env[.properties]"
+    import: "optional:file:./.env[.properties],optional:file:./backend/followupbussiness/.env[.properties]"
   jackson:
     deserialization:
       fail-on-unknown-properties: true
@@ -28,6 +28,14 @@ spring:
     publisher-returns: true
   rabbitmq.template:
     mandatory: true
+  mail:
+    host: ${SPRING_MAIL_HOST:}
+    port: ${SPRING_MAIL_PORT:587}
+    username: ${SPRING_MAIL_USERNAME:}
+    password: ${SPRING_MAIL_PASSWORD:}
+    properties:
+      "[mail.smtp.auth]": ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH:true}
+      "[mail.smtp.starttls.enable]": ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE:true}
 
 server:
   port: ${SERVER_PORT:8080}
@@ -57,6 +65,10 @@ followupbussiness:
     audience: ${AUTH_AUDIENCE:}
     hmac-secret: ${AUTH_HMAC_SECRET:}
     web-origin: ${AUTH_WEB_ORIGIN:http://localhost:5173}
+  email:
+    enabled: ${FOLLOWUPBUSSINESS_EMAIL_ENABLED:false}
+    from: ${FOLLOWUPBUSSINESS_EMAIL_FROM:}
+    activation-url: ${FOLLOWUPBUSSINESS_EMAIL_ACTIVATION_URL:http://localhost:5173/password-reset}
   audit:
     database:
       writer-url: ${AUDIT_WRITER_URL:}

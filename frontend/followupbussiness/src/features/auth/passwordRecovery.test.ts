@@ -20,7 +20,7 @@ test("sends a neutral recovery request with the required WEB headers", async () 
     ok: true,
   });
   expect(fetchMock).toHaveBeenCalledWith(
-    "https://backend.test/auth/password-recovery-requests",
+    "/api/auth/password-recovery-requests",
     expect.objectContaining({
       method: "POST",
       credentials: "include",

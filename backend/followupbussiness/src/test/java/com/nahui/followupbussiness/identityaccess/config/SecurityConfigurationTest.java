@@ -150,6 +150,16 @@ class SecurityConfigurationTest {
     }
 
     @Test
+    void platformCompanyListingRequiresPlatformAuthority() throws Exception {
+        mockMvc.perform(get("/platform/companies"))
+                .andExpect(status().isUnauthorized());
+        when(inboundJwtAuthenticator.authenticate("seller-token")).thenReturn(
+                new org.springframework.security.authentication.UsernamePasswordAuthenticationToken("seller", "token", createAuthorityList("SELLER")));
+        mockMvc.perform(get("/platform/companies").header("Authorization", "Bearer seller-token"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void authenticationCorsAllowsOnlyTheConfiguredLocalHttpsOriginWithCredentials() throws Exception {
         mockMvc.perform(options("/auth/login")
                         .header("Origin", "https://localhost:5173")
@@ -231,6 +241,7 @@ class SecurityConfigurationTest {
                 Arguments.of(HttpMethod.PUT, "/roles/SELLER"),
                 Arguments.of(HttpMethod.PATCH, "/roles/PLATFORM_SUPERADMIN"),
                 Arguments.of(HttpMethod.POST, "/platform/superadmins/bootstrap"),
+                Arguments.of(HttpMethod.GET, "/platform/companies"),
                 Arguments.of(HttpMethod.GET, "/sellers"),
                 Arguments.of(HttpMethod.POST, "/sellers"),
                 Arguments.of(HttpMethod.GET, "/customers"),

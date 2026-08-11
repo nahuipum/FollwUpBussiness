@@ -7,6 +7,9 @@ import com.nahui.followupbussiness.tenancy.application.ChangeCompanyStatusServic
 import com.nahui.followupbussiness.tenancy.application.CreateCompanyService;
 import com.nahui.followupbussiness.tenancy.application.port.in.ChangeCompanyStatusUseCase;
 import com.nahui.followupbussiness.tenancy.application.port.in.CreateCompanyUseCase;
+import com.nahui.followupbussiness.tenancy.application.ListCompaniesService;
+import com.nahui.followupbussiness.tenancy.application.port.in.ListCompaniesUseCase;
+import com.nahui.followupbussiness.tenancy.application.port.in.ListCompanyCurrenciesUseCase;
 import com.nahui.followupbussiness.tenancy.domain.model.Company;
 import com.nahui.followupbussiness.tenancy.domain.model.CompanySettings;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,29 +23,70 @@ import jakarta.validation.constraints.Size;
 import java.net.URI;
 import java.time.Instant;
 import java.util.UUID;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.validation.annotation.Validated;
 
 @RestController
+@Validated
 @RequestMapping("/platform/companies")
-@ConditionalOnBean(CreateCompanyUseCase.class)
-public final class CompanyController {
+public class CompanyController {
     static final String CORRELATION_ID_ATTRIBUTE = "com.nahui.followupbussiness.request.correlationId";
     private final CreateCompanyUseCase service;
     private final ChangeCompanyStatusUseCase statusService;
-    public CompanyController(CreateCompanyUseCase service, ChangeCompanyStatusUseCase statusService) {
+    private final ListCompaniesUseCase listService;
+    private final ListCompanyCurrenciesUseCase currencyService;
+    @Autowired
+    public CompanyController(CreateCompanyUseCase service, ChangeCompanyStatusUseCase statusService, ListCompaniesUseCase listService, ListCompanyCurrenciesUseCase currencyService) {
         this.service = service;
         this.statusService = statusService;
+        this.listService = listService;
+        this.currencyService = currencyService;
+    }
+    CompanyController(CreateCompanyUseCase service, ChangeCompanyStatusUseCase statusService) {
+        this(service, statusService, (query, actor) -> { throw new UnsupportedOperationException("List use case is required"); }, actor -> { throw new UnsupportedOperationException("Currency use case is required"); });
+    }
+    CompanyController(CreateCompanyUseCase service, ChangeCompanyStatusUseCase statusService, ListCompaniesUseCase listService) {
+        this(service, statusService, listService, actor -> { throw new UnsupportedOperationException("Currency use case is required"); });
+    }
+
+    @GetMapping("/currencies")
+    ResponseEntity<?> currencies(@AuthenticationPrincipal AuthenticatedActor actor, HttpServletRequest servletRequest) {
+        UUID correlation = correlationId(servletRequest);
+        try { return ResponseEntity.ok().header("X-Correlation-Id", correlation.toString()).body(currencyService.execute(actor)); }
+        catch (com.nahui.followupbussiness.tenancy.application.ListCompanyCurrenciesService.AccessDeniedException e) { return problem(HttpStatus.FORBIDDEN, correlation); }
+    }
+
+    @GetMapping
+    ResponseEntity<?> list(@AuthenticationPrincipal AuthenticatedActor actor,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(200) int pageSize,
+            @RequestParam(required = false) @Size(min = 1, max = 120) String search,
+            @RequestParam(required = false) com.nahui.followupbussiness.tenancy.domain.model.CompanyStatus status,
+            HttpServletRequest servletRequest) {
+        UUID correlation = correlationId(servletRequest);
+        if (page < 0 || pageSize < 1 || pageSize > 200 || (search != null && (search.isBlank() || search.length() > 120))) {
+            return problem(HttpStatus.BAD_REQUEST, correlation);
+        }
+        try {
+            var result = listService.execute(new ListCompaniesUseCase.Query(page, pageSize, search, status), actor);
+            long totalPages = result.totalElements() == 0 ? 0 : (result.totalElements() + pageSize - 1) / pageSize;
+            return ResponseEntity.ok().header("X-Correlation-Id", correlation.toString())
+                    .body(new CompanyPageResponse(result.items().stream().map(CompanyResponse::from).toList(),
+                            new PageInfoResponse(page, pageSize, result.totalElements(), totalPages)));
+        } catch (ListCompaniesService.AccessDeniedException e) { return problem(HttpStatus.FORBIDDEN, correlation); }
     }
 
     @PostMapping
@@ -50,7 +94,7 @@ public final class CompanyController {
                              HttpServletRequest servletRequest) {
         UUID correlation = correlationId(servletRequest);
         try {
-            var result = service.execute(new CreateCompanyCommand(request.legalName(), request.tradeName(), request.code(), request.taxId(),
+            var result = service.execute(new CreateCompanyCommand(request.legalName(), request.tradeName(), request.taxId(),
                     new CompanySettings(request.settings().timezone(), request.settings().currency(), request.settings().geofenceRadiusMeters(),
                             request.settings().trackingIntervalSeconds(), 90, request.settings().saleEditWindowMinutes())), actor);
             if (result.conflict()) return problem(HttpStatus.CONFLICT, correlation);
@@ -92,7 +136,7 @@ public final class CompanyController {
     static UUID correlationId(String supplied) { try { return UUID.fromString(supplied); } catch (Exception e) { return UUID.randomUUID(); } }
 
     record CreateCompanyRequest(@NotBlank @Size(min = 2, max = 200) String legalName, @Size(max = 200) String tradeName,
-            @NotBlank @Pattern(regexp = "[A-Z0-9][A-Z0-9_-]{2,39}") String code, @Size(max = 30) String taxId,
+            @Size(max = 30) String taxId,
             @NotNull @Valid SettingsRequest settings) { }
     record ChangeCompanyStatusRequest(@NotNull com.nahui.followupbussiness.tenancy.domain.model.CompanyStatus status,
             @NotBlank @Size(min = 5, max = 500) String reason) { }
@@ -108,4 +152,6 @@ public final class CompanyController {
     }
     record SettingsResponse(String timezone, String currency, int geofenceRadiusMeters, int trackingIntervalSeconds,
             int locationRetentionDays, Integer saleEditWindowMinutes) { }
+    record CompanyPageResponse(java.util.List<CompanyResponse> items, PageInfoResponse page) { }
+    record PageInfoResponse(int page, int pageSize, long totalElements, long totalPages) { }
 }

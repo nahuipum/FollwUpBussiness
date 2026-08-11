@@ -397,6 +397,14 @@ input:focus-visible {
 .input-wrap input::placeholder {
   color: #96a4b2;
 }
+.input-wrap input:-webkit-autofill,
+.input-wrap input:-webkit-autofill:hover,
+.input-wrap input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #13293d;
+  -webkit-box-shadow: 0 0 0 1000px #fff inset;
+  box-shadow: 0 0 0 1000px #fff inset;
+  caret-color: #13293d;
+}
 .password-wrap input {
   padding-right: 4px;
 }

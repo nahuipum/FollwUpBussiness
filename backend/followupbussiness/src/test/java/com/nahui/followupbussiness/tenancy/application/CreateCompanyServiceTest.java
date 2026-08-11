@@ -10,6 +10,7 @@ import com.nahui.followupbussiness.audit.application.port.in.RecordPlatformCompa
 import com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor;
 import com.nahui.followupbussiness.identityaccess.domain.model.BaseRole;
 import com.nahui.followupbussiness.tenancy.application.port.out.CompanyCreationStore;
+import com.nahui.followupbussiness.tenancy.application.port.out.CompanyCodeGenerator;
 import com.nahui.followupbussiness.tenancy.domain.model.Company;
 import com.nahui.followupbussiness.tenancy.domain.model.CompanySettings;
 import java.time.Clock;
@@ -20,7 +21,7 @@ import org.junit.jupiter.api.Test;
 
 class CreateCompanyServiceTest {
     private final AuthenticatedActor platform = new AuthenticatedActor(UUID.randomUUID(), null, BaseRole.PLATFORM_SUPERADMIN);
-    private final CreateCompanyCommand command = new CreateCompanyCommand("Nahui SAC", null, "NAHUI", null,
+    private final CreateCompanyCommand command = new CreateCompanyCommand("Nahui SAC", null, "NAHUI",
             new CompanySettings("America/Lima", "PEN", 100, 60, 90, null));
 
     @Test void createsActiveCompanyAndAuditsTheServerGeneratedResource() {
@@ -51,7 +52,8 @@ class CreateCompanyServiceTest {
         assertThatThrownBy(() -> new CompanySettings("Invalid/Timezone", "PEN", 100, 60, 90, null)).isInstanceOf(IllegalArgumentException.class);
     }
     private static CreateCompanyService service(CompanyCreationStore store, RecordPlatformCompanyAuditUseCase audit, RecordCompanyDenialAuditUseCase denialAudit) {
-        return new CreateCompanyService(store, audit, denialAudit, Clock.fixed(Instant.parse("2026-08-05T00:00:00Z"), ZoneOffset.UTC));
+        CompanyCodeGenerator codeGenerator = () -> "EMP-000001";
+        return new CreateCompanyService(store, codeGenerator, audit, denialAudit, Clock.fixed(Instant.parse("2026-08-05T00:00:00Z"), ZoneOffset.UTC));
     }
     private static final class CapturingStore implements CompanyCreationStore { final boolean created; Company company; CapturingStore(boolean created){this.created=created;} public boolean create(Company c){company=c; return created;} }
     private static final class CapturingAudit implements RecordPlatformCompanyAuditUseCase { RecordPlatformCompanyAuditCommand command; public void record(RecordPlatformCompanyAuditCommand c){command=c;} }

@@ -2,12 +2,19 @@ package com.nahui.followupbussiness.tenancy.config;
 
 import com.nahui.followupbussiness.tenancy.adapter.out.persistence.JdbcCompanyAccessStatusQuery;
 import com.nahui.followupbussiness.tenancy.adapter.out.persistence.JdbcCompanyCreationStore;
+import com.nahui.followupbussiness.tenancy.adapter.out.persistence.JdbcCompanyCodeGenerator;
 import com.nahui.followupbussiness.tenancy.adapter.out.persistence.JdbcCompanyStatusStore;
+import com.nahui.followupbussiness.tenancy.adapter.out.persistence.JdbcCompanyListStore;
+import com.nahui.followupbussiness.tenancy.adapter.out.persistence.JdbcCompanyCurrencyCatalog;
 import com.nahui.followupbussiness.tenancy.application.ChangeCompanyStatusService;
 import com.nahui.followupbussiness.tenancy.application.CreateCompanyService;
+import com.nahui.followupbussiness.tenancy.application.ListCompaniesService;
+import com.nahui.followupbussiness.tenancy.application.ListCompanyCurrenciesService;
 import com.nahui.followupbussiness.tenancy.application.port.in.ChangeCompanyStatusUseCase;
 import com.nahui.followupbussiness.tenancy.application.port.in.CompanyAccessStatusQuery;
 import com.nahui.followupbussiness.tenancy.application.port.in.CreateCompanyUseCase;
+import com.nahui.followupbussiness.tenancy.application.port.in.ListCompaniesUseCase;
+import com.nahui.followupbussiness.tenancy.application.port.in.ListCompanyCurrenciesUseCase;
 import com.nahui.followupbussiness.audit.application.port.in.RecordPlatformCompanyAuditUseCase;
 import com.nahui.followupbussiness.audit.application.port.in.RecordCompanyDenialAuditUseCase;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -27,10 +34,20 @@ public class TenancyConfiguration {
     }
 
     @Bean
+    ListCompaniesUseCase listCompaniesUseCase(JdbcTemplate jdbcTemplate) {
+        return new ListCompaniesService(new JdbcCompanyListStore(jdbcTemplate));
+    }
+
+    @Bean
+    ListCompanyCurrenciesUseCase listCompanyCurrenciesUseCase(JdbcTemplate jdbcTemplate) {
+        return new ListCompanyCurrenciesService(new JdbcCompanyCurrencyCatalog(jdbcTemplate));
+    }
+
+    @Bean
     public CreateCompanyUseCase createCompanyUseCase(JdbcTemplate jdbcTemplate, PlatformTransactionManager transactionManager,
             RecordPlatformCompanyAuditUseCase audit,
             RecordCompanyDenialAuditUseCase denialAudit) {
-        var service = new CreateCompanyService(new JdbcCompanyCreationStore(jdbcTemplate), audit, denialAudit, Clock.systemUTC());
+        var service = new CreateCompanyService(new JdbcCompanyCreationStore(jdbcTemplate), new JdbcCompanyCodeGenerator(jdbcTemplate), audit, denialAudit, Clock.systemUTC());
         var transaction = new TransactionTemplate(transactionManager);
         return (command, actor) -> {
             var result = transaction.execute(status -> service.execute(command, actor));

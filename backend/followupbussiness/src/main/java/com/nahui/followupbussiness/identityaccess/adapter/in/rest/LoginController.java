@@ -61,6 +61,7 @@ public class LoginController {
         }
         try {
             var result = service.login(request.identifier().strip().toLowerCase(Locale.ROOT), request.password().toCharArray(), channel, client);
+            limiter.reset(request.identifier().strip().toLowerCase(Locale.ROOT), servlet.getRemoteAddr());
             metrics.counter("followupbussiness.authentication.login", "result", "success", "channel", channel).increment();
             LOG.info("operation=AUTH_LOGIN result=SUCCESS correlationId={} channel={}", correlation, channel);
             response.setHeader("Cache-Control", "no-store");

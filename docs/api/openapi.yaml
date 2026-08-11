@@ -385,6 +385,23 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/UnprocessableEntity' }
 
+  /platform/companies/currencies:
+    get:
+      tags: [Platform companies]
+      operationId: listCompanyCurrencies
+      summary: Listar monedas disponibles para crear una empresa
+      x-required-roles: [PLATFORM_SUPERADMIN]
+      responses:
+        '200':
+          description: Monedas activas del catálogo
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/CompanyCurrency' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
   /platform/companies/{companyId}:
     parameters:
       - $ref: '#/components/parameters/CompanyId'
@@ -447,7 +464,7 @@ paths:
               $ref: '#/components/schemas/ProvisionInitialAdminRequest'
       responses:
         '202':
-          description: Administrador provisionado e invitación aceptada
+          description: Administrador provisionado e invitación encolada para entrega
           content:
             application/json:
               schema: { $ref: '#/components/schemas/User' }
@@ -456,7 +473,28 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
         '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /platform/companies/{companyId}/admins:
+    parameters:
+      - $ref: '#/components/parameters/CompanyId'
+    get:
+      tags: [Platform companies]
+      operationId: listCompanyAdminInvitations
+      summary: Consultar administradores e invitaciones de una empresa
+      x-required-roles: [PLATFORM_SUPERADMIN]
+      x-story-ids: [FE-039]
+      responses:
+        '200':
+          description: Administradores y estado de su invitación
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/CompanyAdminInvitation' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
   /company/users:
     get:
@@ -2501,6 +2539,14 @@ components:
       content:
         application/problem+json:
           schema: { $ref: '#/components/schemas/ErrorResponse' }
+    ServiceUnavailable:
+      description: Dependencia temporalmente no disponible
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+        Cache-Control: { $ref: '#/components/headers/NoStore' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
     AuthRequestInvalid:
       description: Canal/origen de autenticación incompatible o solicitud mal formada
       x-error-codes: [AUTH_CLIENT_CHANNEL_INVALID, VALIDATION_FAILED]
@@ -2944,13 +2990,19 @@ components:
     CreateCompanyRequest:
       type: object
       additionalProperties: false
-      required: [legalName, code, settings]
+      required: [legalName, settings]
       properties:
         legalName: { type: string, minLength: 2, maxLength: 200 }
         tradeName: { type: string, maxLength: 200 }
-        code: { type: string, pattern: '^[A-Z0-9][A-Z0-9_-]{2,39}$' }
         taxId: { type: string, maxLength: 30 }
         settings: { $ref: '#/components/schemas/CompanySettings' }
+    CompanyCurrency:
+      type: object
+      additionalProperties: false
+      required: [code, displayName]
+      properties:
+        code: { type: string, pattern: '^[A-Z]{3}$' }
+        displayName: { type: string, maxLength: 80 }
     ChangeCompanyStatusRequest:
       type: object
       additionalProperties: false
@@ -2966,6 +3018,19 @@ components:
         displayName: { type: string, minLength: 2, maxLength: 160 }
         username: { type: string, minLength: 3, maxLength: 100 }
         email: { type: string, format: email, maxLength: 254 }
+    CompanyAdminInvitation:
+      type: object
+      additionalProperties: false
+      required: [id, displayName, email, accountStatus, deliveryStatus, createdAt, deliveryAttempts]
+      properties:
+        id: { type: string, format: uuid }
+        displayName: { type: string }
+        email: { type: string, format: email }
+        accountStatus: { type: string, enum: [INVITED, ACTIVE, INACTIVE, LOCKED] }
+        deliveryStatus: { type: string, enum: [PENDING, SENT, FAILED, ACCEPTED] }
+        createdAt: { type: string, format: date-time }
+        deliveredAt: { type: string, format: date-time, nullable: true }
+        deliveryAttempts: { type: integer, minimum: 0 }
     User:
       type: object
       additionalProperties: false

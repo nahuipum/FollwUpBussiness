@@ -1,51 +1,82 @@
 import { useCallback, useEffect, useState } from "react";
 import { navigate } from "../navigation";
 import {
-  hasSession,
   millisecondsUntilRefresh,
   refreshSession,
+  restoreSession,
   retryPendingLogout,
   subscribeToSession,
 } from "../../features/auth/auth";
 
+function isProtectedPath(path: string): boolean {
+  return (
+    path === "/platform/dashboard" ||
+    path === "/platform/companies" ||
+    path === "/company/dashboard" ||
+    path === "/supervisor/dashboard" ||
+    path === "/seller/dashboard"
+  );
+}
+
 export function useSessionRoute() {
   const [path, setPath] = useState(() => window.location.pathname);
-  const [showInvalidSession, setShowInvalidSession] = useState(
-    () => window.location.pathname !== "/" && !hasSession(),
-  );
-  const [refreshUnavailable, setRefreshUnavailable] = useState(false);
+  const [sessionState, setSessionState] = useState<
+    "checking" | "active" | "expired" | "unavailable"
+  >(() => (isProtectedPath(window.location.pathname) ? "checking" : "active"));
 
   useEffect(() => {
     const updateRoute = () => {
       const nextPath = window.location.pathname;
       setPath(nextPath);
-      setShowInvalidSession(nextPath !== "/" && !hasSession());
     };
     window.addEventListener("popstate", updateRoute);
     return () => window.removeEventListener("popstate", updateRoute);
   }, []);
 
   useEffect(() => {
+    if (!isProtectedPath(path)) return;
+    let current = true;
+    void restoreSession().then((result) => {
+      if (!current || result === "superseded") return;
+      if (result === "refreshed") {
+        setSessionState("active");
+        return;
+      }
+      setSessionState(result === "unavailable" ? "unavailable" : "expired");
+      navigate("/", { replace: true });
+    });
+    return () => {
+      current = false;
+    };
+  }, [path]);
+
+  useEffect(() => {
     let timer: number | undefined;
+    const retryRefresh = () => {
+      timer = window.setTimeout(refresh, 30_000);
+    };
+    const refresh = () => {
+      void refreshSession().then((result) => {
+        if (result === "refreshed") {
+          scheduleRefresh();
+          return;
+        }
+        if (result === "expired") {
+          setSessionState("expired");
+          navigate("/", { replace: true });
+          return;
+        }
+        if (result === "superseded") return;
+        // A transport or service failure does not prove that the user session ended.
+        // Keep the in-memory session and retry renewal instead of forcing logout.
+        retryRefresh();
+      });
+    };
     const scheduleRefresh = () => {
       if (timer !== undefined) window.clearTimeout(timer);
       const delay = millisecondsUntilRefresh();
       if (delay === null) return;
-      timer = window.setTimeout(() => {
-        void refreshSession().then((result) => {
-          if (result === "refreshed") {
-            setRefreshUnavailable(false);
-            scheduleRefresh();
-            return;
-          }
-          if (result === "expired") {
-            navigate("/", { replace: true });
-            return;
-          }
-          if (result === "superseded") return;
-          setRefreshUnavailable(true);
-        });
-      }, delay);
+      timer = window.setTimeout(refresh, delay);
     };
     const unsubscribe = subscribeToSession(scheduleRefresh);
     scheduleRefresh();
@@ -64,10 +95,7 @@ export function useSessionRoute() {
     return () => window.removeEventListener("online", retryOnReconnect);
   }, []);
 
-  const closeInvalidSession = useCallback(
-    () => setShowInvalidSession(false),
-    [],
-  );
+  const clearSessionNotice = useCallback(() => setSessionState("active"), []);
 
-  return { path, showInvalidSession, closeInvalidSession, refreshUnavailable };
+  return { path, sessionState, clearSessionNotice };
 }

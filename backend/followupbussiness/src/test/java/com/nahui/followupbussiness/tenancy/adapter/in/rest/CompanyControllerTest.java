@@ -3,6 +3,7 @@ package com.nahui.followupbussiness.tenancy.adapter.in.rest;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.nahui.followupbussiness.identityaccess.adapter.in.security.InboundJwtAuthenticationFilter;
@@ -13,6 +14,8 @@ import com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActo
 import com.nahui.followupbussiness.identityaccess.domain.model.BaseRole;
 import com.nahui.followupbussiness.tenancy.application.port.in.CreateCompanyUseCase;
 import com.nahui.followupbussiness.tenancy.application.port.in.ChangeCompanyStatusUseCase;
+import com.nahui.followupbussiness.tenancy.application.port.in.ListCompaniesUseCase;
+import com.nahui.followupbussiness.tenancy.application.ListCompaniesService;
 import com.nahui.followupbussiness.tenancy.domain.model.Company;
 import com.nahui.followupbussiness.tenancy.domain.model.CompanySettings;
 import com.nahui.followupbussiness.tenancy.domain.model.CompanyStatus;
@@ -29,6 +32,40 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 class CompanyControllerTest {
+    @Test void listReturnsTheContractPageAndForwardsFilters() throws Exception {
+        ListCompaniesUseCase listUseCase = mock(ListCompaniesUseCase.class);
+        var expectedActor = platform();
+        when(listUseCase.execute(any(), any())).thenReturn(new ListCompaniesUseCase.Result(
+                List.of(company(UUID.fromString("00000000-0000-0000-0000-000000000010"), CompanyStatus.ACTIVE)), 21));
+        MockMvc mvc = mvc(mock(CreateCompanyUseCase.class), mock(ChangeCompanyStatusUseCase.class), listUseCase, expectedActor);
+
+        mvc.perform(get("/platform/companies?page=1&pageSize=20&search=Nahui&status=ACTIVE").header("Authorization", "Bearer valid"))
+                .andExpect(status().isOk()).andExpect(header().exists("X-Correlation-Id"))
+                .andExpect(jsonPath("$.items[0].id").value("00000000-0000-0000-0000-000000000010"))
+                .andExpect(jsonPath("$.page.page").value(1)).andExpect(jsonPath("$.page.pageSize").value(20))
+                .andExpect(jsonPath("$.page.totalElements").value(21)).andExpect(jsonPath("$.page.totalPages").value(2));
+        verify(listUseCase).execute(new ListCompaniesUseCase.Query(1, 20, "Nahui", CompanyStatus.ACTIVE), expectedActor);
+    }
+
+    @Test void tenantBoundPlatformActorIsDeniedBeforeAnyCompanyListing() throws Exception {
+        ListCompaniesUseCase listUseCase = mock(ListCompaniesUseCase.class);
+        var actor = new AuthenticatedActor(UUID.randomUUID(), UUID.randomUUID(), BaseRole.PLATFORM_SUPERADMIN);
+        when(listUseCase.execute(any(), any())).thenThrow(new ListCompaniesService.AccessDeniedException());
+        MockMvc mvc = mvc(mock(CreateCompanyUseCase.class), mock(ChangeCompanyStatusUseCase.class), listUseCase, actor);
+
+        mvc.perform(get("/platform/companies").header("Authorization", "Bearer valid"))
+                .andExpect(status().isForbidden()).andExpect(header().string("Cache-Control", "no-store"));
+        verify(listUseCase).execute(new ListCompaniesUseCase.Query(0, 20, null, null), actor);
+    }
+
+    @Test void listRejectsOutOfContractPageParametersBeforeTheUseCase() throws Exception {
+        ListCompaniesUseCase listUseCase = mock(ListCompaniesUseCase.class);
+        MockMvc mvc = mvc(mock(CreateCompanyUseCase.class), mock(ChangeCompanyStatusUseCase.class), listUseCase, platform());
+
+        mvc.perform(get("/platform/companies?page=-1").header("Authorization", "Bearer valid"))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(listUseCase);
+    }
     @Test void statusTransitionReturnsTheContractCompanyAndCorrelation() throws Exception {
         UUID companyId = UUID.randomUUID();
         ChangeCompanyStatusUseCase statusUseCase = (id, command, actor) -> ChangeCompanyStatusUseCase.Result.success(company(companyId, command.status()));
@@ -92,6 +129,14 @@ class CompanyControllerTest {
         InboundJwtAuthenticator authenticator = mock(InboundJwtAuthenticator.class);
         when(authenticator.authenticate("valid")).thenReturn(UsernamePasswordAuthenticationToken.authenticated(actor, "valid", List.of()));
         return MockMvcBuilders.standaloneSetup(new CompanyController(useCase, statusUseCase)).setControllerAdvice(new CompanyValidationErrorHandler())
+                .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
+                .addFilters(new InboundJwtAuthenticationFilter(authenticator, new RestAuthenticationEntryPoint())).build();
+    }
+    private static MockMvc mvc(CreateCompanyUseCase useCase, ChangeCompanyStatusUseCase statusUseCase,
+            ListCompaniesUseCase listUseCase, AuthenticatedActor actor) {
+        InboundJwtAuthenticator authenticator = mock(InboundJwtAuthenticator.class);
+        when(authenticator.authenticate("valid")).thenReturn(UsernamePasswordAuthenticationToken.authenticated(actor, "valid", List.of()));
+        return MockMvcBuilders.standaloneSetup(new CompanyController(useCase, statusUseCase, listUseCase)).setControllerAdvice(new CompanyValidationErrorHandler())
                 .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
                 .addFilters(new InboundJwtAuthenticationFilter(authenticator, new RestAuthenticationEntryPoint())).build();
     }

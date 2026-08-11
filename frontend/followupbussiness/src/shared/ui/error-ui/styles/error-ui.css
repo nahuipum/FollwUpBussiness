@@ -23,7 +23,7 @@
 .error-ui-inline-alert__action { min-height: 40px; padding: 0 15px; border: 1px solid currentcolor; border-radius: 9px; color: inherit; background: rgb(255 255 255 / 72%); cursor: pointer; font-size: 12.5px; font-weight: 760; white-space: nowrap; }
 .error-ui-inline-alert__action:hover { background: #fff; }
 
-.error-ui-dialog-backdrop { display: grid; min-height: 404px; place-items: center; padding: 26px; background: linear-gradient(rgb(16 42 67 / 58%), rgb(16 42 67 / 58%)), linear-gradient(135deg, #e8eef4, #d9e2eb); }
+.error-ui-dialog-backdrop { position: fixed; z-index: 100; inset: 0; display: grid; min-height: 100dvh; place-items: center; padding: 26px; background: linear-gradient(rgb(16 42 67 / 58%), rgb(16 42 67 / 58%)), linear-gradient(135deg, #e8eef4, #d9e2eb); }
 .error-ui-dialog { position: relative; width: min(100%, 342px); padding: 28px 27px 23px; border: 1px solid rgb(255 255 255 / 75%); border-radius: 18px; background: #fff; box-shadow: 0 28px 80px rgb(8 28 48 / 28%); text-align: center; }
 .error-ui-dialog__dismiss { position: absolute; top: 12px; right: 13px; display: grid; width: 36px; height: 36px; place-items: center; border: 0; border-radius: 50%; color: #70849a; background: transparent; cursor: pointer; }
 .error-ui-dialog__dismiss:hover { background: #f2f5f8; }

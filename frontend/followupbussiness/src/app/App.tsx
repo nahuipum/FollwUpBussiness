@@ -1,6 +1,5 @@
 import { useEffect, useLayoutEffect, useState } from "react";
 import { LoginScreen } from "../features/auth/components/LoginScreen";
-import { InvalidSessionDialog } from "../features/auth/components/InvalidSessionDialog";
 import { PasswordRecoveryScreen } from "../features/auth/components/PasswordRecoveryScreen";
 import { SessionStatusPage } from "./components/SessionStatusPage";
 import { navigate } from "./navigation";
@@ -8,10 +7,10 @@ import { useSessionRoute } from "./hooks/useSessionRoute";
 import { canAccessPath, hasSession, logout } from "../features/auth/auth";
 import { ErrorState, InlineAlert, SessionExpiredDialog } from "../shared/ui/error-ui/components";
 import { useGlobalApiError } from "../shared/ui/error-ui/useGlobalApiError";
+import { PlatformCompaniesPage } from "../features/platform-companies/PlatformCompaniesPage";
 
 export function App() {
-  const { path, showInvalidSession, closeInvalidSession, refreshUnavailable } =
-    useSessionRoute();
+  const { path, sessionState, clearSessionNotice } = useSessionRoute();
   const { error, clearError } = useGlobalApiError();
 
   useEffect(() => {
@@ -43,7 +42,6 @@ export function App() {
     return <ErrorState variant={configuration.variant} title={configuration.title} message={configuration.message} {...(error.correlationId === null ? {} : { correlationId: error.correlationId })} primaryAction={{ label: configuration.action, onClick: () => { clearError(); navigate("/", { replace: true }); } }} />;
   }
 
-  if (path === "/") return <LoginScreen />;
   if (path === "/password-recovery")
     return <PasswordRecoveryScreen route="request" token={null} />;
   if (path === "/password-recovery/confirmation")
@@ -52,7 +50,29 @@ export function App() {
   if (path === "/password-reset/success")
     return <PasswordRecoveryScreen route="success" token={null} />;
 
+  // A protected reload restores the in-memory session from the HttpOnly cookie.
+  // Keep its panel unmounted until that check finishes, without flashing UI.
+  if (sessionState === "checking") return null;
+
+  if (sessionState === "expired" || sessionState === "unavailable") {
+    const unavailable = sessionState === "unavailable";
+    return (
+      <>
+        <LoginScreen />
+        <SessionExpiredDialog
+          title={unavailable ? "No pudimos renovar tu sesión" : "Tu sesión terminó"}
+          message={unavailable ? "No pudimos verificar tu sesión. Por seguridad, inicia sesión nuevamente para continuar." : "Tu sesión expiró, fue revocada o ya no está disponible. Inicia sesión nuevamente para continuar."}
+          primaryAction={{ label: "Ir al inicio de sesión", onClick: clearSessionNotice }}
+        />
+      </>
+    );
+  }
+
+  if (path === "/") return <LoginScreen />;
+
   if (hasSession() && canAccessPath(path)) {
+    if (path === "/platform/companies")
+      return <PlatformCompaniesPage />;
     return (
       <>
         {error && <InlineAlert variant={error.status === 409 ? "warning" : "error"} title={error.status === 409 ? "La información cambió" : "Revisa la información ingresada"} message={error.status === 409 ? "Actualiza la información y revisa los cambios antes de continuar." : error.fieldErrors.length > 0 ? "Revisa los campos señalados e inténtalo nuevamente." : "No pudimos validar la información. Revísala e inténtalo nuevamente."} {...(error.correlationId === null ? {} : { correlationId: error.correlationId })} action={error.status === 409 ? { label: "Recargar y revisar", onClick: () => { clearError(); navigate(path, { replace: true }); } } : { label: "Cerrar aviso", onClick: clearError }} />}
@@ -70,31 +90,14 @@ export function App() {
     );
   }
 
-  if (refreshUnavailable) {
-    return (
-      <SessionStatusPage
-        eyebrow="Sesión no verificada"
-        title="No pudimos renovar tu sesión"
-        description="Por seguridad se cerró la sesión local. Verifica tu conexión e inicia sesión nuevamente."
-        actionLabel="Ir al inicio de sesión"
-        onAction={() => navigate("/", { replace: true })}
-      />
-    );
-  }
-
   return (
-    <>
-      {showInvalidSession && (
-        <InvalidSessionDialog onClose={closeInvalidSession} />
-      )}
-      <SessionStatusPage
-        eyebrow="Acceso no disponible"
-        title="Inicia sesión para continuar"
-        description="Tu sesión no está disponible o no tienes permiso para acceder a esta ruta."
-        actionLabel="Ir al inicio de sesión"
-        onAction={() => navigate("/")}
-      />
-    </>
+    <SessionStatusPage
+      eyebrow="Acceso no disponible"
+      title="Inicia sesión para continuar"
+      description="Tu sesión no está disponible o no tienes permiso para acceder a esta ruta."
+      actionLabel="Ir al inicio de sesión"
+      onAction={() => navigate("/")}
+    />
   );
 }
 

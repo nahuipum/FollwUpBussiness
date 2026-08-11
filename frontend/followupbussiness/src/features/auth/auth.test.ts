@@ -6,7 +6,10 @@ import {
   login,
   logout,
   refreshSession,
+  restoreSession,
+  retryPendingLogout,
 } from "./auth";
+import { subscribeToApiErrors } from "../../lib/api";
 
 const webResponse = {
   channel: "WEB",
@@ -31,10 +34,11 @@ afterEach(() => {
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
   window.localStorage.clear();
+  window.sessionStorage.clear();
 });
 
-test("sends the contractual WEB login request to the configured final URL", async () => {
-  vi.stubEnv("VITE_API_BASE_URL", "https://localhost:8080");
+test("keeps the WEB login request on Vite even with an old backend URL", async () => {
+  vi.stubEnv("VITE_API_BASE_URL", "http://localhost:8080");
   const fetchMock = vi
     .fn()
     .mockResolvedValue(
@@ -48,7 +52,7 @@ test("sends the contractual WEB login request to the configured final URL", asyn
 
   expect(fetchMock).toHaveBeenCalledOnce();
   expect(fetchMock).toHaveBeenCalledWith(
-    "https://localhost:8080/auth/login",
+    "/api/auth/login",
     expect.objectContaining({
       method: "POST",
       credentials: "include",
@@ -65,22 +69,10 @@ test("sends the contractual WEB login request to the configured final URL", asyn
   );
 });
 
-test("fails safely when API base URL is missing or the response is semantically invalid", async () => {
-  vi.stubEnv("VITE_API_BASE_URL", "");
+test("fails safely when the response is semantically invalid", async () => {
+  vi.stubEnv("VITE_API_BASE_URL", "http://backend.test");
   const fetchMock = vi.fn();
   vi.stubGlobal("fetch", fetchMock);
-  await expect(
-    login({ identifier: "seller@example.com", password: "correct-password" }),
-  ).resolves.toMatchObject({ ok: false });
-  expect(fetchMock).not.toHaveBeenCalled();
-
-  vi.stubEnv("VITE_API_BASE_URL", "http://backend.test");
-  await expect(
-    login({ identifier: "seller@example.com", password: "correct-password" }),
-  ).resolves.toMatchObject({ ok: false });
-  expect(fetchMock).not.toHaveBeenCalled();
-
-  vi.stubEnv("VITE_API_BASE_URL", "https://backend.test");
   fetchMock.mockResolvedValueOnce(
     new Response(JSON.stringify({ channel: "WEB" }), { status: 200 }),
   );
@@ -88,6 +80,7 @@ test("fails safely when API base URL is missing or the response is semantically 
   await expect(
     login({ identifier: "seller@example.com", password: "correct-password" }),
   ).resolves.toMatchObject({ ok: false });
+  expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/auth/login");
 });
 
 test("returns the generic error for an HTTP failure without exposing credentials", async () => {
@@ -122,7 +115,7 @@ test("renews WEB credentials once with the in-memory CSRF token", async () => {
 
   expect(fetchMock).toHaveBeenCalledTimes(2);
   expect(fetchMock.mock.calls[1]).toEqual([
-    "https://backend.test/auth/refresh",
+    "/api/auth/refresh",
     expect.objectContaining({
       method: "POST",
       credentials: "include",
@@ -132,6 +125,50 @@ test("renews WEB credentials once with the in-memory CSRF token", async () => {
       }),
     }),
   ]);
+});
+
+test("restores a WEB session after reload using only the per-tab CSRF value", async () => {
+  vi.stubEnv("VITE_API_BASE_URL", "https://backend.test");
+  window.sessionStorage.setItem("followupbusiness.csrf-token", "c".repeat(43));
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValue(new Response(JSON.stringify(webResponse), { status: 200 }));
+  vi.stubGlobal("fetch", fetchMock);
+
+  await expect(restoreSession()).resolves.toBe("refreshed");
+  expect(canAccessPath("/seller/dashboard")).toBe(true);
+  expect(fetchMock).toHaveBeenCalledWith(
+    "/api/auth/refresh",
+    expect.objectContaining({
+      method: "POST",
+      credentials: "include",
+      headers: expect.objectContaining({
+        "X-Auth-Client": "WEB",
+        "X-CSRF-Token": "c".repeat(43),
+      }),
+    }),
+  );
+});
+
+test("uses one refresh request when restoration is triggered twice", async () => {
+  vi.stubEnv("VITE_API_BASE_URL", "https://backend.test");
+  window.sessionStorage.setItem("followupbusiness.csrf-token", "c".repeat(43));
+  let resolveResponse: (response: Response) => void = () => undefined;
+  const response = new Promise<Response>((resolve) => {
+    resolveResponse = resolve;
+  });
+  const fetchMock = vi.fn().mockReturnValue(response);
+  vi.stubGlobal("fetch", fetchMock);
+
+  const first = restoreSession();
+  const second = restoreSession();
+  resolveResponse(new Response(JSON.stringify(webResponse), { status: 200 }));
+
+  await expect(Promise.all([first, second])).resolves.toEqual([
+    "refreshed",
+    "refreshed",
+  ]);
+  expect(fetchMock).toHaveBeenCalledOnce();
 });
 
 test.each([401, 403, 409])(
@@ -151,6 +188,43 @@ test.each([401, 403, 409])(
     expect(canAccessPath("/seller/dashboard")).toBe(false);
   },
 );
+
+test("keeps an active session when renewal is temporarily unavailable", async () => {
+  vi.stubEnv("VITE_API_BASE_URL", "https://backend.test");
+  vi.stubGlobal(
+    "fetch",
+    vi
+      .fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify(webResponse), { status: 200 }))
+      .mockResolvedValueOnce(new Response(null, { status: 503 })),
+  );
+  await login({ identifier: "seller@example.com", password: "correct-password" });
+
+  await expect(refreshSession()).resolves.toBe("unavailable");
+  expect(canAccessPath("/seller/dashboard")).toBe(true);
+});
+
+test("mantiene pendiente el logout 404 sin publicar un ErrorState global", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi
+      .fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify(webResponse), { status: 200 }))
+      .mockResolvedValueOnce(new Response(null, { status: 404 }))
+      .mockResolvedValueOnce(new Response(null, { status: 404 })),
+  );
+  const errors: number[] = [];
+  const unsubscribe = subscribeToApiErrors((error) => errors.push(error.status));
+
+  await login({ identifier: "seller@example.com", password: "correct-password" });
+  await logout();
+  await expect(retryPendingLogout()).resolves.toBe(false);
+  await Promise.resolve();
+  await Promise.resolve();
+
+  expect(errors).toEqual([]);
+  unsubscribe();
+});
 
 test("does not restore a late refresh after logout and a tenant-changing login", async () => {
   vi.stubEnv("VITE_API_BASE_URL", "https://backend.test");

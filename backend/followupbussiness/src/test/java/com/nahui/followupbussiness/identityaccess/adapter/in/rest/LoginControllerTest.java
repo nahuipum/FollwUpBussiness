@@ -23,6 +23,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -86,6 +88,65 @@ class LoginControllerTest {
                 .andExpect(jsonPath("$.refreshToken").value("refresh-secret"))
                 .andExpect(jsonPath("$.sessionRevocationTicket").value("revocation-ticket"))
                 .andExpect(jsonPath("$.csrfToken").doesNotExist());
+    }
+
+    @Test
+    void successfulLoginClearsPriorRateLimitCountersSoTheNextLoginStartsFresh() throws Exception {
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        when(redis.execute(any(), anyList(), anyString())).thenReturn(List.of(5L, 900L));
+        LoginService service = mock(LoginService.class);
+        when(service.login(anyString(), any(char[].class), anyString(), any(UUID.class)))
+                .thenReturn(result("MOBILE"));
+        MockMvc mvc = MockMvcBuilders.standaloneSetup(new LoginController(
+                service, origin -> "https://web.example.test".equals(origin), new SimpleMeterRegistry(),
+                new LoginRateLimiter(redis, hmacKey())))
+                .build();
+
+        mvc.perform(login("MOBILE"))
+                .andExpect(status().isOk());
+
+        verify(redis).delete(org.mockito.ArgumentMatchers.<String>anyList());
+    }
+
+    @Test
+    void failedOrRateLimitedLoginDoesNotClearRateLimitCounters() throws Exception {
+        StringRedisTemplate failedRedis = mock(StringRedisTemplate.class);
+        when(failedRedis.execute(any(), anyList(), anyString())).thenReturn(List.of(1L, 900L));
+        LoginService failedService = mock(LoginService.class);
+        when(failedService.login(anyString(), any(char[].class), anyString(), any(UUID.class)))
+                .thenThrow(new LoginService.LoginFailedException());
+        MockMvc failedMvc = MockMvcBuilders.standaloneSetup(new LoginController(
+                failedService, origin -> "https://web.example.test".equals(origin), new SimpleMeterRegistry(),
+                new LoginRateLimiter(failedRedis, hmacKey())))
+                .build();
+
+        failedMvc.perform(login("MOBILE"))
+                .andExpect(status().isUnauthorized());
+        verify(failedRedis, never()).delete(org.mockito.ArgumentMatchers.<String>anyList());
+
+        StringRedisTemplate limitedRedis = mock(StringRedisTemplate.class);
+        when(limitedRedis.execute(any(), anyList(), anyString())).thenReturn(List.of(6L, 321L));
+        MockMvc limitedMvc = MockMvcBuilders.standaloneSetup(new LoginController(
+                mock(LoginService.class), origin -> "https://web.example.test".equals(origin), new SimpleMeterRegistry(),
+                new LoginRateLimiter(limitedRedis, hmacKey())))
+                .build();
+
+        limitedMvc.perform(login("MOBILE"))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(header().string("Retry-After", "321"));
+        verify(limitedRedis, never()).delete(org.mockito.ArgumentMatchers.<String>anyList());
+
+        StringRedisTemplate unavailableRedis = mock(StringRedisTemplate.class);
+        when(unavailableRedis.execute(any(), anyList(), anyString())).thenThrow(new IllegalStateException("down"));
+        MockMvc unavailableMvc = MockMvcBuilders.standaloneSetup(new LoginController(
+                mock(LoginService.class), origin -> "https://web.example.test".equals(origin), new SimpleMeterRegistry(),
+                new LoginRateLimiter(unavailableRedis, hmacKey())))
+                .build();
+
+        unavailableMvc.perform(login("MOBILE"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(header().string("Retry-After", "60"));
+        verify(unavailableRedis, never()).delete(org.mockito.ArgumentMatchers.<String>anyList());
     }
 
     @Test

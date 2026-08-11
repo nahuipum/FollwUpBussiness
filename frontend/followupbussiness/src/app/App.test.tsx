@@ -44,6 +44,7 @@ afterEach(() => {
   vi.unstubAllEnvs();
   vi.useRealTimers();
   window.localStorage.removeItem("followupbusiness.logout-pending");
+  window.sessionStorage.clear();
   window.history.replaceState({}, "", "/");
 });
 
@@ -208,7 +209,7 @@ test("closes a cookie-bearing invalid 200 without navigating or retaining a loca
   expect(canAccessPath("/seller/dashboard")).toBe(false);
   expect(fetchMock).toHaveBeenCalledTimes(2);
   expect(fetchMock.mock.calls[1]).toEqual([
-    "https://backend.test/auth/logout",
+    "/api/auth/logout",
     expect.objectContaining({
       method: "POST",
       credentials: "include",
@@ -315,6 +316,98 @@ test("redirects once to login after a terminal scheduled refresh", async () => {
   expect(window.location.pathname).toBe("/");
   expect(hasSession()).toBe(false);
   expect(fetchMock).toHaveBeenCalledTimes(2);
+});
+
+test("restores the protected route after a reload before rendering its panel", async () => {
+  window.history.replaceState({}, "", "/seller/dashboard");
+  window.sessionStorage.setItem("followupbusiness.csrf-token", "c".repeat(43));
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValueOnce(
+      new Response(JSON.stringify(webResponse("SELLER")), { status: 200 }),
+    );
+  vi.stubGlobal("fetch", fetchMock);
+
+  render(<App />);
+
+  await waitFor(() =>
+    expect(screen.getByText("Sesión iniciada")).toBeTruthy(),
+  );
+  expect(fetchMock).toHaveBeenCalledWith(
+    "/api/auth/refresh",
+    expect.objectContaining({
+      headers: expect.objectContaining({ "X-CSRF-Token": "c".repeat(43) }),
+    }),
+  );
+  expect(screen.queryByRole("dialog", { name: "Tu sesión terminó" })).toBeNull();
+});
+
+test("does not show a session-restoration screen or load companies during a protected reload", async () => {
+  window.history.replaceState({}, "", "/platform/companies");
+  window.sessionStorage.setItem("followupbusiness.csrf-token", "c".repeat(43));
+  let resolveRefresh: (response: Response) => void = () => undefined;
+  const refresh = new Promise<Response>((resolve) => {
+    resolveRefresh = resolve;
+  });
+  const fetchMock = vi.fn().mockReturnValueOnce(refresh);
+  vi.stubGlobal("fetch", fetchMock);
+
+  render(<App />);
+
+  expect(screen.queryByText("Estamos restaurando tu sesión")).toBeNull();
+  expect(fetchMock).toHaveBeenCalledOnce();
+  expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/auth/refresh");
+
+  resolveRefresh(new Response(null, { status: 401 }));
+
+  await waitFor(() =>
+    expect(screen.getByRole("dialog", { name: "Tu sesión terminó" })).toBeTruthy(),
+  );
+  expect(fetchMock).toHaveBeenCalledOnce();
+  expect(fetchMock.mock.calls.some(([url]) => String(url).includes("/platform/companies"))).toBe(false);
+});
+
+test("preserves the pending platform dashboard instead of rendering empresas", async () => {
+  const fetchMock = vi.fn().mockResolvedValue(
+    new Response(JSON.stringify(webResponse("PLATFORM_SUPERADMIN")), { status: 200 }),
+  );
+  vi.stubGlobal("fetch", fetchMock);
+  await login({ identifier: "platform@example.com", password: "correct-password" });
+  window.history.replaceState({}, "", "/platform/dashboard");
+
+  render(<App />);
+
+  await waitFor(() => expect(screen.getByText("Sesión iniciada")).toBeTruthy());
+  expect(screen.queryByRole("heading", { name: "Empresas" })).toBeNull();
+});
+
+test("explains an expired session on a protected reload and redirects to login", async () => {
+  window.history.replaceState({}, "", "/seller/dashboard");
+  render(<App />);
+
+  await waitFor(() =>
+    expect(screen.getByRole("dialog", { name: "Tu sesión terminó" })).toBeTruthy(),
+  );
+  expect(screen.getByText(/Tu sesión expiró, fue revocada/i)).toBeTruthy();
+  expect(window.location.pathname).toBe("/");
+  fireEvent.click(screen.getByRole("button", { name: "Ir al inicio de sesión" }));
+  expect(screen.queryByRole("dialog", { name: "Tu sesión terminó" })).toBeNull();
+});
+
+test("shows the shared renewal dialog when a protected reload cannot be renewed", async () => {
+  window.history.replaceState({}, "", "/seller/dashboard");
+  window.sessionStorage.setItem("followupbusiness.csrf-token", "c".repeat(43));
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 500 })));
+
+  render(<App />);
+
+  await waitFor(() =>
+    expect(
+      screen.getByRole("dialog", { name: "No pudimos renovar tu sesión" }),
+    ).toBeTruthy(),
+  );
+  expect(screen.getByText(/No pudimos verificar tu sesión/i)).toBeTruthy();
+  expect(window.location.pathname).toBe("/");
 });
 
 test("clears one active session and shows the expired-session flow after an API 401", async () => {

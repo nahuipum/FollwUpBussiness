@@ -9,6 +9,7 @@ import com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActo
 import com.nahui.followupbussiness.identityaccess.domain.model.BaseRole;
 import com.nahui.followupbussiness.tenancy.application.port.in.CreateCompanyUseCase;
 import com.nahui.followupbussiness.tenancy.application.port.out.CompanyCreationStore;
+import com.nahui.followupbussiness.tenancy.application.port.out.CompanyCodeGenerator;
 import com.nahui.followupbussiness.tenancy.domain.model.Company;
 import com.nahui.followupbussiness.tenancy.domain.model.CompanyStatus;
 import java.time.Clock;
@@ -17,12 +18,13 @@ import java.util.UUID;
 
 public final class CreateCompanyService implements CreateCompanyUseCase {
     private final CompanyCreationStore store;
+    private final CompanyCodeGenerator codeGenerator;
     private final RecordPlatformCompanyAuditUseCase audit;
     private final RecordCompanyDenialAuditUseCase denialAudit;
     private final Clock clock;
-    public CreateCompanyService(CompanyCreationStore store, RecordPlatformCompanyAuditUseCase audit,
+    public CreateCompanyService(CompanyCreationStore store, CompanyCodeGenerator codeGenerator, RecordPlatformCompanyAuditUseCase audit,
             RecordCompanyDenialAuditUseCase denialAudit, Clock clock) {
-        this.store = store; this.audit = audit; this.denialAudit = denialAudit; this.clock = clock;
+        this.store = store; this.codeGenerator = codeGenerator; this.audit = audit; this.denialAudit = denialAudit; this.clock = clock;
     }
     @Override public Result execute(CreateCompanyCommand command, AuthenticatedActor actor) {
         if (actor == null || actor.role() != BaseRole.PLATFORM_SUPERADMIN)
@@ -32,7 +34,7 @@ public final class CreateCompanyService implements CreateCompanyUseCase {
             return Result.deniedResult();
         }
         Instant now = clock.instant(); UUID id = UUID.randomUUID();
-        Company company = new Company(id, command.legalName(), command.tradeName(), command.code(), command.taxId(), CompanyStatus.ACTIVE,
+        Company company = new Company(id, command.legalName(), command.tradeName(), codeGenerator.nextCode(), command.taxId(), CompanyStatus.ACTIVE,
                 command.settings(), now, now, 1);
         if (!store.create(company)) {
             audit.record(new RecordPlatformCompanyAuditCommand(id, AuditResult.ERROR));

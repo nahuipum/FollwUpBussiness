@@ -46,11 +46,16 @@ let refreshInFlight: {
   generation: number;
   promise: Promise<RefreshResult>;
 } | null = null;
+let restoreInFlight: {
+  generation: number;
+  promise: Promise<RefreshResult>;
+} | null = null;
 const sessionListeners = new Set<() => void>();
 
 const genericError =
   "No fue posible iniciar sesión. Verifica tus credenciales e inténtalo nuevamente.";
 const logoutPendingKey = "followupbusiness.logout-pending";
+const csrfStorageKey = "followupbusiness.csrf-token";
 
 function retryAfterSeconds(value: string | null): number | null {
   if (value === null) return null;
@@ -91,6 +96,7 @@ function notifySessionChange() {
 }
 
 function createSession(response: LoginResponse): Session {
+  persistCsrfToken(response.csrfToken);
   return {
     accessToken: response.credentials.accessToken,
     csrfToken: response.csrfToken,
@@ -98,6 +104,39 @@ function createSession(response: LoginResponse): Session {
     user: response.user,
     expiresAt: Date.now() + response.credentials.expiresIn * 1000,
   };
+}
+
+/**
+ * The CSRF value is not a credential: it only proves that a same-origin page
+ * intentionally uses the HttpOnly refresh cookie. Keeping it per tab lets a
+ * hard reload restore the in-memory access session without persisting either
+ * access or refresh tokens.
+ */
+function persistCsrfToken(csrfToken: string): void {
+  try {
+    window.sessionStorage.setItem(csrfStorageKey, csrfToken);
+  } catch {
+    // A reload will require login when session storage is unavailable.
+  }
+}
+
+function storedCsrfToken(): string | null {
+  try {
+    const value = window.sessionStorage.getItem(csrfStorageKey);
+    return value !== null && value.length >= 43 && value.length <= 128
+      ? value
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function clearStoredCsrfToken(): void {
+  try {
+    window.sessionStorage.removeItem(csrfStorageKey);
+  } catch {
+    // There is no local credential to clean up.
+  }
 }
 
 export function subscribeToSession(listener: () => void): () => void {
@@ -227,6 +266,8 @@ export function clearSession() {
   setApiSessionGeneration(sessionGeneration);
   session = null;
   refreshInFlight = null;
+  restoreInFlight = null;
+  clearStoredCsrfToken();
   setLogoutPending(false);
   notifySessionChange();
 }
@@ -243,8 +284,24 @@ export function getSessionIdentity(): Readonly<LoginResponse["user"]> | null {
   return session?.user ?? null;
 }
 
+/** Provides the current in-memory bearer value only to authenticated feature transport. */
+export function getSessionAuthorization(): HeadersInit {
+  return session === null ? {} : { Authorization: `Bearer ${session.accessToken}` };
+}
+
+/** Adds the per-session CSRF proof required by authenticated write operations. */
+export function getSessionMutationAuthorization(): HeadersInit {
+  return session === null
+    ? {}
+    : {
+        Authorization: `Bearer ${session.accessToken}`,
+        "X-CSRF-Token": session.csrfToken,
+      };
+}
+
 export function canAccessPath(path: string): boolean {
   const requiredRole: Record<string, UserRole> = {
+    "/platform/dashboard": "PLATFORM_SUPERADMIN",
     "/platform/companies": "PLATFORM_SUPERADMIN",
     "/company/dashboard": "COMPANY_ADMIN",
     "/supervisor/dashboard": "SUPERVISOR",
@@ -276,14 +333,13 @@ export function refreshSession(): Promise<RefreshResult> {
           "X-Client-Instance-Id": getClientInstanceId(),
           "X-CSRF-Token": currentSession.csrfToken,
         },
-      });
+      }, { publishErrors: false });
       if (!isCurrentSession()) return "superseded";
       if (response.status === 401 || response.status === 403 || response.status === 409) {
         clearSession();
         return "expired";
       }
       if (response.status !== 200) {
-        clearSession();
         return "unavailable";
       }
 
@@ -306,13 +362,66 @@ export function refreshSession(): Promise<RefreshResult> {
       return "refreshed";
     } catch {
       if (!isCurrentSession()) return "superseded";
-      clearSession();
       return "unavailable";
     } finally {
       if (refreshInFlight?.generation === generation) refreshInFlight = null;
     }
   })();
   refreshInFlight = { generation, promise };
+  return promise;
+}
+
+/** Restores an in-memory WEB session after a reload using the HttpOnly cookie. */
+export function restoreSession(): Promise<RefreshResult> {
+  if (session !== null) return Promise.resolve("refreshed");
+  if (hasPendingLogout()) return Promise.resolve("expired");
+
+  const csrfToken = storedCsrfToken();
+  if (csrfToken === null) return Promise.resolve("expired");
+  const generation = sessionGeneration;
+  if (restoreInFlight?.generation === generation)
+    return restoreInFlight.promise;
+
+  const promise = (async (): Promise<RefreshResult> => {
+    try {
+      const response = await apiRequest("/auth/refresh", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "X-Auth-Client": "WEB",
+          "X-Client-Instance-Id": getClientInstanceId(),
+          "X-CSRF-Token": csrfToken,
+        },
+      }, { publishErrors: false });
+      if (generation !== sessionGeneration) return "superseded";
+      if (response.status === 401 || response.status === 403 || response.status === 409) {
+        clearSession();
+        return "expired";
+      }
+      if (response.status !== 200) {
+        clearSession();
+        return "unavailable";
+      }
+
+      const body: unknown = await response.json().catch(() => null);
+      if (generation !== sessionGeneration) return "superseded";
+      if (!isLoginResponse(body)) {
+        clearSession();
+        return "expired";
+      }
+
+      session = createSession(body);
+      notifySessionChange();
+      return "refreshed";
+    } catch {
+      if (generation !== sessionGeneration) return "superseded";
+      clearSession();
+      return "unavailable";
+    } finally {
+      if (restoreInFlight?.generation === generation) restoreInFlight = null;
+    }
+  })();
+  restoreInFlight = { generation, promise };
   return promise;
 }
 
@@ -332,7 +441,7 @@ export async function logout(): Promise<void> {
         "X-Client-Instance-Id": getClientInstanceId(),
         "X-CSRF-Token": currentSession.csrfToken,
       },
-    });
+    }, { publishErrors: false });
     if (response.status === 204) setLogoutPending(false);
   } catch {
     // The non-secret pending marker is retried only as a logout operation.
@@ -350,7 +459,7 @@ export async function retryPendingLogout(): Promise<boolean> {
         "X-Client-Instance-Id": getClientInstanceId(),
         "X-Logout-Intent": "PENDING",
       },
-    });
+    }, { publishErrors: false });
     if (response.status !== 204) return false;
     setLogoutPending(false);
     return true;

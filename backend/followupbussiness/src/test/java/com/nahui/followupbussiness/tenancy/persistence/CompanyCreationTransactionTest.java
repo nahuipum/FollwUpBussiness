@@ -15,6 +15,7 @@ import com.nahui.followupbussiness.audit.adapter.out.security.SecurityContextCom
 import com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor;
 import com.nahui.followupbussiness.identityaccess.domain.model.BaseRole;
 import com.nahui.followupbussiness.tenancy.adapter.out.persistence.JdbcCompanyCreationStore;
+import com.nahui.followupbussiness.tenancy.adapter.out.persistence.JdbcCompanyCodeGenerator;
 import com.nahui.followupbussiness.tenancy.application.CreateCompanyCommand;
 import com.nahui.followupbussiness.tenancy.application.CreateCompanyService;
 import com.nahui.followupbussiness.tenancy.config.TenancyConfiguration;
@@ -106,14 +107,14 @@ class CompanyCreationTransactionTest {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM tenancy_company_settings", Integer.class)).isZero();
         assertThat(jdbc.queryForObject("SELECT count(*) FROM audit_entry", Integer.class)).isZero();
     }
-    @Test void concurrentCreatesOfTheSameCodeProduceOneCompanyAndOneConflict() throws Exception {
+    @Test void concurrentCreatesGenerateDistinctServerCodes() throws Exception {
         RecordPlatformCompanyAuditUseCase audit = audit(); CountDownLatch gate = new CountDownLatch(1);
         try (var pool = Executors.newFixedThreadPool(2)) {
             var first = pool.submit(() -> concurrentCreate(audit, gate)); var second = pool.submit(() -> concurrentCreate(audit, gate)); gate.countDown();
-            assertThat(List.of(first.get(), second.get())).containsExactlyInAnyOrder(false, true);
+            assertThat(List.of(first.get(), second.get())).containsExactly(false, false);
         }
-        assertThat(jdbc.queryForObject("SELECT count(*) FROM tenancy_company", Integer.class)).isEqualTo(1);
-        assertThat(jdbc.queryForObject("SELECT count(*) FROM tenancy_company_settings", Integer.class)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM tenancy_company", Integer.class)).isEqualTo(2);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM tenancy_company_settings", Integer.class)).isEqualTo(2);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM audit_entry WHERE scope='PLATFORM'", Integer.class)).isEqualTo(2);
     }
     @Test void usesTheInjectedTenancyTransactionManagerForTheAtomicCreationPath() {
@@ -123,7 +124,7 @@ class CompanyCreationTransactionTest {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM tenancy_company", Integer.class)).isEqualTo(1);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM audit_entry WHERE scope='PLATFORM'", Integer.class)).isEqualTo(1);
     }
-    private CreateCompanyService service(RecordPlatformCompanyAuditUseCase audit) { return new CreateCompanyService(new JdbcCompanyCreationStore(jdbc), audit, command -> { }, Clock.fixed(Instant.EPOCH, ZoneOffset.UTC)); }
+    private CreateCompanyService service(RecordPlatformCompanyAuditUseCase audit) { return new CreateCompanyService(new JdbcCompanyCreationStore(jdbc), new JdbcCompanyCodeGenerator(jdbc), audit, command -> { }, Clock.fixed(Instant.EPOCH, ZoneOffset.UTC)); }
     private RecordPlatformCompanyAuditUseCase audit() {
         PlatformAuditTrustedContextProvider context = () -> new PlatformAuditTrustedContext(UUID.randomUUID(), UUID.randomUUID(), Instant.EPOCH);
         return new RecordPlatformCompanyAudit(new JdbcAuditEntryStore(jdbc, jdbc), context);
@@ -141,7 +142,7 @@ class CompanyCreationTransactionTest {
         gate.await(); return new TransactionTemplate(new DataSourceTransactionManager(dataSource)).execute(status -> service(audit).execute(command(), actor()).conflict());
     }
     private AuthenticatedActor actor() { return new AuthenticatedActor(UUID.randomUUID(), null, BaseRole.PLATFORM_SUPERADMIN); }
-    private CreateCompanyCommand command() { return new CreateCompanyCommand("Nahui SAC", null, "NAHUI", null, new CompanySettings("America/Lima", "PEN", 100, 60, 90, null)); }
+    private CreateCompanyCommand command() { return new CreateCompanyCommand("Nahui SAC", null, "NAHUI", new CompanySettings("America/Lima", "PEN", 100, 60, 90, null)); }
     private static final class TrackingTransactionManager implements PlatformTransactionManager {
         private final PlatformTransactionManager delegate;
         private int transactionsStarted;
