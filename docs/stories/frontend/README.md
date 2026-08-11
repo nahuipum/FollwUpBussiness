@@ -1,6 +1,6 @@
 ﻿# Historias — Frontend
 
-Total: **39**
+Total: **42**
 
 | ID | Épica | Historia | Prioridad | Fase |
 |---|---|---|---|---|
@@ -43,3 +43,6 @@ Total: **39**
 | [FE-037](./FE-037-gestionar-zonas-y-territorios.md) | Vendedores | Gestionar zonas y territorios | Must Have | MVP |
 | [FE-038](./FE-038-autorizar-excepcion-de-geocerca.md) | Visitas | Autorizar excepción de geocerca | Should Have | MVP condicionado |
 | [FE-039](./FE-039-onboarding-de-empresa-desde-plataforma.md) | Onboarding | Onboarding de empresa desde plataforma | Must Have | MVP |
+| [FE-040](./FE-040-suspender-y-reactivar-empresa-desde-plataforma.md) | Base SaaS | Suspender y reactivar empresa desde plataforma | Must Have | MVP |
+| [FE-041](./FE-041-detalle-de-empresa-desde-plataforma.md) | Base SaaS | Detalle de empresa desde plataforma | Must Have | MVP |
+| [FE-042](./FE-042-consulta-de-auditoria-de-plataforma.md) | Auditoría de plataforma | Consulta de auditoría de plataforma | Must Have | MVP |

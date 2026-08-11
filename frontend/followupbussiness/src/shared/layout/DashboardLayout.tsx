@@ -1,5 +1,5 @@
-import { Menu, X } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { LogOut, Menu, X } from "lucide-react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import "./dashboard-layout.css";
 
 export type DashboardNavigationItem = {
@@ -26,11 +26,22 @@ type DashboardLayoutProps = {
   profile: DashboardProfile;
   breadcrumbs: string[];
   topbarContext?: ReactNode;
+  onLogout?: () => void;
   children: ReactNode;
 };
 
-export function DashboardLayout({ brand, contextLabel, navigationLabel, navigation, profile, breadcrumbs, topbarContext, children }: DashboardLayoutProps) {
+export function DashboardLayout({ brand, contextLabel, navigationLabel, navigation, profile, breadcrumbs, topbarContext, onLogout, children }: DashboardLayoutProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const closeWhenOutside = (event: MouseEvent) => {
+      if (!profileMenuRef.current?.contains(event.target as Node)) setIsProfileMenuOpen(false);
+    };
+    document.addEventListener("mousedown", closeWhenOutside);
+    return () => document.removeEventListener("mousedown", closeWhenOutside);
+  }, []);
 
   return (
     <div className="dashboard-shell">
@@ -50,6 +61,7 @@ export function DashboardLayout({ brand, contextLabel, navigationLabel, navigati
           <span className="dashboard-avatar">{profile.initials}</span>
           <span><strong>{profile.name}</strong><small>{profile.role}</small></span>
           {profile.scopeLabel && <p>{profile.scopeLabel}</p>}
+          {onLogout && <button className="dashboard-sidebar__logout" type="button" onClick={onLogout}><LogOut aria-hidden="true" />Cerrar sesión</button>}
         </section>
       </aside>
       {isMenuOpen && <button className="dashboard-backdrop" type="button" aria-label="Cerrar menú" onClick={() => setIsMenuOpen(false)} />}
@@ -57,7 +69,7 @@ export function DashboardLayout({ brand, contextLabel, navigationLabel, navigati
         <header className="dashboard-topbar">
           <button className="dashboard-menu-button" type="button" aria-label={isMenuOpen ? "Cerrar menú" : "Abrir menú"} onClick={() => setIsMenuOpen((value) => !value)}>{isMenuOpen ? <X /> : <Menu />}</button>
           <div className="dashboard-breadcrumbs">{breadcrumbs.map((breadcrumb, index) => <span key={breadcrumb} className={index === breadcrumbs.length - 1 ? "dashboard-breadcrumbs__current" : ""}>{breadcrumb}</span>)}</div>
-          <div className="dashboard-top-actions">{topbarContext && <span className="dashboard-context-chip">{topbarContext}</span>}<div className="dashboard-top-profile"><span className="dashboard-avatar">{profile.initials}</span><span><strong>{profile.name}</strong><small>{profile.role}</small></span></div></div>
+          <div className="dashboard-top-actions">{topbarContext && <span className="dashboard-context-chip">{topbarContext}</span>}<div ref={profileMenuRef} className="dashboard-top-profile-menu"><button className="dashboard-top-profile" type="button" aria-haspopup="menu" aria-expanded={isProfileMenuOpen} onClick={() => setIsProfileMenuOpen((value) => !value)}><span className="dashboard-avatar">{profile.initials}</span><span><strong>{profile.name}</strong><small>{profile.role}</small></span></button>{onLogout && isProfileMenuOpen && <div className="dashboard-profile-menu" role="menu"><button type="button" role="menuitem" onClick={onLogout}><LogOut aria-hidden="true" />Cerrar sesión</button></div>}</div></div>
         </header>
         <main className="dashboard-content">{children}</main>
       </section>

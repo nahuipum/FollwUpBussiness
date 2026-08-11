@@ -1,6 +1,6 @@
 import { afterEach, expect, test, vi } from "vitest";
 import { clearSession, login } from "../auth/auth";
-import { createCompany, listCompanies, listCompanyAdminInvitations, provisionInitialAdmin } from "./api";
+import { changeCompanyStatus, createCompany, listCompanies, listCompanyAdminInvitations, provisionInitialAdmin } from "./api";
 
 afterEach(() => {
   clearSession();
@@ -176,4 +176,29 @@ test("lista estados de administradores sin exponer credenciales", async () => {
   expect(result.invitations).toEqual([expect.objectContaining({
     email: "ana@example.com", deliveryStatus: "PENDING",
   })]);
+});
+
+test("cambia el estado con el payload exacto y parsea únicamente la empresa confirmada", async () => {
+  const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+    id: "company-1", legalName: "Nova", code: "NOVA",
+    settings: { timezone: "America/Lima" }, status: "SUSPENDED",
+  }), { status: 200 }));
+  vi.stubGlobal("fetch", fetchMock);
+
+  const result = await changeCompanyStatus("company/1", {
+    status: "SUSPENDED",
+    reason: "Incumplimiento operativo",
+  });
+
+  expect(fetchMock).toHaveBeenCalledWith(
+    "/api/platform/companies/company%2F1/status",
+    expect.objectContaining({
+      method: "PATCH",
+      body: JSON.stringify({
+        status: "SUSPENDED",
+        reason: "Incumplimiento operativo",
+      }),
+    }),
+  );
+  expect(result.company).toMatchObject({ id: "company-1", status: "SUSPENDED" });
 });

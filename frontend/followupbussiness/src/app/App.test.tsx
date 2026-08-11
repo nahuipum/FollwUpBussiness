@@ -367,7 +367,7 @@ test("does not show a session-restoration screen or load companies during a prot
   expect(fetchMock.mock.calls.some(([url]) => String(url).includes("/platform/companies"))).toBe(false);
 });
 
-test("preserves the pending platform dashboard instead of rendering empresas", async () => {
+test("muestra el sidebar y un contenido vacío en el dashboard de plataforma", async () => {
   const fetchMock = vi.fn().mockResolvedValue(
     new Response(JSON.stringify(webResponse("PLATFORM_SUPERADMIN")), { status: 200 }),
   );
@@ -377,7 +377,10 @@ test("preserves the pending platform dashboard instead of rendering empresas", a
 
   render(<App />);
 
-  await waitFor(() => expect(screen.getByText("Sesión iniciada")).toBeTruthy());
+  await waitFor(() => expect(screen.getByRole("navigation")).toBeTruthy());
+  expect(screen.getByRole("button", { name: "Resumen" }).className).toContain("dashboard-nav__item--active");
+  expect(screen.getByLabelText("Contenido del panel de plataforma").childElementCount).toBe(0);
+  expect(screen.queryByText("Sesión iniciada")).toBeNull();
   expect(screen.queryByRole("heading", { name: "Empresas" })).toBeNull();
 });
 

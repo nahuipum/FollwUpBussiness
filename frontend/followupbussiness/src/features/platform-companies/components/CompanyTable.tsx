@@ -2,9 +2,14 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock3,
+  EllipsisVertical,
+  Eye,
+  PauseCircle,
+  PlayCircle,
   Search,
   UserPlus,
 } from "lucide-react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { Company, CompanyPage, CompanyStatus } from "../types";
 
 type Props = {
@@ -13,10 +18,12 @@ type Props = {
   search: string;
   status: CompanyStatus | null;
   loading: boolean;
+  canManageStatuses: boolean;
   onSearchChange: (value: string) => void;
   onStatusChange: (value: CompanyStatus | null) => void;
   onPageChange: (page: number) => void;
   onProvision: (company: Company) => void;
+  onAction: (company: Company, action: "detail" | "suspend" | "reactivate") => void;
 };
 
 export function CompanyTable({
@@ -25,13 +32,29 @@ export function CompanyTable({
   search,
   status,
   loading,
+  canManageStatuses,
   onSearchChange,
   onStatusChange,
   onPageChange,
   onProvision,
+  onAction,
 }: Props) {
+  const [openActionsFor, setOpenActionsFor] = useState<string | null>(null);
+  const actionsRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (openActionsFor === null) return;
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      if (event.target instanceof Node && !actionsRef.current?.contains(event.target)) {
+        setOpenActionsFor(null);
+      }
+    };
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
+    return () => document.removeEventListener("pointerdown", closeOnOutsidePointer);
+  }, [openActionsFor]);
+
   return (
-    <section className="company-table-card" aria-busy={loading}>
+    <section className="company-table-card" aria-busy={loading} ref={actionsRef}>
       <div className="company-toolbar">
         <label className="company-search">
           <Search aria-hidden="true" />
@@ -77,9 +100,8 @@ export function CompanyTable({
                 <th>Código</th>
                 <th>Zona horaria</th>
                 <th>Estado</th>
-                <th>
-                  <span className="sr-only">Acciones</span>
-                </th>
+                <th>Administradores</th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -109,16 +131,29 @@ export function CompanyTable({
                       {company.status === "ACTIVE" ? "Activa" : "Suspendida"}
                     </span>
                   </td>
-                  <td data-label="Acciones">
+                  <td data-label="Administradores">
                     <button
                       type="button"
                       className="company-more"
-                      aria-label={`Provisionar administrador para ${company.legalName}`}
+                      aria-label={`Gestionar administradores de ${company.legalName}`}
                       onClick={() => onProvision(company)}
                       disabled={company.status !== "ACTIVE"}
                     >
                       <UserPlus aria-hidden="true" />
                     </button>
+                  </td>
+                  <td data-label="Acciones">
+                    {canManageStatuses ? (
+                    <div className="company-row-actions">
+                      <button type="button" className="company-more" aria-label={`Más acciones para ${company.legalName}`} aria-haspopup="menu" aria-expanded={openActionsFor === company.id} onClick={() => setOpenActionsFor((current) => current === company.id ? null : company.id)}>
+                        <EllipsisVertical aria-hidden="true" />
+                      </button>
+                      {openActionsFor === company.id && <div className="company-action-menu" role="menu" aria-label={`Acciones de ${company.legalName}`}>
+                        <ActionMenuItem icon={<Eye aria-hidden="true" />} label="Ver detalle" onSelect={() => { setOpenActionsFor(null); onAction(company, "detail"); }} />
+                        {company.status === "ACTIVE" ? <ActionMenuItem icon={<PauseCircle aria-hidden="true" />} label="Suspender empresa" destructive onSelect={() => { setOpenActionsFor(null); onAction(company, "suspend"); }} /> : <ActionMenuItem icon={<PlayCircle aria-hidden="true" />} label="Reactivar empresa" onSelect={() => { setOpenActionsFor(null); onAction(company, "reactivate"); }} />}
+                      </div>}
+                    </div>
+                    ) : <span>Sin permisos</span>}
                   </td>
                 </tr>
               ))}
@@ -160,6 +195,10 @@ export function CompanyTable({
       )}
     </section>
   );
+}
+
+function ActionMenuItem({ icon, label, destructive = false, onSelect }: { icon: ReactNode; label: string; destructive?: boolean; onSelect: () => void }) {
+  return <button type="button" role="menuitem" className={destructive ? "company-action-menu__danger" : undefined} onClick={onSelect}>{icon}<span><strong>{label}</strong></span></button>;
 }
 
 function Filter({

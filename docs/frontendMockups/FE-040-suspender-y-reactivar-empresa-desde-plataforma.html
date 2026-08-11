@@ -1,0 +1,1302 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FE-040 — Suspender y reactivar empresa desde plataforma</title>
+
+<!--
+  FE-040 — MOCKUP VISUAL ESTÁTICO PARA CODEX
+  ============================================
+  Ruta sugerida en el repositorio:
+  docs/frontendMockups/FE-040-suspender-y-reactivar-empresa-desde-plataforma.html
+
+  Referencias visuales obligatorias:
+  - FE-004 — Gestión de usuarios y roles.
+  - FE-039 — Onboarding de empresa desde plataforma.
+  - FE-034 — Manejo global de errores y permisos.
+
+  ÁMBITO
+  ------
+  - Exclusivo para PLATFORM_SUPERADMIN.
+  - Las acciones nacen desde el recurso listado autorizado.
+  - No muestra ni envía tenantId, actor, sesiones, tokens o credenciales.
+  - La interfaz no infiere éxito: el estado cambia solo en las vistas de éxito confirmado.
+  - El Backend conserva la autoridad de autorización, transición y auditoría.
+  - Prototipo visual autocontenido; no ejecuta PATCH ni lógica productiva.
+
+  CONTRATO REPRESENTADO VISUALMENTE
+  ---------------------------------
+  PATCH /platform/companies/{companyId}/status
+  Campos de la solicitud: status (ACTIVE | SUSPENDED) y reason (5–500 caracteres).
+  El companyId procede del recurso listado y no se expone en pantalla.
+
+  ESTADOS POR QUERY PARAM
+  -----------------------
+  ?state=list                    Listado predeterminado
+  ?state=active-menu             Menú de empresa activa: Suspender
+  ?state=suspended-menu          Menú de empresa suspendida: Reactivar
+  ?state=suspend                 Confirmación ACTIVE → SUSPENDED
+  ?state=suspend-validation      Motivo obligatorio/no válido
+  ?state=suspend-loading         Solicitud de suspensión en curso
+  ?state=double-submit           Doble envío bloqueado
+  ?state=suspend-success         Estado y acción actualizados tras respuesta 200
+  ?state=reactivate              Confirmación SUSPENDED → ACTIVE
+  ?state=reactivate-validation   Motivo obligatorio/no válido
+  ?state=reactivate-loading      Solicitud de reactivación en curso
+  ?state=reactivate-success      Estado y acción actualizados tras respuesta 200
+  ?state=cancelled               Cancelación sin cambios
+  ?state=conflict                Conflicto 409 dentro del flujo
+  ?state=unauthorized            Sesión terminada 401
+  ?state=forbidden               Permiso denegado 403
+  ?state=not-found               Empresa no encontrada 404
+  ?state=network-error           Error temporal / fallo de red
+
+  RESPONSIVE DE REFERENCIA
+  ------------------------
+  Desktop: 1440 px
+  Mobile:   390 px
+-->
+
+<style>
+:root{
+  --navy:#102A43;
+  --navy-2:#163B62;
+  --navy-3:#0F6B78;
+  --teal:#176D77;
+  --teal-dark:#145F68;
+  --teal-light:#7DD3D7;
+  --teal-mid:#38B2AC;
+  --text:#14213D;
+  --text-2:#67778A;
+  --form:#26384A;
+  --muted:#8090A0;
+  --border:#CFD9E4;
+  --placeholder:#96A4B2;
+  --bg:#F7F9FC;
+  --white:#FFFFFF;
+  --error:#D83B57;
+  --error-dark:#8F2B3C;
+  --error-bg:#FFF3F5;
+  --error-border:#F2B6C0;
+  --success:#267A52;
+  --success-bg:#EFFAF2;
+  --success-border:#B9E4C3;
+  --warning:#A96312;
+  --warning-bg:#FFF8EC;
+  --warning-border:#F0D4A4;
+  --info-bg:#F2FBFC;
+  --info-border:#BFE5EA;
+  --shadow-sm:0 4px 12px rgba(16,42,67,.05);
+  --shadow-md:0 12px 28px rgba(16,42,67,.10);
+  --shadow-lg:0 26px 70px rgba(7,25,43,.24);
+  --radius:18px;
+  --radius-sm:12px;
+  --radius-xs:10px;
+  --sidebar-width:250px;
+  --font:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;min-height:100%;font-family:var(--font);color:var(--text);background:var(--bg)}
+body{min-height:100vh}
+button,input,select{font:inherit}
+a{color:inherit;text-decoration:none}
+button,a{-webkit-tap-highlight-color:transparent}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{
+  outline:3px solid rgba(56,178,172,.27);
+  outline-offset:3px;
+}
+[hidden]{display:none!important}
+
+/* =========================================================
+   ICONOS Y UTILIDADES
+   ========================================================= */
+.icon{width:19px;height:19px;display:block;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
+.icon-sm{width:16px;height:16px}
+.icon-lg{width:24px;height:24px}
+.icon-xl{width:52px;height:52px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.muted{color:var(--text-2)}
+
+/* =========================================================
+   SHELL FE-004 REUTILIZADO
+   ========================================================= */
+.app-shell{
+  min-height:100vh;
+  display:grid;
+  grid-template-columns:var(--sidebar-width) minmax(0,1fr);
+  background:var(--bg);
+}
+
+.sidebar{
+  position:sticky;
+  top:0;
+  height:100vh;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  padding:26px 18px 18px;
+  color:#EAF2F7;
+  background:linear-gradient(145deg,#102A43 0%,#163B62 55%,#0F6B78 100%);
+}
+.sidebar::before{
+  content:"";
+  position:absolute;
+  width:205px;
+  height:205px;
+  left:-74px;
+  bottom:-56px;
+  border-radius:50%;
+  background:rgba(125,211,215,.085);
+}
+.sidebar::after{
+  content:"";
+  position:absolute;
+  width:118px;
+  height:82px;
+  left:25px;
+  bottom:178px;
+  opacity:.18;
+  background-image:radial-gradient(circle,#7DD3D7 1.4px,transparent 1.7px);
+  background-size:15px 15px;
+}
+
+.logo-inline{
+  position:relative;
+  z-index:2;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  color:#fff;
+  font-size:18px;
+  font-weight:800;
+  letter-spacing:-.3px;
+}
+.logo-mark{
+  width:34px;
+  height:34px;
+  display:grid;
+  place-items:center;
+  border-radius:10px;
+  background:#fff;
+  box-shadow:0 8px 18px rgba(0,0,0,.13);
+}
+.logo-mark svg{width:22px;height:22px;display:block}
+
+.platform-tag{
+  position:relative;
+  z-index:2;
+  width:max-content;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  margin-top:19px;
+  padding:8px 10px;
+  border:1px solid rgba(125,211,215,.28);
+  border-radius:999px;
+  color:#DDF6F7;
+  background:rgba(255,255,255,.065);
+  font-size:12px;
+  font-weight:700;
+  letter-spacing:.035em;
+  text-transform:uppercase;
+}
+.platform-tag::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--teal-light)}
+
+.sidebar-section{
+  position:relative;
+  z-index:2;
+  margin-top:31px;
+  color:rgba(255,255,255,.87);
+  font-size:14px;
+  font-weight:700;
+}
+
+.nav-list{position:relative;z-index:2;display:grid;gap:8px;margin-top:15px}
+.nav-item{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:13px 14px;
+  border:1px solid transparent;
+  border-radius:12px;
+  color:rgba(255,255,255,.90);
+  font-size:14.5px;
+  transition:background .18s,border-color .18s;
+}
+.nav-item.secondary{opacity:.82}
+.nav-item.active{
+  background:rgba(23,109,119,.93);
+  border-color:rgba(125,211,215,.28);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08);
+}
+.nav-item .nav-copy{min-width:0}
+.nav-item .nav-copy strong{display:block;font-weight:720}
+.nav-item .nav-copy small{display:block;margin-top:2px;color:rgba(255,255,255,.63);font-size:10.5px}
+
+.profile-card{
+  position:relative;
+  z-index:2;
+  margin-top:auto;
+  padding:14px;
+  border:1px solid rgba(125,211,215,.18);
+  border-radius:16px;
+  background:rgba(255,255,255,.08);
+  backdrop-filter:blur(4px);
+}
+.profile-top{display:flex;align-items:center;gap:11px}
+.avatar{
+  width:43px;
+  height:43px;
+  display:grid;
+  place-items:center;
+  flex:0 0 auto;
+  border-radius:50%;
+  color:#fff;
+  background:linear-gradient(145deg,#7AA8B4,#176D77);
+  box-shadow:0 4px 10px rgba(0,0,0,.14);
+  font-size:13px;
+  font-weight:800;
+}
+.profile-name{color:#fff;font-size:14px;font-weight:750}
+.profile-role{margin-top:2px;color:rgba(255,255,255,.71);font-size:10.5px;line-height:1.35}
+.profile-scope{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-top:11px;
+  padding-top:11px;
+  border-top:1px solid rgba(255,255,255,.12);
+  color:rgba(255,255,255,.80);
+  font-size:11px;
+}
+.profile-scope strong{color:#fff;font-weight:720}
+
+.workspace{min-width:0;display:flex;flex-direction:column;min-height:100vh}
+.topbar{
+  min-height:72px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:20px;
+  padding:0 28px;
+  border-bottom:1px solid rgba(20,33,61,.08);
+  background:rgba(255,255,255,.96);
+  box-shadow:0 2px 8px rgba(16,42,67,.025);
+}
+.topbar-left{display:flex;align-items:center;gap:12px;min-width:0}
+.mobile-menu,.mobile-logo{display:none}
+.breadcrumbs{display:flex;align-items:center;gap:9px;color:var(--text-2);font-size:13.5px;white-space:nowrap}
+.breadcrumbs .current{color:var(--teal);font-weight:700}
+.context-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:9px 12px;
+  border:1px solid var(--border);
+  border-radius:11px;
+  color:var(--form);
+  background:#fff;
+  font-size:13px;
+  font-weight:700;
+}
+.top-profile{display:flex;align-items:center;gap:11px;padding:7px 10px;border:1px solid rgba(20,33,61,.08);border-radius:13px;background:#fff}
+.top-profile .avatar{width:34px;height:34px;font-size:11px}
+.top-profile-copy{line-height:1.2}
+.top-profile-copy strong{display:block;font-size:12.5px}
+.top-profile-copy span{display:block;margin-top:3px;color:var(--text-2);font-size:10.5px}
+
+.main-content{width:100%;max-width:1440px;margin:0 auto;padding:26px 28px 38px}
+.view{display:none;animation:viewIn .2s ease-out both}
+.view.is-active{display:block}
+@keyframes viewIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+.page-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:18px;
+  margin-bottom:20px;
+}
+.page-head h1{margin:0;color:var(--text);font-size:28px;line-height:1.15;letter-spacing:-.65px}
+.page-head p{margin:7px 0 0;color:var(--text-2);font-size:15px;line-height:1.5}
+.page-actions{display:flex;align-items:center;gap:10px}
+
+.btn{
+  min-height:44px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:9px;
+  padding:0 17px;
+  border:1px solid transparent;
+  border-radius:12px;
+  background:#fff;
+  color:var(--text);
+  font-size:14px;
+  font-weight:720;
+  white-space:nowrap;
+  cursor:pointer;
+}
+.btn-primary{color:#fff;background:var(--teal);box-shadow:0 8px 18px rgba(23,109,119,.18)}
+.btn-primary:hover{background:var(--teal-dark)}
+.btn-outline{border-color:var(--border);background:#fff;color:var(--text)}
+.btn-ghost{color:var(--teal);background:transparent}
+.btn-danger{color:#fff;background:var(--error);box-shadow:0 8px 18px rgba(216,59,87,.17)}
+.btn-sm{min-height:36px;padding:0 13px;border-radius:10px;font-size:12.5px}
+.btn-block{width:100%}
+
+/* =========================================================
+   LISTADO DE EMPRESAS
+   ========================================================= */
+.table-card{
+  position:relative;
+  overflow:visible;
+  border:1px solid rgba(20,33,61,.08);
+  border-radius:18px;
+  background:#fff;
+  box-shadow:var(--shadow-sm);
+}
+.toolbar{
+  display:flex;
+  align-items:center;
+  gap:15px;
+  flex-wrap:wrap;
+  padding:18px 20px;
+  border-bottom:1px solid rgba(20,33,61,.08);
+}
+.search-box{
+  min-width:280px;
+  flex:1 1 330px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-height:44px;
+  padding:0 14px;
+  border:1px solid var(--border);
+  border-radius:12px;
+  color:var(--placeholder);
+  background:#fff;
+  font-size:14px;
+}
+.filter-group{display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:var(--text-2);font-size:13px}
+.filter-group strong{color:var(--form);font-weight:700}
+.chip{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:36px;
+  padding:0 13px;
+  border:1px solid var(--border);
+  border-radius:10px;
+  color:var(--form);
+  background:#fff;
+  font-size:12.5px;
+  font-weight:650;
+}
+.chip.active{color:#fff;border-color:var(--teal);background:var(--teal);box-shadow:0 7px 14px rgba(23,109,119,.13)}
+
+.companies-table{width:100%;border-collapse:collapse;font-size:13.5px;table-layout:fixed}
+.companies-table th:nth-child(1){width:24%}
+.companies-table th:nth-child(2){width:11%}
+.companies-table th:nth-child(3){width:15%}
+.companies-table th:nth-child(4){width:12%}
+.companies-table th:nth-child(5){width:30%}
+.companies-table th:nth-child(6){width:8%}
+.companies-table th{
+  padding:14px 18px;
+  border-bottom:1px solid rgba(20,33,61,.08);
+  color:var(--form);
+  background:#FBFCFE;
+  text-align:left;
+  font-size:12.5px;
+  font-weight:750;
+}
+.companies-table td{
+  padding:15px 18px;
+  border-bottom:1px solid rgba(20,33,61,.065);
+  color:var(--form);
+  vertical-align:middle;
+}
+.companies-table tbody tr:last-child td{border-bottom:0}
+.company-cell{display:flex;align-items:center;gap:12px;min-width:0}
+.company-mark{
+  width:39px;
+  height:39px;
+  display:grid;
+  place-items:center;
+  flex:0 0 auto;
+  border-radius:11px;
+  color:var(--teal);
+  background:linear-gradient(145deg,#EEF9F9,#E1F2F3);
+  font-size:13px;
+  font-weight:820;
+}
+.company-copy strong{display:block;color:var(--text);font-size:13.5px}
+.company-copy span{display:block;margin-top:3px;color:var(--text-2);font-size:11.5px}
+.code-badge{display:inline-flex;padding:6px 9px;border:1px solid #D6E2EA;border-radius:8px;color:var(--navy-2);background:#F7FAFC;font-size:11.5px;font-weight:760;letter-spacing:.04em}
+.status{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  padding:7px 10px;
+  border:1px solid transparent;
+  border-radius:999px;
+  font-size:11.5px;
+  font-weight:750;
+  white-space:nowrap;
+}
+.status::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.status.active{color:var(--success);border-color:var(--success-border);background:var(--success-bg)}
+.status.suspended{color:var(--error);border-color:var(--error-border);background:var(--error-bg)}
+.admin-state{display:flex;align-items:center;gap:7px;color:var(--text-2);font-size:12px;white-space:normal;line-height:1.35}
+.admin-state.ready{color:var(--success)}
+.admin-state.pending{color:var(--warning)}
+.row-actions{display:flex;justify-content:flex-end;gap:7px;white-space:normal;flex-wrap:wrap}
+.more-button{width:36px;height:36px;display:grid;place-items:center;padding:0;border:1px solid var(--border);border-radius:10px;color:var(--text-2);background:#fff;cursor:pointer}
+
+.table-footer{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:15px 18px;border-top:1px solid rgba(20,33,61,.07);color:var(--text-2);font-size:12px}
+.pagination{display:flex;align-items:center;gap:8px}
+.page-button{width:34px;height:34px;display:grid;place-items:center;border:1px solid var(--border);border-radius:10px;color:var(--text-2);background:#fff;font-size:12px}
+.page-button.active{color:#fff;border-color:var(--teal);background:var(--teal);font-weight:800}
+
+.action-menu{
+  position:absolute;
+  z-index:9;
+  top:210px;
+  right:19px;
+  width:220px;
+  overflow:hidden;
+  border:1px solid rgba(20,33,61,.09);
+  border-radius:14px;
+  background:#fff;
+  box-shadow:var(--shadow-md);
+}
+.action-menu a{display:flex;align-items:center;gap:10px;padding:13px 14px;border-bottom:1px solid rgba(20,33,61,.06);color:var(--form);font-size:13px}
+.action-menu a:last-child{border-bottom:0}
+.action-menu a:hover{background:#F8FAFC}
+.action-menu small{display:block;margin-top:2px;color:var(--text-2);font-size:10px}
+
+/* =========================================================
+   ESTADO VACÍO
+   ========================================================= */
+.empty-state{
+  min-height:480px;
+  display:grid;
+  place-items:center;
+  padding:44px 20px;
+  text-align:center;
+}
+.empty-illustration{
+  position:relative;
+  width:150px;
+  height:118px;
+  margin:0 auto 18px;
+}
+.empty-building{
+  position:absolute;
+  left:33px;
+  bottom:10px;
+  width:83px;
+  height:80px;
+  border:2px solid #A8C6D0;
+  border-radius:14px 14px 9px 9px;
+  background:linear-gradient(180deg,#F4FBFC,#E7F3F5);
+}
+.empty-building::before,.empty-building::after{content:"";position:absolute;top:18px;width:14px;height:14px;border-radius:4px;background:#C4DEE3;box-shadow:0 25px 0 #C4DEE3}
+.empty-building::before{left:15px}.empty-building::after{right:15px}
+.empty-building span{position:absolute;left:50%;bottom:-1px;width:18px;height:28px;transform:translateX(-50%);border-radius:6px 6px 0 0;background:var(--teal)}
+.empty-plus{position:absolute;right:9px;top:10px;width:43px;height:43px;display:grid;place-items:center;border:5px solid #fff;border-radius:50%;color:#fff;background:var(--teal);box-shadow:0 8px 20px rgba(23,109,119,.20);font-size:25px;font-weight:400}
+.empty-state h2{margin:0;font-size:22px}
+.empty-state p{max-width:410px;margin:9px auto 20px;color:var(--text-2);font-size:14px;line-height:1.55}
+
+/* =========================================================
+   STEPPER / PROVISIONAMIENTO
+   ========================================================= */
+.flow-grid{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:20px;align-items:start}
+.stepper{
+  display:flex;
+  align-items:center;
+  gap:0;
+  margin-bottom:20px;
+  padding:15px 18px;
+  border:1px solid rgba(20,33,61,.08);
+  border-radius:15px;
+  background:#fff;
+  box-shadow:var(--shadow-sm);
+}
+.step{display:flex;align-items:center;gap:10px;color:var(--text-2);font-size:12.5px;font-weight:680;white-space:nowrap}
+.step-number{width:29px;height:29px;display:grid;place-items:center;border:1px solid var(--border);border-radius:50%;color:var(--text-2);background:#fff;font-size:11px;font-weight:800}
+.step.completed{color:var(--success)}
+.step.completed .step-number{color:#fff;border-color:var(--success);background:var(--success)}
+.step.active{color:var(--teal)}
+.step.active .step-number{color:#fff;border-color:var(--teal);background:var(--teal)}
+.step-line{height:1px;flex:1;min-width:36px;margin:0 14px;background:#DDE5EC}
+.step-line.completed{background:#9ED2C2}
+
+.form-card,.summary-card,.success-card,.error-card{
+  border:1px solid rgba(20,33,61,.08);
+  border-radius:18px;
+  background:#fff;
+  box-shadow:var(--shadow-sm);
+}
+.form-card{padding:22px}
+.card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:20px}
+.card-head h2{margin:0;font-size:20px;letter-spacing:-.3px}
+.card-head p{margin:6px 0 0;color:var(--text-2);font-size:13px;line-height:1.5}
+.company-context{display:flex;align-items:center;gap:11px;padding:12px;border:1px solid var(--info-border);border-radius:12px;background:var(--info-bg)}
+.company-context .company-mark{width:37px;height:37px}
+.company-context strong{display:block;font-size:13px}
+.company-context span{display:block;margin-top:2px;color:var(--text-2);font-size:11px}
+
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.field{min-width:0}
+.field.full{grid-column:1 / -1}
+.field label{display:flex;align-items:center;gap:6px;margin-bottom:7px;color:var(--form);font-size:12.5px;font-weight:720}
+.optional{color:var(--muted);font-size:10.5px;font-weight:600}
+.input-control,.select-control,.readonly-control{
+  width:100%;
+  min-height:44px;
+  display:flex;
+  align-items:center;
+  gap:9px;
+  padding:0 12px;
+  border:1px solid var(--border);
+  border-radius:11px;
+  color:var(--form);
+  background:#fff;
+  font-size:13px;
+}
+.input-control.placeholder,.select-control.placeholder{color:var(--placeholder)}
+.select-control{justify-content:space-between}
+.readonly-control{color:var(--text-2);background:#F7F9FC}
+.readonly-control strong{margin-left:auto;color:var(--form);font-size:11.5px}
+.field.has-error .input-control,.field.has-error .select-control{border-color:#E28A99;background:#FFFCFC;box-shadow:0 0 0 3px rgba(216,59,87,.07)}
+.field-error{display:none;margin:6px 2px 0;color:#C6324B;font-size:11px;line-height:1.35}
+.field.has-error .field-error{display:block}
+.form-section-title{grid-column:1 / -1;margin-top:3px;padding-top:15px;border-top:1px solid rgba(20,33,61,.07);color:var(--text);font-size:12px;font-weight:800}
+.form-section-title span{display:block;margin-top:3px;color:var(--text-2);font-size:10.5px;font-weight:500}
+
+.fixed-role{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:14px;
+  border:1px solid rgba(125,211,215,.46);
+  border-radius:12px;
+  background:linear-gradient(180deg,#F6FCFC,#FFFFFF);
+}
+.fixed-role-icon{width:39px;height:39px;display:grid;place-items:center;border-radius:11px;color:var(--teal);background:#E7F5F5}
+.fixed-role strong{display:block;font-size:13px}
+.fixed-role span{display:block;margin-top:3px;color:var(--text-2);font-size:11px}
+.fixed-role .lock-copy{margin-left:auto;display:flex;align-items:center;gap:6px;color:var(--muted);font-size:10px}
+
+.security-note,.inline-alert{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  padding:12px 13px;
+  border-radius:11px;
+  font-size:12px;
+  line-height:1.5;
+}
+.security-note{margin-top:15px;color:#516D79;border:1px solid var(--info-border);background:var(--info-bg)}
+.security-note .icon,.inline-alert .icon{margin-top:1px}
+.inline-alert{margin-bottom:16px;color:var(--error-dark);border:1px solid var(--error-border);background:var(--error-bg)}
+.inline-alert.warning{color:#7D4C12;border-color:var(--warning-border);background:var(--warning-bg)}
+.inline-alert.info{color:#285F66;border-color:var(--info-border);background:var(--info-bg)}
+.inline-alert strong{display:block;margin-bottom:2px;font-size:12.5px}
+.form-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:19px;padding-top:17px;border-top:1px solid rgba(20,33,61,.07)}
+
+.summary-card{padding:19px}
+.summary-card h3{margin:0;font-size:15px}
+.summary-list{display:grid;gap:14px;margin-top:17px}
+.summary-row{display:flex;align-items:flex-start;gap:10px}
+.summary-row .icon{color:var(--teal);margin-top:1px}
+.summary-row span{display:block;color:var(--text-2);font-size:10.5px}
+.summary-row strong{display:block;margin-top:2px;color:var(--form);font-size:12.5px;line-height:1.35}
+.scope-note{margin-top:18px;padding:12px;border:1px solid rgba(20,33,61,.08);border-radius:11px;color:var(--text-2);background:#F9FBFD;font-size:11px;line-height:1.5}
+
+/* =========================================================
+   ÉXITO Y ERRORES FE-034
+   ========================================================= */
+.center-stage{min-height:calc(100vh - 170px);display:grid;place-items:center;padding:18px 0}
+.success-card,.error-card{width:min(100%,650px);padding:38px;text-align:center}
+.state-icon{
+  width:88px;
+  height:88px;
+  display:grid;
+  place-items:center;
+  margin:0 auto 22px;
+  border:1px solid #C8EBEB;
+  border-radius:50%;
+  color:var(--teal);
+  background:linear-gradient(145deg,#F0FBFB,#E3F5F5);
+  box-shadow:0 0 0 10px rgba(125,211,215,.07);
+}
+.state-icon.error{color:var(--error);border-color:var(--error-border);background:linear-gradient(145deg,#FFF8F9,#FFF0F3);box-shadow:0 0 0 10px rgba(216,59,87,.05)}
+.state-icon.warning{color:var(--warning);border-color:var(--warning-border);background:linear-gradient(145deg,#FFFCF5,#FFF6E5);box-shadow:0 0 0 10px rgba(240,212,164,.10)}
+.success-card h1,.error-card h1{margin:0;font-size:26px;line-height:1.25;letter-spacing:-.5px}
+.state-message{max-width:500px;margin:12px auto 0;color:var(--text-2);font-size:14px;line-height:1.6}
+.success-data{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:24px 0;padding:16px;border:1px solid rgba(20,33,61,.08);border-radius:14px;background:#FAFCFE;text-align:left}
+.success-data span{display:block;color:var(--text-2);font-size:10.5px}
+.success-data strong{display:block;margin-top:4px;color:var(--form);font-size:13.5px}
+.state-actions{display:flex;justify-content:center;gap:10px;margin-top:24px}
+.correlation{display:flex;align-items:center;justify-content:center;gap:7px;margin-top:23px;padding-top:18px;border-top:1px solid rgba(20,33,61,.08);color:var(--muted);font-size:10.5px}
+.error-code{display:inline-flex;margin-bottom:12px;padding:6px 10px;border:1px solid var(--border);border-radius:999px;color:var(--text-2);background:#F8FAFC;font-size:10.5px;font-weight:750;letter-spacing:.04em;text-transform:uppercase}
+
+/* =========================================================
+   MODAL CREAR EMPRESA — MISMA FAMILIA FE-004
+   ========================================================= */
+.modal-layer{
+  position:fixed;
+  inset:0;
+  z-index:100;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:28px;
+  background:rgba(15,33,55,.54);
+  backdrop-filter:blur(1.5px);
+}
+.modal-layer.is-visible{display:flex}
+.modal-card{
+  width:min(100%,760px);
+  max-height:calc(100vh - 56px);
+  overflow:auto;
+  border:1px solid rgba(20,33,61,.09);
+  border-radius:20px;
+  background:#fff;
+  box-shadow:var(--shadow-lg);
+  animation:modalIn .2s ease-out both;
+}
+@keyframes modalIn{from{opacity:0;transform:translateY(8px) scale(.988)}to{opacity:1;transform:none}}
+.modal-header{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:20px 22px 17px;border-bottom:1px solid rgba(20,33,61,.07)}
+.modal-header h2{margin:0;font-size:19px}
+.modal-header p{margin:5px 0 0;color:var(--text-2);font-size:12px;line-height:1.45}
+.modal-close{width:36px;height:36px;display:grid;place-items:center;flex:0 0 auto;border:0;border-radius:50%;color:var(--muted);background:transparent;cursor:pointer}
+.modal-close:hover{background:#F3F6F9}
+.modal-body{padding:20px 22px}
+.modal-footer{display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:16px 22px;border-top:1px solid rgba(20,33,61,.07);background:#FBFCFE}
+.modal-handle{display:none}
+
+/* =========================================================
+   RESPONSIVE MOBILE 390 PX
+   ========================================================= */
+@media(max-width:900px){
+  .app-shell{display:block}
+  .sidebar{display:none}
+  .workspace{min-height:100vh}
+  .topbar{position:sticky;top:0;z-index:30;min-height:64px;padding:0 16px;background:#fff}
+  .topbar-left{width:100%;justify-content:space-between}
+  .mobile-menu,.mobile-logo{display:flex;align-items:center}
+  .mobile-menu{width:34px;height:34px;justify-content:center;color:var(--navy);border:1px solid rgba(20,33,61,.08);border-radius:10px;background:#fff}
+  .mobile-logo{gap:8px;color:var(--navy);font-size:15px;font-weight:800}
+  .mobile-logo .logo-mark{width:31px;height:31px;border:1px solid rgba(20,33,61,.07);box-shadow:none}
+  .breadcrumbs{display:none}
+  .context-chip{margin-left:auto;min-height:36px;padding:0 10px;font-size:11px}
+  .top-profile{display:none}
+  .main-content{padding:20px 16px 30px}
+  .page-head{align-items:stretch}
+  .page-head h1{font-size:25px}
+  .page-head p{font-size:13.5px}
+  .page-actions .btn{min-height:42px;padding:0 14px}
+  .toolbar{align-items:stretch;padding:15px}
+  .search-box{min-width:0;flex-basis:100%}
+  .filter-group{width:100%}
+  .chip{flex:1;min-width:86px}
+
+  .companies-table,.companies-table tbody,.companies-table tr,.companies-table td{display:block;width:100%}
+  .companies-table thead{display:none}
+  .companies-table tbody{display:grid;gap:10px;padding:12px}
+  .companies-table tr{position:relative;padding:13px;border:1px solid rgba(20,33,61,.08);border-radius:14px;background:#fff;box-shadow:0 3px 10px rgba(16,42,67,.035)}
+  .companies-table td{padding:7px 0;border:0}
+  .companies-table td::before{content:attr(data-label);display:block;margin-bottom:4px;color:var(--muted);font-size:9.5px;font-weight:750;text-transform:uppercase;letter-spacing:.04em}
+  .companies-table td:first-child::before{display:none}
+  .company-cell{min-width:0}
+  .company-copy span{font-size:10.5px}
+  .row-actions{justify-content:flex-start;flex-wrap:wrap}
+  .action-menu{position:fixed;top:auto;right:16px;bottom:16px;left:16px;width:auto;border-radius:18px;box-shadow:var(--shadow-lg)}
+  .table-footer{padding:14px;flex-direction:column;align-items:flex-start}
+  .pagination{align-self:center}
+
+  .flow-grid{grid-template-columns:1fr}
+  .stepper{overflow:auto;padding:13px 14px}
+  .step-copy{display:none}
+  .step-line{min-width:45px}
+  .summary-card{order:-1}
+  .form-card{padding:18px}
+  .form-grid{grid-template-columns:1fr}
+  .field.full,.form-section-title{grid-column:1}
+  .fixed-role{align-items:flex-start}
+  .fixed-role .lock-copy{margin-left:0;margin-top:5px}
+  .form-actions{flex-direction:column-reverse}
+  .form-actions .btn{width:100%}
+
+  .success-card,.error-card{padding:28px 20px}
+  .success-card h1,.error-card h1{font-size:23px}
+  .success-data{grid-template-columns:1fr;text-align:center}
+  .state-actions{flex-direction:column}
+  .state-actions .btn{width:100%}
+
+  .modal-layer{align-items:flex-end;padding:0;background:rgba(15,33,55,.58)}
+  .modal-card{width:100%;max-height:93vh;border-radius:24px 24px 0 0}
+  .modal-handle{display:block;width:54px;height:5px;margin:10px auto -2px;border-radius:999px;background:#DCE3E9}
+  .modal-header{padding:17px 18px 14px}
+  .modal-body{padding:17px 18px}
+  .modal-footer{padding:14px 18px 20px;flex-direction:column-reverse}
+  .modal-footer .btn{width:100%}
+}
+
+@media(max-width:560px){
+  .topbar{padding:0 12px}
+  .context-chip span{display:none}
+  .main-content{padding:18px 12px 28px}
+  .page-head{flex-direction:column}
+  .page-actions .btn{width:100%}
+  .toolbar{gap:12px}
+  .filter-group strong{width:100%}
+  .chip{min-width:0;padding:0 9px;font-size:11.5px}
+  .empty-state{min-height:410px;padding:32px 15px}
+  .center-stage{min-height:calc(100vh - 125px)}
+  .state-icon{width:76px;height:76px}
+  .modal-card .form-grid{grid-template-columns:1fr}
+  .modal-card .field.full,.modal-card .form-section-title{grid-column:1}
+}
+
+@media(prefers-reduced-motion:reduce){
+  *,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+}
+
+
+/* =========================================================
+   FE-040 — TRANSICIONES DE ESTADO DE EMPRESA
+   Extensión visual del shell FE-039 / FE-004.
+   ========================================================= */
+.status-action-menu{width:250px}
+.status-action-menu .menu-danger{color:var(--error)}
+.status-action-menu .menu-success{color:var(--teal)}
+.status-action-menu .menu-divider{height:1px;background:rgba(20,33,61,.07)}
+.status-action-menu strong{display:block;font-size:13px}
+
+.table-notice{
+  display:none;
+  align-items:flex-start;
+  gap:11px;
+  margin:15px 18px 0;
+  padding:12px 13px;
+  border:1px solid var(--success-border);
+  border-radius:12px;
+  color:#245F45;
+  background:var(--success-bg);
+  font-size:12px;
+  line-height:1.5;
+}
+.table-notice.is-visible{display:flex}
+.table-notice.info{color:#285F66;border-color:var(--info-border);background:var(--info-bg)}
+.table-notice .icon{margin-top:1px}
+.table-notice strong{display:block;color:inherit;font-size:12.5px}
+.table-notice .notice-actions{display:flex;gap:8px;margin-left:auto;white-space:nowrap}
+.table-notice .notice-link{color:var(--teal);font-weight:750}
+
+.preserved-context{
+  display:none;
+  align-items:center;
+  gap:8px;
+  margin:12px 18px 0;
+  color:var(--text-2);
+  font-size:11px;
+}
+.preserved-context.is-visible{display:flex}
+.preserved-pill{padding:5px 8px;border:1px solid #D8E3EB;border-radius:999px;background:#FAFCFE;color:var(--form);font-weight:700}
+
+.companies-table tr.is-updated{background:linear-gradient(90deg,rgba(56,178,172,.08),transparent 68%)}
+.companies-table tr.is-updated td:first-child{box-shadow:inset 3px 0 0 var(--teal-mid)}
+
+.transition-card{width:min(100%,680px)}
+.transition-hero{display:flex;align-items:center;gap:13px;padding:14px;border:1px solid rgba(20,33,61,.08);border-radius:14px;background:#FAFCFE}
+.transition-company{display:flex;align-items:center;gap:11px;min-width:0}
+.transition-company .company-mark{width:43px;height:43px}
+.transition-company strong{display:block;font-size:14px}
+.transition-company span{display:block;margin-top:3px;color:var(--text-2);font-size:11.5px}
+.transition-arrow{margin-left:auto;color:var(--muted)}
+.transition-target{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:999px;background:#fff;font-size:11px;font-weight:780;white-space:nowrap}
+.transition-target.suspend{color:var(--error);border-color:var(--error-border);background:var(--error-bg)}
+.transition-target.reactivate{color:var(--teal);border-color:var(--info-border);background:var(--info-bg)}
+
+.impact-box{margin-top:16px;padding:14px;border:1px solid var(--warning-border);border-radius:13px;color:#704914;background:var(--warning-bg)}
+.impact-box.reactivate{color:#285F66;border-color:var(--info-border);background:var(--info-bg)}
+.impact-head{display:flex;align-items:flex-start;gap:10px;font-size:12.5px;font-weight:800}
+.impact-list{display:grid;gap:8px;margin:11px 0 0;padding:0 0 0 27px;color:inherit;font-size:12px;line-height:1.45}
+.impact-list li::marker{color:currentColor}
+
+.reason-field{margin-top:17px}
+.reason-field label{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;color:var(--form);font-size:12.5px;font-weight:750}
+.reason-control{
+  width:100%;
+  min-height:112px;
+  resize:none;
+  padding:12px 13px;
+  border:1px solid var(--border);
+  border-radius:11px;
+  outline:0;
+  color:var(--form);
+  background:#fff;
+  font:inherit;
+  font-size:13px;
+  line-height:1.5;
+}
+.reason-control::placeholder{color:var(--placeholder)}
+.reason-control:focus{border-color:#247B85;box-shadow:0 0 0 3px rgba(36,123,133,.12)}
+.reason-field.has-error .reason-control{border-color:#E28A99;background:#FFFCFC;box-shadow:0 0 0 3px rgba(216,59,87,.07)}
+.reason-helper{display:flex;justify-content:space-between;gap:12px;margin:6px 2px 0;color:var(--muted);font-size:10.5px}
+.reason-error{display:none;color:#C6324B;font-size:11px;line-height:1.35}
+.reason-field.has-error .reason-error{display:block}
+.reason-field.has-error .reason-hint{display:none}
+
+.authority-note{display:flex;align-items:flex-start;gap:9px;margin-top:15px;color:var(--text-2);font-size:11px;line-height:1.5}
+.authority-note .icon{margin-top:1px;color:var(--teal)}
+
+.btn-destructive{color:#fff;border-color:var(--error);background:var(--error);box-shadow:0 8px 18px rgba(216,59,87,.18)}
+.btn-destructive:hover{background:#C6334E}
+.btn[aria-disabled="true"],.btn.is-disabled{pointer-events:none;opacity:.62;box-shadow:none}
+.btn-spinner{width:17px;height:17px;border:2px solid rgba(255,255,255,.42);border-top-color:#fff;border-radius:50%;animation:spin .78s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.request-progress{height:7px;margin:14px 22px 0;overflow:hidden;border-radius:999px;background:#DCE8ED}
+.request-progress span{display:block;width:42%;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--teal),var(--teal-mid));animation:requestSlide 1.1s ease-in-out infinite}
+@keyframes requestSlide{0%{transform:translateX(-110%);width:34%}50%{transform:translateX(78%);width:48%}100%{transform:translateX(230%);width:34%}}
+
+.correlation-inline{display:flex;align-items:center;gap:7px;margin-top:12px;color:var(--muted);font-size:10.5px}
+.correlation-inline .icon{width:14px;height:14px}
+
+.session-modal{width:min(100%,445px);text-align:center}
+.session-icon{width:76px;height:76px;display:grid;place-items:center;margin:0 auto 18px;border:1px solid #C7E7E8;border-radius:50%;color:var(--teal);background:linear-gradient(145deg,#F3FBFB,#E7F6F6);box-shadow:0 0 0 9px rgba(125,211,215,.07)}
+.session-modal h2{margin:0;font-size:23px;letter-spacing:-.4px}
+.session-modal .state-message{margin-top:10px}
+
+.permission-note{display:flex;align-items:flex-start;gap:9px;margin:16px 18px 0;padding:11px 12px;border:1px solid var(--info-border);border-radius:11px;color:#516D79;background:var(--info-bg);font-size:11px;line-height:1.5}
+.permission-note .icon{margin-top:1px}
+
+@media(max-width:900px){
+  .table-notice{margin:12px 12px 0;flex-wrap:wrap}
+  .table-notice .notice-actions{width:100%;margin-left:0}
+  .preserved-context{margin:10px 12px 0;flex-wrap:wrap}
+  .status-action-menu{width:auto}
+  .transition-hero{align-items:flex-start;flex-wrap:wrap}
+  .transition-arrow{display:none}
+  .transition-target{margin-left:54px}
+  .impact-list{padding-left:23px}
+  .reason-control{min-height:104px}
+  .permission-note{margin:12px}
+}
+</style>
+</head>
+
+<body>
+<!-- Iconos autocontenidos -->
+<svg aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden">
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></symbol>
+  <symbol id="i-building" viewBox="0 0 24 24"><path d="M4 21V5.8L12 3v18M12 8h8v13M8 8h.01M8 12h.01M8 16h.01M16 12h.01M16 16h.01M2 21h20"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1 1 0 0 0 .2 1.1l.1.1a1.2 1.2 0 0 1 0 1.7l-1.2 1.2a1.2 1.2 0 0 1-1.7 0l-.1-.1a1 1 0 0 0-1.1-.2 1 1 0 0 0-.6.9V20a1.2 1.2 0 0 1-1.2 1.2h-1.6A1.2 1.2 0 0 1 11 20v-.1a1 1 0 0 0-.6-.9 1 1 0 0 0-1.1.2l-.1.1a1.2 1.2 0 0 1-1.7 0l-1.2-1.2a1.2 1.2 0 0 1 0-1.7l.1-.1a1 1 0 0 0 .2-1.1 1 1 0 0 0-.9-.6H4A1.2 1.2 0 0 1 2.8 13v-1.6A1.2 1.2 0 0 1 4 10.2h.1a1 1 0 0 0 .9-.6 1 1 0 0 0-.2-1.1l-.1-.1a1.2 1.2 0 0 1 0-1.7l1.2-1.2a1.2 1.2 0 0 1 1.7 0l.1.1a1 1 0 0 0 1.1.2 1 1 0 0 0 .6-.9V4A1.2 1.2 0 0 1 10.6 2.8h1.6A1.2 1.2 0 0 1 13.4 4v.1a1 1 0 0 0 .6.9 1 1 0 0 0 1.1-.2l.1-.1a1.2 1.2 0 0 1 1.7 0l1.2 1.2a1.2 1.2 0 0 1 0 1.7l-.1.1a1 1 0 0 0-.2 1.1 1 1 0 0 0 .9.6h.1A1.2 1.2 0 0 1 21.2 11v1.6a1.2 1.2 0 0 1-1.2 1.2h-.1a1 1 0 0 0-.9.6Z"/></symbol>
+  <symbol id="i-audit" viewBox="0 0 24 24"><path d="M12 3 5.5 5.7v5.4c0 4.4 2.6 7.9 6.5 9.9 3.9-2 6.5-5.5 6.5-9.9V5.7L12 3Z"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.4-4.4"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="19" r="1" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.8 12s3.4-5 9.2-5 9.2 5 9.2 5-3.4 5-9.2 5-9.2-5-9.2-5Z"/><circle cx="12" cy="12" r="2.2"/></symbol>
+  <symbol id="i-user-plus" viewBox="0 0 24 24"><path d="M15.5 18v-1.1a3.2 3.2 0 0 0-3.2-3.2H8.7a3.2 3.2 0 0 0-3.2 3.2V18"/><circle cx="10.5" cy="8" r="3"/><path d="M19 8v6M16 11h6"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><path d="M16 19v-1.4a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4V19"/><circle cx="10" cy="7.5" r="3.5"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 10v6M12 7h.01"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.4 4.2 2.7 18a2 2 0 0 0 1.8 3h15a2 2 0 0 0 1.8-3L13.6 4.2a1.8 1.8 0 0 0-3.2 0Z"/><path d="M12 9v4M12 17h.01"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24"><path d="M4 6.5h16v11H4zM4.5 7l7.5 6 7.5-6"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v6h-6"/></symbol>
+</svg>
+
+<div class="app-shell">
+  <aside class="sidebar" aria-label="Navegación de plataforma">
+    <div class="logo-inline">
+      <span class="logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 48 48" fill="none">
+          <defs><linearGradient id="logoTeal" x1="5" y1="5" x2="42" y2="28"><stop stop-color="#38B2AC"/><stop offset="1" stop-color="#087A86"/></linearGradient></defs>
+          <path d="M10 11.5c0-2.5 2-4.5 4.5-4.5H39c1.8 0 2.9 2 1.9 3.5l-4.7 6.8c-.9 1.3-2.4 2.1-4 2.1H10v-7.9Z" fill="url(#logoTeal)"/>
+          <path d="M10 20h19.9c1.8 0 2.9 2 1.9 3.5l-4.4 6.3c-.9 1.3-2.4 2.1-4 2.1H17.8L14.9 40H7.7L10 20Z" fill="#102A43"/>
+        </svg>
+      </span>
+      FollowUpBusiness
+    </div>
+
+    <div class="platform-tag">Plataforma</div>
+
+    <div class="sidebar-section">Empresas</div>
+    <nav class="nav-list">
+      <a class="nav-item secondary" href="#">
+        <svg class="icon"><use href="#i-grid"/></svg>
+        <span class="nav-copy"><strong>Resumen</strong><small>Actividad de plataforma</small></span>
+      </a>
+      <a class="nav-item active" href="?state=list">
+        <svg class="icon"><use href="#i-building"/></svg>
+        <span class="nav-copy"><strong>Gestión de empresas</strong><small>Crear y administrar tenants</small></span>
+      </a>
+      <a class="nav-item secondary" href="#">
+        <svg class="icon"><use href="#i-audit"/></svg>
+        <span class="nav-copy"><strong>Auditoría</strong><small>Eventos de plataforma</small></span>
+      </a>
+      <a class="nav-item secondary" href="#">
+        <svg class="icon"><use href="#i-settings"/></svg>
+        <span class="nav-copy"><strong>Configuración</strong><small>Parámetros generales</small></span>
+      </a>
+    </nav>
+
+    <div class="profile-card">
+      <div class="profile-top">
+        <div class="avatar">SP</div>
+        <div>
+          <div class="profile-name">Cuenta de plataforma</div>
+          <div class="profile-role">Superadministrador de plataforma</div>
+        </div>
+      </div>
+      <div class="profile-scope"><span>Ámbito actual</span><strong>Plataforma</strong></div>
+    </div>
+  </aside>
+
+  <section class="workspace">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="mobile-menu" type="button" aria-label="Abrir navegación"><svg class="icon"><use href="#i-menu"/></svg></button>
+        <div class="mobile-logo">
+          <span class="logo-mark" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none"><path d="M10 11.5c0-2.5 2-4.5 4.5-4.5H39c1.8 0 2.9 2 1.9 3.5l-4.7 6.8c-.9 1.3-2.4 2.1-4 2.1H10v-7.9Z" fill="#176D77"/><path d="M10 20h19.9c1.8 0 2.9 2 1.9 3.5l-4.4 6.3c-.9 1.3-2.4 2.1-4 2.1H17.8L14.9 40H7.7L10 20Z" fill="#102A43"/></svg></span>
+          <span>FollowUpBusiness</span>
+        </div>
+        <div class="breadcrumbs"><span>Plataforma</span><span>/</span><span class="current">Empresas</span></div>
+        <div class="context-chip"><svg class="icon icon-sm"><use href="#i-building"/></svg><span>Plataforma</span></div>
+      </div>
+      <div class="top-profile"><div class="avatar">SP</div><div class="top-profile-copy"><strong>Superadministrador</strong><span>Acceso de plataforma</span></div></div>
+    </header>
+
+    <main class="main-content">
+      <section class="view is-active" id="listView" aria-labelledby="listTitle">
+        <div class="page-head">
+          <div><h1 id="listTitle">Empresas</h1><p>Controla el acceso de cada tenant sin eliminar su información histórica.</p></div>
+          <div class="page-actions"><a class="btn btn-primary" href="FE-039-onboarding-de-empresa-desde-plataforma.html?state=create"><svg class="icon"><use href="#i-plus"/></svg>Crear empresa</a></div>
+        </div>
+
+        <div class="table-card" id="companiesCard">
+          <div class="toolbar">
+            <div class="search-box" id="searchBox"><svg class="icon"><use href="#i-search"/></svg><span id="searchText">Buscar por empresa o código</span></div>
+            <div class="filter-group" aria-label="Filtro por estado">
+              <strong>Estado:</strong>
+              <span class="chip active" id="filterAll">Todas</span>
+              <span class="chip" id="filterActive">Activas</span>
+              <span class="chip" id="filterSuspended">Suspendidas</span>
+            </div>
+          </div>
+
+          <div class="table-notice" id="successNotice" role="status" aria-live="polite">
+            <svg class="icon"><use href="#i-check"/></svg>
+            <div><strong id="successNoticeTitle">Estado actualizado</strong><span id="successNoticeText">La respuesta fue confirmada y la tabla ya muestra la transición.</span></div>
+          </div>
+          <div class="table-notice info" id="cancelNotice" role="status">
+            <svg class="icon"><use href="#i-info"/></svg>
+            <div><strong>Acción cancelada</strong><span>No se enviaron cambios y la empresa conserva su estado anterior.</span></div>
+          </div>
+          <div class="preserved-context" id="preservedContext"><svg class="icon icon-sm"><use href="#i-info"/></svg><span>Contexto conservado:</span><span class="preserved-pill" id="preservedSearch">Búsqueda</span><span class="preserved-pill">Página 2</span><span class="preserved-pill">Filtro: Todas</span></div>
+
+          <table class="companies-table">
+            <thead><tr><th>Empresa</th><th>Código</th><th>Zona horaria</th><th>Estado</th><th>Administrador inicial</th><th style="text-align:right">Acciones</th></tr></thead>
+            <tbody>
+              <tr id="rowAndina">
+                <td data-label="Empresa"><div class="company-cell"><div class="company-mark">CA</div><div class="company-copy"><strong>Comercial Andina</strong><span>Empresa de gestión comercial</span></div></div></td>
+                <td data-label="Código"><span class="code-badge">ANDINA</span></td>
+                <td data-label="Zona horaria">America/Lima</td>
+                <td data-label="Estado"><span class="status active" id="statusAndina">Activa</span></td>
+                <td data-label="Administrador inicial"><span class="admin-state ready"><svg class="icon icon-sm"><use href="#i-check"/></svg>Administrador invitado</span></td>
+                <td data-label="Acciones"><div class="row-actions"><a class="more-button" href="?state=active-menu" aria-label="Abrir acciones de Comercial Andina"><svg class="icon"><use href="#i-more"/></svg></a></div></td>
+              </tr>
+              <tr id="rowHorizonte">
+                <td data-label="Empresa"><div class="company-cell"><div class="company-mark">SH</div><div class="company-copy"><strong>Servicios Horizonte</strong><span>Empresa de servicios</span></div></div></td>
+                <td data-label="Código"><span class="code-badge">HORIZONTE</span></td>
+                <td data-label="Zona horaria">America/Bogota</td>
+                <td data-label="Estado"><span class="status active" id="statusHorizonte">Activa</span></td>
+                <td data-label="Administrador inicial"><span class="admin-state pending"><svg class="icon icon-sm"><use href="#i-clock"/></svg>Pendiente de provisionar</span></td>
+                <td data-label="Acciones"><div class="row-actions"><a class="more-button" id="horizonteMore" href="?state=active-menu" aria-label="Abrir acciones de Servicios Horizonte"><svg class="icon"><use href="#i-more"/></svg></a></div></td>
+              </tr>
+              <tr id="rowPacifico">
+                <td data-label="Empresa"><div class="company-cell"><div class="company-mark">DP</div><div class="company-copy"><strong>Distribuciones del Pacífico</strong><span>Operación comercial regional</span></div></div></td>
+                <td data-label="Código"><span class="code-badge">PACIFICO</span></td>
+                <td data-label="Zona horaria">America/Santiago</td>
+                <td data-label="Estado"><span class="status suspended" id="statusPacifico">Suspendida</span></td>
+                <td data-label="Administrador inicial"><span class="admin-state ready"><svg class="icon icon-sm"><use href="#i-check"/></svg>Administrador invitado</span></td>
+                <td data-label="Acciones"><div class="row-actions"><a class="more-button" id="pacificoMore" href="?state=suspended-menu" aria-label="Abrir acciones de Distribuciones del Pacífico"><svg class="icon"><use href="#i-more"/></svg></a></div></td>
+              </tr>
+              <tr id="rowNorte">
+                <td data-label="Empresa"><div class="company-cell"><div class="company-mark">GN</div><div class="company-copy"><strong>Grupo Norte</strong><span>Operación B2B</span></div></div></td>
+                <td data-label="Código"><span class="code-badge">NORTE</span></td>
+                <td data-label="Zona horaria">America/Mexico_City</td>
+                <td data-label="Estado"><span class="status active">Activa</span></td>
+                <td data-label="Administrador inicial"><span class="admin-state ready"><svg class="icon icon-sm"><use href="#i-check"/></svg>Administrador invitado</span></td>
+                <td data-label="Acciones"><div class="row-actions"><button class="more-button" type="button" aria-label="Abrir acciones de Grupo Norte"><svg class="icon"><use href="#i-more"/></svg></button></div></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="table-footer"><span id="tableSummary">Mostrando 4 empresas</span><div class="pagination" aria-label="Paginación"><span class="page-button"><svg class="icon icon-sm"><use href="#i-back"/></svg></span><span class="page-button" id="page1">1</span><span class="page-button active" id="page2">2</span><span class="page-button">3</span><span class="page-button"><svg class="icon icon-sm" style="transform:rotate(180deg)"><use href="#i-back"/></svg></span></div></div>
+
+          <div class="action-menu status-action-menu" id="activeActionMenu" hidden>
+            <a href="#"><svg class="icon"><use href="#i-eye"/></svg><span><strong>Ver detalle</strong><small>Consultar información de la empresa</small></span></a>
+            <a href="FE-039-onboarding-de-empresa-desde-plataforma.html?state=provision" id="provisionAction"><svg class="icon"><use href="#i-user-plus"/></svg><span><strong>Provisionar administrador</strong><small>Disponible mientras esté pendiente</small></span></a>
+            <div class="menu-divider"></div>
+            <a class="menu-danger" href="?state=suspend"><svg class="icon"><use href="#i-lock"/></svg><span><strong>Suspender empresa</strong><small>Bloquea nuevos accesos y renovaciones</small></span></a>
+          </div>
+
+          <div class="action-menu status-action-menu" id="suspendedActionMenu" hidden>
+            <a href="#"><svg class="icon"><use href="#i-eye"/></svg><span><strong>Ver detalle</strong><small>Consultar información de la empresa</small></span></a>
+            <div class="menu-divider"></div>
+            <a class="menu-success" href="?state=reactivate"><svg class="icon"><use href="#i-refresh"/></svg><span><strong>Reactivar empresa</strong><small>Habilita futuros inicios de sesión</small></span></a>
+          </div>
+
+          <div class="permission-note"><svg class="icon"><use href="#i-lock"/></svg><span>Las acciones solo se presentan al superadministrador de plataforma. La autorización, la transición y la auditoría se validan en el servicio antes de actualizar la interfaz.</span></div>
+        </div>
+      </section>
+
+      <section class="view" id="errorView" aria-labelledby="errorTitle">
+        <div class="center-stage"><div class="error-card">
+          <span class="error-code" id="errorCode">403 · Permiso denegado</span>
+          <div class="state-icon error" id="errorIcon"><svg class="icon icon-xl"><use href="#i-lock"/></svg></div>
+          <h1 id="errorTitle">No tienes permiso para realizar esta acción</h1>
+          <p class="state-message" id="errorMessage">La operación está disponible únicamente para superadministradores de plataforma.</p>
+          <div class="state-actions" id="errorActions"><a class="btn btn-primary" href="?state=list">Volver a empresas</a></div>
+          <div class="correlation" id="errorCorrelation" hidden><span>Correlation ID: corr-FE040-7B29-4F1A</span><svg class="icon icon-sm"><use href="#i-copy"/></svg></div>
+        </div></div>
+      </section>
+    </main>
+  </section>
+</div>
+
+<!-- MODAL DE CAMBIO DE ESTADO -->
+<div class="modal-layer" id="transitionModal" role="dialog" aria-modal="true" aria-labelledby="transitionTitle">
+  <div class="modal-card transition-card">
+    <div class="modal-handle" aria-hidden="true"></div>
+    <div class="modal-header">
+      <div><h2 id="transitionTitle">¿Suspender Servicios Horizonte?</h2><p id="transitionSubtitle">Confirma el cambio de estado antes de enviarlo.</p></div>
+      <a class="modal-close" href="?state=cancelled" aria-label="Cancelar cambio"><svg class="icon"><use href="#i-close"/></svg></a>
+    </div>
+    <div class="modal-body">
+      <div class="inline-alert" id="transitionAlert" hidden><svg class="icon"><use href="#i-alert"/></svg><div><strong id="transitionAlertTitle">Revisa el motivo</strong><span id="transitionAlertText">Escribe un motivo válido para continuar.</span><div class="correlation-inline" id="transitionCorrelation" hidden><span>Correlation ID: corr-FE040-91C4-D260</span><svg class="icon"><use href="#i-copy"/></svg></div></div></div>
+
+      <div class="transition-hero">
+        <div class="transition-company"><div class="company-mark" id="transitionMark">SH</div><div><strong id="transitionCompany">Servicios Horizonte</strong><span id="transitionCode">Código HORIZONTE</span></div></div>
+        <svg class="icon transition-arrow"><use href="#i-chevron"/></svg>
+        <span class="transition-target suspend" id="transitionTarget"><svg class="icon icon-sm"><use href="#i-lock"/></svg><span>Estado solicitado: Suspendida</span></span>
+      </div>
+
+      <div class="impact-box" id="impactBox">
+        <div class="impact-head"><svg class="icon"><use href="#i-alert"/></svg><span id="impactTitle">Efecto sobre el acceso</span></div>
+        <ul class="impact-list" id="impactList"><li>Se bloquearán nuevos inicios de sesión de la empresa.</li><li>Se bloquearán las renovaciones de sesión.</li><li>La información histórica se conservará.</li></ul>
+      </div>
+
+      <div class="reason-field" id="reasonField">
+        <label for="reasonInput"><span>Motivo del cambio <span aria-hidden="true">*</span></span><span class="optional">Obligatorio</span></label>
+        <textarea class="reason-control" id="reasonInput" maxlength="500" placeholder="Indica el motivo del cambio de estado."></textarea>
+        <div class="reason-helper"><span class="reason-hint">Escribe entre 5 y 500 caracteres.</span><span class="reason-error">El motivo debe contener al menos 5 caracteres.</span><span id="reasonCounter">0 / 500</span></div>
+      </div>
+
+      <div class="authority-note"><svg class="icon"><use href="#i-info"/></svg><span id="authorityCopy">El estado visible se actualizará únicamente después de recibir una respuesta exitosa. Esta acción no elimina información.</span></div>
+    </div>
+    <div class="request-progress" id="requestProgress" hidden><span></span></div>
+    <div class="modal-footer">
+      <a class="btn btn-outline" id="cancelButton" href="?state=cancelled">Cancelar</a>
+      <a class="btn btn-destructive" id="confirmButton" href="?state=suspend-success"><svg class="icon"><use href="#i-lock"/></svg><span>Suspender empresa</span></a>
+    </div>
+  </div>
+</div>
+
+<!-- 401 SEGÚN FE-034 -->
+<div class="modal-layer" id="sessionModal" role="dialog" aria-modal="true" aria-labelledby="sessionTitle">
+  <div class="modal-card session-modal">
+    <div class="modal-handle" aria-hidden="true"></div>
+    <div class="modal-body">
+      <div class="session-icon"><svg class="icon icon-xl"><use href="#i-lock"/></svg></div>
+      <h2 id="sessionTitle">Tu sesión terminó</h2>
+      <p class="state-message">Por seguridad, inicia sesión nuevamente para continuar.</p>
+      <div class="state-actions"><a class="btn btn-primary" href="#">Iniciar sesión</a><a class="btn btn-outline" href="?state=list">Volver al inicio</a></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict'
+  const params = new URLSearchParams(window.location.search)
+  const state = params.get('state') || 'list'
+
+  const listView = document.getElementById('listView')
+  const errorView = document.getElementById('errorView')
+  const activeActionMenu = document.getElementById('activeActionMenu')
+  const suspendedActionMenu = document.getElementById('suspendedActionMenu')
+  const transitionModal = document.getElementById('transitionModal')
+  const sessionModal = document.getElementById('sessionModal')
+  const transitionTitle = document.getElementById('transitionTitle')
+  const transitionSubtitle = document.getElementById('transitionSubtitle')
+  const transitionMark = document.getElementById('transitionMark')
+  const transitionCompany = document.getElementById('transitionCompany')
+  const transitionCode = document.getElementById('transitionCode')
+  const transitionTarget = document.getElementById('transitionTarget')
+  const impactBox = document.getElementById('impactBox')
+  const impactList = document.getElementById('impactList')
+  const reasonField = document.getElementById('reasonField')
+  const reasonInput = document.getElementById('reasonInput')
+  const reasonCounter = document.getElementById('reasonCounter')
+  const transitionAlert = document.getElementById('transitionAlert')
+  const transitionAlertTitle = document.getElementById('transitionAlertTitle')
+  const transitionAlertText = document.getElementById('transitionAlertText')
+  const transitionCorrelation = document.getElementById('transitionCorrelation')
+  const authorityCopy = document.getElementById('authorityCopy')
+  const cancelButton = document.getElementById('cancelButton')
+  const confirmButton = document.getElementById('confirmButton')
+  const requestProgress = document.getElementById('requestProgress')
+  const successNotice = document.getElementById('successNotice')
+  const successNoticeTitle = document.getElementById('successNoticeTitle')
+  const successNoticeText = document.getElementById('successNoticeText')
+  const cancelNotice = document.getElementById('cancelNotice')
+  const preservedContext = document.getElementById('preservedContext')
+  const preservedSearch = document.getElementById('preservedSearch')
+  const searchText = document.getElementById('searchText')
+  const statusHorizonte = document.getElementById('statusHorizonte')
+  const statusPacifico = document.getElementById('statusPacifico')
+  const rowHorizonte = document.getElementById('rowHorizonte')
+  const rowPacifico = document.getElementById('rowPacifico')
+  const provisionAction = document.getElementById('provisionAction')
+
+  const errorCode = document.getElementById('errorCode')
+  const errorIcon = document.getElementById('errorIcon')
+  const errorTitle = document.getElementById('errorTitle')
+  const errorMessage = document.getElementById('errorMessage')
+  const errorActions = document.getElementById('errorActions')
+  const errorCorrelation = document.getElementById('errorCorrelation')
+
+  function showView(view){ listView.classList.toggle('is-active',view===listView); errorView.classList.toggle('is-active',view===errorView) }
+  function reset(){
+    showView(listView)
+    activeActionMenu.hidden = true
+    suspendedActionMenu.hidden = true
+    transitionModal.classList.remove('is-visible')
+    sessionModal.classList.remove('is-visible')
+    successNotice.classList.remove('is-visible')
+    cancelNotice.classList.remove('is-visible')
+    preservedContext.classList.remove('is-visible')
+    rowHorizonte.classList.remove('is-updated')
+    rowPacifico.classList.remove('is-updated')
+    statusHorizonte.className='status active'; statusHorizonte.textContent='Activa'
+    statusPacifico.className='status suspended'; statusPacifico.textContent='Suspendida'
+    transitionAlert.hidden=true; transitionAlert.className='inline-alert'; transitionCorrelation.hidden=true
+    reasonField.classList.remove('has-error')
+    reasonInput.value=''; reasonInput.disabled=false; reasonCounter.textContent='0 / 500'
+    requestProgress.hidden=true
+    confirmButton.className='btn btn-destructive'; confirmButton.setAttribute('aria-disabled','false')
+    cancelButton.className='btn btn-outline'; cancelButton.setAttribute('aria-disabled','false')
+    document.body.style.overflow=''
+    errorCorrelation.hidden=true
+  }
+  function openModal(mode, options={}){
+    const suspend = mode==='suspend'
+    const company = options.company || (suspend
+      ? {name:'Servicios Horizonte',mark:'SH',code:'HORIZONTE'}
+      : {name:'Distribuciones del Pacífico',mark:'DP',code:'PACIFICO'})
+    transitionModal.classList.add('is-visible')
+    document.body.style.overflow='hidden'
+    transitionTitle.textContent = `${suspend?'¿Suspender':'¿Reactivar'} ${company.name}?`
+    transitionSubtitle.textContent = suspend ? 'Confirma la transición de Activa a Suspendida.' : 'Confirma la transición de Suspendida a Activa.'
+    transitionMark.textContent = company.mark
+    transitionCompany.textContent = company.name
+    transitionCode.textContent = `Código ${company.code}`
+    transitionTarget.className = `transition-target ${suspend?'suspend':'reactivate'}`
+    transitionTarget.innerHTML = suspend ? '<svg class="icon icon-sm"><use href="#i-lock"/></svg><span>Estado solicitado: Suspendida</span>' : '<svg class="icon icon-sm"><use href="#i-refresh"/></svg><span>Estado solicitado: Activa</span>'
+    impactBox.className = `impact-box${suspend?'':' reactivate'}`
+    impactList.innerHTML = suspend ? '<li>Se bloquearán nuevos inicios de sesión de la empresa.</li><li>Se bloquearán las renovaciones de sesión.</li><li>La información histórica se conservará.</li>' : '<li>Se habilitarán futuros inicios de sesión de la empresa.</li><li>No se recuperan sesiones anteriores.</li><li>No se crean credenciales ni accesos predeterminados.</li>'
+    authorityCopy.textContent = suspend ? 'El estado visible se actualizará únicamente después de recibir una respuesta exitosa. Esta acción no elimina información.' : 'El estado visible se actualizará únicamente después de recibir una respuesta exitosa. La reactivación no restaura sesiones anteriores.'
+    confirmButton.className = suspend ? 'btn btn-destructive' : 'btn btn-primary'
+    confirmButton.href = options.successState || (suspend ? '?state=suspend-success' : '?state=reactivate-success')
+    confirmButton.innerHTML = suspend ? '<svg class="icon"><use href="#i-lock"/></svg><span>Suspender empresa</span>' : '<svg class="icon"><use href="#i-refresh"/></svg><span>Reactivar empresa</span>'
+    if(options.reason){reasonInput.value=options.reason;reasonCounter.textContent=`${options.reason.length} / 500`}
+    if(options.validation){reasonField.classList.add('has-error');transitionAlert.hidden=false;transitionAlertTitle.textContent='Revisa el motivo';transitionAlertText.textContent='El motivo debe contener entre 5 y 500 caracteres.'}
+    if(options.loading){
+      reasonInput.disabled=true; requestProgress.hidden=false
+      confirmButton.classList.add('is-disabled'); confirmButton.setAttribute('aria-disabled','true')
+      cancelButton.classList.add('is-disabled'); cancelButton.setAttribute('aria-disabled','true')
+      confirmButton.innerHTML=`<span class="btn-spinner" aria-hidden="true"></span><span>${suspend?'Suspendiendo empresa...':'Reactivando empresa...'}</span>`
+    }
+    if(options.doubleSubmit){transitionAlert.hidden=false;transitionAlert.classList.add('info');transitionAlertTitle.textContent='Solicitud en curso';transitionAlertText.textContent='El envío permanece bloqueado hasta recibir una respuesta.'}
+    if(options.conflict){
+      transitionAlert.hidden=false;transitionAlert.classList.add('warning');transitionAlertTitle.textContent='No se pudo completar la acción porque la información cambió.';transitionAlertText.textContent='Actualiza los datos antes de volver a intentarlo.';transitionCorrelation.hidden=false
+      confirmButton.className='btn btn-primary';confirmButton.href='?state=list';confirmButton.innerHTML='<svg class="icon"><use href="#i-refresh"/></svg><span>Actualizar datos</span>'
+    }
+  }
+  function showSuccess(mode){
+    const suspend=mode==='suspend'
+    successNotice.classList.add('is-visible');preservedContext.classList.add('is-visible')
+    searchText.textContent=suspend?'horizonte':'pacífico';preservedSearch.textContent=`Búsqueda: “${suspend?'horizonte':'pacífico'}”`
+    successNoticeTitle.textContent=suspend?'Empresa suspendida':'Empresa reactivada'
+    successNoticeText.textContent=suspend?'Servicios Horizonte ahora aparece como Suspendida. La acción disponible cambió a Reactivar empresa.':'Distribuciones del Pacífico ahora aparece como Activa. La acción disponible cambió a Suspender empresa.'
+    if(suspend){
+      statusHorizonte.className='status suspended';statusHorizonte.textContent='Suspendida';rowHorizonte.classList.add('is-updated')
+      suspendedActionMenu.hidden=false;suspendedActionMenu.style.top='210px';suspendedActionMenu.querySelector('a:last-child').href='?state=reactivate-horizonte'
+    }else{
+      statusPacifico.className='status active';statusPacifico.textContent='Activa';rowPacifico.classList.add('is-updated')
+      activeActionMenu.hidden=false;activeActionMenu.style.top='306px';provisionAction.hidden=true;activeActionMenu.querySelector('.menu-danger').href='?state=suspend-pacifico'
+    }
+  }
+  function setError(config){
+    showView(errorView);errorCode.textContent=config.code;errorTitle.textContent=config.title;errorMessage.textContent=config.message
+    errorIcon.className=`state-icon ${config.tone||'error'}`;errorIcon.innerHTML=`<svg class="icon icon-xl"><use href="#${config.icon||'i-alert'}"/></svg>`
+    errorActions.innerHTML=config.actions;errorCorrelation.hidden=!config.correlation
+  }
+
+  reset()
+  switch(state){
+    case 'active-menu': activeActionMenu.hidden=false;activeActionMenu.style.top='210px';break
+    case 'suspended-menu': suspendedActionMenu.hidden=false;suspendedActionMenu.style.top='306px';break
+    case 'suspend': openModal('suspend');break
+    case 'suspend-pacifico': openModal('suspend',{company:{name:'Distribuciones del Pacífico',mark:'DP',code:'PACIFICO'},successState:'?state=suspend-pacifico-success'});break
+    case 'suspend-validation': openModal('suspend',{reason:'abc',validation:true});break
+    case 'suspend-loading': openModal('suspend',{reason:'Cambio de acceso solicitado por la plataforma.',loading:true});break
+    case 'double-submit': openModal('suspend',{reason:'Cambio de acceso solicitado por la plataforma.',loading:true,doubleSubmit:true});break
+    case 'suspend-success': showSuccess('suspend');break
+    case 'reactivate': openModal('reactivate');break
+    case 'reactivate-horizonte': openModal('reactivate',{company:{name:'Servicios Horizonte',mark:'SH',code:'HORIZONTE'},successState:'?state=reactivate-horizonte-success'});break
+    case 'reactivate-validation': openModal('reactivate',{reason:'',validation:true});break
+    case 'reactivate-loading': openModal('reactivate',{reason:'Reactivación solicitada después de resolver la incidencia.',loading:true});break
+    case 'reactivate-success': showSuccess('reactivate');break
+    case 'reactivate-horizonte-success':
+      successNotice.classList.add('is-visible');preservedContext.classList.add('is-visible');
+      searchText.textContent='horizonte';preservedSearch.textContent='Búsqueda: “horizonte”';
+      successNoticeTitle.textContent='Empresa reactivada';successNoticeText.textContent='Servicios Horizonte vuelve a aparecer como Activa. La acción disponible cambió a Suspender empresa.';
+      rowHorizonte.classList.add('is-updated');activeActionMenu.hidden=false;activeActionMenu.style.top='210px';break
+    case 'suspend-pacifico-success':
+      successNotice.classList.add('is-visible');preservedContext.classList.add('is-visible');
+      searchText.textContent='pacífico';preservedSearch.textContent='Búsqueda: “pacífico”';
+      successNoticeTitle.textContent='Empresa suspendida';successNoticeText.textContent='Distribuciones del Pacífico continúa visible como Suspendida. La acción disponible cambió a Reactivar empresa.';
+      rowPacifico.classList.add('is-updated');suspendedActionMenu.hidden=false;suspendedActionMenu.style.top='306px';break
+    case 'cancelled': cancelNotice.classList.add('is-visible');break
+    case 'conflict': openModal('suspend',{reason:'Cambio de acceso solicitado por la plataforma.',conflict:true});break
+    case 'unauthorized': sessionModal.classList.add('is-visible');document.body.style.overflow='hidden';break
+    case 'forbidden': setError({code:'403 · Permiso denegado',title:'No tienes permiso para realizar esta acción',message:'La operación está disponible únicamente para superadministradores de plataforma.',icon:'i-lock',actions:'<a class="btn btn-primary" href="?state=list">Volver a empresas</a>'});break
+    case 'not-found': setError({code:'404 · Empresa no encontrada',title:'No encontramos la empresa',message:'El recurso solicitado ya no está disponible. Actualiza el listado antes de volver a intentarlo.',icon:'i-search',correlation:true,actions:'<a class="btn btn-primary" href="?state=list"><svg class="icon"><use href="#i-refresh"/></svg>Actualizar empresas</a>'});break
+    case 'network-error': setError({code:'Error temporal',title:'Ocurrió un problema temporal',message:'No pudimos confirmar el cambio de estado. Inténtalo nuevamente en unos momentos.',icon:'i-alert',correlation:true,actions:'<a class="btn btn-primary" href="?state=suspend"><svg class="icon"><use href="#i-refresh"/></svg>Reintentar</a><a class="btn btn-outline" href="?state=list">Volver a empresas</a>'});break
+    default: break
+  }
+
+  window.__FE040={getState:()=>state,setState:(next)=>{window.location.search=`?state=${encodeURIComponent(next)}`}}
+})()
+</script>
+</body>
+
+</html>

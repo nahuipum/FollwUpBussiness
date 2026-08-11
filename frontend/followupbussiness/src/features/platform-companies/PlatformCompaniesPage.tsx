@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { navigate } from "../../app/navigation";
-import { getSessionIdentity, subscribeToSession } from "../auth/auth";
+import { getSessionIdentity, logout, subscribeToSession } from "../auth/auth";
 import {
   ApiRequestObsoleteError,
   normalizeApiError,
@@ -17,6 +17,7 @@ import { DashboardLayout } from "../../shared/layout/DashboardLayout";
 import { PasswordRecoveryBrandMark } from "../auth/components/BrandPanel";
 import {
   createCompany,
+  changeCompanyStatus,
   listCompanyAdminInvitations,
   listCompanies,
   listCompanyCurrencies,
@@ -24,6 +25,7 @@ import {
 } from "./api";
 import { CompanyTable } from "./components/CompanyTable";
 import { CreateCompanyModal } from "./components/CreateCompanyModal";
+import { CompanyActionDialog } from "./components/CompanyActionDialog";
 import { OnboardingSuccess } from "./components/OnboardingSuccess";
 import { ProvisionAdminPanel } from "./components/ProvisionAdminPanel";
 import type {
@@ -38,6 +40,8 @@ import type {
 import "./platform-companies.css";
 
 type View = "list" | "create" | "provision" | "success";
+type CompanyAction = "detail" | "suspend" | "reactivate";
+type CompanyActionState = Readonly<{ company: Company; action: CompanyAction; success: boolean }>;
 const pageSize = 20;
 
 export function PlatformCompaniesPage() {
@@ -46,6 +50,7 @@ export function PlatformCompaniesPage() {
     identity === null ? null : `${identity.id}:${String(identity.company)}`;
   const identityRef = useRef(identityKey);
   const loadRef = useRef(0);
+  const actionRequestRef = useRef(0);
   const [view, setView] = useState<View>("list");
   const [companies, setCompanies] = useState<readonly Company[]>([]);
   const [page, setPage] = useState(0);
@@ -60,6 +65,8 @@ export function PlatformCompaniesPage() {
   const [currencies, setCurrencies] = useState<readonly CompanyCurrency[]>([]);
   const [currenciesLoading, setCurrenciesLoading] = useState(true);
   const [currenciesUnavailable, setCurrenciesUnavailable] = useState(false);
+  const [companyAction, setCompanyAction] = useState<CompanyActionState | null>(null);
+  const [companyActionError, setCompanyActionError] = useState<ApiError | null>(null);
   const [invitations, setInvitations] = useState<readonly CompanyAdminInvitation[]>([]);
   const [invitationsLoading, setInvitationsLoading] = useState(false);
   const [invitationsUnavailable, setInvitationsUnavailable] = useState(false);
@@ -131,6 +138,10 @@ export function PlatformCompaniesPage() {
           setSearch("");
           setStatus(null);
           setSelectedCompany(null);
+          actionRequestRef.current += 1;
+          setCompanyAction(null);
+          setCompanyActionError(null);
+          setSubmitting(false);
           setInvitations([]);
           setError(null);
         }
@@ -194,7 +205,29 @@ export function PlatformCompaniesPage() {
     setSelectedCompany(null);
     setError(null);
   };
+  const submitCompanyAction = async (reason: string) => {
+    if (companyAction === null || submitting) return;
+    const requestId = ++actionRequestRef.current;
+    const { company, action } = companyAction;
+    const nextStatus: CompanyStatus = action === "suspend" ? "SUSPENDED" : "ACTIVE";
+    setSubmitting(true);
+    setCompanyActionError(null);
+    try {
+      const result = await changeCompanyStatus(company.id, { status: nextStatus, reason });
+      if (requestId !== actionRequestRef.current) return;
+      if (result.response.status === 200 && result.company !== null) {
+        setCompanies((current) => current.map((item) => item.id === result.company?.id ? result.company : item));
+        setCompanyAction({ company: result.company, action, success: true });
+      } else setCompanyActionError(await normalizeApiError(result.response));
+    } catch (reason) {
+      if (requestId === actionRequestRef.current && !(reason instanceof ApiRequestObsoleteError))
+        setCompanyActionError({ status: 500, correlationId: null, fieldErrors: [] });
+    } finally {
+      if (requestId === actionRequestRef.current) setSubmitting(false);
+    }
+  };
   const displayName = identity?.displayName ?? "";
+  const canManageStatuses = identity?.roles.includes("PLATFORM_SUPERADMIN") ?? false;
 
   return (
     <DashboardLayout
@@ -223,6 +256,10 @@ export function PlatformCompaniesPage() {
             : "Empresas",
       ]}
       topbarContext="Plataforma"
+      onLogout={() => {
+        void logout();
+        navigate("/", { replace: true });
+      }}
       navigation={[
         {
           id: "dashboard",
@@ -306,6 +343,7 @@ export function PlatformCompaniesPage() {
               search={search}
               status={status}
               loading={loading}
+              canManageStatuses={canManageStatuses}
               onSearchChange={(value) => {
                 setPage(0);
                 setSearch(value);
@@ -320,6 +358,10 @@ export function PlatformCompaniesPage() {
                 setInvitations([]);
                 setError(null);
                 setView("provision");
+              }}
+              onAction={(company, action) => {
+                setCompanyActionError(null);
+                setCompanyAction({ company, action, success: false });
               }}
             />
           )}
@@ -337,6 +379,20 @@ export function PlatformCompaniesPage() {
           onSubmit={submitCompany}
         />
       )}
+      {companyAction && <CompanyActionDialog
+        company={companyAction.company}
+        action={companyAction.action}
+        busy={submitting}
+        success={companyAction.success}
+        error={companyActionError}
+        onClose={() => {
+          actionRequestRef.current += 1;
+          setSubmitting(false);
+          setCompanyActionError(null);
+          setCompanyAction(null);
+        }}
+        onSubmit={submitCompanyAction}
+      />}
     </DashboardLayout>
   );
 }

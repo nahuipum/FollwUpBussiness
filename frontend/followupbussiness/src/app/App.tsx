@@ -8,6 +8,7 @@ import { canAccessPath, hasSession, logout } from "../features/auth/auth";
 import { ErrorState, InlineAlert, SessionExpiredDialog } from "../shared/ui/error-ui/components";
 import { useGlobalApiError } from "../shared/ui/error-ui/useGlobalApiError";
 import { PlatformCompaniesPage } from "../features/platform-companies/PlatformCompaniesPage";
+import { PlatformDashboardPage } from "../features/platform-dashboard/PlatformDashboardPage";
 
 export function App() {
   const { path, sessionState, clearSessionNotice } = useSessionRoute();
@@ -71,6 +72,8 @@ export function App() {
   if (path === "/") return <LoginScreen />;
 
   if (hasSession() && canAccessPath(path)) {
+    if (path === "/platform/dashboard")
+      return <PlatformDashboardPage />;
     if (path === "/platform/companies")
       return <PlatformCompaniesPage />;
     return (

@@ -9,6 +9,7 @@ import type {
   CompanyStatus,
   CompanyCurrency,
   CompanyAdminInvitation,
+  ChangeCompanyStatusInput,
   CreateCompanyInput,
   ProvisionInitialAdminInput,
 } from "./types";
@@ -130,6 +131,26 @@ export async function provisionInitialAdmin(
       ...(input.username ? { username: input.username } : {}),
     }),
   });
+}
+
+export async function changeCompanyStatus(
+  companyId: string,
+  input: ChangeCompanyStatusInput,
+): Promise<{ response: Response; company: Company | null }> {
+  const response = await apiRequest(
+    `/platform/companies/${encodeURIComponent(companyId)}/status`,
+    {
+      method: "PATCH",
+      headers: requestHeaders(),
+      body: JSON.stringify({ status: input.status, reason: input.reason }),
+    },
+  );
+  return {
+    response,
+    company: response.status === 200
+      ? parseCompany(await response.json().catch(() => null))
+      : null,
+  };
 }
 
 const invitationStatuses = new Set([

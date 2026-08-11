@@ -1,5 +1,10 @@
 export type CompanyStatus = "ACTIVE" | "SUSPENDED";
 
+export type ChangeCompanyStatusInput = Readonly<{
+  status: CompanyStatus;
+  reason: string;
+}>;
+
 export type Company = Readonly<{
   id: string;
   legalName: string;
