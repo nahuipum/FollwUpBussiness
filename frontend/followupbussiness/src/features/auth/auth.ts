@@ -10,18 +10,20 @@ export type LoginResult =
   | { ok: true; redirectTo: string }
   | { ok: false; message: string; retryAfterSeconds: number | null };
 
+type CurrentUser = {
+  id: string;
+  displayName: string;
+  email: string;
+  status: "INVITED" | "ACTIVE" | "INACTIVE" | "LOCKED";
+  roles: UserRole[];
+  company: unknown;
+};
+
 type LoginResponse = {
   channel: "WEB";
   credentials: { accessToken: string; tokenType: "Bearer"; expiresIn: 600 };
   csrfToken: string;
-  user: {
-    id: string;
-    displayName: string;
-    email: string;
-    status: "INVITED" | "ACTIVE" | "INACTIVE" | "LOCKED";
-    roles: UserRole[];
-    company: unknown;
-  };
+  user: CurrentUser;
 };
 
 type Session = {
@@ -95,13 +97,13 @@ function notifySessionChange() {
   sessionListeners.forEach((listener) => listener());
 }
 
-function createSession(response: LoginResponse): Session {
+function createSession(response: LoginResponse, user: CurrentUser): Session {
   persistCsrfToken(response.csrfToken);
   return {
     accessToken: response.credentials.accessToken,
     csrfToken: response.csrfToken,
-    roles: response.user.roles,
-    user: response.user,
+    roles: user.roles,
+    user,
     expiresAt: Date.now() + response.credentials.expiresIn * 1000,
   };
 }
@@ -190,18 +192,41 @@ function isLoginResponse(value: unknown): value is LoginResponse {
     response.credentials.accessToken.length <= 4096 &&
     response.credentials.tokenType === "Bearer" &&
     response.credentials.expiresIn === 600 &&
-    typeof response.user?.id === "string" &&
-    typeof response.user.displayName === "string" &&
-    typeof response.user.email === "string" &&
-    (response.user.status === "INVITED" ||
-      response.user.status === "ACTIVE" ||
-      response.user.status === "INACTIVE" ||
-      response.user.status === "LOCKED") &&
-    "company" in response.user &&
-    Array.isArray(response.user?.roles) &&
-    response.user.roles.length > 0 &&
-    response.user.roles.every(isUserRole)
+    isCurrentUser(response.user)
   );
+}
+
+function isCurrentUser(value: unknown): value is CurrentUser {
+  if (typeof value !== "object" || value === null) return false;
+  const user = value as Partial<CurrentUser>;
+  return (
+    typeof user.id === "string" &&
+    typeof user.displayName === "string" &&
+    typeof user.email === "string" &&
+    (user.status === "INVITED" ||
+      user.status === "ACTIVE" ||
+      user.status === "INACTIVE" ||
+      user.status === "LOCKED") &&
+    "company" in user &&
+    Array.isArray(user.roles) &&
+    user.roles.length > 0 &&
+    user.roles.every(isUserRole)
+  );
+}
+
+async function currentUser(accessToken: string): Promise<CurrentUser | null> {
+  try {
+    const response = await apiRequest("/me", {
+      method: "GET",
+      credentials: "include",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }, { publishErrors: false });
+    if (response.status !== 200) return null;
+    const body: unknown = await response.json().catch(() => null);
+    return isCurrentUser(body) ? body : null;
+  } catch {
+    return null;
+  }
 }
 
 async function rejectCookieBearingLogin(): Promise<LoginResult> {
@@ -249,10 +274,12 @@ export async function login(credentials: {
       return await rejectCookieBearingLogin();
     }
     if (!isLoginResponse(body)) return await rejectCookieBearingLogin();
-    const redirectTo = redirectFor(body.user.roles);
+    const user = await currentUser(body.credentials.accessToken);
+    if (user === null) return await rejectCookieBearingLogin();
+    const redirectTo = redirectFor(user.roles);
     if (redirectTo === null) return await rejectCookieBearingLogin();
 
-    session = createSession(body);
+    session = createSession(body, user);
     notifySessionChange();
     return { ok: true, redirectTo };
   } catch {
@@ -282,6 +309,22 @@ export function hasSession(): boolean {
 
 export function getSessionIdentity(): Readonly<LoginResponse["user"]> | null {
   return session?.user ?? null;
+}
+
+/** Contract `CurrentUser.company` embeds the tenant company for WEB sessions. */
+export function getSessionCompanyName(): string | null {
+  const company = session?.user.company;
+  if (typeof company !== "object" || company === null) return null;
+  const legalName = (company as Record<string, unknown>).legalName;
+  return typeof legalName === "string" && legalName.trim().length > 0
+    ? legalName
+    : null;
+}
+
+export function getSessionCompanyLabel(): string | null {
+  const legalName = getSessionCompanyName();
+  if (legalName === null || legalName.length <= 28) return legalName;
+  return legalName.split(/\s+/)[0] ?? legalName;
 }
 
 /** Provides the current in-memory bearer value only to authenticated feature transport. */
@@ -357,7 +400,13 @@ export function refreshSession(): Promise<RefreshResult> {
         return "expired";
       }
 
-      session = createSession(body);
+      const user = await currentUser(body.credentials.accessToken);
+      if (!isCurrentSession()) return "superseded";
+      if (user === null) {
+        clearSession();
+        return "expired";
+      }
+      session = createSession(body, user);
       notifySessionChange();
       return "refreshed";
     } catch {
@@ -410,7 +459,13 @@ export function restoreSession(): Promise<RefreshResult> {
         return "expired";
       }
 
-      session = createSession(body);
+      const user = await currentUser(body.credentials.accessToken);
+      if (generation !== sessionGeneration) return "superseded";
+      if (user === null) {
+        clearSession();
+        return "expired";
+      }
+      session = createSession(body, user);
       notifySessionChange();
       return "refreshed";
     } catch {

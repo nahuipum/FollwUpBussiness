@@ -58,6 +58,19 @@ class CompanyUserPostgresIntegrationTest {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM audit_entry WHERE tenant_id=? AND resource_type='COMPANY_USER' AND result='SUCCESS'",Integer.class,tenant)).isEqualTo(1);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM transactional_outbox WHERE tenant_id=? AND causation_id=?",Integer.class,tenant,first.id())).isEqualTo(1);
     }
+    @Test void correctingInvitationKeepsItsIdentityAndAtomicallyReplacesActivationToken(){
+        var service=inviteService();
+        var initial=tx.execute(x->service.invite(new CompanyUserService.Invite("Original Name",null,"original@example.test",BaseRole.SUPERVISOR),admin));
+
+        var corrected=tx.execute(x->service.correctAndResendInvitation(initial.id(),new CompanyUserService.Invite("Corrected Name",null,"corrected@example.test",BaseRole.COMPANY_ADMIN),initial.version(),admin,UUID.randomUUID()));
+
+        assertThat(corrected.id()).isEqualTo(initial.id()); assertThat(corrected.status()).isEqualTo("INVITED"); assertThat(corrected.username()).isEqualTo("corrected@example.test");
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM identity_access_action_token WHERE account_id=? AND purpose='ACTIVATION' AND invalidated_at IS NULL",Integer.class,initial.id())).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM identity_access_action_token WHERE account_id=? AND purpose='ACTIVATION' AND invalidated_at IS NOT NULL",Integer.class,initial.id())).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM identity_access_notification WHERE account_id=?",Integer.class,initial.id())).isEqualTo(2);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM audit_entry WHERE resource_id=? AND result='SUCCESS'",Integer.class,initial.id())).isEqualTo(2);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM transactional_outbox WHERE causation_id=?",Integer.class,initial.id())).isEqualTo(2);
+    }
     @Test void concurrentLastAdminRemovalConfirmsAtMostOne() throws Exception {
         UUID one=account(tenant,"one","one@example.test",BaseRole.COMPANY_ADMIN,"ACTIVE"), two=account(tenant,"two","two@example.test",BaseRole.COMPANY_ADMIN,"ACTIVE"); var s=service(jdbc,jdbcAudit(),jdbcOutbox());
         try(var pool=Executors.newFixedThreadPool(2)){var gate=new CountDownLatch(1); var f1=pool.submit(()->attempt(gate,s,one)); var f2=pool.submit(()->attempt(gate,s,two)); gate.countDown(); assertThat(List.of(f1.get(),f2.get())).containsExactlyInAnyOrder(true,false);}
@@ -68,6 +81,17 @@ class CompanyUserPostgresIntegrationTest {
         var recovery=new JdbcPasswordRecoveryAdapter(jdbc); var activation=new PasswordRecoveryService(recovery,mock(PasswordRecoveryRequestPort.class),(a,t,p,i,k,e)->{},new JdbcRefreshSessionAdapter(jdbc),p->"$2a$12$7EqJtq98hPqEX7fNZaFWoO9fkg8rDs3umP5e0yZG5qR1zwVmzEoAA",Clock.systemUTC(),HMAC);
         try(var pool=Executors.newFixedThreadPool(2)){var gate=new CountDownLatch(1); var f1=pool.submit(()->activate(gate,activation,token));var f2=pool.submit(()->activate(gate,activation,token));gate.countDown();assertThat(List.of(f1.get(),f2.get())).containsExactlyInAnyOrder(true,false);}
         assertThat(jdbc.queryForObject("SELECT status FROM identity_access_account WHERE id=?",String.class,invited)).isEqualTo("ACTIVE"); assertThat(jdbc.queryForObject("SELECT count(*) FROM identity_access_action_token WHERE account_id=? AND used_at IS NOT NULL",Integer.class,invited)).isEqualTo(1);
+    }
+    @Test void reactivatingLockedInvitationRestoresInvitationAndIssuesNewActivation(){
+        var invited=tx.execute(x->inviteService().invite(new CompanyUserService.Invite("Invited User",null,"invite@example.test",BaseRole.SUPERVISOR),admin));
+        var service=inviteService();
+
+        tx.executeWithoutResult(x->service.status(invited.id(),"LOCKED",admin));
+        var restored=tx.execute(x->service.status(invited.id(),"ACTIVE",admin));
+
+        assertThat(restored.status()).isEqualTo("INVITED");
+        assertThat(jdbc.queryForObject("SELECT locked_from_status FROM identity_access_account WHERE id=?",String.class,invited.id())).isNull();
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM identity_access_action_token WHERE account_id=? AND purpose='ACTIVATION' AND invalidated_at IS NULL",Integer.class,invited.id())).isEqualTo(1);
     }
     @Test void auditOutboxAndRevocationFailureRollbackAllDurableWrites(){
         UUID auditUser=rollbackUser("rollback-audit"), outboxUser=rollbackUser("rollback-outbox"), revocationUser=rollbackUser("rollback-revocation");

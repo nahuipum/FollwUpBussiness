@@ -142,10 +142,11 @@ class InitialCompanyAdminUniquenessIntegrationTest {
         properties.setHmacSecret("01234567890123456789012345678901");
         Method method = LoginConfiguration.class.getDeclaredMethod("provisionInitialCompanyAdminUseCase", JdbcTemplate.class,
                 com.nahui.followupbussiness.tenancy.application.port.in.CompanyAccessStatusQuery.class,
-                AuthenticationProperties.Values.class, RecordPlatformCompanyAuditUseCase.class, RecordCompanyDenialAuditUseCase.class);
+                AuthenticationProperties.Values.class, RecordPlatformCompanyAuditUseCase.class, RecordCompanyDenialAuditUseCase.class,
+                boolean.class);
         method.setAccessible(true);
         return (ProvisionInitialCompanyAdminUseCase) method.invoke(new LoginConfiguration(), jdbc,
-                new JdbcCompanyAccessStatusQuery(jdbc), properties, audit, denialAudit);
+                new JdbcCompanyAccessStatusQuery(jdbc), properties, audit, denialAudit, true);
     }
     private UUID company(){UUID id=UUID.randomUUID();jdbc.update("INSERT INTO tenancy_company(id,status,created_at,updated_at) VALUES (?,'ACTIVE',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)",id);return id;}
     private static String hash(){return "$2a$12$7EqJtq98hPqEX7fNZaFWoO9fkg8rDs3umP5e0yZG5qR1zwVmzEoAA";}

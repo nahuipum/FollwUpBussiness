@@ -3,6 +3,8 @@
 .dashboard-sidebar::after { position: absolute; bottom: -55px; left: -74px; width: 205px; height: 205px; border-radius: 50%; background: rgb(125 211 215 / 9%); content: ""; }
 .dashboard-sidebar__brand, .dashboard-sidebar__context, .dashboard-sidebar__label, .dashboard-nav, .dashboard-profile { position: relative; z-index: 1; }
 .dashboard-sidebar__brand { display: flex; align-items: center; gap: 10px; color: #fff; font-size: 18px; font-weight: 800; }
+.dashboard-sidebar__brand .brand-mark { display: grid; width: 34px; height: 34px; place-items: center; flex: 0 0 auto; border-radius: 10px; color: #176d77; background: #fff; box-shadow: 0 8px 18px rgb(0 0 0 / 13%); }
+.dashboard-sidebar__brand .brand-mark svg { width: 22px; height: 22px; }
 .dashboard-sidebar__context { width: fit-content; margin-top: 19px; padding: 8px 10px; border: 1px solid rgb(125 211 215 / 28%); border-radius: 999px; color: #ddf6f7; background: rgb(255 255 255 / 7%); font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
 .dashboard-sidebar__label { margin: 31px 0 0; font-size: 14px; font-weight: 700; }
 .dashboard-nav { display: grid; gap: 8px; margin-top: 15px; }

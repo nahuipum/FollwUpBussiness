@@ -35,6 +35,15 @@ class CompanyUserControllerTest {
         verify(service).get(eq(id), eq(actor), any()); verify(service).update(eq(id), any(), eq(actor), any()); verify(service).status(eq(id),eq("LOCKED"),eq(actor),any());
     }
     @Test void malformedUserIdIsRejectedBeforeTheUseCase() throws Exception { mvc.perform(get("/company/users/not-a-uuid").principal(() -> "x")).andExpect(status().isBadRequest()); verifyNoInteractions(service); }
+    @Test void pendingInvitationUsesDedicatedRouteWithQuotedVersionAndReturnsAccepted() throws Exception {
+        UUID id = UUID.randomUUID(); var invited = new CompanyUserService.User(id,"Name","name","a@example.test",BaseRole.SUPERVISOR,"INVITED",Instant.EPOCH,Instant.EPOCH,2);
+        when(service.correctAndResendInvitation(eq(id), any(), eq(2L), eq(actor), any())).thenReturn(invited);
+        mvc.perform(post("/company/users/{userId}/invitation",id).principal(() -> "x").header("If-Match","\"2\"").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"displayName\":\"Name\",\"email\":\"a@example.test\",\"role\":\"SUPERVISOR\"}"))
+                .andExpect(status().isAccepted()).andExpect(jsonPath("$.id").value(id.toString()));
+        verify(service).correctAndResendInvitation(eq(id), any(), eq(2L), eq(actor), any());
+    }
+    @Test void invitationRejectsUnquotedVersionBeforeTheUseCase() throws Exception { mvc.perform(post("/company/users/{userId}/invitation",UUID.randomUUID()).principal(() -> "x").header("If-Match","2").contentType(MediaType.APPLICATION_JSON).content("{\"displayName\":\"Name\",\"email\":\"a@example.test\",\"role\":\"SUPERVISOR\"}")).andExpect(status().isBadRequest()); verifyNoInteractions(service); }
     @Test
     void patchWithMalformedJsonContainingLiteralCrLfReturnsSafeProblemDetailBeforeTheUseCase() throws Exception {
         UUID id = UUID.randomUUID();

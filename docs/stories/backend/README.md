@@ -1,6 +1,6 @@
 ﻿# Historias — Backend
 
-Total: **62**
+Total: **63**
 
 | ID | Épica | Historia | Prioridad | Fase |
 |---|---|---|---|---|
@@ -66,3 +66,4 @@ Total: **62**
 | [BE-060](./BE-060-asignar-cartera-de-clientes.md) | Clientes | Asignar cartera de clientes | Must Have | MVP |
 | [BE-061](./BE-061-consultar-rutas-y-ruta-del-dia.md) | Rutas | Consultar rutas y ruta del día | Must Have | MVP |
 | [BE-062](./BE-062-gestionar-zonas-y-territorios.md) | Workforce | Gestionar zonas y territorios | Must Have | MVP |
+| [BE-063](./BE-063-corregir-y-reenviar-invitacion-de-usuario.md) | Identidad | Corregir y reenviar invitación de usuario | Must Have | MVP |

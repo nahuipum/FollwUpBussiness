@@ -4,11 +4,13 @@ import { PasswordRecoveryScreen } from "../features/auth/components/PasswordReco
 import { SessionStatusPage } from "./components/SessionStatusPage";
 import { navigate } from "./navigation";
 import { useSessionRoute } from "./hooks/useSessionRoute";
-import { canAccessPath, hasSession, logout } from "../features/auth/auth";
+import { canAccessPath, getSessionIdentity, hasSession, logout } from "../features/auth/auth";
 import { ErrorState, InlineAlert, SessionExpiredDialog } from "../shared/ui/error-ui/components";
 import { useGlobalApiError } from "../shared/ui/error-ui/useGlobalApiError";
 import { PlatformCompaniesPage } from "../features/platform-companies/PlatformCompaniesPage";
 import { PlatformDashboardPage } from "../features/platform-dashboard/PlatformDashboardPage";
+import { CompanyDashboardPage } from "../features/company-dashboard/CompanyDashboardPage";
+import { CompanyUsersPageRoute } from "../features/company-users/CompanyUsersPageRoute";
 
 export function App() {
   const { path, sessionState, clearSessionNotice } = useSessionRoute();
@@ -71,11 +73,17 @@ export function App() {
 
   if (path === "/") return <LoginScreen />;
 
-  if (hasSession() && canAccessPath(path)) {
+  const canAccessCompanyUsers = path === "/company/administrators-supervisors" &&
+    (getSessionIdentity()?.roles.includes("COMPANY_ADMIN") || getSessionIdentity()?.roles.includes("SUPERVISOR"));
+  if (hasSession() && (canAccessPath(path) || canAccessCompanyUsers)) {
     if (path === "/platform/dashboard")
       return <PlatformDashboardPage />;
     if (path === "/platform/companies")
       return <PlatformCompaniesPage />;
+    if (path === "/company/dashboard")
+      return <CompanyDashboardPage />;
+    if (path === "/company/administrators-supervisors")
+      return <CompanyUsersPageRoute />;
     return (
       <>
         {error && <InlineAlert variant={error.status === 409 ? "warning" : "error"} title={error.status === 409 ? "La información cambió" : "Revisa la información ingresada"} message={error.status === 409 ? "Actualiza la información y revisa los cambios antes de continuar." : error.fieldErrors.length > 0 ? "Revisa los campos señalados e inténtalo nuevamente." : "No pudimos validar la información. Revísala e inténtalo nuevamente."} {...(error.correlationId === null ? {} : { correlationId: error.correlationId })} action={error.status === 409 ? { label: "Recargar y revisar", onClick: () => { clearError(); navigate(path, { replace: true }); } } : { label: "Cerrar aviso", onClick: clearError }} />}

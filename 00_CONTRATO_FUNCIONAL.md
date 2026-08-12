@@ -397,14 +397,18 @@ El administrador deberá poder bloquear un usuario sin eliminar su historial.
 
 ### RF-AUT-006. Gestión de usuarios de empresa
 
-El administrador de empresa deberá poder listar, invitar, editar, bloquear y
-reactivar administradores y supervisores de su propia empresa.
+El administrador de empresa deberá poder listar, invitar, corregir y reenviar
+invitaciones pendientes, editar, bloquear y reactivar administradores y
+supervisores de su propia empresa.
 
 Reglas:
 
 - No existirá registro público.
 - No podrá asignar roles de plataforma.
 - La activación inicial utilizará un mecanismo temporal de un solo uso.
+- Corregir una invitación pendiente actualizará la misma cuenta, verificará la
+  unicidad de correo y usuario excluyendo esa cuenta e invalidará el enlace de
+  activación anterior antes de emitir otro de un solo uso.
 - Bloquear un usuario conservará historial y revocará su acceso.
 - Una empresa activa no podrá quedar sin un administrador utilizable.
 
@@ -1143,7 +1147,8 @@ La primera versión estará disponible en español.
 ### HU-003. Gestionar usuarios de empresa
 
 **Como** administrador de empresa<br>
-**Quiero** invitar, editar, bloquear y reactivar administradores y supervisores<br>
+**Quiero** invitar, corregir invitaciones pendientes, editar, bloquear y
+reactivar administradores y supervisores<br>
 **Para** delegar la operación sin depender del soporte de plataforma.
 
 **Prioridad:** Must Have
@@ -1156,6 +1161,8 @@ La primera versión estará disponible en español.
 4. El bloqueo revocará acceso y conservará historial.
 5. No podrá dejar a la empresa sin ningún administrador utilizable.
 6. Las acciones quedarán auditadas.
+7. Una invitación pendiente podrá corregirse y reenviarse sin crear una cuenta
+   duplicada; el enlace anterior quedará inválido.
 
 ---
 

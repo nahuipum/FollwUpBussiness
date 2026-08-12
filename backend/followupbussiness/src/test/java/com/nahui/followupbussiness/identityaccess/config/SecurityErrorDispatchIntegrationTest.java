@@ -58,7 +58,7 @@ class SecurityErrorDispatchIntegrationTest {
                 new UsernamePasswordAuthenticationToken("test-only-subject", "ignored", createAuthorityList("PLATFORM_SUPERADMIN")));
 
         HttpResponse<Void> response = HttpClient.newHttpClient().send(HttpRequest.newBuilder(
-                        URI.create("http://localhost:" + port + "/platform/companies"))
+                        URI.create("http://localhost:" + port + "/platform/not-mapped"))
                 .header("Authorization", "Bearer valid-token")
                 .GET()
                 .build(), HttpResponse.BodyHandlers.discarding());
@@ -69,7 +69,7 @@ class SecurityErrorDispatchIntegrationTest {
     @Test
     void unauthenticatedRequestToTheSameRouteRemainsUnauthorized() throws Exception {
         HttpResponse<Void> response = HttpClient.newHttpClient().send(HttpRequest.newBuilder(
-                        URI.create("http://localhost:" + port + "/platform/companies"))
+                        URI.create("http://localhost:" + port + "/platform/not-mapped"))
                 .GET()
                 .build(), HttpResponse.BodyHandlers.discarding());
 

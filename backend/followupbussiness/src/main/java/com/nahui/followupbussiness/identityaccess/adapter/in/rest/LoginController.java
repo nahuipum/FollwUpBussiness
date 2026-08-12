@@ -10,8 +10,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.net.URI;
-import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
@@ -32,12 +30,14 @@ public class LoginController {
     private final WebOriginPolicy origins;
     private final MeterRegistry metrics;
     private final LoginRateLimiter limiter;
+    private final CurrentUserProjection currentUser;
 
-    public LoginController(LoginService service, WebOriginPolicy origins, MeterRegistry metrics, LoginRateLimiter limiter) {
+    public LoginController(LoginService service, WebOriginPolicy origins, MeterRegistry metrics, LoginRateLimiter limiter, CurrentUserProjection currentUser) {
         this.service = service;
         this.origins = origins;
         this.metrics = metrics;
         this.limiter = limiter;
+        this.currentUser = currentUser;
     }
 
     @PostMapping("/login")
@@ -61,6 +61,7 @@ public class LoginController {
         }
         try {
             var result = service.login(request.identifier().strip().toLowerCase(Locale.ROOT), request.password().toCharArray(), channel, client);
+            var user = currentUser.from(result.account());
             limiter.reset(request.identifier().strip().toLowerCase(Locale.ROOT), servlet.getRemoteAddr());
             metrics.counter("followupbussiness.authentication.login", "result", "success", "channel", channel).increment();
             LOG.info("operation=AUTH_LOGIN result=SUCCESS correlationId={} channel={}", correlation, channel);
@@ -69,10 +70,10 @@ public class LoginController {
             Map<String, Object> c = Map.of("accessToken", result.accessToken(), "tokenType", "Bearer", "expiresIn", 600);
             if ("WEB".equals(channel)) {
                 response.addHeader("Set-Cookie", "__Host-fs-refresh=" + result.refreshToken() + "; Path=/; Secure; HttpOnly; SameSite=Strict");
-                return ResponseEntity.ok().header("X-Correlation-Id", correlation).body(Map.of("channel", "WEB", "credentials", c, "csrfToken", result.csrfToken(), "user", user(result)));
+                return ResponseEntity.ok().header("X-Correlation-Id", correlation).body(Map.of("channel", "WEB", "credentials", c, "csrfToken", result.csrfToken(), "user", user));
             }
-            return ResponseEntity.ok().header("X-Correlation-Id", correlation).body(Map.of("channel", "MOBILE", "credentials", c, "refreshToken", result.refreshToken(), "sessionRevocationTicket", result.revocationTicket(), "refreshExpiresIn", 2592000, "user", user(result)));
-        } catch (LoginService.LoginFailedException e) {
+            return ResponseEntity.ok().header("X-Correlation-Id", correlation).body(Map.of("channel", "MOBILE", "credentials", c, "refreshToken", result.refreshToken(), "sessionRevocationTicket", result.revocationTicket(), "refreshExpiresIn", 2592000, "user", user));
+        } catch (LoginService.LoginFailedException | CurrentUserProjection.Unauthenticated e) {
             metrics.counter("followupbussiness.authentication.login", "result", "failed", "channel", channel).increment();
             LOG.info("operation=AUTH_LOGIN result=FAILED correlationId={} channel={}", correlation, channel);
             return problem(401, "AUTHENTICATION_FAILED", correlation);
@@ -100,18 +101,6 @@ public class LoginController {
         } catch (IllegalArgumentException e) {
             return UUID.randomUUID().toString();
         }
-    }
-
-    private static Map<String, Object> user(LoginService.Result r) {
-        var a = r.account();
-        var u = new LinkedHashMap<String, Object>();
-        u.put("id", a.id());
-        u.put("displayName", a.displayName());
-        u.put("email", a.email());
-        u.put("status", a.status());
-        u.put("roles", List.of(a.role().code()));
-        u.put("company", a.companyId());
-        return u;
     }
 
     record Request(@NotBlank @Size(max = 254) String identifier, @NotBlank @Size(max = 200) String password,

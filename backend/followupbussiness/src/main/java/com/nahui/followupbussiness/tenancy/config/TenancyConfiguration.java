@@ -6,12 +6,14 @@ import com.nahui.followupbussiness.tenancy.adapter.out.persistence.JdbcCompanyCo
 import com.nahui.followupbussiness.tenancy.adapter.out.persistence.JdbcCompanyStatusStore;
 import com.nahui.followupbussiness.tenancy.adapter.out.persistence.JdbcCompanyListStore;
 import com.nahui.followupbussiness.tenancy.adapter.out.persistence.JdbcCompanyCurrencyCatalog;
+import com.nahui.followupbussiness.tenancy.adapter.out.persistence.JdbcCurrentCompanyQuery;
 import com.nahui.followupbussiness.tenancy.application.ChangeCompanyStatusService;
 import com.nahui.followupbussiness.tenancy.application.CreateCompanyService;
 import com.nahui.followupbussiness.tenancy.application.ListCompaniesService;
 import com.nahui.followupbussiness.tenancy.application.ListCompanyCurrenciesService;
 import com.nahui.followupbussiness.tenancy.application.port.in.ChangeCompanyStatusUseCase;
 import com.nahui.followupbussiness.tenancy.application.port.in.CompanyAccessStatusQuery;
+import com.nahui.followupbussiness.tenancy.application.port.in.CurrentCompanyQuery;
 import com.nahui.followupbussiness.tenancy.application.port.in.CreateCompanyUseCase;
 import com.nahui.followupbussiness.tenancy.application.port.in.ListCompaniesUseCase;
 import com.nahui.followupbussiness.tenancy.application.port.in.ListCompanyCurrenciesUseCase;
@@ -31,6 +33,11 @@ public class TenancyConfiguration {
     @Bean
     CompanyAccessStatusQuery companyAccessStatusQuery(JdbcTemplate jdbcTemplate) {
         return new JdbcCompanyAccessStatusQuery(jdbcTemplate);
+    }
+
+    @Bean
+    CurrentCompanyQuery currentCompanyQuery(JdbcTemplate jdbcTemplate) {
+        return new JdbcCurrentCompanyQuery(jdbcTemplate);
     }
 
     @Bean

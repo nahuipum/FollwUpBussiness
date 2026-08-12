@@ -25,11 +25,13 @@ public class RefreshController {
     private final RefreshSessionUseCase service;
     private final WebOriginPolicy origins;
     private final RefreshRateLimiter limiter;
+    private final CurrentUserProjection currentUser;
 
-    public RefreshController(RefreshSessionUseCase service, WebOriginPolicy origins, RefreshRateLimiter limiter) {
+    public RefreshController(RefreshSessionUseCase service, WebOriginPolicy origins, RefreshRateLimiter limiter, CurrentUserProjection currentUser) {
         this.service = service;
         this.origins = origins;
         this.limiter = limiter;
+        this.currentUser = currentUser;
     }
 
     @PostMapping("/refresh")
@@ -53,16 +55,19 @@ public class RefreshController {
             var early = limiter.checkPresented(token, request.getRemoteAddr());
             if (!early.allowed()) return problem(429, "AUTH_RATE_LIMITED", correlation, early.retryAfterSeconds());
             var r = service.refresh(new RefreshService.Command(token, csrf, channel, client, correlation, request.getRemoteAddr()));
+            var user = currentUser.from(r.account());
             response.setHeader(HttpHeaders.CACHE_CONTROL, "no-store");
             response.setHeader(HttpHeaders.PRAGMA, "no-cache");
             var credentials = Map.of("accessToken", r.accessToken(), "tokenType", "Bearer", "expiresIn", 600);
             if ("WEB".equals(channel)) {
                 response.addHeader(HttpHeaders.SET_COOKIE, "__Host-fs-refresh=" + r.refreshToken() + "; Path=/; Secure; HttpOnly; SameSite=Strict");
-                return ResponseEntity.ok().header("X-Correlation-Id", correlation.toString()).body(Map.of("channel", "WEB", "credentials", credentials, "csrfToken", r.csrfToken(), "user", user(r)));
+                return ResponseEntity.ok().header("X-Correlation-Id", correlation.toString()).body(Map.of("channel", "WEB", "credentials", credentials, "csrfToken", r.csrfToken(), "user", user));
             }
-            return ResponseEntity.ok().header("X-Correlation-Id", correlation.toString()).body(Map.of("channel", "MOBILE", "credentials", credentials, "refreshToken", r.refreshToken(), "refreshExpiresIn", 2592000, "user", user(r)));
+            return ResponseEntity.ok().header("X-Correlation-Id", correlation.toString()).body(Map.of("channel", "MOBILE", "credentials", credentials, "refreshToken", r.refreshToken(), "refreshExpiresIn", 2592000, "user", user));
         } catch (RefreshRateLimitPort.UnavailableException e) {
             return problem(503, "AUTH_RATE_LIMIT_UNAVAILABLE", correlation, 60L);
+        } catch (CurrentUserProjection.Unauthenticated e) {
+            return problem(401, "REFRESH_TOKEN_INVALID", correlation);
         } catch (RefreshService.Rejected e) {
             int status = e.code == RefreshService.Code.CSRF ? 403 : e.code == RefreshService.Code.ALREADY_ROTATED ? 409 : e.code == RefreshService.Code.RATE_LIMITED ? 429 : 401;
             String code = switch (e.code) {
@@ -75,18 +80,6 @@ public class RefreshController {
             };
             return problem(status, code, correlation, e.retryAfter == 0 ? null : e.retryAfter);
         }
-    }
-
-    private static Map<String, Object> user(RefreshService.Result r) {
-        var a = r.account();
-        var user = new LinkedHashMap<String, Object>();
-        user.put("id", a.id());
-        user.put("displayName", a.displayName());
-        user.put("email", a.email());
-        user.put("status", a.status());
-        user.put("roles", List.of(a.role().code()));
-        user.put("company", a.companyId());
-        return user;
     }
 
     private static UUID correlation(HttpServletRequest r) {

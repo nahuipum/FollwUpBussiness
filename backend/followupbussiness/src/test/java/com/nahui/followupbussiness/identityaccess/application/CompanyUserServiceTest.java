@@ -67,6 +67,42 @@ class CompanyUserServiceTest {
         verify(outbox).append(argThat(event -> !event.payloadJson().contains("Private Name") && !event.payloadJson().contains("private@example.test")));
     }
 
+    @Test void correctAndResendKeepsTheInvitedAccountAndDerivesMissingUsernameFromEmail() {
+        UUID id = UUID.randomUUID();
+        var invited = new CompanyUserService.User(id, "Private Name", "private", "private@example.test", BaseRole.SUPERVISOR,
+                "INVITED", Instant.EPOCH, Instant.EPOCH, 4);
+        var corrected = new CompanyUserService.User(id, "Corrected Name", "corrected@example.test", "corrected@example.test", BaseRole.COMPANY_ADMIN,
+                "INVITED", Instant.EPOCH, Instant.EPOCH, 5);
+        when(jdbc.query(anyString(), any(RowMapper.class), eq(id), eq(tenant))).thenReturn(List.of(invited), List.of(corrected));
+        when(jdbc.update(startsWith("UPDATE identity_access_account SET display_name"), any(Object[].class))).thenReturn(1);
+        when(audit.append(any())).thenReturn(true);
+
+        assertThat(service.correctAndResendInvitation(id,
+                new CompanyUserService.Invite("Corrected Name", null, "Corrected@Example.test", BaseRole.COMPANY_ADMIN), 4, admin, UUID.randomUUID()))
+                .isEqualTo(corrected);
+
+        verify(jdbc).update(startsWith("UPDATE identity_access_account SET display_name"), eq("Corrected Name"),
+                eq("corrected@example.test"), eq("corrected@example.test"), eq("COMPANY_ADMIN"), any(), eq(id), eq(tenant), eq(4L));
+        verify(recovery).replaceToken(argThat(token -> token.accountId().equals(id) && token.tenantId().equals(tenant)
+                && token.purpose() == PasswordRecoveryPort.Purpose.ACTIVATION));
+        verify(notifications).enqueue(eq(id), eq(tenant), eq(PasswordRecoveryPort.Purpose.ACTIVATION), eq("corrected@example.test"), anyString(), any());
+        verify(audit).append(any()); verify(outbox).append(any());
+    }
+
+    @Test void correctingNonInvitedAccountHasNoMutationOrDeliveryEffects() {
+        UUID id = UUID.randomUUID();
+        var active = new CompanyUserService.User(id, "Name", "name", "name@example.test", BaseRole.SUPERVISOR,
+                "ACTIVE", Instant.EPOCH, Instant.EPOCH, 4);
+        when(jdbc.query(anyString(), any(RowMapper.class), eq(id), eq(tenant))).thenReturn(List.of(active));
+
+        assertThatThrownBy(() -> service.correctAndResendInvitation(id,
+                new CompanyUserService.Invite("Corrected Name", null, "corrected@example.test", BaseRole.SUPERVISOR), 4, admin, UUID.randomUUID()))
+                .isInstanceOf(CompanyUserService.Conflict.class);
+
+        verify(jdbc, never()).update(anyString(), any(Object[].class));
+        verifyNoInteractions(recovery, notifications, audit, outbox);
+    }
+
     @Test void repeatedStatusIsWriteFreeNoOpAcrossEveryReachableSideEffectPort() {
         UUID id = UUID.randomUUID();
         var locked = new CompanyUserService.User(id, "Name", "user", "user@example.test", BaseRole.SUPERVISOR,

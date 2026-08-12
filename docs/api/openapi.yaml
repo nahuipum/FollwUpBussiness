@@ -611,6 +611,41 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
 
+  /company/users/{userId}/invitation:
+    parameters:
+      - $ref: '#/components/parameters/UserId'
+    post:
+      tags: [Company users]
+      operationId: correctAndResendCompanyUserInvitation
+      summary: Corregir y reenviar una invitación pendiente
+      description: |
+        Reemplaza exclusivamente la invitación de activación de una cuenta
+        INVITED del tenant autenticado. Actualiza los datos y rol permitidos
+        sobre la misma cuenta, invalida el token anterior y genera uno nuevo de
+        un solo uso. No crea una cuenta adicional ni expone el token o enlace.
+      x-required-roles: [COMPANY_ADMIN]
+      x-story-ids: [BE-063, FE-043]
+      parameters:
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CorrectCompanyUserInvitationRequest'
+      responses:
+        '202':
+          description: Invitación pendiente corregida y nueva entrega aceptada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
+
   /company/settings:
     get:
       tags: [Settings]
@@ -3065,6 +3100,15 @@ components:
         email: { type: string, format: email, maxLength: 254 }
         role: { $ref: '#/components/schemas/CompanyManagementRole' }
     UpdateCompanyUserRequest:
+      type: object
+      additionalProperties: false
+      required: [displayName, email, role]
+      properties:
+        displayName: { type: string, minLength: 2, maxLength: 160 }
+        username: { type: string, minLength: 3, maxLength: 100 }
+        email: { type: string, format: email, maxLength: 254 }
+        role: { $ref: '#/components/schemas/CompanyManagementRole' }
+    CorrectCompanyUserInvitationRequest:
       type: object
       additionalProperties: false
       required: [displayName, email, role]

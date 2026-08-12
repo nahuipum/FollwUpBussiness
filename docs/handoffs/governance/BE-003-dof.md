@@ -1,31 +1,8 @@
-# DoF Report — BE-003
+# BE-003 — Definition of Finished
 
-## Resultado
+**Estado:** PASS  
+**Candidate-ID:** `HEAD 71a31cc + backend-diff f8ae5b88eca5d085f7209b640bd07ab61ba52cb8`
 
-PASS
+Los estados son trazables y permitidos: Desarrollo `READY_FOR_HANDOFF`, QA `PASS` y Seguridad `PASS`; los tres artefactos declaran el mismo Candidate-ID. La evidencia CI declarada para ese candidato incluye pruebas focalizadas y `mvn -q clean verify` en PASS; Seguridad añade la reproducción de abuso de aislamiento en `/me` en PASS.
 
-## Versión revisada
-
-- PR #6 integrado en `main` mediante `36787e83110420e95cf7054964b1dc3e9081bf6f`.
-- El commit integrado de la rama es `a22b1bf8b7b9c0fa8b2010ddc5ce4d460fda7d19`.
-- El contenido funcional de `a22b1bf` coincide con el SHA revisado
-  `a31e937304857a50967cba8c42fa522f39819c4d`; la única diferencia es este
-  handoff DoF incorporado durante el squash.
-
-## Evidencia recibida
-
-- Desarrollo: `READY_FOR_HANDOFF` en
-  `docs/handoffs/backend/BE-003-backend-handoff.md`.
-- QA independiente: `PASS` en `docs/handoffs/backend/BE-003-backend-qa.md`.
-- Seguridad: `PASS` en `docs/handoffs/security/BE-003-security-review.md`.
-- CI post-merge del commit integrado: los tres checks completaron `SUCCESS`
-  el 2026-08-02: `JDK 21 / Maven verify / SCA` y dos ejecuciones de
-  `JDK 21 / Maven verify / EN-011 SCA`.
-- Se revisaron OpenAPI, ADR-008, migración V5 y el diff
-  `origin/main...a31e937`; `git diff --check` pasó.
-
-## Decisión final
-
-Todos los gates aplicables cuentan con evidencia trazable en el incremento
-integrado: criterios, desarrollo, QA, Seguridad, contrato/ADR, migración V5,
-CI y rama objetivo.
+La evidencia de los handoffs cubre que `/me`, login y refresh proyectan `CurrentUser` con `company` contractual (o `null` para plataforma), sin tenant del cliente ni exposición cruzada. `git diff --check` finalizó sin errores (solo advertencias de final de línea). No quedan gates aplicables pendientes.

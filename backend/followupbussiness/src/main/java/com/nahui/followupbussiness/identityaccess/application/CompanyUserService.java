@@ -160,6 +160,34 @@ public class CompanyUserService {
         }
     }
 
+    /** Corrects an existing pending invitation without changing its account identity. */
+    public User correctAndResendInvitation(UUID id, Invite command, long version, AuthenticatedActor actor, UUID correlationId) {
+        UUID tenant = admin(actor);
+        validInvite(command);
+        validRole(command.role());
+        User old = find(id, tenant);
+        if (!"INVITED".equals(old.status()) || version != old.version()) throw new Conflict();
+        String email = validEmail(command.email());
+        String username = command.username() == null ? canonical(email) : validUsername(command.username());
+        Instant now = clock.instant();
+        try {
+            int changed = jdbc.update("UPDATE identity_access_account SET display_name=?,email=?,login_identifier=?,role_code=?,credential_version=credential_version+1,updated_at=? WHERE id=? AND company_id=? AND status='INVITED' AND credential_version=?",
+                    validName(command.name()), email, username, command.role().code(), Timestamp.from(now), id, tenant, version);
+            if (changed != 1) throw new Conflict();
+            if (recovery != null) {
+                String token = secret();
+                Instant expires = now.plus(Duration.ofHours(24));
+                recovery.replaceToken(new PasswordRecoveryPort.Token(id, tenant, PasswordRecoveryPort.Purpose.ACTIVATION, digest(token), expires));
+                notifications.enqueue(id, tenant, PasswordRecoveryPort.Purpose.ACTIVATION, email, token, expires);
+            }
+            User updated = find(id, tenant);
+            durableSuccess(actor, updated, old.status(), now, correlationId);
+            return updated;
+        } catch (DuplicateKeyException e) {
+            throw new Conflict();
+        }
+    }
+
     public User status(UUID id, String target, AuthenticatedActor actor) {
         return status(id, target, actor, UNSPECIFIED_CORRELATION);
     }
@@ -168,19 +196,26 @@ public class CompanyUserService {
         UUID tenant = admin(actor);
         User before = find(id, tenant);
         if (before.status().equals(target)) return before;
+        String restoredStatus = "LOCKED".equals(before.status()) && "ACTIVE".equals(target)
+                ? lockedFromStatus(id, tenant) : null;
+        String afterStatus = restoredStatus == null ? target : restoredStatus;
         boolean valid = ("LOCKED".equals(target) && Set.of("INVITED", "ACTIVE", "INACTIVE").contains(before.status()))
                 || ("INACTIVE".equals(target) && "ACTIVE".equals(before.status()))
-                || ("ACTIVE".equals(target) && Set.of("LOCKED", "INACTIVE").contains(before.status()));
+                || ("ACTIVE".equals(target) && "INACTIVE".equals(before.status()))
+                || (restoredStatus != null && Set.of("INVITED", "ACTIVE", "INACTIVE").contains(restoredStatus));
         if (!valid) throw new Conflict();
         if (("LOCKED".equals(target) || "INACTIVE".equals(target)) && before.role() == BaseRole.COMPANY_ADMIN)
             guardLastAdmin(tenant, id);
         Instant now = clock.instant();
-        int changed = jdbc.update("UPDATE identity_access_account SET status=?,credential_version=credential_version+1,updated_at=? WHERE id=? AND company_id=? AND status=?",
-                target, Timestamp.from(now), id, tenant, before.status());
+        int changed = jdbc.update("UPDATE identity_access_account SET status=?,locked_from_status=?,credential_version=credential_version+1,updated_at=? WHERE id=? AND company_id=? AND status=?",
+                afterStatus, "LOCKED".equals(afterStatus) ? before.status() : null, Timestamp.from(now), id, tenant, before.status());
         if (changed != 1) throw new Conflict();
-        if (!"ACTIVE".equals(target)) {
+        if (!"ACTIVE".equals(afterStatus)) {
             jdbc.update("UPDATE identity_access_session_family SET revoked_at=COALESCE(revoked_at,?) WHERE account_id=? AND company_id=?", Timestamp.from(now), id, tenant);
             jdbc.update("UPDATE identity_access_action_token SET invalidated_at=COALESCE(invalidated_at,?) WHERE account_id=?", Timestamp.from(now), id);
+        }
+        if ("INVITED".equals(afterStatus) && "LOCKED".equals(before.status())) {
+            reopenInvitation(id, tenant, before.email(), now);
         }
         User after = find(id, tenant);
         durableSuccess(actor, after, before.status(), now, correlationId);
@@ -189,6 +224,19 @@ public class CompanyUserService {
 
     private User find(UUID id, UUID tenant) {
         return jdbc.query("SELECT id,display_name,login_identifier,email,role_code,status,created_at,updated_at,credential_version FROM identity_access_account WHERE id=? AND company_id=?", (r, n) -> user(r), id, tenant).stream().findFirst().orElseThrow(NotFound::new);
+    }
+
+    private String lockedFromStatus(UUID id, UUID tenant) {
+        return jdbc.query("SELECT locked_from_status FROM identity_access_account WHERE id=? AND company_id=?", (r, n) -> r.getString(1), id, tenant)
+                .stream().findFirst().filter(Set.of("INVITED", "ACTIVE", "INACTIVE")::contains).orElse("ACTIVE");
+    }
+
+    private void reopenInvitation(UUID id, UUID tenant, String email, Instant now) {
+        if (recovery == null || notifications == null) return;
+        String token = secret();
+        Instant expires = now.plus(Duration.ofHours(24));
+        recovery.replaceToken(new PasswordRecoveryPort.Token(id, tenant, PasswordRecoveryPort.Purpose.ACTIVATION, digest(token), expires));
+        notifications.enqueue(id, tenant, PasswordRecoveryPort.Purpose.ACTIVATION, email, token, expires);
     }
 
     /**

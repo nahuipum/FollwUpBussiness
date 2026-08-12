@@ -13,6 +13,7 @@ function isProtectedPath(path: string): boolean {
     path === "/platform/dashboard" ||
     path === "/platform/companies" ||
     path === "/company/dashboard" ||
+    path === "/company/administrators-supervisors" ||
     path === "/supervisor/dashboard" ||
     path === "/seller/dashboard"
   );

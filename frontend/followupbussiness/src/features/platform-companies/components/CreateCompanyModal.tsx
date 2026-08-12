@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 import type { ApiError } from "../../../lib/api";
 import { InlineAlert } from "../../../shared/ui/error-ui/components";
 import { ModalSurface } from "../../../shared/ui/ModalSurface";
+import { VisualSelect } from "../../../shared/ui/VisualSelect";
 import type { CompanyCurrency, CreateCompanyInput } from "../types";
 
 type Props = {
@@ -106,41 +107,28 @@ export function CreateCompanyModal({
               onChange={(taxId) => setForm({ ...form, taxId })}
               maxLength={30}
             />
-            <label>
-              Zona horaria
-              <select
+            <div className="company-form-field">
+              <span>Zona horaria</span>
+              <VisualSelect
                 value={form.timezone}
-                onChange={(event) =>
-                  setForm({ ...form, timezone: event.target.value })
-                }
-              >
-                <option value="America/Lima">America/Lima</option>
-              </select>
-            </label>
-            <label>
-              Moneda
-              <select
+                onChange={(timezone) => setForm({ ...form, timezone })}
+                ariaLabel="Zona horaria"
+                options={[{ value: "America/Lima", label: "America/Lima" }]}
+              />
+            </div>
+            <div className="company-form-field">
+              <span>Moneda</span>
+              <VisualSelect
                 value={form.currency}
-                onChange={(event) =>
-                  setForm({ ...form, currency: event.target.value })
-                }
-                required
+                onChange={(currency) => setForm({ ...form, currency })}
+                ariaLabel="Moneda"
                 disabled={currenciesLoading || currenciesUnavailable}
-                aria-invalid={invalid("settings.currency") || undefined}
-              >
-                <option value="">
-                  {currenciesLoading
-                    ? "Cargando monedas…"
-                    : currenciesUnavailable
-                      ? "No se pudieron cargar las monedas"
-                      : "Selecciona una moneda"}
-                </option>
-                {currencies.map((currency) => (
-                  <option key={currency.code} value={currency.code}>
-                    {currency.code} — {currency.displayName}
-                  </option>
-                ))}
-              </select>
+                invalid={invalid("settings.currency")}
+                options={[
+                  { value: "", label: currenciesLoading ? "Cargando monedas…" : currenciesUnavailable ? "No se pudieron cargar las monedas" : "Selecciona una moneda" },
+                  ...currencies.map((currency) => ({ value: currency.code, label: `${currency.code} — ${currency.displayName}` })),
+                ]}
+              />
               {currenciesUnavailable && (
                 <button
                   type="button"
@@ -150,7 +138,7 @@ export function CreateCompanyModal({
                   Reintentar cargar monedas
                 </button>
               )}
-            </label>
+            </div>
           </div>
           <p className="company-information">
             Configuración inicial: radio de geocerca 100 m y tracking cada 60 s.

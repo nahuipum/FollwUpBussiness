@@ -60,6 +60,21 @@ public final class CompanyUserController {
         }
     }
 
+    @PostMapping("/{userId}/invitation")
+    public ResponseEntity<?> correctAndResendInvitation(@PathVariable UUID userId, @RequestHeader("If-Match") String version,
+                                                          @Valid @RequestBody InviteRequest body, @AuthenticationPrincipal AuthenticatedActor actor,
+                                                          HttpServletRequest request) {
+        try {
+            UUID correlation = correlationId(request);
+            return ResponseEntity.accepted().header("X-Correlation-Id", correlation.toString())
+                    .body(service.correctAndResendInvitation(userId,
+                            new CompanyUserService.Invite(body.displayName(), body.username(), body.email(), body.role()),
+                            ifMatch(version), actor, correlation));
+        } catch (RuntimeException e) {
+            return err(e, request);
+        }
+    }
+
     @PatchMapping("/{userId}")
     public ResponseEntity<?> update(@PathVariable UUID userId, @RequestHeader("If-Match") String version, @Valid @RequestBody UpdateRequest body, @AuthenticationPrincipal AuthenticatedActor actor, HttpServletRequest request) {
         try {
@@ -113,6 +128,15 @@ public final class CompanyUserController {
         try {
             return BaseRole.valueOf(value);
         } catch (Exception e) {
+            throw new CompanyUserService.Invalid();
+        }
+    }
+
+    private static long ifMatch(String value) {
+        if (value == null || !value.matches("^\"[1-9][0-9]*\"$")) throw new CompanyUserService.Invalid();
+        try {
+            return Long.parseLong(value.substring(1, value.length() - 1));
+        } catch (NumberFormatException e) {
             throw new CompanyUserService.Invalid();
         }
     }

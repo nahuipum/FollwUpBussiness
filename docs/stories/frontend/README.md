@@ -1,6 +1,6 @@
 ﻿# Historias — Frontend
 
-Total: **42**
+Total: **43**
 
 | ID | Épica | Historia | Prioridad | Fase |
 |---|---|---|---|---|
@@ -46,3 +46,4 @@ Total: **42**
 | [FE-040](./FE-040-suspender-y-reactivar-empresa-desde-plataforma.md) | Base SaaS | Suspender y reactivar empresa desde plataforma | Must Have | MVP |
 | [FE-041](./FE-041-detalle-de-empresa-desde-plataforma.md) | Base SaaS | Detalle de empresa desde plataforma | Must Have | MVP |
 | [FE-042](./FE-042-consulta-de-auditoria-de-plataforma.md) | Auditoría de plataforma | Consulta de auditoría de plataforma | Must Have | MVP |
+| [FE-043](./FE-043-corregir-y-reenviar-invitacion-pendiente.md) | Usuarios | Corregir y reenviar invitación pendiente | Must Have | MVP |

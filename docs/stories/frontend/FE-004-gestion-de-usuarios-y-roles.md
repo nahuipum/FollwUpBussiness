@@ -14,14 +14,16 @@
 
     ## Alcance
 
-    Lista, alta, edición y bloqueo.
+    Lista, alta, edición, bloqueo y reactivación de administradores y supervisores.
 
     ## Criterios de aceptación
 
     1. Permisos.
 2. Estado visible.
 3. Confirmación bloqueo.
-4. Lista actualizada.
+    4. Lista actualizada.
+5. Las invitaciones pendientes se distinguen de las cuentas activas y no se
+   presentan como editables mediante la operación de cuentas activas.
 
     ## Referencias
 

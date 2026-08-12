@@ -3,6 +3,7 @@ package com.nahui.followupbussiness.identityaccess.config;
 import com.nahui.followupbussiness.identityaccess.adapter.in.rest.LoginRateLimiter;
 import com.nahui.followupbussiness.identityaccess.adapter.in.rest.PasswordRecoveryRateLimiter;
 import com.nahui.followupbussiness.identityaccess.adapter.in.rest.RefreshRateLimiter;
+import com.nahui.followupbussiness.identityaccess.adapter.in.rest.CurrentUserProjection;
 import com.nahui.followupbussiness.identityaccess.adapter.in.rest.LoginRequestSizeFilter;
 import com.nahui.followupbussiness.identityaccess.adapter.in.rest.PasswordRecoveryRequestSizeFilter;
 import com.nahui.followupbussiness.identityaccess.adapter.in.security.InboundJwtAuthenticator;
@@ -27,6 +28,7 @@ import com.nahui.followupbussiness.audit.domain.AuditResult;
 import com.nahui.followupbussiness.audit.domain.AuditScope;
 import com.nahui.followupbussiness.notifications.application.port.in.RevokeInstallationsForSession;
 import com.nahui.followupbussiness.tenancy.application.port.in.CompanyAccessStatusQuery;
+import com.nahui.followupbussiness.tenancy.application.port.in.CurrentCompanyQuery;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.beans.factory.annotation.Value;
@@ -53,6 +55,10 @@ import java.util.UUID;
 @EnableScheduling
 public class LoginConfiguration {
     @Bean
+    CurrentUserProjection currentUserProjection(JdbcTemplate jdbc, CurrentCompanyQuery companies) {
+        return new CurrentUserProjection(new JdbcLoginAccountQuery(jdbc), companies);
+    }
+    @Bean
     public CompanyUserService companyUserService(JdbcTemplate jdbc, AuthenticationProperties.Values properties) {
         byte[] secret = properties.getHmacSecret().getBytes(StandardCharsets.UTF_8);
         var delegate = new CompanyUserService(jdbc, Clock.systemUTC(), new JdbcPasswordRecoveryAdapter(jdbc), new JdbcIdentityNotificationAdapter(jdbc, secret),
@@ -69,6 +75,7 @@ public class LoginConfiguration {
             @Override public CompanyUserService.User invite(CompanyUserService.Invite c, com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor a, java.util.UUID correlation) { try { return java.util.Objects.requireNonNull(transaction.execute(s -> delegate.invite(c,a,correlation))); } catch (CompanyUserService.Forbidden denied) { denial(a,a == null ? null : a.accountId(),correlation); throw denied; } }
             @Override public CompanyUserService.User update(java.util.UUID id, CompanyUserService.Update c, com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor a) { return update(id,c,a,new java.util.UUID(0L,0L)); }
             @Override public CompanyUserService.User update(java.util.UUID id, CompanyUserService.Update c, com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor a, java.util.UUID correlation) { try { return java.util.Objects.requireNonNull(transaction.execute(s -> delegate.update(id,c,a,correlation))); } catch (CompanyUserService.Forbidden | CompanyUserService.NotFound denied) { denial(a,id,correlation); throw denied; } }
+            @Override public CompanyUserService.User correctAndResendInvitation(java.util.UUID id, CompanyUserService.Invite c, long version, com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor a, java.util.UUID correlation) { try { return java.util.Objects.requireNonNull(transaction.execute(s -> delegate.correctAndResendInvitation(id,c,version,a,correlation))); } catch (CompanyUserService.Forbidden | CompanyUserService.NotFound denied) { denial(a,id,correlation); throw denied; } }
             @Override public CompanyUserService.User status(java.util.UUID id, String target, com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor a) { return status(id,target,a,new java.util.UUID(0L,0L)); }
             @Override public CompanyUserService.User status(java.util.UUID id, String target, com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor a, java.util.UUID correlation) { try { return java.util.Objects.requireNonNull(transaction.execute(s -> delegate.status(id,target,a,correlation))); } catch (CompanyUserService.Forbidden | CompanyUserService.NotFound denied) { denial(a,id,correlation); throw denied; } }
             private void denial(com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor actor, java.util.UUID resource, java.util.UUID correlation) {

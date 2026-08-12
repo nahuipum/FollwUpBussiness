@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FE-004 · Gestión de usuarios y roles · Mockup</title>
+  <style>
+    :root {
+      --navy: #102A43;
+      --navy-2: #163B62;
+      --teal: #176D77;
+      --teal-dark: #145F68;
+      --teal-light: #7DD3D7;
+      --teal-mid: #38B2AC;
+      --text: #14213D;
+      --text-2: #67778A;
+      --form: #26384A;
+      --muted: #8090A0;
+      --border: #CFD9E4;
+      --placeholder: #96A4B2;
+      --bg: #F7F9FC;
+      --white: #FFFFFF;
+      --error: #D83B57;
+      --error-dark: #8F2B3C;
+      --error-bg: #FFF3F5;
+      --error-border: #F2B6C0;
+      --success-bg: #EFFAF2;
+      --success-border: #B9E4C3;
+      --success-text: #2E7D32;
+      --warning-bg: #FFF7EC;
+      --warning-border: #F6D08E;
+      --warning-text: #B26A00;
+      --shadow-sm: 0 4px 12px rgba(16,42,67,.05);
+      --shadow-md: 0 12px 28px rgba(16,42,67,.10);
+      --radius: 18px;
+      --radius-sm: 12px;
+      --radius-xs: 10px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
+    body { padding: 22px; }
+
+    .poster {
+      max-width: 1440px;
+      margin: 0 auto;
+    }
+
+    .topline {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      padding-bottom: 20px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 290px;
+    }
+
+    .divider {
+      width: 1px;
+      height: 48px;
+      background: rgba(20,33,61,.12);
+    }
+
+    .brand-name {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -.02em;
+      color: var(--navy);
+    }
+
+    .brand-name span { color: var(--teal); font-weight: 700; }
+
+    .page-titles h1 {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.15;
+      letter-spacing: -.03em;
+    }
+
+    .page-titles h1 .accent { color: var(--teal); }
+    .page-titles p {
+      margin: 8px 0 0;
+      color: var(--text-2);
+      font-size: 16px;
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 280px;
+      gap: 22px;
+      align-items: start;
+    }
+
+    .desktop-card {
+      background: var(--white);
+      border: 1px solid rgba(20,33,61,.08);
+      border-radius: 24px;
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .desktop-shell {
+      display: grid;
+      grid-template-columns: 250px minmax(0, 1fr);
+      min-height: 780px;
+    }
+
+    .sidebar {
+      background: linear-gradient(145deg, #102A43 0%, #163B62 55%, #0F6B78 100%);
+      color: #EAF2F7;
+      padding: 26px 18px 18px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .sidebar::before {
+      content: "";
+      position: absolute;
+      inset: auto auto -38px -42px;
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      background: rgba(125,211,215,.09);
+    }
+
+    .logo-inline {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 18px;
+      color: #fff;
+      position: relative;
+      z-index: 1;
+    }
+
+    .sidebar-section {
+      margin-top: 34px;
+      color: rgba(255,255,255,.88);
+      font-size: 15px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .nav-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 18px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 13px 14px;
+      border-radius: 12px;
+      color: rgba(255,255,255,.92);
+      font-size: 15px;
+      text-decoration: none;
+      border: 1px solid transparent;
+    }
+
+    .nav-item.active {
+      background: rgba(23,109,119,.92);
+      border-color: rgba(125,211,215,.28);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+    }
+
+    .nav-muted { opacity: .88; }
+
+    .profile-card {
+      margin-top: auto;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(125,211,215,.18);
+      border-radius: 16px;
+      padding: 14px;
+      position: relative;
+      z-index: 1;
+      backdrop-filter: blur(4px);
+    }
+
+    .profile-top {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-weight: 700;
+      font-size: 15px;
+      background: linear-gradient(145deg, #CDAF96, #9C5F46);
+      box-shadow: 0 4px 10px rgba(0,0,0,.14);
+      overflow: hidden;
+      flex: 0 0 auto;
+    }
+
+    .avatar.alt1 { background: linear-gradient(145deg, #D6B89D, #734C3A); }
+    .avatar.alt2 { background: linear-gradient(145deg, #A4B7CE, #5B6F86); }
+    .avatar.alt3 { background: linear-gradient(145deg, #DAB6A3, #7A4D40); }
+    .avatar.alt4 { background: linear-gradient(145deg, #B7BEC8, #6A7484); }
+
+    .profile-name { font-size: 16px; font-weight: 700; color: #fff; }
+    .profile-role, .profile-company { color: rgba(255,255,255,.78); font-size: 12px; }
+    .profile-company { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,.12); display:flex; justify-content:space-between; align-items:center; }
+
+    .content {
+      padding: 24px 24px 22px;
+      background: linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(249,251,253,1) 100%);
+    }
+
+    .breadcrumbs {
+      display: flex;
+      gap: 10px;
+      color: var(--text-2);
+      font-size: 14px;
+      margin-bottom: 12px;
+    }
+    .breadcrumbs .current { color: var(--teal); font-weight: 700; }
+
+    .content-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .content-head h2 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.2;
+    }
+
+    .content-head p {
+      margin: 6px 0 0;
+      font-size: 15px;
+      color: var(--text-2);
+    }
+
+    .btn {
+      border: 1px solid transparent;
+      border-radius: 12px;
+      padding: 12px 18px;
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: var(--white);
+      color: var(--text);
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .btn-primary { background: var(--teal); color: #fff; box-shadow: 0 8px 18px rgba(23,109,119,.18); }
+    .btn-primary:hover { background: var(--teal-dark); }
+    .btn-outline { border-color: var(--border); background: var(--white); color: var(--text); }
+    .btn-danger { background: var(--error); color: #fff; }
+    .btn-danger:hover { background: #C6334E; }
+    .btn-ghost { color: var(--text-2); }
+
+    .table-card {
+      border: 1px solid rgba(20,33,61,.08);
+      border-radius: 18px;
+      background: var(--white);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      position: relative;
+      min-height: 560px;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      padding: 18px 20px;
+      border-bottom: 1px solid rgba(20,33,61,.08);
+    }
+
+    .search {
+      flex: 1 1 260px;
+      min-width: 240px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 14px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--placeholder);
+      background: var(--white);
+      font-size: 14px;
+    }
+
+    .chip-group, .chip-stack {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      font-size: 14px;
+      color: var(--text-2);
+    }
+
+    .chip {
+      padding: 9px 13px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--white);
+      color: var(--form);
+      font-size: 14px;
+      line-height: 1;
+    }
+
+    .chip.active {
+      background: var(--teal);
+      border-color: var(--teal);
+      color: var(--white);
+      box-shadow: 0 8px 16px rgba(23,109,119,.15);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    thead th {
+      text-align: left;
+      color: var(--form);
+      font-size: 13px;
+      font-weight: 700;
+      padding: 15px 20px;
+      border-bottom: 1px solid rgba(20,33,61,.08);
+    }
+
+    tbody td {
+      padding: 16px 20px;
+      border-bottom: 1px solid rgba(20,33,61,.07);
+      vertical-align: middle;
+      color: var(--form);
+    }
+
+    .user-cell { display: flex; align-items: center; gap: 12px; }
+    .user-meta { min-width: 0; }
+    .user-name { font-weight: 700; color: var(--text); }
+    .user-mail { font-size: 13px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 250px; }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+    .status::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+      opacity: .95;
+    }
+    .status.success { background: var(--success-bg); border-color: var(--success-border); color: var(--success-text); }
+    .status.warning { background: var(--warning-bg); border-color: var(--warning-border); color: var(--warning-text); }
+    .status.danger { background: var(--error-bg); border-color: var(--error-border); color: var(--error); }
+
+    .activity { color: var(--text-2); }
+    .more-btn {
+      width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border); background: var(--white); display: grid; place-items: center; color: var(--text-2);
+    }
+
+    .pagination {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 20px 20px;
+    }
+
+    .page-btn {
+      width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--border); background: var(--white); color: var(--text-2); display: grid; place-items: center; font-size: 14px;
+    }
+    .page-btn.active { background: var(--teal); color: #fff; border-color: var(--teal); font-weight: 800; }
+
+    .menu-pop {
+      position: absolute;
+      top: 295px;
+      right: 18px;
+      width: 184px;
+      background: var(--white);
+      border: 1px solid rgba(20,33,61,.09);
+      border-radius: 14px;
+      box-shadow: var(--shadow-md);
+      z-index: 3;
+      overflow: hidden;
+    }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 14px;
+      color: var(--form);
+      font-size: 14px;
+      border-bottom: 1px solid rgba(20,33,61,.06);
+      background: var(--white);
+    }
+    .menu-item:last-child { border-bottom: 0; color: var(--error); }
+
+    .invite-modal {
+      position: absolute;
+      left: 100px;
+      bottom: 78px;
+      width: 430px;
+      background: var(--white);
+      border: 1px solid rgba(20,33,61,.09);
+      border-radius: 18px;
+      box-shadow: 0 20px 40px rgba(16,42,67,.14);
+      padding: 18px;
+      z-index: 2;
+    }
+
+    .modal-head {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px;
+    }
+    .modal-title { font-size: 16px; font-weight: 800; }
+    .close-x { color: var(--muted); font-size: 22px; line-height: 1; }
+
+    .field { margin-bottom: 12px; }
+    .label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 7px; color: var(--form); }
+    .input, .select {
+      width: 100%;
+      padding: 12px 13px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      font-size: 14px;
+      color: var(--placeholder);
+      background: var(--white);
+    }
+
+    .role-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 10px 0 12px;
+    }
+
+    .role-option {
+      border: 1px solid rgba(125,211,215,.36);
+      border-radius: 12px;
+      padding: 12px;
+      background: linear-gradient(180deg, #F9FCFD 0%, #FFFFFF 100%);
+      min-height: 78px;
+    }
+
+    .role-option strong { display: block; font-size: 14px; margin-top: 6px; color: var(--text); }
+    .role-option span { display: block; font-size: 12px; color: var(--text-2); margin-top: 4px; line-height: 1.35; }
+
+    .info-note {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 12px;
+      border-radius: 10px;
+      border: 1px solid #BFE5EA;
+      background: #F2FBFC;
+      color: var(--text-2);
+      font-size: 13px;
+      margin-bottom: 14px;
+    }
+
+    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+
+    .mobile-column { display: grid; gap: 16px; }
+    .mobile-title { color: var(--text-2); font-size: 15px; text-align: center; margin-top: 4px; }
+
+    .phone {
+      background: #0C0D10;
+      border-radius: 40px;
+      padding: 10px;
+      box-shadow: 0 20px 40px rgba(16,42,67,.16);
+    }
+
+    .phone-screen {
+      background: #fff;
+      border-radius: 30px;
+      overflow: hidden;
+      min-height: 670px;
+      position: relative;
+    }
+
+    .island {
+      width: 118px; height: 28px; background: #0C0D10; border-radius: 20px; position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+    }
+
+    .phone-status {
+      display: flex; justify-content: space-between; align-items: center; padding: 16px 18px 8px; font-size: 13px; font-weight: 700; color: #111;
+    }
+
+    .phone-body { padding: 8px 16px 16px; }
+    .phone-head { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
+    .phone-title { font-size: 18px; font-weight: 800; }
+    .icon-btn { width: 28px; height: 28px; display: grid; place-items: center; color: var(--form); }
+    .phone-search, .phone-filter { margin-top: 12px; border: 1px solid var(--border); border-radius: 12px; padding: 11px 12px; color: var(--placeholder); font-size: 14px; }
+    .phone-filter-row { display: grid; grid-template-columns: 1fr 42px; gap: 10px; margin-top: 10px; }
+    .phone-list { margin-top: 12px; display: grid; gap: 10px; }
+
+    .mobile-user {
+      border: 1px solid rgba(20,33,61,.08);
+      border-radius: 14px;
+      padding: 10px 10px 10px 10px;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 10px;
+      align-items: start;
+      background: #fff;
+    }
+
+    .mobile-user .user-name { font-size: 15px; }
+    .mobile-user .user-mail { font-size: 12px; max-width: 132px; }
+    .mobile-user .status { padding: 6px 10px; font-size: 12px; margin-top: 6px; }
+
+    .mini-pagination { display: flex; justify-content: center; gap: 10px; margin-top: 16px; }
+
+    .bottom-grid {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+      align-items: start;
+      padding-right: 302px;
+      position: relative;
+    }
+
+    .mini-card {
+      background: var(--white);
+      border: 1px solid rgba(20,33,61,.08);
+      border-radius: 16px;
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+
+    .mini-head {
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--text);
+      border-bottom: 1px solid rgba(20,33,61,.06);
+    }
+
+    .mode-pill {
+      border: 1px solid var(--border);
+      color: var(--text-2);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .mini-shell {
+      display: grid;
+      grid-template-columns: 38px 1fr;
+      min-height: 270px;
+    }
+
+    .mini-sidebar {
+      background: linear-gradient(180deg, #0E3251, #0F6B78);
+      padding: 10px 0;
+      display: grid;
+      justify-items: center;
+      gap: 10px;
+      color: rgba(255,255,255,.92);
+      font-size: 13px;
+    }
+
+    .mini-content { padding: 12px; }
+    .mini-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .mini-input { flex: 1; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; font-size: 12px; color: var(--placeholder); }
+    .mini-action { padding: 10px 12px; border-radius: 10px; background: var(--teal); color: #fff; font-size: 12px; font-weight: 700; }
+    .mini-state { display: grid; place-items: center; text-align: center; min-height: 190px; padding: 10px; }
+    .empty-illus, .search-illus { width: 120px; height: 90px; position: relative; margin-bottom: 12px; }
+    .empty-illus .c1, .empty-illus .c2, .empty-illus .c3 {
+      position: absolute; border-radius: 50%; background: #DCE7F0;
+    }
+    .empty-illus .c1 { width: 58px; height: 58px; left: 8px; top: 24px; }
+    .empty-illus .c2 { width: 44px; height: 44px; left: 48px; top: 14px; }
+    .empty-illus .c3 { width: 36px; height: 36px; right: 4px; top: 24px; background: var(--teal-mid); }
+    .empty-illus .plus {
+      position: absolute; right: 12px; top: 32px; width: 22px; height: 22px; border-radius: 50%; background: var(--teal); color:#fff; display:grid; place-items:center; font-weight:900;
+    }
+    .search-illus::before {
+      content:""; position:absolute; width: 52px; height: 52px; border: 6px solid var(--navy-2); border-radius: 50%; left: 40px; top: 10px; background:#fff;
+    }
+    .search-illus::after {
+      content:""; position:absolute; width: 34px; height: 8px; background: var(--teal); border-radius: 8px; transform: rotate(45deg); left: 82px; top: 56px;
+    }
+
+    .state-title { font-size: 16px; font-weight: 800; color: var(--text); }
+    .state-text { font-size: 13px; line-height: 1.5; color: var(--text-2); margin-top: 8px; max-width: 230px; }
+
+    .mini-table {
+      width: 100%; border-collapse: collapse; font-size: 11px;
+    }
+    .mini-table th, .mini-table td { padding: 8px 6px; border-bottom: 1px solid rgba(20,33,61,.06); text-align: left; }
+    .mini-table th { color: var(--text-2); font-size: 11px; }
+    .mini-note {
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--text-2);
+      border: 1px solid rgba(20,33,61,.08);
+      background: #FAFCFE;
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+
+    .block-modal {
+      position: absolute;
+      right: 0;
+      top: -58px;
+      width: 280px;
+      background: var(--white);
+      border: 1px solid rgba(20,33,61,.09);
+      border-radius: 18px;
+      box-shadow: 0 20px 40px rgba(16,42,67,.13);
+      padding: 18px 18px 16px;
+    }
+    .block-modal .close-x { position: absolute; top: 18px; right: 16px; }
+    .danger-circle {
+      width: 56px; height: 56px; border-radius: 50%; border: 2px solid var(--error); color: var(--error); display: grid; place-items: center; font-size: 28px; margin: 4px auto 18px;
+    }
+    .block-modal h3 { margin: 0; text-align: center; font-size: 18px; line-height: 1.3; }
+    .block-modal p { text-align: center; color: var(--text-2); line-height: 1.55; margin: 12px 0 0; }
+    .block-modal .secondary { margin-top: 10px; font-size: 14px; }
+    .block-actions { display: flex; gap: 10px; margin-top: 18px; }
+    .block-actions .btn { flex: 1; padding-left: 12px; padding-right: 12px; }
+
+    .logo-mark { width: 28px; height: 28px; }
+    .icon-sm { width: 16px; height: 16px; vertical-align: middle; }
+    .icon-md { width: 18px; height: 18px; vertical-align: middle; }
+    .icon-lg { width: 20px; height: 20px; vertical-align: middle; }
+    .svg-stroke { stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+    .svg-fill { fill: currentColor; }
+
+    @media (max-width: 1280px) {
+      .main-grid { grid-template-columns: 1fr; }
+      .bottom-grid { padding-right: 0; grid-template-columns: 1fr; }
+      .block-modal { position: static; width: 100%; margin-top: 12px; }
+    }
+
+    @media (max-width: 1100px) {
+      .desktop-shell { grid-template-columns: 1fr; }
+      .sidebar { min-height: auto; }
+      .invite-modal, .menu-pop { position: static; width: auto; margin: 16px 16px 0; }
+      .table-card { padding-bottom: 16px; }
+      .toolbar { flex-direction: column; align-items: stretch; }
+    }
+
+    @media (max-width: 820px) {
+      body { padding: 14px; }
+      .topline { flex-direction: column; align-items: flex-start; gap: 14px; }
+      .divider { display: none; }
+      .brand { min-width: 0; }
+      .page-titles h1 { font-size: 24px; }
+      .content-head { flex-direction: column; align-items: stretch; }
+      .toolbar { padding: 16px; }
+      thead { display: none; }
+      table, tbody, tr, td { display: block; width: 100%; }
+      tbody tr { padding: 10px 0; }
+      tbody td { padding: 8px 16px; border-bottom: 0; }
+      tbody td::before {
+        content: attr(data-label);
+        display: block;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text-2);
+        margin-bottom: 6px;
+      }
+      .invite-modal { width: calc(100% - 24px); }
+      .role-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="poster">
+    <div class="topline">
+      <div class="brand">
+        <svg class="logo-mark" viewBox="0 0 28 28" aria-hidden="true">
+          <rect x="1.5" y="1.5" width="25" height="25" rx="7" fill="#FFFFFF" stroke="#176D77" stroke-width="2"></rect>
+          <path d="M8 19V10.4C8 8.97 8.97 8 10.4 8H20" fill="none" stroke="#176D77" stroke-width="4" stroke-linecap="round"></path>
+          <path d="M10.3 20L19.8 10.5" fill="none" stroke="#102A43" stroke-width="4" stroke-linecap="round"></path>
+          <path d="M14.8 10.5H19.8V15.5" fill="none" stroke="#102A43" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+        <div class="brand-name">FollowUp<span>Business</span></div>
+      </div>
+      <div class="divider"></div>
+      <div class="page-titles">
+        <h1><span class="accent">FE-004</span> · Gestión de usuarios y roles</h1>
+        <p>Vista de administración para gestionar accesos y roles dentro de la empresa</p>
+      </div>
+    </div>
+
+    <div class="main-grid">
+      <div>
+        <div class="desktop-card">
+          <div class="desktop-shell">
+            <aside class="sidebar">
+              <div class="logo-inline">
+                <svg class="logo-mark" viewBox="0 0 28 28" aria-hidden="true">
+                  <rect x="1.5" y="1.5" width="25" height="25" rx="7" fill="#FFFFFF" stroke="#176D77" stroke-width="2"></rect>
+                  <path d="M8 19V10.4C8 8.97 8.97 8 10.4 8H20" fill="none" stroke="#176D77" stroke-width="4" stroke-linecap="round"></path>
+                  <path d="M10.3 20L19.8 10.5" fill="none" stroke="#102A43" stroke-width="4" stroke-linecap="round"></path>
+                  <path d="M14.8 10.5H19.8V15.5" fill="none" stroke="#102A43" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+                <div>FollowUpBusiness</div>
+              </div>
+
+              <div class="sidebar-section">Administración</div>
+              <nav class="nav-list">
+                <a href="#" class="nav-item nav-muted">
+                  <svg class="icon-md" viewBox="0 0 24 24"><path class="svg-stroke" d="M3 10.5 12 3l9 7.5"></path><path class="svg-stroke" d="M5.5 9.5V20h13V9.5"></path></svg>
+                  Dashboard
+                </a>
+                <a href="#" class="nav-item nav-muted">
+                  <svg class="icon-md" viewBox="0 0 24 24"><path class="svg-stroke" d="M15.5 18.5v-1.2a3.3 3.3 0 0 0-3.3-3.3H7.8a3.3 3.3 0 0 0-3.3 3.3v1.2"></path><circle class="svg-stroke" cx="10" cy="8" r="3"></circle><path class="svg-stroke" d="M18 8.5a2.5 2.5 0 0 1 0 5"></path><path class="svg-stroke" d="M20 18.5v-.9a2.7 2.7 0 0 0-2.2-2.7"></path></svg>
+                  Clientes
+                </a>
+                <a href="#" class="nav-item nav-muted">
+                  <svg class="icon-md" viewBox="0 0 24 24"><path class="svg-stroke" d="M8 19.5H5a1.5 1.5 0 0 1-1.5-1.5V6A1.5 1.5 0 0 1 5 4.5h14A1.5 1.5 0 0 1 20.5 6v12a1.5 1.5 0 0 1-1.5 1.5h-3"></path><path class="svg-stroke" d="m8 7 4 3 4-3"></path><path class="svg-stroke" d="M8 19.5v-6h8v6"></path></svg>
+                  Rutas
+                </a>
+                <a href="#" class="nav-item nav-muted">
+                  <svg class="icon-md" viewBox="0 0 24 24"><path class="svg-stroke" d="M12 21s6-5.8 6-11a6 6 0 1 0-12 0c0 5.2 6 11 6 11Z"></path><circle class="svg-stroke" cx="12" cy="10" r="2.5"></circle></svg>
+                  Visitas
+                </a>
+                <a href="#" class="nav-item nav-muted">
+                  <svg class="icon-md" viewBox="0 0 24 24"><rect class="svg-stroke" x="4" y="5" width="16" height="14" rx="2"></rect><path class="svg-stroke" d="M8 3.5v3M16 3.5v3M4 9.5h16"></path></svg>
+                  Ventas
+                </a>
+                <a href="#" class="nav-item active">
+                  <svg class="icon-md" viewBox="0 0 24 24"><path class="svg-stroke" d="M15.5 18.5v-1.2a3.3 3.3 0 0 0-3.3-3.3H7.8a3.3 3.3 0 0 0-3.3 3.3v1.2"></path><circle class="svg-stroke" cx="10" cy="8" r="3"></circle><path class="svg-stroke" d="M18 8.5a2.5 2.5 0 0 1 0 5"></path><path class="svg-stroke" d="M20 18.5v-.9a2.7 2.7 0 0 0-2.2-2.7"></path></svg>
+                  Usuarios
+                </a>
+                <a href="#" class="nav-item nav-muted">
+                  <svg class="icon-md" viewBox="0 0 24 24"><path class="svg-stroke" d="M4.5 5.5h15v13h-15z"></path><path class="svg-stroke" d="M8 9.5h8M8 13h5"></path><path class="svg-stroke" d="M8 17h3"></path></svg>
+                  Auditoría
+                </a>
+                <a href="#" class="nav-item nav-muted">
+                  <svg class="icon-md" viewBox="0 0 24 24"><circle class="svg-stroke" cx="12" cy="12" r="3.2"></circle><path class="svg-stroke" d="M19.4 15a1 1 0 0 0 .2 1.1l.1.1a1.2 1.2 0 0 1 0 1.7l-1.2 1.2a1.2 1.2 0 0 1-1.7 0l-.1-.1a1 1 0 0 0-1.1-.2 1 1 0 0 0-.6.9V20a1.2 1.2 0 0 1-1.2 1.2h-1.6A1.2 1.2 0 0 1 11 20v-.1a1 1 0 0 0-.6-.9 1 1 0 0 0-1.1.2l-.1.1a1.2 1.2 0 0 1-1.7 0l-1.2-1.2a1.2 1.2 0 0 1 0-1.7l.1-.1a1 1 0 0 0 .2-1.1 1 1 0 0 0-.9-.6H4A1.2 1.2 0 0 1 2.8 13v-1.6A1.2 1.2 0 0 1 4 10.2h.1a1 1 0 0 0 .9-.6 1 1 0 0 0-.2-1.1l-.1-.1a1.2 1.2 0 0 1 0-1.7l1.2-1.2a1.2 1.2 0 0 1 1.7 0l.1.1a1 1 0 0 0 1.1.2 1 1 0 0 0 .6-.9V4A1.2 1.2 0 0 1 10.6 2.8h1.6A1.2 1.2 0 0 1 13.4 4v.1a1 1 0 0 0 .6.9 1 1 0 0 0 1.1-.2l.1-.1a1.2 1.2 0 0 1 1.7 0l1.2 1.2a1.2 1.2 0 0 1 0 1.7l-.1.1a1 1 0 0 0-.2 1.1 1 1 0 0 0 .9.6h.1A1.2 1.2 0 0 1 21.2 11v1.6a1.2 1.2 0 0 1-1.2 1.2h-.1a1 1 0 0 0-.9.6Z"></path></svg>
+                  Configuración
+                </a>
+              </nav>
+
+              <div class="profile-card">
+                <div class="profile-top">
+                  <div class="avatar">MT</div>
+                  <div>
+                    <div class="profile-name">María Torres</div>
+                    <div class="profile-role">Administradora de empresa</div>
+                  </div>
+                </div>
+                <div class="profile-company">
+                  <span>Comercial Andina</span>
+                  <svg class="icon-sm" viewBox="0 0 24 24"><path class="svg-stroke" d="m6 9 6 6 6-6"></path></svg>
+                </div>
+              </div>
+            </aside>
+
+            <section class="content">
+              <div class="breadcrumbs">
+                <span>Administración</span>
+                <span>/</span>
+                <span class="current">Usuarios</span>
+              </div>
+
+              <div class="content-head">
+                <div>
+                  <h2>Usuarios de la empresa</h2>
+                  <p>Administra accesos y roles de tu equipo</p>
+                </div>
+                <a href="#" class="btn btn-primary">
+                  <svg class="icon-md" viewBox="0 0 24 24"><path class="svg-stroke" d="M15.5 18v-1.1a3.2 3.2 0 0 0-3.2-3.2H8.7a3.2 3.2 0 0 0-3.2 3.2V18"></path><circle class="svg-stroke" cx="10.5" cy="8" r="3"></circle><path class="svg-stroke" d="M19 8v6"></path><path class="svg-stroke" d="M16 11h6"></path></svg>
+                  Invitar usuario
+                </a>
+              </div>
+
+              <div class="table-card">
+                <div class="toolbar">
+                  <div class="search">
+                    <svg class="icon-md" viewBox="0 0 24 24"><circle class="svg-stroke" cx="11" cy="11" r="6"></circle><path class="svg-stroke" d="m20 20-4.4-4.4"></path></svg>
+                    Buscar por nombre o correo
+                  </div>
+                  <div class="chip-group">
+                    <strong>Rol:</strong>
+                    <span class="chip active">Todos</span>
+                    <span class="chip">Administrador</span>
+                    <span class="chip">Supervisor</span>
+                  </div>
+                  <div class="chip-group">
+                    <strong>Estado:</strong>
+                    <span class="chip active">Todos</span>
+                    <span class="chip">Activo</span>
+                    <span class="chip">Bloqueado</span>
+                    <span class="chip">Invitación pendiente</span>
+                  </div>
+                </div>
+
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Usuario</th>
+                      <th>Rol</th>
+                      <th>Estado</th>
+                      <th>Última actividad</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td data-label="Usuario">
+                        <div class="user-cell">
+                          <div class="avatar alt1">AG</div>
+                          <div class="user-meta">
+                            <div class="user-name">Ana Gómez</div>
+                            <div class="user-mail">ana.gomez@comercialandina.pe</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td data-label="Rol">Administradora</td>
+                      <td data-label="Estado"><span class="status success">Activa</span></td>
+                      <td data-label="Última actividad" class="activity">Hace 12 min</td>
+                      <td data-label="Acciones"><button class="more-btn">⋮</button></td>
+                    </tr>
+                    <tr>
+                      <td data-label="Usuario">
+                        <div class="user-cell">
+                          <div class="avatar alt2">LR</div>
+                          <div class="user-meta">
+                            <div class="user-name">Luis Ramírez</div>
+                            <div class="user-mail">luis.ramirez@comercialandina.pe</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td data-label="Rol">Supervisor</td>
+                      <td data-label="Estado"><span class="status success">Activo</span></td>
+                      <td data-label="Última actividad" class="activity">Hoy, 09:24</td>
+                      <td data-label="Acciones"><button class="more-btn">⋮</button></td>
+                    </tr>
+                    <tr>
+                      <td data-label="Usuario">
+                        <div class="user-cell">
+                          <div class="avatar alt3">CP</div>
+                          <div class="user-meta">
+                            <div class="user-name">Carla Pérez</div>
+                            <div class="user-mail">carla.perez@comercialandina.pe</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td data-label="Rol">Supervisora</td>
+                      <td data-label="Estado"><span class="status warning">Invitación pendiente</span></td>
+                      <td data-label="Última actividad" class="activity">Pendiente</td>
+                      <td data-label="Acciones"><button class="more-btn">⋮</button></td>
+                    </tr>
+                    <tr>
+                      <td data-label="Usuario">
+                        <div class="user-cell">
+                          <div class="avatar alt4">DS</div>
+                          <div class="user-meta">
+                            <div class="user-name">Diego Soto</div>
+                            <div class="user-mail">diego.soto@comercialandina.pe</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td data-label="Rol">Supervisor</td>
+                      <td data-label="Estado"><span class="status danger">Bloqueado</span></td>
+                      <td data-label="Última actividad" class="activity">Ayer, 18:40</td>
+                      <td data-label="Acciones"><button class="more-btn" style="border-color:#176D77;color:#176D77">⋯</button></td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div class="pagination">
+                  <div class="page-btn">‹</div>
+                  <div class="page-btn active">1</div>
+                  <div class="page-btn">2</div>
+                  <div class="page-btn">3</div>
+                  <div class="page-btn">›</div>
+                </div>
+
+                <div class="menu-pop" aria-hidden="true">
+                  <div class="menu-item">
+                    <svg class="icon-sm" viewBox="0 0 24 24"><path class="svg-stroke" d="M4 20h4l10-10-4-4L4 16v4Z"></path><path class="svg-stroke" d="m12 6 4 4"></path></svg>
+                    Editar usuario
+                  </div>
+                  <div class="menu-item">
+                    <svg class="icon-sm" viewBox="0 0 24 24"><path class="svg-stroke" d="M12 3.5 5 6.5v5.4c0 4.5 3.1 8.6 7 9.6 3.9-1 7-5.1 7-9.6V6.5l-7-3Z"></path><path class="svg-stroke" d="M8.7 12.2 11 14.5l4.8-4.8"></path></svg>
+                    Bloquear usuario
+                  </div>
+                  <div class="menu-item">
+                    <svg class="icon-sm" viewBox="0 0 24 24"><path class="svg-stroke" d="M20 12a8 8 0 1 1-2.3-5.7"></path><path class="svg-stroke" d="M20 4v6h-6"></path></svg>
+                    Reactivar usuario
+                  </div>
+                  <div class="menu-item">
+                    <svg class="icon-sm" viewBox="0 0 24 24"><path class="svg-stroke" d="M4 7h16"></path><path class="svg-stroke" d="M9 11v6"></path><path class="svg-stroke" d="M15 11v6"></path><path class="svg-stroke" d="M6 7l1 12h10l1-12"></path><path class="svg-stroke" d="M9 4h6"></path></svg>
+                    Eliminar usuario
+                  </div>
+                </div>
+
+                <div class="invite-modal">
+                  <div class="modal-head">
+                    <div class="modal-title">Invitar usuario</div>
+                    <div class="close-x">×</div>
+                  </div>
+
+                  <div class="field">
+                    <label class="label">Nombre completo</label>
+                    <div class="input">Ingresa el nombre completo</div>
+                  </div>
+                  <div class="field">
+                    <label class="label">Correo corporativo</label>
+                    <div class="input">ej. nombre@comercialandina.pe</div>
+                  </div>
+                  <div class="field">
+                    <label class="label">Rol</label>
+                    <div class="select">Selecciona un rol</div>
+                  </div>
+
+                  <div class="role-grid">
+                    <div class="role-option">
+                      <svg class="icon-md" viewBox="0 0 24 24" style="color:#176D77"><path class="svg-stroke" d="m12 4 2 3.5 4 .8-2.8 2.8.5 4.2L12 13.8 8.3 15.3l.5-4.2L6 8.3l4-.8L12 4Z"></path></svg>
+                      <strong>Administrador</strong>
+                      <span>Acceso completo a la administración de la empresa</span>
+                    </div>
+                    <div class="role-option">
+                      <svg class="icon-md" viewBox="0 0 24 24" style="color:#176D77"><path class="svg-stroke" d="M15.5 18v-1.1a3.2 3.2 0 0 0-3.2-3.2H8.7a3.2 3.2 0 0 0-3.2 3.2V18"></path><circle class="svg-stroke" cx="10.5" cy="8" r="3"></circle><path class="svg-stroke" d="M18 8.5a2.5 2.5 0 0 1 0 5"></path></svg>
+                      <strong>Supervisor</strong>
+                      <span>Acceso a la gestión operativa y reportes de su equipo</span>
+                    </div>
+                  </div>
+
+                  <div class="info-note">
+                    <svg class="icon-sm" viewBox="0 0 24 24" style="color:#176D77"><circle class="svg-stroke" cx="12" cy="12" r="9"></circle><path class="svg-stroke" d="M12 10v6"></path><path class="svg-stroke" d="M12 7h.01"></path></svg>
+                    El acceso quedará vinculado a Comercial Andina.
+                  </div>
+
+                  <div class="modal-actions">
+                    <a href="#" class="btn btn-outline">Cancelar</a>
+                    <a href="#" class="btn btn-primary">Enviar invitación</a>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <div class="bottom-grid">
+          <div class="mini-card">
+            <div class="mini-head">A. Lista vacía</div>
+            <div class="mini-shell">
+              <div class="mini-sidebar">
+                <span>⌂</span><span>👥</span><span>🗺</span><span>✓</span><span>⚙</span>
+              </div>
+              <div class="mini-content">
+                <div class="mini-toolbar">
+                  <div class="mini-input">Buscar por nombre o correo</div>
+                  <div class="mini-action">Invitar usuario</div>
+                </div>
+                <div class="mini-state">
+                  <div>
+                    <div class="empty-illus">
+                      <div class="c1"></div>
+                      <div class="c2"></div>
+                      <div class="c3"></div>
+                      <div class="plus">+</div>
+                    </div>
+                    <div class="state-title">Aún no hay usuarios</div>
+                    <div class="state-text">Invita a tu equipo para comenzar a colaborar.</div>
+                    <div style="margin-top:14px;"><span class="mini-action">Invitar usuario</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mini-card">
+            <div class="mini-head">B. No encontramos coincidencias</div>
+            <div class="mini-shell">
+              <div class="mini-sidebar">
+                <span>⌂</span><span>👥</span><span>🗺</span><span>✓</span><span>⚙</span>
+              </div>
+              <div class="mini-content">
+                <div class="mini-toolbar">
+                  <div class="mini-input">juan</div>
+                  <div class="chip" style="padding:10px 12px;font-size:12px;">Todos</div>
+                </div>
+                <div class="mini-state">
+                  <div>
+                    <div class="search-illus"></div>
+                    <div class="state-title">No encontramos coincidencias</div>
+                    <div class="state-text">Verifica la ortografía o intenta con otros términos.</div>
+                    <div style="margin-top:14px;"><span class="btn btn-outline" style="padding:10px 14px;font-size:12px;">Limpiar búsqueda</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mini-card">
+            <div class="mini-head">
+              <span>C. Supervisor en modo lectura</span>
+              <span class="mode-pill">🔒 Modo lectura</span>
+            </div>
+            <div class="mini-shell">
+              <div class="mini-sidebar">
+                <span>⌂</span><span>👥</span><span>🗺</span><span>✓</span><span>⚙</span>
+              </div>
+              <div class="mini-content">
+                <div class="mini-toolbar">
+                  <div class="mini-input">Buscar por nombre o correo</div>
+                  <div class="chip" style="padding:10px 12px;font-size:12px;">Todos</div>
+                </div>
+                <table class="mini-table">
+                  <thead>
+                    <tr><th>Usuario</th><th>Rol</th><th>Estado</th><th>Última actividad</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>Ana Gómez</td><td>Administradora</td><td><span class="status success" style="padding:5px 8px;font-size:10px;">Activa</span></td><td>Hace 12 min</td></tr>
+                    <tr><td>Luis Ramírez</td><td>Supervisor</td><td><span class="status success" style="padding:5px 8px;font-size:10px;">Activo</span></td><td>Hoy, 09:24</td></tr>
+                    <tr><td>Carla Pérez</td><td>Supervisora</td><td><span class="status warning" style="padding:5px 8px;font-size:10px;">Invitación pendiente</span></td><td>Pendiente</td></tr>
+                    <tr><td>Diego Soto</td><td>Supervisor</td><td><span class="status danger" style="padding:5px 8px;font-size:10px;">Bloqueado</span></td><td>Ayer, 18:40</td></tr>
+                  </tbody>
+                </table>
+                <div class="mini-note">No puedes realizar cambios en este modo.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="block-modal">
+            <div class="close-x">×</div>
+            <div class="danger-circle">!</div>
+            <h3>¿Bloquear a Diego Soto?</h3>
+            <p>No podrá acceder a la empresa mientras permanezca bloqueado.</p>
+            <p class="secondary">Sus sesiones activas se revocarán.</p>
+            <div class="block-actions">
+              <a href="#" class="btn btn-outline">Cancelar</a>
+              <a href="#" class="btn btn-danger">Bloquear usuario</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="mobile-column">
+        <div class="mobile-title">Vista móvil (Administrador)</div>
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="island"></div>
+            <div class="phone-status">
+              <span>9:41</span>
+              <span>◦◦◦ ▰</span>
+            </div>
+            <div class="phone-body">
+              <div class="phone-head">
+                <div class="icon-btn">☰</div>
+                <div class="phone-title">Usuarios</div>
+                <div class="icon-btn">⌂</div>
+              </div>
+
+              <a href="#" class="btn btn-primary" style="width:100%; margin-top:16px;">Invitar usuario</a>
+              <div class="phone-search">Buscar por nombre o correo</div>
+              <div class="phone-filter-row">
+                <div class="phone-filter">Estado: Todos</div>
+                <div class="phone-filter" style="text-align:center; color:var(--text-2)">☷</div>
+              </div>
+
+              <div class="phone-list">
+                <div class="mobile-user">
+                  <div class="avatar alt1" style="width:38px;height:38px;font-size:12px;">AG</div>
+                  <div>
+                    <div class="user-name">Ana Gómez</div>
+                    <div class="user-mail">ana.gomez@comercialandina.pe</div>
+                    <div class="status success">Activa</div>
+                  </div>
+                  <div style="color:var(--text-2)">⋮</div>
+                </div>
+                <div class="mobile-user">
+                  <div class="avatar alt2" style="width:38px;height:38px;font-size:12px;">LR</div>
+                  <div>
+                    <div class="user-name">Luis Ramírez</div>
+                    <div class="user-mail">luis.ramirez@comercialandina.pe</div>
+                    <div class="status success">Activo</div>
+                  </div>
+                  <div style="color:var(--text-2)">⋮</div>
+                </div>
+                <div class="mobile-user">
+                  <div class="avatar alt3" style="width:38px;height:38px;font-size:12px;">CP</div>
+                  <div>
+                    <div class="user-name">Carla Pérez</div>
+                    <div class="user-mail">carla.perez@comercialandina.pe</div>
+                    <div class="status warning">Invitación pendiente</div>
+                  </div>
+                  <div style="color:var(--text-2)">⋮</div>
+                </div>
+                <div class="mobile-user">
+                  <div class="avatar alt4" style="width:38px;height:38px;font-size:12px;">DS</div>
+                  <div>
+                    <div class="user-name">Diego Soto</div>
+                    <div class="user-mail">diego.soto@comercialandina.pe</div>
+                    <div class="status danger">Bloqueado</div>
+                  </div>
+                  <div style="color:var(--text-2)">⋮</div>
+                </div>
+              </div>
+
+              <div class="mini-pagination">
+                <div class="page-btn">‹</div>
+                <div class="page-btn active">1</div>
+                <div class="page-btn">2</div>
+                <div class="page-btn">3</div>
+                <div class="page-btn">›</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</body>
+</html>

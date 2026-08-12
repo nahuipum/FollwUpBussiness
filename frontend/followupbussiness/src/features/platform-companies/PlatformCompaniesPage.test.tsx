@@ -191,7 +191,8 @@ test("conserva el provisionamiento inicial tras crear empresa", async () => {
   await renderLoaded();
   fireEvent.click(screen.getByRole("button", { name: "Crear empresa" }));
   fireEvent.change(screen.getByLabelText("Razón social"), { target: { value: "Nova" } });
-  fireEvent.change(screen.getByLabelText("Moneda"), { target: { value: "PEN" } });
+  fireEvent.click(screen.getByRole("button", { name: "Moneda" }));
+  fireEvent.click(screen.getByRole("option", { name: "PEN — Sol" }));
   fireEvent.click(within(screen.getByRole("dialog", { name: "Crear empresa" })).getByRole("button", { name: "Crear empresa" }));
   await act(async () => {});
   fireEvent.change(screen.getByLabelText("Nombre completo"), { target: { value: "Ana Admin" } });

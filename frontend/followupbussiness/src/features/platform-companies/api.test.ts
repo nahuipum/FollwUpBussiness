@@ -74,6 +74,7 @@ test("incluye la prueba CSRF de la sesión al crear una empresa", async () => {
     .mockResolvedValueOnce(
       new Response(JSON.stringify(loginResponse), { status: 200 }),
     )
+    .mockResolvedValueOnce(new Response(JSON.stringify(loginResponse.user), { status: 200 }))
     .mockResolvedValueOnce(new Response(null, { status: 201 }));
   vi.stubGlobal("fetch", fetchMock);
 
@@ -87,7 +88,7 @@ test("incluye la prueba CSRF de la sesión al crear una empresa", async () => {
     currency: "PEN",
   });
 
-  expect(fetchMock.mock.calls[1]).toEqual([
+  expect(fetchMock.mock.calls[2]).toEqual([
     "/api/platform/companies",
     expect.objectContaining({
       headers: expect.objectContaining({
