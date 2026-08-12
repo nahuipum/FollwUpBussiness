@@ -89,6 +89,11 @@ Para web:
 
 Para mobile:
 
+- durante el MVP solo una cuenta utilizable cuyos roles contienen
+  exclusivamente `SELLER` puede crear una familia de sesión `MOBILE`; cualquier
+  otro conjunto de roles recibe el mismo
+  `401 AUTHENTICATION_FAILED` neutral antes de crear familia o emitir access,
+  refresh o ticket de revocación;
 - access y refresh se devuelven en JSON;
 - el refresh se almacena en Keychain/Keystore mediante secure storage, nunca en preferencias, SQLite sin cifrar, logs, backups o analítica;
 - `/auth/refresh` exige el refresh opaco en el body;
@@ -155,7 +160,7 @@ No existe `/register`, registro público, contraseña predeterminada ni credenci
 
 Una cuenta invitada no tiene contraseña utilizable. La activación emplea el mismo mecanismo opaco de acción de un solo uso descrito para recuperación, con propósito persistido `ACTIVATION` y expiración de 24 horas. Emitir otra activación invalida la anterior. Al consumirla se establece el hash BCrypt 12, se cambia la cuenta a `ACTIVE` y se invalida el resto de tokens de acción. El token no asigna tenant ni rol: estos ya deben existir en relaciones persistidas creadas por el flujo administrativo.
 
-Login acepta correo o nombre de usuario y contraseña. Identificador desconocido, password incorrecto, cuenta invitada/inactiva/bloqueada o empresa suspendida/inactiva siempre responde `401 AUTHENTICATION_FAILED` con mensaje y tiempo observables equivalentes. No se comunica cuál condición falló.
+Login acepta correo o nombre de usuario y contraseña. Identificador desconocido, password incorrecto, cuenta invitada/inactiva/bloqueada o empresa suspendida/inactiva siempre responde `401 AUTHENTICATION_FAILED` con mensaje y tiempo observables equivalentes. Para `MOBILE`, una cuenta cuyos roles no sean exclusivamente `SELLER` recibe la misma respuesta antes de crear una familia de sesión o emitir cualquier credencial. No se comunica cuál condición falló.
 
 ### Recuperación y cambio de contraseña
 

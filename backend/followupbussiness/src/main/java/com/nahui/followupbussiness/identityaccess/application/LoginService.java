@@ -1,6 +1,7 @@
 package com.nahui.followupbussiness.identityaccess.application;
 
 import com.nahui.followupbussiness.identityaccess.application.port.out.*;
+import com.nahui.followupbussiness.identityaccess.domain.model.BaseRole;
 import com.nahui.followupbussiness.tenancy.application.port.in.CompanyAccessStatusQuery;
 
 import java.nio.charset.StandardCharsets;
@@ -39,6 +40,7 @@ public final class LoginService {
         }
         var account = candidate.orElseThrow();
         if (!passwords.matches(password, account.passwordHash())) throw new LoginFailedException();
+        if ("MOBILE".equals(channel) && account.role() != BaseRole.SELLER) throw new LoginFailedException();
         UUID sessionId = UUID.randomUUID();
         Instant now = clock.instant();
         String refresh = secret(), csrf = "WEB".equals(channel) ? secret() : null, ticket = "MOBILE".equals(channel) ? secret() : null;

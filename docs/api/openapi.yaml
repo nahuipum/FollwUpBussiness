@@ -92,7 +92,11 @@ paths:
         Respuesta neutral ante credenciales inválidas o cuenta no utilizable.
         WEB requiere un Origin permitido y recibe el refresh exclusivamente en
         cookie HttpOnly. MOBILE solo se admite sin contexto de navegador y
-        recibe el refresh en el cuerpo. El header de canal no concede autoridad.
+        recibe el refresh en el cuerpo. En el MVP, MOBILE solo emite una sesión
+        para una cuenta utilizable cuyos roles contienen exclusivamente SELLER;
+        cualquier otro conjunto de roles recibe
+        el mismo 401 neutral, sin crear familia ni emitir credenciales. El
+        header de canal no concede autoridad.
       security: []
       x-story-ids: [EN-013, BE-003, FE-001, MOB-001, INT-002, INT-003]
       parameters:
@@ -230,7 +234,7 @@ paths:
         cuenta/token fuera del camino de respuesta; no devuelve token ni estado
         de cuenta. EN-017 define el proveedor de entrega.
       security: []
-      x-story-ids: [EN-013, BE-006, BE-057, FE-002]
+      x-story-ids: [EN-013, BE-006, BE-057, FE-002, MOB-001]
       parameters:
         - $ref: '#/components/parameters/AuthClient'
         - $ref: '#/components/parameters/ClientInstanceId'
@@ -264,7 +268,7 @@ paths:
         exitoso revoca todas las sesiones web/mobile de la cuenta. El token
         opaco no asigna tenant ni rol.
       security: []
-      x-story-ids: [EN-013, BE-006, BE-057, FE-002]
+      x-story-ids: [EN-013, BE-006, BE-057, FE-002, MOB-001]
       parameters:
         - $ref: '#/components/parameters/AuthClient'
         - $ref: '#/components/parameters/ClientInstanceId'

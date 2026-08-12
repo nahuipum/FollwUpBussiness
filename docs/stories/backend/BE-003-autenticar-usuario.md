@@ -29,6 +29,9 @@
 2. Usuario o empresa inactiva se rechaza.
 3. Error no revela existencia.
 4. Sesión asociada a empresa y rol.
+5. En el canal MOBILE del MVP, solo roles exclusivamente SELLER reciben sesión;
+   cualquier otro conjunto se rechaza neutralmente antes de emitir credenciales
+   o crear una familia de sesión.
 
     ## Referencias
 

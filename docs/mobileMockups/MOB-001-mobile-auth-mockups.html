@@ -1,0 +1,2132 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light" />
+  <title>MOB-001 — Mockups mobile de acceso</title>
+
+  <!--
+    MOB-001 — REFERENCIA VISUAL PARA CODEX
+    =================================================
+    Prototipo HTML autocontenido. No requiere librerías externas.
+
+    Objetivo:
+    - Entregar una referencia visual mobile, minimalista y moderna.
+    - Mantener el isotipo original de FollowUpBusiness usado en FE-001:
+      una ruta con cuatro nodos dentro de un contenedor teal.
+    - Mostrar estados, variantes, alertas, diálogos y componentes reutilizables.
+
+    IMPORTANTE PARA IMPLEMENTACIÓN:
+    - Este archivo es un mockup/handoff, no código productivo.
+    - Traducir los componentes a widgets Flutter reutilizables.
+    - Backend conserva autoridad sobre autenticación y reglas.
+    - Guardar tokens únicamente en secure storage.
+    - No registrar correo, contraseña, token ni datos sensibles.
+    - La recuperación siempre debe responder de forma neutral.
+
+    Pantallas disponibles mediante query param `screen`:
+      ?screen=login
+      ?screen=login-loading
+      ?screen=login-error
+      ?screen=recover
+      ?screen=recover-loading
+      ?screen=recover-error
+      ?screen=recover-confirmation
+      ?screen=reset
+      ?screen=reset-error
+      ?screen=reset-loading
+      ?screen=reset-success
+      ?screen=token-expired
+      ?screen=components
+
+    Parámetro adicional:
+      ?clean=1  -> oculta la mesa de revisión y muestra solo el dispositivo.
+
+    Interacciones incluidas:
+    - Selector de pantallas.
+    - Mostrar/ocultar contraseñas.
+    - Validación visual de contraseña.
+    - Simulación de submit/loading.
+    - Modal, bottom sheet y toast.
+    - Copiar URL del estado actual.
+  -->
+
+  <style>
+    :root{
+      --navy:#102A43;
+      --navy-2:#163B62;
+      --navy-3:#0F6B78;
+      --teal:#176D77;
+      --teal-dark:#145F68;
+      --teal-light:#7DD3D7;
+      --teal-mid:#38B2AC;
+      --text:#14213D;
+      --text-secondary:#67778A;
+      --form-text:#26384A;
+      --muted:#8090A0;
+      --line:#CFD9E4;
+      --placeholder:#96A4B2;
+      --background:#F7F9FC;
+      --surface:#FFFFFF;
+      --danger:#D83B57;
+      --danger-dark:#8F2B3C;
+      --danger-bg:#FFF3F5;
+      --danger-line:#F2B6C0;
+      --success:#168A5B;
+      --success-bg:#EFFAF5;
+      --success-line:#BDE8D5;
+      --info:#246B9B;
+      --info-bg:#F0F7FC;
+      --info-line:#C6E1F2;
+      --warning:#9B6908;
+      --warning-bg:#FFF9EB;
+      --warning-line:#F2D89A;
+      --shadow-sm:0 8px 24px rgba(16,42,67,.08);
+      --shadow-md:0 20px 56px rgba(16,42,67,.14);
+      --shadow-device:0 28px 90px rgba(16,42,67,.28);
+      --radius-sm:12px;
+      --radius-md:18px;
+      --radius-lg:24px;
+      --transition:160ms cubic-bezier(.2,.7,.2,1);
+      --gradient:linear-gradient(145deg,#102A43 0%,#163B62 55%,#0F6B78 100%);
+    }
+
+    *{box-sizing:border-box}
+
+    html,body{
+      min-width:320px;
+      min-height:100%;
+      margin:0;
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      color:var(--text);
+      background:#E9EFF4;
+      text-rendering:optimizeLegibility;
+      -webkit-font-smoothing:antialiased;
+    }
+
+    body{min-height:100vh}
+
+    button,input{font:inherit}
+    button{color:inherit}
+    svg{display:block}
+
+    :focus-visible{
+      outline:3px solid rgba(56,178,172,.32);
+      outline-offset:3px;
+    }
+
+    .sr-only{
+      position:absolute!important;
+      width:1px!important;
+      height:1px!important;
+      padding:0!important;
+      margin:-1px!important;
+      overflow:hidden!important;
+      clip:rect(0,0,0,0)!important;
+      white-space:nowrap!important;
+      border:0!important;
+    }
+
+    /* =========================================================
+       MESA DE REVISIÓN — solo para el handoff a Codex/QA
+       ========================================================= */
+    .review-app{
+      min-height:100vh;
+      display:grid;
+      grid-template-columns:300px minmax(0,1fr);
+      background:
+        radial-gradient(circle at 80% 16%,rgba(125,211,215,.23),transparent 28%),
+        #E9EFF4;
+    }
+
+    .review-sidebar{
+      position:sticky;
+      top:0;
+      height:100vh;
+      overflow:auto;
+      padding:26px 20px 24px;
+      background:rgba(255,255,255,.92);
+      border-right:1px solid rgba(16,42,67,.09);
+      backdrop-filter:blur(16px);
+      z-index:20;
+    }
+
+    .review-brand{
+      display:flex;
+      align-items:center;
+      gap:11px;
+      margin:0 4px 24px;
+    }
+
+    .review-brand .brand-mark{width:38px;height:38px;border-radius:12px}
+    .review-brand-copy strong{display:block;font-size:15px;letter-spacing:-.2px}
+    .review-brand-copy span{display:block;margin-top:2px;font-size:11.5px;color:var(--muted)}
+
+    .review-note{
+      padding:13px 14px;
+      margin-bottom:20px;
+      border:1px solid #DDE7EE;
+      border-radius:14px;
+      background:#F8FBFD;
+      color:var(--text-secondary);
+      font-size:12px;
+      line-height:1.48;
+    }
+
+    .review-group{margin-top:18px}
+    .review-group-title{
+      margin:0 6px 8px;
+      color:var(--muted);
+      font-size:10.5px;
+      font-weight:800;
+      letter-spacing:.09em;
+      text-transform:uppercase;
+    }
+
+    .review-nav{display:grid;gap:5px}
+
+    .review-state-button{
+      width:100%;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-height:42px;
+      padding:9px 11px;
+      border:1px solid transparent;
+      border-radius:11px;
+      background:transparent;
+      cursor:pointer;
+      text-align:left;
+      color:var(--text-secondary);
+      transition:background var(--transition),border-color var(--transition),color var(--transition),transform var(--transition);
+    }
+
+    .review-state-button:hover{
+      background:#F3F8FA;
+      color:var(--text);
+    }
+
+    .review-state-button:active{transform:translateY(1px)}
+
+    .review-state-button.is-active{
+      color:var(--teal-dark);
+      border-color:#B8DDE0;
+      background:#EDF8F8;
+      box-shadow:inset 3px 0 0 var(--teal);
+    }
+
+    .state-dot{
+      width:8px;
+      height:8px;
+      flex:0 0 auto;
+      border-radius:999px;
+      background:#B4C2CE;
+    }
+    .review-state-button.is-active .state-dot{background:var(--teal)}
+    .state-button-copy{display:grid;gap:1px}
+    .state-button-copy strong{font-size:12.5px;font-weight:720}
+    .state-button-copy span{font-size:10.5px;color:var(--muted)}
+
+    .review-main{
+      min-width:0;
+      display:flex;
+      flex-direction:column;
+      min-height:100vh;
+    }
+
+    .review-toolbar{
+      position:sticky;
+      top:0;
+      z-index:15;
+      min-height:66px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      padding:12px 24px;
+      border-bottom:1px solid rgba(16,42,67,.08);
+      background:rgba(233,239,244,.82);
+      backdrop-filter:blur(14px);
+    }
+
+    .toolbar-title{min-width:0}
+    .toolbar-title strong{display:block;font-size:14px;letter-spacing:-.15px}
+    .toolbar-title code{
+      display:block;
+      max-width:min(620px,65vw);
+      margin-top:2px;
+      overflow:hidden;
+      color:var(--muted);
+      font:11px/1.4 ui-monospace,SFMono-Regular,Consolas,monospace;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+
+    .toolbar-actions{display:flex;align-items:center;gap:8px}
+    .toolbar-button{
+      height:38px;
+      display:inline-flex;
+      align-items:center;
+      gap:7px;
+      padding:0 13px;
+      border:1px solid #C9D8E2;
+      border-radius:10px;
+      background:#fff;
+      color:var(--form-text);
+      font-size:12px;
+      font-weight:700;
+      cursor:pointer;
+      box-shadow:0 5px 16px rgba(16,42,67,.05);
+    }
+    .toolbar-button:hover{border-color:#AFC6D3;background:#FBFDFE}
+    .toolbar-button svg{width:16px;height:16px}
+
+    .preview-stage{
+      flex:1;
+      min-height:0;
+      display:grid;
+      place-items:center;
+      padding:28px;
+      overflow:auto;
+    }
+
+    .device{
+      position:relative;
+      width:414px;
+      height:896px;
+      padding:12px;
+      border:1px solid rgba(255,255,255,.6);
+      border-radius:58px;
+      background:linear-gradient(150deg,#17191B 0%,#34393E 50%,#0A0B0D 100%);
+      box-shadow:var(--shadow-device);
+    }
+
+    .device::before{
+      content:"";
+      position:absolute;
+      inset:5px;
+      border-radius:52px;
+      border:1px solid rgba(255,255,255,.18);
+      pointer-events:none;
+    }
+
+    .device-screen{
+      position:relative;
+      width:100%;
+      height:100%;
+      overflow:hidden;
+      border-radius:47px;
+      background:var(--background);
+      isolation:isolate;
+    }
+
+    .device-island{
+      position:absolute;
+      z-index:30;
+      top:16px;
+      left:50%;
+      width:124px;
+      height:34px;
+      transform:translateX(-50%);
+      border-radius:999px;
+      background:#090A0B;
+      box-shadow:inset 0 -1px 0 rgba(255,255,255,.08);
+      pointer-events:none;
+    }
+
+    .device-island::after{
+      content:"";
+      position:absolute;
+      top:10px;
+      right:12px;
+      width:7px;
+      height:7px;
+      border-radius:50%;
+      background:#0B1A25;
+      box-shadow:0 0 0 2px #141A1F,0 0 7px rgba(56,178,172,.25);
+    }
+
+    .home-indicator{
+      position:absolute;
+      z-index:35;
+      left:50%;
+      bottom:19px;
+      width:134px;
+      height:5px;
+      transform:translateX(-50%);
+      border-radius:999px;
+      background:#121416;
+      pointer-events:none;
+    }
+
+    /* =========================================================
+       APLICACIÓN MOBILE
+       ========================================================= */
+    .mobile-app{
+      position:relative;
+      width:100%;
+      height:100%;
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+      background:
+        linear-gradient(180deg,rgba(205,242,244,.75) 0,rgba(237,248,250,.54) 112px,rgba(247,249,252,0) 175px),
+        var(--background);
+    }
+
+    .mobile-app::before{
+      content:"";
+      position:absolute;
+      z-index:0;
+      top:87px;
+      left:-8%;
+      width:116%;
+      height:72px;
+      border-radius:0 0 50% 50% / 0 0 70% 70%;
+      background:rgba(255,255,255,.72);
+      transform:rotate(1.6deg);
+      pointer-events:none;
+    }
+
+    .mobile-status-bar{
+      position:relative;
+      z-index:5;
+      height:52px;
+      flex:0 0 auto;
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      padding:0 25px 8px;
+      color:#0B1722;
+      font-size:14px;
+      font-weight:760;
+    }
+
+    .mobile-status-icons{display:flex;align-items:center;gap:6px}
+    .signal-bars{display:flex;align-items:flex-end;gap:2px;height:13px}
+    .signal-bars span{width:3px;border-radius:2px;background:currentColor}
+    .signal-bars span:nth-child(1){height:4px}
+    .signal-bars span:nth-child(2){height:7px}
+    .signal-bars span:nth-child(3){height:10px}
+    .signal-bars span:nth-child(4){height:13px}
+    .wifi-icon{width:16px;height:13px;position:relative}
+    .wifi-icon::before,.wifi-icon::after{
+      content:"";
+      position:absolute;
+      left:50%;
+      border:2px solid currentColor;
+      border-right-color:transparent;
+      border-bottom-color:transparent;
+      border-radius:50% 0 0 0;
+      transform:translateX(-50%) rotate(45deg);
+    }
+    .wifi-icon::before{top:0;width:12px;height:12px}
+    .wifi-icon::after{top:4px;width:6px;height:6px}
+    .battery-icon{width:22px;height:11px;border:1.7px solid currentColor;border-radius:3px;position:relative;margin-left:1px}
+    .battery-icon::before{content:"";position:absolute;inset:2px;border-radius:1px;background:currentColor}
+    .battery-icon::after{content:"";position:absolute;right:-3px;top:3px;width:2px;height:5px;border-radius:0 2px 2px 0;background:currentColor}
+
+    .mobile-brand-header{
+      position:relative;
+      z-index:2;
+      flex:0 0 auto;
+      display:grid;
+      justify-items:center;
+      gap:7px;
+      padding:28px 22px 18px;
+      text-align:center;
+    }
+
+    .mobile-brand-line{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+    }
+
+    .brand-mark{
+      width:36px;
+      height:36px;
+      flex:0 0 auto;
+      display:grid;
+      place-items:center;
+      border-radius:12px;
+      background:var(--teal);
+      box-shadow:0 8px 20px rgba(23,109,119,.2);
+    }
+
+    .brand-mark svg{width:24px;height:24px}
+    .brand-mark path,.brand-mark circle{stroke:#fff}
+
+    .brand-wordmark{
+      color:var(--navy);
+      font-size:20px;
+      font-weight:780;
+      letter-spacing:-.65px;
+    }
+    .brand-wordmark span{color:var(--teal);font-weight:700}
+
+    .brand-subtitle{
+      min-height:18px;
+      color:var(--text-secondary);
+      font-size:13px;
+      font-weight:520;
+      transition:opacity var(--transition);
+    }
+
+    .screen-host{
+      position:relative;
+      z-index:3;
+      flex:1;
+      min-height:0;
+      overflow:hidden;
+    }
+
+    .screen{
+      position:absolute;
+      inset:0;
+      display:none;
+      overflow-y:auto;
+      overscroll-behavior:contain;
+      scrollbar-width:thin;
+      scrollbar-color:#B8C7D2 transparent;
+      padding:4px 22px 48px;
+    }
+
+    .screen::-webkit-scrollbar{width:5px}
+    .screen::-webkit-scrollbar-thumb{background:#B8C7D2;border-radius:999px}
+    .screen.is-active{display:block;animation:screen-in 180ms ease-out both}
+
+    @keyframes screen-in{
+      from{opacity:0;transform:translateY(5px)}
+      to{opacity:1;transform:none}
+    }
+
+    .auth-card,
+    .status-card,
+    .component-section{
+      border:1px solid rgba(16,42,67,.055);
+      background:rgba(255,255,255,.96);
+      box-shadow:var(--shadow-sm);
+    }
+
+    .auth-card{
+      border-radius:22px;
+      padding:22px;
+    }
+
+    .screen-heading{
+      margin:0;
+      color:var(--navy);
+      font-size:25px;
+      line-height:1.18;
+      letter-spacing:-.7px;
+    }
+
+    .screen-description{
+      margin:8px 0 20px;
+      color:var(--text-secondary);
+      font-size:13.5px;
+      line-height:1.55;
+    }
+
+    .field{margin-bottom:17px}
+    .field:last-child{margin-bottom:0}
+
+    .field-label{
+      display:block;
+      margin:0 0 7px;
+      color:var(--navy);
+      font-size:12.5px;
+      font-weight:760;
+    }
+
+    .input-shell{
+      min-height:52px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:0 13px;
+      border:1px solid var(--line);
+      border-radius:12px;
+      background:#fff;
+      transition:border-color var(--transition),box-shadow var(--transition),background var(--transition);
+    }
+
+    .input-shell:focus-within{
+      border-color:var(--teal-mid);
+      box-shadow:0 0 0 3px rgba(56,178,172,.12);
+    }
+
+    .input-shell.is-error{
+      border-color:var(--danger);
+      background:#FFFCFC;
+      box-shadow:0 0 0 3px rgba(216,59,87,.07);
+    }
+
+    .field-icon{
+      width:19px;
+      height:19px;
+      flex:0 0 auto;
+      color:#52677D;
+    }
+
+    .field-input{
+      min-width:0;
+      flex:1;
+      height:50px;
+      padding:0;
+      border:0;
+      outline:0;
+      background:transparent;
+      color:var(--form-text);
+      font-size:14px;
+    }
+    .field-input::placeholder{color:var(--placeholder)}
+    .field-input:disabled{color:#667B8D;-webkit-text-fill-color:#667B8D;opacity:1}
+
+    .icon-button{
+      width:34px;
+      height:34px;
+      flex:0 0 auto;
+      display:grid;
+      place-items:center;
+      padding:0;
+      border:0;
+      border-radius:10px;
+      background:transparent;
+      color:#52677D;
+      cursor:pointer;
+      transition:background var(--transition),color var(--transition);
+    }
+    .icon-button:hover{background:#F1F6F8;color:var(--teal-dark)}
+    .icon-button svg{width:19px;height:19px}
+
+    .field-helper{
+      display:flex;
+      align-items:flex-start;
+      gap:6px;
+      margin-top:6px;
+      color:var(--muted);
+      font-size:11.5px;
+      line-height:1.4;
+    }
+    .field-helper.is-error{color:var(--danger-dark)}
+    .field-helper.is-success{color:var(--success)}
+    .field-helper svg{width:14px;height:14px;flex:0 0 auto;margin-top:1px}
+
+    .inline-link,
+    .text-button{
+      border:0;
+      padding:0;
+      background:transparent;
+      color:var(--teal);
+      font-weight:700;
+      text-decoration:none;
+      cursor:pointer;
+    }
+    .inline-link:hover,.text-button:hover{color:var(--teal-dark);text-decoration:underline}
+
+    .form-link-row{
+      display:flex;
+      justify-content:flex-end;
+      margin:-4px 0 16px;
+      font-size:12.5px;
+    }
+
+    .check-row{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      margin:0 0 19px;
+      color:var(--text-secondary);
+      font-size:12.5px;
+      cursor:pointer;
+      user-select:none;
+    }
+
+    .check-row input{
+      appearance:none;
+      width:19px;
+      height:19px;
+      flex:0 0 auto;
+      display:grid;
+      place-content:center;
+      margin:0;
+      border:1.5px solid #8EA0AF;
+      border-radius:5px;
+      background:#fff;
+      cursor:pointer;
+    }
+    .check-row input::before{
+      content:"";
+      width:9px;
+      height:5px;
+      border-left:2px solid #fff;
+      border-bottom:2px solid #fff;
+      transform:rotate(-45deg) scale(0);
+      transition:transform var(--transition);
+    }
+    .check-row input:checked{border-color:var(--teal);background:var(--teal)}
+    .check-row input:checked::before{transform:rotate(-45deg) scale(1)}
+
+    .button{
+      width:100%;
+      min-height:52px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:9px;
+      padding:0 18px;
+      border:1px solid transparent;
+      border-radius:12px;
+      font-size:14px;
+      font-weight:780;
+      text-decoration:none;
+      cursor:pointer;
+      transition:transform var(--transition),box-shadow var(--transition),background var(--transition),border-color var(--transition),opacity var(--transition);
+    }
+    .button:active:not(:disabled){transform:translateY(1px)}
+    .button-primary{
+      color:#fff;
+      background:linear-gradient(135deg,#1A8994 0%,#176D77 100%);
+      box-shadow:0 9px 22px rgba(23,109,119,.18);
+    }
+    .button-primary:hover:not(:disabled){background:linear-gradient(135deg,#197E88 0%,#145F68 100%);box-shadow:0 11px 26px rgba(23,109,119,.24)}
+    .button-secondary{
+      color:var(--teal-dark);
+      border-color:#A9CED2;
+      background:#fff;
+    }
+    .button-secondary:hover:not(:disabled){background:#F3FAFA;border-color:#7FB9BE}
+    .button:disabled,.button.is-disabled{opacity:.54;cursor:not-allowed;box-shadow:none}
+    .button + .button{margin-top:10px}
+
+    .spinner{
+      width:18px;
+      height:18px;
+      flex:0 0 auto;
+      border:2px solid rgba(255,255,255,.42);
+      border-top-color:#fff;
+      border-radius:50%;
+      animation:spin .75s linear infinite;
+    }
+    .spinner.is-teal{border-color:rgba(23,109,119,.19);border-top-color:var(--teal)}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    .secure-note{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      margin-top:18px;
+      color:var(--text-secondary);
+      font-size:11.5px;
+      line-height:1.4;
+      text-align:center;
+    }
+    .secure-note svg{width:18px;height:18px;flex:0 0 auto;color:var(--teal)}
+
+    .support-note{
+      margin:22px 16px 0;
+      color:var(--text-secondary);
+      font-size:11.5px;
+      line-height:1.55;
+      text-align:center;
+    }
+
+    .alert{
+      display:flex;
+      align-items:flex-start;
+      gap:10px;
+      padding:12px 13px;
+      margin-bottom:14px;
+      border:1px solid;
+      border-radius:13px;
+      font-size:12px;
+      line-height:1.45;
+    }
+    .alert svg{width:18px;height:18px;flex:0 0 auto;margin-top:1px}
+    .alert strong{font-weight:780}
+    .alert-error{color:var(--danger-dark);border-color:var(--danger-line);background:var(--danger-bg)}
+    .alert-success{color:#116746;border-color:var(--success-line);background:var(--success-bg)}
+    .alert-info{color:#1D5E87;border-color:var(--info-line);background:var(--info-bg)}
+    .alert-warning{color:#7F570A;border-color:var(--warning-line);background:var(--warning-bg)}
+
+    .progress-track{
+      width:100%;
+      height:4px;
+      overflow:hidden;
+      margin-top:13px;
+      border-radius:999px;
+      background:#E2E9EE;
+    }
+    .progress-track > span{
+      display:block;
+      width:28%;
+      height:100%;
+      border-radius:inherit;
+      background:var(--teal-mid);
+      animation:indeterminate 1.25s ease-in-out infinite;
+    }
+    @keyframes indeterminate{
+      0%{transform:translateX(-120%);width:26%}
+      50%{width:48%}
+      100%{transform:translateX(330%);width:26%}
+    }
+    .progress-caption{margin:8px 0 0;color:var(--muted);font-size:11px;text-align:center}
+
+    .screen-intro{
+      display:grid;
+      justify-items:center;
+      margin:1px 0 15px;
+      text-align:center;
+    }
+    .minimal-illustration{
+      width:70px;
+      height:70px;
+      display:grid;
+      place-items:center;
+      margin-bottom:12px;
+      border-radius:22px;
+      background:#ECF7F8;
+      color:var(--teal);
+    }
+    .minimal-illustration svg{width:38px;height:38px}
+    .screen-intro .screen-description{max-width:305px;margin-bottom:0}
+
+    .neutral-note{
+      display:flex;
+      gap:8px;
+      align-items:flex-start;
+      margin:15px 4px 0;
+      color:var(--text-secondary);
+      font-size:11px;
+      line-height:1.48;
+    }
+    .neutral-note svg{width:16px;height:16px;flex:0 0 auto;color:var(--teal);margin-top:1px}
+
+    /* Pantallas de estado */
+    .status-card{
+      min-height:420px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      padding:30px 23px;
+      border-radius:24px;
+      text-align:center;
+    }
+    .status-icon{
+      width:84px;
+      height:84px;
+      display:grid;
+      place-items:center;
+      margin-bottom:20px;
+      border-radius:26px;
+      background:#EDF8F8;
+      color:var(--teal);
+    }
+    .status-icon.is-success{background:var(--success-bg);color:var(--success)}
+    .status-icon.is-warning{background:var(--warning-bg);color:#A9750D}
+    .status-icon svg{width:48px;height:48px}
+    .status-card .screen-heading{font-size:27px}
+    .status-copy{
+      max-width:306px;
+      margin:11px 0 21px;
+      color:var(--text-secondary);
+      font-size:13.5px;
+      line-height:1.58;
+    }
+    .status-support{
+      max-width:300px;
+      margin:-8px 0 20px;
+      color:var(--muted);
+      font-size:11px;
+      line-height:1.48;
+    }
+    .status-card .button{max-width:290px}
+    .status-card .text-button{margin-top:16px;font-size:12.5px}
+
+    /* Contraseña */
+    .strength-row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin:9px 0 7px;
+      color:var(--text-secondary);
+      font-size:11.5px;
+    }
+    .strength-row strong{color:var(--success)}
+    .strength-meter{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:12px}
+    .strength-meter span{height:4px;border-radius:999px;background:#E3E9EE;transition:background var(--transition)}
+    .strength-meter span.is-on{background:var(--success)}
+    .requirement-list{
+      display:grid;
+      gap:7px;
+      padding:12px;
+      margin:0 0 17px;
+      border:1px solid #DCE9E9;
+      border-radius:12px;
+      background:#F8FBFB;
+      list-style:none;
+    }
+    .requirement-item{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      color:var(--muted);
+      font-size:11.5px;
+      transition:color var(--transition);
+    }
+    .requirement-item svg{width:15px;height:15px;flex:0 0 auto}
+    .requirement-item.is-valid{color:var(--success)}
+
+    /* Biblioteca de componentes */
+    .component-library-title{margin:0 0 14px}
+    .component-library-title .screen-heading{font-size:23px}
+    .component-library-title .screen-description{margin-bottom:0}
+    .component-section{
+      padding:16px;
+      margin-bottom:12px;
+      border-radius:17px;
+    }
+    .component-title{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin:0 0 13px;
+      color:var(--navy);
+      font-size:13px;
+      font-weight:800;
+    }
+    .component-title span{color:var(--muted);font-size:10px;font-weight:650}
+    .component-stack{display:grid;gap:9px}
+    .component-section .button{min-height:45px;font-size:12.5px}
+    .component-section .input-shell{min-height:46px}
+    .component-section .field-input{height:44px;font-size:12.5px}
+    .component-section .field-label{font-size:11.5px}
+    .component-section .alert{margin-bottom:0}
+    .component-grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+    .chip-wrap{display:flex;flex-wrap:wrap;gap:7px}
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      min-height:28px;
+      padding:0 10px;
+      border:1px solid;
+      border-radius:999px;
+      font-size:10.5px;
+      font-weight:700;
+    }
+    .chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+    .chip-new{color:#2375A5;border-color:#BBDDF0;background:#F0F8FD}
+    .chip-progress{color:#A46D05;border-color:#F1D496;background:#FFF9EA}
+    .chip-pending{color:#65778A;border-color:#D8E0E6;background:#F5F7F9}
+    .chip-complete{color:#168A5B;border-color:#BDE8D5;background:#EFFAF5}
+    .chip-cancelled{color:#C93650;border-color:#F2C0C8;background:#FFF4F6}
+
+    .loader-demo{
+      min-height:86px;
+      display:grid;
+      place-items:center;
+      border:1px dashed #D7E2E9;
+      border-radius:12px;
+      background:#FAFCFD;
+      color:var(--muted);
+      font-size:10.5px;
+    }
+    .loader-demo-inner{display:grid;justify-items:center;gap:8px}
+    .large-spinner{width:30px;height:30px;border-width:3px}
+
+    .skeleton-card{
+      padding:12px;
+      border:1px solid #E0E7EC;
+      border-radius:12px;
+      background:#fff;
+    }
+    .skeleton-head{display:flex;align-items:center;gap:9px}
+    .skeleton-circle,.skeleton-line,.skeleton-block{background:#E9EEF2;position:relative;overflow:hidden}
+    .skeleton-circle{width:28px;height:28px;border-radius:50%}
+    .skeleton-lines{flex:1;display:grid;gap:5px}
+    .skeleton-line{height:7px;border-radius:999px}
+    .skeleton-line.short{width:62%}
+    .skeleton-block{height:54px;margin-top:10px;border-radius:9px}
+    .skeleton-circle::after,.skeleton-line::after,.skeleton-block::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      transform:translateX(-100%);
+      background:linear-gradient(90deg,transparent,rgba(255,255,255,.8),transparent);
+      animation:shimmer 1.4s infinite;
+    }
+    @keyframes shimmer{to{transform:translateX(100%)}}
+
+    .loading-list{
+      max-height:144px;
+      overflow:auto;
+      border:1px solid #E0E7EC;
+      border-radius:12px;
+      background:#fff;
+    }
+    .loading-row{display:flex;gap:9px;padding:10px;border-bottom:1px solid #EDF1F4}
+    .loading-row:last-child{border-bottom:0}
+    .loading-row .skeleton-circle{width:24px;height:24px}
+    .list-loader{display:flex;justify-content:center;padding:10px}
+    .list-loader .spinner{width:20px;height:20px}
+
+    .mini-app-bar{
+      height:48px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:0 12px;
+      border:1px solid #E0E7EC;
+      border-radius:12px;
+      background:#fff;
+      box-shadow:0 5px 14px rgba(16,42,67,.05);
+    }
+    .mini-app-bar .brand-mark{width:28px;height:28px;border-radius:9px;box-shadow:none}
+    .mini-app-bar .brand-mark svg{width:18px;height:18px}
+    .mini-app-bar strong{font-size:11.5px;flex:1}
+    .mini-app-bar > svg{width:18px;height:18px;color:#52677D}
+    .avatar{width:26px;height:26px;display:grid;place-items:center;border-radius:50%;background:#EDF5F7;color:var(--teal-dark);font-size:9.5px;font-weight:800}
+
+    /* Modal, bottom sheet y toast dentro del dispositivo */
+    .overlay{
+      position:absolute;
+      z-index:100;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:22px;
+      background:rgba(16,42,67,.46);
+      backdrop-filter:blur(5px);
+    }
+    .overlay.is-open{display:flex;animation:fade-in 140ms ease-out both}
+    @keyframes fade-in{from{opacity:0}to{opacity:1}}
+
+    .dialog{
+      width:100%;
+      max-width:324px;
+      padding:24px 20px 19px;
+      border-radius:22px;
+      background:#fff;
+      box-shadow:0 24px 70px rgba(16,42,67,.28);
+      text-align:center;
+    }
+    .dialog-icon{
+      width:52px;
+      height:52px;
+      display:grid;
+      place-items:center;
+      margin:0 auto 14px;
+      border-radius:17px;
+      background:#EDF7F8;
+      color:var(--teal);
+    }
+    .dialog-icon svg{width:26px;height:26px}
+    .dialog h3{margin:0;color:var(--navy);font-size:20px;letter-spacing:-.45px}
+    .dialog p{margin:8px auto 18px;color:var(--text-secondary);font-size:12px;line-height:1.5}
+    .dialog-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+    .dialog-actions .button{min-height:46px;padding:0 12px;font-size:12px}
+
+    .sheet-overlay{align-items:flex-end;padding:0;background:rgba(16,42,67,.42)}
+    .bottom-sheet{
+      width:100%;
+      padding:11px 18px calc(24px + env(safe-area-inset-bottom));
+      border-radius:24px 24px 0 0;
+      background:#fff;
+      box-shadow:0 -20px 60px rgba(16,42,67,.22);
+    }
+    .sheet-handle{width:45px;height:5px;margin:0 auto 17px;border-radius:999px;background:#D7E0E6}
+    .bottom-sheet h3{margin:0 0 4px;font-size:18px;letter-spacing:-.35px}
+    .bottom-sheet p{margin:0 0 16px;color:var(--text-secondary);font-size:11.5px;line-height:1.5}
+    .sheet-option{
+      width:100%;
+      min-height:48px;
+      display:flex;
+      align-items:center;
+      gap:11px;
+      padding:0 5px;
+      border:0;
+      border-bottom:1px solid #EDF1F4;
+      background:transparent;
+      color:var(--form-text);
+      font-size:12.5px;
+      text-align:left;
+      cursor:pointer;
+    }
+    .sheet-option:last-child{border-bottom:0}
+    .sheet-option svg{width:19px;height:19px;color:#52677D}
+    .sheet-option.is-danger{color:var(--danger)}
+    .sheet-option.is-danger svg{color:var(--danger)}
+
+    .toast{
+      position:absolute;
+      z-index:120;
+      left:20px;
+      right:20px;
+      bottom:35px;
+      min-height:52px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:12px 14px;
+      border-radius:14px;
+      color:#fff;
+      background:#123A46;
+      box-shadow:0 16px 38px rgba(16,42,67,.24);
+      font-size:11.5px;
+      line-height:1.35;
+      opacity:0;
+      transform:translateY(18px);
+      pointer-events:none;
+      transition:opacity 180ms ease,transform 180ms ease;
+    }
+    .toast.is-visible{opacity:1;transform:none;pointer-events:auto}
+    .toast svg{width:19px;height:19px;flex:0 0 auto;color:var(--teal-light)}
+    .toast span{flex:1}
+    .toast button{border:0;background:transparent;color:#DDF8F8;font-size:10px;font-weight:800;cursor:pointer}
+
+    /* Vista limpia */
+    body.clean-mode .review-app{display:block;background:var(--background)}
+    body.clean-mode .review-sidebar,
+    body.clean-mode .review-toolbar{display:none}
+    body.clean-mode .review-main{min-height:100vh}
+    body.clean-mode .preview-stage{min-height:100vh;padding:0}
+    body.clean-mode .device{box-shadow:none}
+
+    @media(max-height:980px) and (min-width:761px){
+      .device{transform:scale(.88)}
+      .preview-stage{padding:0}
+    }
+
+    @media(max-height:820px) and (min-width:761px){
+      .device{transform:scale(.74)}
+    }
+
+    @media(max-width:1040px){
+      .review-app{grid-template-columns:250px minmax(0,1fr)}
+      .review-sidebar{padding-left:14px;padding-right:14px}
+      .device{transform:scale(.9)}
+    }
+
+    @media(max-width:760px){
+      html,body{background:var(--background)}
+      .review-app{display:block;min-height:100dvh;background:var(--background)}
+      .review-sidebar,.review-toolbar{display:none}
+      .review-main{min-height:100dvh}
+      .preview-stage{display:block;min-height:100dvh;padding:0;overflow:visible}
+      .device{
+        width:100%;
+        height:100dvh;
+        min-height:680px;
+        padding:0;
+        border:0;
+        border-radius:0;
+        background:transparent;
+        box-shadow:none;
+        transform:none!important;
+      }
+      .device::before,.device-island{display:none}
+      .device-screen{border-radius:0}
+      .mobile-status-bar{padding-top:max(8px,env(safe-area-inset-top));height:calc(44px + env(safe-area-inset-top))}
+      .home-indicator{display:none}
+      .screen{padding-bottom:calc(30px + env(safe-area-inset-bottom))}
+      .toast{bottom:calc(18px + env(safe-area-inset-bottom))}
+    }
+
+    @media(max-width:380px){
+      .mobile-brand-header{padding-left:16px;padding-right:16px}
+      .screen{padding-left:17px;padding-right:17px}
+      .auth-card{padding:19px}
+      .brand-wordmark{font-size:18px}
+      .status-card{padding-left:18px;padding-right:18px}
+      .component-grid-2{grid-template-columns:1fr}
+    }
+
+    @media(prefers-reduced-motion:reduce){
+      *,*::before,*::after{
+        scroll-behavior:auto!important;
+        animation-duration:.001ms!important;
+        animation-iteration-count:1!important;
+        transition-duration:.001ms!important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Sprite de íconos. El símbolo brand-route reproduce el logo usado en FE-001. -->
+  <svg class="sr-only" aria-hidden="true" width="0" height="0">
+    <defs>
+      <symbol id="brand-route" viewBox="0 0 24 24" fill="none">
+        <path d="M5 18.5V9.5M5 9.5l5 2.7 4.5-5.2 4.5 2.4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="5" cy="9" r="1.7" stroke="currentColor" stroke-width="2"/>
+        <circle cx="10" cy="12.2" r="1.7" stroke="currentColor" stroke-width="2"/>
+        <circle cx="14.5" cy="7" r="1.7" stroke="currentColor" stroke-width="2"/>
+        <circle cx="19" cy="9.4" r="1.7" stroke="currentColor" stroke-width="2"/>
+      </symbol>
+      <symbol id="icon-mail" viewBox="0 0 24 24" fill="none">
+        <rect x="3" y="5" width="18" height="14" rx="2.5" stroke="currentColor" stroke-width="1.8"/>
+        <path d="m4.5 7 7.5 6 7.5-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="icon-lock" viewBox="0 0 24 24" fill="none">
+        <rect x="5" y="10" width="14" height="10" rx="2.5" stroke="currentColor" stroke-width="1.8"/>
+        <path d="M8 10V7.5a4 4 0 0 1 8 0V10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-eye" viewBox="0 0 24 24" fill="none">
+        <path d="M2.8 12s3.5-6 9.2-6 9.2 6 9.2 6-3.5 6-9.2 6-9.2-6-9.2-6Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+        <circle cx="12" cy="12" r="2.6" stroke="currentColor" stroke-width="1.8"/>
+      </symbol>
+      <symbol id="icon-eye-off" viewBox="0 0 24 24" fill="none">
+        <path d="M4 4 20 20M10.2 6.25A9.8 9.8 0 0 1 12 6c5.7 0 9.2 6 9.2 6a13.8 13.8 0 0 1-2.1 2.75M14.6 14.75A3.7 3.7 0 0 1 9.25 9.4M6.2 7.55A14.2 14.2 0 0 0 2.8 12s3.5 6 9.2 6c1.05 0 2.02-.2 2.9-.53" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="icon-shield" viewBox="0 0 24 24" fill="none">
+        <path d="M12 3 5.5 5.7v5.4c0 4.4 2.6 7.9 6.5 9.9 3.9-2 6.5-5.5 6.5-9.9V5.7L12 3Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+        <path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="icon-info" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/>
+        <path d="M12 10.5V16M12 7.5h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-alert" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/>
+        <path d="M12 7.5V13M12 16.5h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-check" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/>
+        <path d="m8 12.2 2.5 2.5 5.5-6" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="icon-x" viewBox="0 0 24 24" fill="none">
+        <path d="m7 7 10 10M17 7 7 17" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-link-broken" viewBox="0 0 24 24" fill="none">
+        <path d="m9.4 14.6-1.7 1.7a3.5 3.5 0 1 1-5-5l3-3a3.5 3.5 0 0 1 4.95 0M14.6 9.4l1.7-1.7a3.5 3.5 0 1 1 5 5l-3 3a3.5 3.5 0 0 1-4.95 0M8.7 15.3l6.6-6.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="m4 3 2 2M18 19l2 2M20 3l-2 2M4 21l2-2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-copy" viewBox="0 0 24 24" fill="none">
+        <rect x="8" y="8" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.8"/>
+        <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-expand" viewBox="0 0 24 24" fill="none">
+        <path d="M8 3H3v5M16 3h5v5M21 16v5h-5M3 16v5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="icon-logout" viewBox="0 0 24 24" fill="none">
+        <path d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4M14 8l4 4-4 4M18 12H9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="icon-user" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.8"/>
+        <path d="M5 20a7 7 0 0 1 14 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-settings" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/>
+        <path d="M19 12a7.1 7.1 0 0 0-.1-1l2-1.5-2-3.4-2.4 1A8.6 8.6 0 0 0 14.7 6L14.4 3h-4.8l-.3 3a8.6 8.6 0 0 0-1.8 1.1l-2.4-1-2 3.4 2 1.5a7.1 7.1 0 0 0 0 2l-2 1.5 2 3.4 2.4-1A8.6 8.6 0 0 0 9.3 18l.3 3h4.8l.3-3a8.6 8.6 0 0 0 1.8-1.1l2.4 1 2-3.4-2-1.5a7.1 7.1 0 0 0 .1-1Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="icon-help" viewBox="0 0 24 24" fill="none">
+        <path d="M4 13v-2a8 8 0 0 1 16 0v2M4 13h3v6H5a1 1 0 0 1-1-1v-5ZM20 13h-3v6h2a1 1 0 0 0 1-1v-5ZM17 19c0 1-1 2-3 2h-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="icon-menu" viewBox="0 0 24 24" fill="none">
+        <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-bell" viewBox="0 0 24 24" fill="none">
+        <path d="M6 9a6 6 0 0 1 12 0c0 6 2.5 6 2.5 7.5H3.5C3.5 15 6 15 6 9ZM10 20h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+    </defs>
+  </svg>
+
+  <div class="review-app" id="reviewApp">
+    <aside class="review-sidebar" aria-label="Selector de pantallas del mockup">
+      <div class="review-brand">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><use href="#brand-route"/></svg>
+        </span>
+        <div class="review-brand-copy">
+          <strong>FollowUpBusiness</strong>
+          <span>Mobile auth handoff</span>
+        </div>
+      </div>
+
+      <div class="review-note">
+        Selecciona un estado para revisarlo. Cada variante también se puede abrir por URL con <code>?screen=...</code>.
+      </div>
+
+      <div class="review-group">
+        <h2 class="review-group-title">MOB-001 · Inicio de sesión</h2>
+        <nav class="review-nav">
+          <button class="review-state-button" data-screen-target="login" type="button">
+            <span class="state-dot"></span><span class="state-button-copy"><strong>Estado inicial</strong><span>Formulario listo</span></span>
+          </button>
+          <button class="review-state-button" data-screen-target="login-loading" type="button">
+            <span class="state-dot"></span><span class="state-button-copy"><strong>Cargando</strong><span>Doble envío bloqueado</span></span>
+          </button>
+          <button class="review-state-button" data-screen-target="login-error" type="button">
+            <span class="state-dot"></span><span class="state-button-copy"><strong>Error neutral</strong><span>Sin revelar información</span></span>
+          </button>
+        </nav>
+      </div>
+
+      <div class="review-group">
+        <h2 class="review-group-title">FE-002 · Recuperación</h2>
+        <nav class="review-nav">
+          <button class="review-state-button" data-screen-target="recover" type="button">
+            <span class="state-dot"></span><span class="state-button-copy"><strong>Solicitar enlace</strong><span>Correo corporativo</span></span>
+          </button>
+          <button class="review-state-button" data-screen-target="recover-loading" type="button">
+            <span class="state-dot"></span><span class="state-button-copy"><strong>Solicitud en curso</strong><span>Botón bloqueado</span></span>
+          </button>
+          <button class="review-state-button" data-screen-target="recover-error" type="button">
+            <span class="state-dot"></span><span class="state-button-copy"><strong>Error de solicitud</strong><span>Mensaje genérico</span></span>
+          </button>
+          <button class="review-state-button" data-screen-target="recover-confirmation" type="button">
+            <span class="state-dot"></span><span class="state-button-copy"><strong>Confirmación neutral</strong><span>No confirma la cuenta</span></span>
+          </button>
+        </nav>
+      </div>
+
+      <div class="review-group">
+        <h2 class="review-group-title">FE-002 · Restablecimiento</h2>
+        <nav class="review-nav">
+          <button class="review-state-button" data-screen-target="reset" type="button">
+            <span class="state-dot"></span><span class="state-button-copy"><strong>Nueva contraseña</strong><span>Validación completa</span></span>
+          </button>
+          <button class="review-state-button" data-screen-target="reset-error" type="button">
+            <span class="state-dot"></span><span class="state-button-copy"><strong>Validación fallida</strong><span>Reglas y coincidencia</span></span>
+          </button>
+          <button class="review-state-button" data-screen-target="reset-loading" type="button">
+            <span class="state-dot"></span><span class="state-button-copy"><strong>Actualizando</strong><span>Estado bloqueado</span></span>
+          </button>
+          <button class="review-state-button" data-screen-target="reset-success" type="button">
+            <span class="state-dot"></span><span class="state-button-copy"><strong>Actualización exitosa</strong><span>Enlace invalidado</span></span>
+          </button>
+          <button class="review-state-button" data-screen-target="token-expired" type="button">
+            <span class="state-dot"></span><span class="state-button-copy"><strong>Token vencido</strong><span>Solicitar otro enlace</span></span>
+          </button>
+        </nav>
+      </div>
+
+      <div class="review-group">
+        <h2 class="review-group-title">Sistema reutilizable</h2>
+        <nav class="review-nav">
+          <button class="review-state-button" data-screen-target="components" type="button">
+            <span class="state-dot"></span><span class="state-button-copy"><strong>Componentes</strong><span>Inputs, alertas y popups</span></span>
+          </button>
+        </nav>
+      </div>
+    </aside>
+
+    <main class="review-main">
+      <header class="review-toolbar">
+        <div class="toolbar-title">
+          <strong id="toolbarStateLabel">Estado inicial</strong>
+          <code id="toolbarStateUrl">?screen=login</code>
+        </div>
+        <div class="toolbar-actions">
+          <button class="toolbar-button" id="copyStateUrl" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-copy"/></svg>
+            Copiar URL
+          </button>
+          <button class="toolbar-button" id="openCleanPreview" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-expand"/></svg>
+            Vista limpia
+          </button>
+        </div>
+      </header>
+
+      <div class="preview-stage">
+        <div class="device" aria-label="Vista previa móvil 390 por 844 píxeles aproximadamente">
+          <div class="device-island" aria-hidden="true"></div>
+          <div class="device-screen">
+            <div class="mobile-app" id="mobileApp">
+              <div class="mobile-status-bar" aria-hidden="true">
+                <span>9:41</span>
+                <span class="mobile-status-icons">
+                  <span class="signal-bars"><span></span><span></span><span></span><span></span></span>
+                  <span class="wifi-icon"></span>
+                  <span class="battery-icon"></span>
+                </span>
+              </div>
+
+              <header class="mobile-brand-header">
+                <div class="mobile-brand-line">
+                  <span class="brand-mark" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><use href="#brand-route"/></svg>
+                  </span>
+                  <div class="brand-wordmark">FollowUp<span>Business</span></div>
+                </div>
+                <div class="brand-subtitle" id="brandSubtitle">Accede a tu jornada</div>
+              </header>
+
+              <main class="screen-host" id="screenHost">
+                <!-- LOGIN: INICIAL -->
+                <section class="screen" data-screen="login" aria-labelledby="loginTitle">
+                  <h1 class="sr-only" id="loginTitle">Iniciar sesión</h1>
+                  <form class="auth-card" id="loginForm" novalidate>
+                    <div class="field">
+                      <label class="field-label" for="loginEmail">Correo electrónico</label>
+                      <div class="input-shell">
+                        <svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-mail"/></svg>
+                        <input class="field-input" id="loginEmail" name="email" type="email" inputmode="email" autocomplete="username" placeholder="ejemplo@empresa.com" />
+                      </div>
+                    </div>
+
+                    <div class="field">
+                      <label class="field-label" for="loginPassword">Contraseña</label>
+                      <div class="input-shell">
+                        <svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-lock"/></svg>
+                        <input class="field-input" id="loginPassword" name="password" type="password" autocomplete="current-password" placeholder="Ingresa tu contraseña" />
+                        <button class="icon-button" data-toggle-password="loginPassword" type="button" aria-label="Mostrar contraseña">
+                          <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-eye"/></svg>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div class="form-link-row">
+                      <button class="text-button" data-screen-target="recover" type="button">¿Olvidaste tu contraseña?</button>
+                    </div>
+
+                    <label class="check-row">
+                      <input type="checkbox" />
+                      <span>Recordarme en este dispositivo</span>
+                    </label>
+
+                    <button class="button button-primary" type="submit">Iniciar sesión</button>
+
+                    <div class="secure-note">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-shield"/></svg>
+                      <span>Tus datos se almacenan de forma segura</span>
+                    </div>
+                  </form>
+
+                  <p class="support-note">Si tienes problemas para acceder, contacta a <button class="text-button" type="button" data-toast="Abriendo canal de soporte...">soporte</button>.</p>
+                </section>
+
+                <!-- LOGIN: LOADING -->
+                <section class="screen" data-screen="login-loading" aria-labelledby="loginLoadingTitle">
+                  <h1 class="sr-only" id="loginLoadingTitle">Iniciando sesión</h1>
+                  <form class="auth-card" aria-busy="true">
+                    <div class="field">
+                      <label class="field-label" for="loginLoadingEmail">Correo electrónico</label>
+                      <div class="input-shell">
+                        <svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-mail"/></svg>
+                        <input class="field-input" id="loginLoadingEmail" type="email" value="vendedor@empresa.com" disabled />
+                      </div>
+                    </div>
+                    <div class="field">
+                      <label class="field-label" for="loginLoadingPassword">Contraseña</label>
+                      <div class="input-shell">
+                        <svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-lock"/></svg>
+                        <input class="field-input" id="loginLoadingPassword" type="password" value="ClaveSegura#1" disabled />
+                        <button class="icon-button" type="button" disabled aria-label="Mostrar contraseña no disponible durante la carga">
+                          <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-eye"/></svg>
+                        </button>
+                      </div>
+                    </div>
+                    <div class="form-link-row"><span class="inline-link" aria-disabled="true">¿Olvidaste tu contraseña?</span></div>
+                    <label class="check-row"><input type="checkbox" checked disabled /><span>Recordarme en este dispositivo</span></label>
+                    <button class="button button-primary" type="button" disabled>
+                      <span class="spinner" aria-hidden="true"></span>
+                      Iniciando sesión...
+                    </button>
+                    <div class="progress-track" aria-hidden="true"><span></span></div>
+                    <p class="progress-caption">Estableciendo conexión segura...</p>
+                    <div class="secure-note">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-shield"/></svg>
+                      <span>Tus datos se almacenan de forma segura</span>
+                    </div>
+                  </form>
+                  <p class="support-note">La acción permanece bloqueada mientras validamos tus credenciales.</p>
+                </section>
+
+                <!-- LOGIN: ERROR -->
+                <section class="screen" data-screen="login-error" aria-labelledby="loginErrorTitle">
+                  <h1 class="sr-only" id="loginErrorTitle">Error al iniciar sesión</h1>
+                  <div class="alert alert-error" role="alert">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-alert"/></svg>
+                    <span>No se pudo iniciar sesión. Verifica tus datos e inténtalo nuevamente.</span>
+                  </div>
+                  <form class="auth-card" id="loginErrorForm" novalidate>
+                    <div class="field">
+                      <label class="field-label" for="loginErrorEmail">Correo electrónico</label>
+                      <div class="input-shell">
+                        <svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-mail"/></svg>
+                        <input class="field-input" id="loginErrorEmail" type="email" value="vendedor@empresa.com" autocomplete="username" />
+                      </div>
+                    </div>
+                    <div class="field">
+                      <label class="field-label" for="loginErrorPassword">Contraseña</label>
+                      <div class="input-shell">
+                        <svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-lock"/></svg>
+                        <input class="field-input" id="loginErrorPassword" type="password" autocomplete="current-password" placeholder="Ingresa tu contraseña" />
+                        <button class="icon-button" data-toggle-password="loginErrorPassword" type="button" aria-label="Mostrar contraseña">
+                          <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-eye"/></svg>
+                        </button>
+                      </div>
+                    </div>
+                    <div class="form-link-row"><button class="text-button" data-screen-target="recover" type="button">¿Olvidaste tu contraseña?</button></div>
+                    <label class="check-row"><input type="checkbox" /><span>Recordarme en este dispositivo</span></label>
+                    <button class="button button-primary" type="submit">Iniciar sesión</button>
+                    <div class="secure-note">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-shield"/></svg>
+                      <span>El mensaje no confirma qué dato fue incorrecto</span>
+                    </div>
+                  </form>
+                  <p class="support-note">Si tienes problemas para acceder, contacta a <button class="text-button" type="button" data-toast="Abriendo canal de soporte...">soporte</button>.</p>
+                </section>
+
+                <!-- RECUPERAR: FORMULARIO -->
+                <section class="screen" data-screen="recover" aria-labelledby="recoverTitle">
+                  <div class="screen-intro">
+                    <div class="minimal-illustration" aria-hidden="true">
+                      <svg viewBox="0 0 24 24"><use href="#icon-mail"/></svg>
+                    </div>
+                    <h1 class="screen-heading" id="recoverTitle">Recuperar contraseña</h1>
+                    <p class="screen-description">Ingresa tu correo corporativo para enviarte un enlace de recuperación.</p>
+                  </div>
+
+                  <form class="auth-card" id="recoverForm" novalidate>
+                    <div class="field">
+                      <label class="field-label" for="recoverEmail">Correo electrónico</label>
+                      <div class="input-shell">
+                        <svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-mail"/></svg>
+                        <input class="field-input" id="recoverEmail" type="email" inputmode="email" autocomplete="email" placeholder="ejemplo@empresa.com" required />
+                      </div>
+                      <p class="field-helper" id="recoverEmailHelper">Usa el correo asociado a tu acceso corporativo.</p>
+                    </div>
+                    <button class="button button-primary" type="submit">Enviar enlace</button>
+                    <button class="button button-secondary" data-screen-target="login" type="button">Volver al inicio</button>
+                  </form>
+
+                  <div class="neutral-note">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-shield"/></svg>
+                    <span>Si el correo está registrado, recibirás un mensaje con instrucciones. Nunca confirmamos la existencia de la cuenta.</span>
+                  </div>
+                </section>
+
+                <!-- RECUPERAR: LOADING -->
+                <section class="screen" data-screen="recover-loading" aria-labelledby="recoverLoadingTitle">
+                  <div class="screen-intro">
+                    <div class="minimal-illustration" aria-hidden="true"><span class="spinner is-teal large-spinner"></span></div>
+                    <h1 class="screen-heading" id="recoverLoadingTitle">Procesando solicitud</h1>
+                    <p class="screen-description">Estamos preparando la respuesta de forma segura.</p>
+                  </div>
+                  <form class="auth-card" aria-busy="true">
+                    <div class="field">
+                      <label class="field-label" for="recoverLoadingEmail">Correo electrónico</label>
+                      <div class="input-shell">
+                        <svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-mail"/></svg>
+                        <input class="field-input" id="recoverLoadingEmail" type="email" value="vendedor@empresa.com" disabled />
+                      </div>
+                    </div>
+                    <button class="button button-primary" type="button" disabled><span class="spinner"></span>Enviando enlace...</button>
+                    <div class="progress-track" aria-hidden="true"><span></span></div>
+                    <p class="progress-caption">No cierres esta pantalla.</p>
+                  </form>
+                  <div class="neutral-note">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-shield"/></svg>
+                    <span>El doble envío permanece bloqueado hasta terminar la solicitud vigente.</span>
+                  </div>
+                </section>
+
+                <!-- RECUPERAR: ERROR -->
+                <section class="screen" data-screen="recover-error" aria-labelledby="recoverErrorTitle">
+                  <div class="screen-intro">
+                    <div class="minimal-illustration" aria-hidden="true">
+                      <svg viewBox="0 0 24 24"><use href="#icon-mail"/></svg>
+                    </div>
+                    <h1 class="screen-heading" id="recoverErrorTitle">Recuperar contraseña</h1>
+                    <p class="screen-description">Ingresa tu correo corporativo para enviarte un enlace de recuperación.</p>
+                  </div>
+                  <div class="alert alert-error" role="alert">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-alert"/></svg>
+                    <span>No pudimos procesar la solicitud. Revisa tu conexión e inténtalo nuevamente.</span>
+                  </div>
+                  <form class="auth-card" id="recoverErrorForm" novalidate>
+                    <div class="field">
+                      <label class="field-label" for="recoverErrorEmail">Correo electrónico</label>
+                      <div class="input-shell">
+                        <svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-mail"/></svg>
+                        <input class="field-input" id="recoverErrorEmail" type="email" value="vendedor@empresa.com" />
+                      </div>
+                    </div>
+                    <button class="button button-primary" type="submit">Reintentar</button>
+                    <button class="button button-secondary" data-screen-target="login" type="button">Volver al inicio</button>
+                  </form>
+                  <div class="neutral-note">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-shield"/></svg>
+                    <span>La respuesta sigue siendo neutral y no revela si el correo pertenece a una cuenta.</span>
+                  </div>
+                </section>
+
+                <!-- RECUPERAR: CONFIRMACIÓN NEUTRAL -->
+                <section class="screen" data-screen="recover-confirmation" aria-labelledby="recoverConfirmationTitle">
+                  <div class="status-card">
+                    <div class="status-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24"><use href="#icon-mail"/></svg>
+                    </div>
+                    <h1 class="screen-heading" id="recoverConfirmationTitle">Revisa tu correo</h1>
+                    <p class="status-copy">Si el correo está registrado, te enviaremos un enlace para restablecer tu contraseña.</p>
+                    <p class="status-support">Por seguridad, no confirmamos si el correo existe en la plataforma.</p>
+                    <button class="button button-primary" data-screen-target="login" type="button">Volver al inicio</button>
+                    <button class="text-button" type="button" data-toast="Solicitud reenviada. La respuesta continúa siendo neutral.">Reenviar enlace</button>
+                  </div>
+                </section>
+
+                <!-- RESET: FORMULARIO VÁLIDO / INTERACTIVO -->
+                <section class="screen" data-screen="reset" aria-labelledby="resetTitle">
+                  <div class="component-library-title">
+                    <h1 class="screen-heading" id="resetTitle">Restablecer contraseña</h1>
+                    <p class="screen-description">Crea una nueva contraseña segura para tu cuenta.</p>
+                  </div>
+                  <form class="auth-card" id="resetForm" novalidate>
+                    <div class="field">
+                      <label class="field-label" for="newPassword">Nueva contraseña</label>
+                      <div class="input-shell" id="newPasswordShell">
+                        <svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-lock"/></svg>
+                        <input class="field-input" id="newPassword" type="password" autocomplete="new-password" placeholder="Ingresa tu nueva contraseña" />
+                        <button class="icon-button" data-toggle-password="newPassword" type="button" aria-label="Mostrar contraseña">
+                          <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-eye"/></svg>
+                        </button>
+                      </div>
+                      <div class="strength-row"><span>Fortaleza</span><strong id="strengthLabel">Sin evaluar</strong></div>
+                      <div class="strength-meter" id="strengthMeter" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+                    </div>
+
+                    <ul class="requirement-list" aria-label="Requisitos de contraseña">
+                      <li class="requirement-item" data-rule="length"><svg viewBox="0 0 24 24"><use href="#icon-check"/></svg><span>Mínimo 8 caracteres</span></li>
+                      <li class="requirement-item" data-rule="case"><svg viewBox="0 0 24 24"><use href="#icon-check"/></svg><span>Una mayúscula y una minúscula</span></li>
+                      <li class="requirement-item" data-rule="number"><svg viewBox="0 0 24 24"><use href="#icon-check"/></svg><span>Al menos un número</span></li>
+                      <li class="requirement-item" data-rule="special"><svg viewBox="0 0 24 24"><use href="#icon-check"/></svg><span>Un carácter especial</span></li>
+                    </ul>
+
+                    <div class="field">
+                      <label class="field-label" for="confirmPassword">Confirmar contraseña</label>
+                      <div class="input-shell" id="confirmPasswordShell">
+                        <svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-lock"/></svg>
+                        <input class="field-input" id="confirmPassword" type="password" autocomplete="new-password" placeholder="Confirma tu nueva contraseña" />
+                        <button class="icon-button" data-toggle-password="confirmPassword" type="button" aria-label="Mostrar contraseña">
+                          <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-eye"/></svg>
+                        </button>
+                      </div>
+                      <p class="field-helper" id="passwordMatchHelper">Ambas contraseñas deben coincidir.</p>
+                    </div>
+
+                    <button class="button button-primary" id="resetSubmit" type="submit" disabled>Actualizar contraseña</button>
+                  </form>
+                </section>
+
+                <!-- RESET: ERROR -->
+                <section class="screen" data-screen="reset-error" aria-labelledby="resetErrorTitle">
+                  <div class="component-library-title">
+                    <h1 class="screen-heading" id="resetErrorTitle">Restablecer contraseña</h1>
+                    <p class="screen-description">Corrige los datos marcados antes de continuar.</p>
+                  </div>
+                  <div class="alert alert-error" role="alert">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-alert"/></svg>
+                    <span>La nueva contraseña todavía no cumple todos los requisitos.</span>
+                  </div>
+                  <form class="auth-card">
+                    <div class="field">
+                      <label class="field-label" for="resetErrorNew">Nueva contraseña</label>
+                      <div class="input-shell is-error">
+                        <svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-lock"/></svg>
+                        <input class="field-input" id="resetErrorNew" type="password" value="clave123" />
+                        <button class="icon-button" data-toggle-password="resetErrorNew" type="button" aria-label="Mostrar contraseña"><svg viewBox="0 0 24 24"><use href="#icon-eye"/></svg></button>
+                      </div>
+                      <p class="field-helper is-error"><svg viewBox="0 0 24 24"><use href="#icon-alert"/></svg>Agrega una mayúscula y un carácter especial.</p>
+                    </div>
+                    <ul class="requirement-list">
+                      <li class="requirement-item is-valid"><svg viewBox="0 0 24 24"><use href="#icon-check"/></svg>Mínimo 8 caracteres</li>
+                      <li class="requirement-item"><svg viewBox="0 0 24 24"><use href="#icon-check"/></svg>Una mayúscula y una minúscula</li>
+                      <li class="requirement-item is-valid"><svg viewBox="0 0 24 24"><use href="#icon-check"/></svg>Al menos un número</li>
+                      <li class="requirement-item"><svg viewBox="0 0 24 24"><use href="#icon-check"/></svg>Un carácter especial</li>
+                    </ul>
+                    <div class="field">
+                      <label class="field-label" for="resetErrorConfirm">Confirmar contraseña</label>
+                      <div class="input-shell is-error">
+                        <svg class="field-icon" viewBox="0 0 24 24"><use href="#icon-lock"/></svg>
+                        <input class="field-input" id="resetErrorConfirm" type="password" value="clave124" />
+                        <button class="icon-button" data-toggle-password="resetErrorConfirm" type="button" aria-label="Mostrar contraseña"><svg viewBox="0 0 24 24"><use href="#icon-eye"/></svg></button>
+                      </div>
+                      <p class="field-helper is-error"><svg viewBox="0 0 24 24"><use href="#icon-alert"/></svg>Las contraseñas no coinciden.</p>
+                    </div>
+                    <button class="button button-primary" type="button" disabled>Actualizar contraseña</button>
+                  </form>
+                </section>
+
+                <!-- RESET: LOADING -->
+                <section class="screen" data-screen="reset-loading" aria-labelledby="resetLoadingTitle">
+                  <div class="component-library-title">
+                    <h1 class="screen-heading" id="resetLoadingTitle">Restablecer contraseña</h1>
+                    <p class="screen-description">Estamos actualizando tus credenciales.</p>
+                  </div>
+                  <form class="auth-card" aria-busy="true">
+                    <div class="field">
+                      <label class="field-label" for="resetLoadingNew">Nueva contraseña</label>
+                      <div class="input-shell">
+                        <svg class="field-icon" viewBox="0 0 24 24"><use href="#icon-lock"/></svg>
+                        <input class="field-input" id="resetLoadingNew" type="password" value="ClaveSegura#1" disabled />
+                        <button class="icon-button" type="button" disabled><svg viewBox="0 0 24 24"><use href="#icon-eye"/></svg></button>
+                      </div>
+                    </div>
+                    <div class="field">
+                      <label class="field-label" for="resetLoadingConfirm">Confirmar contraseña</label>
+                      <div class="input-shell">
+                        <svg class="field-icon" viewBox="0 0 24 24"><use href="#icon-lock"/></svg>
+                        <input class="field-input" id="resetLoadingConfirm" type="password" value="ClaveSegura#1" disabled />
+                        <button class="icon-button" type="button" disabled><svg viewBox="0 0 24 24"><use href="#icon-eye"/></svg></button>
+                      </div>
+                    </div>
+                    <button class="button button-primary" type="button" disabled><span class="spinner"></span>Actualizando contraseña...</button>
+                    <div class="progress-track" aria-hidden="true"><span></span></div>
+                    <p class="progress-caption">Este enlace quedará invalidado al finalizar.</p>
+                  </form>
+                </section>
+
+                <!-- RESET: ÉXITO -->
+                <section class="screen" data-screen="reset-success" aria-labelledby="resetSuccessTitle">
+                  <div class="status-card">
+                    <div class="status-icon is-success" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#icon-check"/></svg></div>
+                    <h1 class="screen-heading" id="resetSuccessTitle">Contraseña actualizada</h1>
+                    <p class="status-copy">Tu contraseña se actualizó correctamente. Ya puedes volver a iniciar sesión.</p>
+                    <p class="status-support">Por seguridad, el enlace utilizado ya no podrá volver a abrirse.</p>
+                    <button class="button button-primary" data-screen-target="login" type="button">Ir a iniciar sesión</button>
+                  </div>
+                </section>
+
+                <!-- TOKEN VENCIDO -->
+                <section class="screen" data-screen="token-expired" aria-labelledby="tokenExpiredTitle">
+                  <div class="status-card">
+                    <div class="status-icon is-warning" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#icon-link-broken"/></svg></div>
+                    <h1 class="screen-heading" id="tokenExpiredTitle">Enlace no válido</h1>
+                    <p class="status-copy">El enlace de recuperación ya venció o no es válido. Solicita uno nuevo para continuar.</p>
+                    <button class="button button-primary" data-screen-target="recover" type="button">Solicitar nuevo enlace</button>
+                    <button class="text-button" data-screen-target="login" type="button">Volver al inicio</button>
+                  </div>
+                </section>
+
+                <!-- BIBLIOTECA DE COMPONENTES -->
+                <section class="screen" data-screen="components" aria-labelledby="componentsTitle">
+                  <div class="component-library-title">
+                    <h1 class="screen-heading" id="componentsTitle">Componentes reutilizables</h1>
+                    <p class="screen-description">Referencia compacta para crear widgets compartidos en Flutter.</p>
+                  </div>
+
+                  <section class="component-section" aria-labelledby="buttonsComponentTitle">
+                    <h2 class="component-title" id="buttonsComponentTitle">Botones <span>4 estados</span></h2>
+                    <div class="component-stack">
+                      <button class="button button-primary" type="button" data-toast="Acción primaria ejecutada">Botón primario</button>
+                      <button class="button button-secondary" type="button">Botón secundario</button>
+                      <button class="button button-primary" type="button" disabled>Botón deshabilitado</button>
+                      <button class="button button-primary" type="button" disabled><span class="spinner"></span>Cargando...</button>
+                    </div>
+                  </section>
+
+                  <section class="component-section" aria-labelledby="inputsComponentTitle">
+                    <h2 class="component-title" id="inputsComponentTitle">Inputs <span>default · focus · error</span></h2>
+                    <div class="component-stack">
+                      <div class="field">
+                        <label class="field-label" for="componentEmail">Email</label>
+                        <div class="input-shell"><svg class="field-icon" viewBox="0 0 24 24"><use href="#icon-mail"/></svg><input class="field-input" id="componentEmail" placeholder="ejemplo@empresa.com" /></div>
+                      </div>
+                      <div class="field">
+                        <label class="field-label" for="componentPassword">Contraseña</label>
+                        <div class="input-shell"><svg class="field-icon" viewBox="0 0 24 24"><use href="#icon-lock"/></svg><input class="field-input" id="componentPassword" type="password" placeholder="Ingresa tu contraseña" /><button class="icon-button" data-toggle-password="componentPassword" type="button"><svg viewBox="0 0 24 24"><use href="#icon-eye"/></svg></button></div>
+                      </div>
+                      <div class="field">
+                        <label class="field-label" for="componentErrorInput">Error</label>
+                        <div class="input-shell is-error"><svg class="field-icon" viewBox="0 0 24 24"><use href="#icon-mail"/></svg><input class="field-input" id="componentErrorInput" value="correo@empresa" aria-invalid="true" /></div>
+                        <p class="field-helper is-error"><svg viewBox="0 0 24 24"><use href="#icon-alert"/></svg>Ingresa un correo electrónico válido.</p>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section class="component-section" aria-labelledby="alertsComponentTitle">
+                    <h2 class="component-title" id="alertsComponentTitle">Alertas / banners <span>feedback persistente</span></h2>
+                    <div class="component-stack">
+                      <div class="alert alert-success"><svg viewBox="0 0 24 24"><use href="#icon-check"/></svg><span>Operación realizada correctamente.</span></div>
+                      <div class="alert alert-info"><svg viewBox="0 0 24 24"><use href="#icon-info"/></svg><span>Esta es una información importante.</span></div>
+                      <div class="alert alert-error"><svg viewBox="0 0 24 24"><use href="#icon-alert"/></svg><span>Ocurrió un error. Inténtalo nuevamente.</span></div>
+                    </div>
+                  </section>
+
+                  <section class="component-section" aria-labelledby="overlaysComponentTitle">
+                    <h2 class="component-title" id="overlaysComponentTitle">Popups y feedback <span>modal · sheet · toast</span></h2>
+                    <div class="component-stack">
+                      <button class="button button-secondary" id="openModalDemo" type="button">Abrir diálogo de confirmación</button>
+                      <button class="button button-secondary" id="openSheetDemo" type="button">Abrir bottom sheet</button>
+                      <button class="button button-secondary" type="button" data-toast="Sesión iniciada correctamente">Mostrar toast / snackbar</button>
+                    </div>
+                  </section>
+
+                  <section class="component-section" aria-labelledby="loadingComponentTitle">
+                    <h2 class="component-title" id="loadingComponentTitle">Estados de carga <span>scroll incluido</span></h2>
+                    <div class="component-grid-2">
+                      <div class="loader-demo"><div class="loader-demo-inner"><span class="spinner is-teal large-spinner"></span><span>Cargando...</span></div></div>
+                      <div class="skeleton-card">
+                        <div class="skeleton-head"><span class="skeleton-circle"></span><span class="skeleton-lines"><span class="skeleton-line"></span><span class="skeleton-line short"></span></span></div>
+                        <div class="skeleton-block"></div>
+                      </div>
+                    </div>
+                    <div class="loading-list" aria-label="Lista con scroll cargando" style="margin-top:9px">
+                      <div class="loading-row"><span class="skeleton-circle"></span><span class="skeleton-lines"><span class="skeleton-line"></span><span class="skeleton-line short"></span></span></div>
+                      <div class="loading-row"><span class="skeleton-circle"></span><span class="skeleton-lines"><span class="skeleton-line"></span><span class="skeleton-line short"></span></span></div>
+                      <div class="loading-row"><span class="skeleton-circle"></span><span class="skeleton-lines"><span class="skeleton-line"></span><span class="skeleton-line short"></span></span></div>
+                      <div class="loading-row"><span class="skeleton-circle"></span><span class="skeleton-lines"><span class="skeleton-line"></span><span class="skeleton-line short"></span></span></div>
+                      <div class="list-loader"><span class="spinner is-teal"></span></div>
+                    </div>
+                  </section>
+
+                  <section class="component-section" aria-labelledby="chipsComponentTitle">
+                    <h2 class="component-title" id="chipsComponentTitle">Chips de estado <span>semánticos</span></h2>
+                    <div class="chip-wrap">
+                      <span class="chip chip-new">Nuevo</span>
+                      <span class="chip chip-progress">En progreso</span>
+                      <span class="chip chip-pending">Pendiente</span>
+                      <span class="chip chip-complete">Completado</span>
+                      <span class="chip chip-cancelled">Cancelado</span>
+                    </div>
+                  </section>
+
+                  <section class="component-section" aria-labelledby="appBarComponentTitle">
+                    <h2 class="component-title" id="appBarComponentTitle">App bar <span>ejemplo compacto</span></h2>
+                    <div class="mini-app-bar">
+                      <svg viewBox="0 0 24 24"><use href="#icon-menu"/></svg>
+                      <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#brand-route"/></svg></span>
+                      <strong>FollowUpBusiness</strong>
+                      <svg viewBox="0 0 24 24"><use href="#icon-bell"/></svg>
+                      <span class="avatar">JM</span>
+                    </div>
+                  </section>
+                </section>
+              </main>
+
+              <!-- MODAL REUTILIZABLE -->
+              <div class="overlay" id="modalOverlay" role="presentation">
+                <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalDescription">
+                  <div class="dialog-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#icon-logout"/></svg></div>
+                  <h3 id="modalTitle">¿Cerrar sesión?</h3>
+                  <p id="modalDescription">¿Estás seguro de que deseas cerrar tu sesión en FollowUpBusiness?</p>
+                  <div class="dialog-actions">
+                    <button class="button button-secondary" id="cancelModal" type="button">Cancelar</button>
+                    <button class="button button-primary" id="confirmModal" type="button">Cerrar sesión</button>
+                  </div>
+                </section>
+              </div>
+
+              <!-- BOTTOM SHEET REUTILIZABLE -->
+              <div class="overlay sheet-overlay" id="sheetOverlay" role="presentation">
+                <section class="bottom-sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+                  <div class="sheet-handle" aria-hidden="true"></div>
+                  <h3 id="sheetTitle">Más opciones</h3>
+                  <p>Componente reutilizable para acciones contextuales.</p>
+                  <button class="sheet-option" type="button"><svg viewBox="0 0 24 24"><use href="#icon-user"/></svg>Editar perfil</button>
+                  <button class="sheet-option" type="button"><svg viewBox="0 0 24 24"><use href="#icon-settings"/></svg>Configuración</button>
+                  <button class="sheet-option" type="button"><svg viewBox="0 0 24 24"><use href="#icon-help"/></svg>Ayuda y soporte</button>
+                  <button class="sheet-option is-danger" type="button"><svg viewBox="0 0 24 24"><use href="#icon-logout"/></svg>Cerrar sesión</button>
+                </section>
+              </div>
+
+              <!-- TOAST / SNACKBAR REUTILIZABLE -->
+              <div class="toast" id="toast" role="status" aria-live="polite">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-check"/></svg>
+                <span id="toastMessage">Sesión iniciada correctamente</span>
+                <button id="closeToast" type="button">CERRAR</button>
+              </div>
+            </div>
+          </div>
+          <div class="home-indicator" aria-hidden="true"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const screenMeta = {
+        'login': { label: 'Estado inicial', subtitle: 'Accede a tu jornada' },
+        'login-loading': { label: 'Inicio de sesión · Cargando', subtitle: 'Accede a tu jornada' },
+        'login-error': { label: 'Inicio de sesión · Error neutral', subtitle: 'Accede a tu jornada' },
+        'recover': { label: 'Recuperar contraseña', subtitle: 'Acceso seguro' },
+        'recover-loading': { label: 'Recuperación · Cargando', subtitle: 'Acceso seguro' },
+        'recover-error': { label: 'Recuperación · Error', subtitle: 'Acceso seguro' },
+        'recover-confirmation': { label: 'Confirmación neutral', subtitle: 'Acceso seguro' },
+        'reset': { label: 'Restablecer contraseña', subtitle: 'Crea una contraseña segura' },
+        'reset-error': { label: 'Restablecimiento · Validación', subtitle: 'Crea una contraseña segura' },
+        'reset-loading': { label: 'Restablecimiento · Cargando', subtitle: 'Crea una contraseña segura' },
+        'reset-success': { label: 'Contraseña actualizada', subtitle: 'Acceso seguro' },
+        'token-expired': { label: 'Token vencido o inválido', subtitle: 'Acceso seguro' },
+        'components': { label: 'Biblioteca de componentes', subtitle: 'Sistema visual mobile' }
+      };
+
+      const defaultScreen = 'login';
+      const screens = [...document.querySelectorAll('[data-screen]')];
+      const stateButtons = [...document.querySelectorAll('[data-screen-target]')];
+      const brandSubtitle = document.getElementById('brandSubtitle');
+      const toolbarStateLabel = document.getElementById('toolbarStateLabel');
+      const toolbarStateUrl = document.getElementById('toolbarStateUrl');
+      const params = new URLSearchParams(window.location.search);
+      let currentScreen = screenMeta[params.get('screen')] ? params.get('screen') : defaultScreen;
+      let pendingTimer = null;
+      let toastTimer = null;
+
+      if (params.get('clean') === '1') document.body.classList.add('clean-mode');
+
+      function buildStateUrl(screenName, clean = document.body.classList.contains('clean-mode')) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('screen', screenName);
+        if (clean) url.searchParams.set('clean', '1');
+        else url.searchParams.delete('clean');
+        return url;
+      }
+
+      function setScreen(screenName, { updateUrl = true, focus = false } = {}) {
+        if (!screenMeta[screenName]) screenName = defaultScreen;
+        currentScreen = screenName;
+        clearTimeout(pendingTimer);
+        closeOverlays();
+
+        screens.forEach(screen => {
+          const active = screen.dataset.screen === screenName;
+          screen.classList.toggle('is-active', active);
+          screen.setAttribute('aria-hidden', active ? 'false' : 'true');
+          if (active) screen.scrollTop = 0;
+        });
+
+        stateButtons.forEach(button => {
+          const active = button.dataset.screenTarget === screenName;
+          button.classList.toggle('is-active', active);
+          if (active && button.classList.contains('review-state-button')) button.setAttribute('aria-current', 'page');
+          else button.removeAttribute('aria-current');
+        });
+
+        const meta = screenMeta[screenName];
+        brandSubtitle.textContent = meta.subtitle;
+        toolbarStateLabel.textContent = meta.label;
+        toolbarStateUrl.textContent = `?screen=${screenName}`;
+        document.title = `${meta.label} — FollowUpBusiness mobile`;
+
+        if (updateUrl) {
+          const nextUrl = buildStateUrl(screenName);
+          history.replaceState({ screen: screenName }, '', nextUrl);
+        }
+
+        if (focus) {
+          const activeScreen = document.querySelector(`[data-screen="${CSS.escape(screenName)}"]`);
+          const focusTarget = activeScreen?.querySelector('input:not(:disabled),button:not(:disabled)');
+          focusTarget?.focus({ preventScroll: true });
+        }
+      }
+
+      function togglePassword(button) {
+        const input = document.getElementById(button.dataset.togglePassword);
+        if (!input) return;
+        const show = input.type === 'password';
+        input.type = show ? 'text' : 'password';
+        button.setAttribute('aria-label', show ? 'Ocultar contraseña' : 'Mostrar contraseña');
+        button.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><use href="#${show ? 'icon-eye-off' : 'icon-eye'}"></use></svg>`;
+      }
+
+      function showToast(message) {
+        const toast = document.getElementById('toast');
+        document.getElementById('toastMessage').textContent = message;
+        toast.classList.add('is-visible');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove('is-visible'), 3200);
+      }
+
+      function closeOverlays() {
+        document.getElementById('modalOverlay').classList.remove('is-open');
+        document.getElementById('sheetOverlay').classList.remove('is-open');
+      }
+
+      function openOverlay(id) {
+        closeOverlays();
+        const overlay = document.getElementById(id);
+        overlay.classList.add('is-open');
+        const focusTarget = overlay.querySelector('button');
+        focusTarget?.focus({ preventScroll: true });
+      }
+
+      function validateEmail(input, helper) {
+        const shell = input.closest('.input-shell');
+        const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value.trim());
+        shell.classList.toggle('is-error', !valid);
+        input.setAttribute('aria-invalid', valid ? 'false' : 'true');
+        if (helper) {
+          helper.classList.toggle('is-error', !valid);
+          helper.textContent = valid ? 'Usa el correo asociado a tu acceso corporativo.' : 'Ingresa un correo electrónico válido.';
+        }
+        return valid;
+      }
+
+      function simulateTransition(loadingScreen, finalScreen, delay = 1150) {
+        setScreen(loadingScreen);
+        pendingTimer = setTimeout(() => setScreen(finalScreen), delay);
+      }
+
+      // Navegación por todos los botones data-screen-target.
+      document.addEventListener('click', event => {
+        const stateButton = event.target.closest('[data-screen-target]');
+        if (stateButton) {
+          event.preventDefault();
+          setScreen(stateButton.dataset.screenTarget);
+          return;
+        }
+
+        const passwordButton = event.target.closest('[data-toggle-password]');
+        if (passwordButton) {
+          togglePassword(passwordButton);
+          return;
+        }
+
+        const toastTrigger = event.target.closest('[data-toast]');
+        if (toastTrigger) {
+          showToast(toastTrigger.dataset.toast);
+        }
+      });
+
+      // Formularios de login.
+      document.getElementById('loginForm').addEventListener('submit', event => {
+        event.preventDefault();
+        const email = document.getElementById('loginEmail');
+        const password = document.getElementById('loginPassword');
+        if (!email.value.trim() || !password.value) {
+          showToast('Completa el correo y la contraseña.');
+          return;
+        }
+        simulateTransition('login-loading', 'login-error', 1250);
+      });
+
+      document.getElementById('loginErrorForm').addEventListener('submit', event => {
+        event.preventDefault();
+        simulateTransition('login-loading', 'login-error', 1200);
+      });
+
+      // Formularios de recuperación.
+      const recoverEmail = document.getElementById('recoverEmail');
+      const recoverHelper = document.getElementById('recoverEmailHelper');
+      recoverEmail.addEventListener('blur', () => {
+        if (recoverEmail.value.trim()) validateEmail(recoverEmail, recoverHelper);
+      });
+
+      document.getElementById('recoverForm').addEventListener('submit', event => {
+        event.preventDefault();
+        if (!validateEmail(recoverEmail, recoverHelper)) {
+          recoverEmail.focus();
+          return;
+        }
+        document.getElementById('recoverLoadingEmail').value = recoverEmail.value.trim();
+        simulateTransition('recover-loading', 'recover-confirmation', 1250);
+      });
+
+      document.getElementById('recoverErrorForm').addEventListener('submit', event => {
+        event.preventDefault();
+        simulateTransition('recover-loading', 'recover-confirmation', 1250);
+      });
+
+      // Validación de nueva contraseña.
+      const newPassword = document.getElementById('newPassword');
+      const confirmPassword = document.getElementById('confirmPassword');
+      const requirementItems = [...document.querySelectorAll('#resetForm [data-rule]')];
+      const strengthBars = [...document.querySelectorAll('#strengthMeter span')];
+      const strengthLabel = document.getElementById('strengthLabel');
+      const matchHelper = document.getElementById('passwordMatchHelper');
+      const confirmShell = document.getElementById('confirmPasswordShell');
+      const resetSubmit = document.getElementById('resetSubmit');
+
+      function evaluatePassword() {
+        const value = newPassword.value;
+        const rules = {
+          length: value.length >= 8,
+          case: /[a-z]/.test(value) && /[A-Z]/.test(value),
+          number: /\d/.test(value),
+          special: /[^A-Za-z0-9]/.test(value)
+        };
+        const score = Object.values(rules).filter(Boolean).length;
+        requirementItems.forEach(item => item.classList.toggle('is-valid', Boolean(rules[item.dataset.rule])));
+        strengthBars.forEach((bar, index) => bar.classList.toggle('is-on', index < score));
+
+        const labels = ['Sin evaluar', 'Débil', 'Regular', 'Buena', 'Fuerte'];
+        strengthLabel.textContent = value ? labels[score] : labels[0];
+        strengthLabel.style.color = score >= 4 ? 'var(--success)' : score >= 2 ? 'var(--warning)' : 'var(--danger)';
+
+        const hasConfirmation = confirmPassword.value.length > 0;
+        const matches = hasConfirmation && value === confirmPassword.value;
+        confirmShell.classList.toggle('is-error', hasConfirmation && !matches);
+        matchHelper.classList.toggle('is-error', hasConfirmation && !matches);
+        matchHelper.classList.toggle('is-success', matches);
+        matchHelper.innerHTML = matches
+          ? '<svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-check"></use></svg>Las contraseñas coinciden.'
+          : hasConfirmation
+            ? '<svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-alert"></use></svg>Las contraseñas no coinciden.'
+            : 'Ambas contraseñas deben coincidir.';
+
+        resetSubmit.disabled = !(score === 4 && matches);
+        return score === 4 && matches;
+      }
+
+      newPassword.addEventListener('input', evaluatePassword);
+      confirmPassword.addEventListener('input', evaluatePassword);
+
+      document.getElementById('resetForm').addEventListener('submit', event => {
+        event.preventDefault();
+        if (!evaluatePassword()) {
+          showToast('Revisa los requisitos de la contraseña.');
+          return;
+        }
+        simulateTransition('reset-loading', 'reset-success', 1350);
+      });
+
+      // Modales y feedback.
+      document.getElementById('openModalDemo').addEventListener('click', () => openOverlay('modalOverlay'));
+      document.getElementById('openSheetDemo').addEventListener('click', () => openOverlay('sheetOverlay'));
+      document.getElementById('cancelModal').addEventListener('click', closeOverlays);
+      document.getElementById('confirmModal').addEventListener('click', () => {
+        closeOverlays();
+        showToast('Sesión cerrada correctamente.');
+      });
+      document.getElementById('closeToast').addEventListener('click', () => document.getElementById('toast').classList.remove('is-visible'));
+
+      ['modalOverlay','sheetOverlay'].forEach(id => {
+        document.getElementById(id).addEventListener('click', event => {
+          if (event.target.id === id) closeOverlays();
+        });
+      });
+
+      document.addEventListener('keydown', event => {
+        if (event.key === 'Escape') closeOverlays();
+      });
+
+      // Herramientas de revisión.
+      document.getElementById('copyStateUrl').addEventListener('click', async () => {
+        const url = buildStateUrl(currentScreen, false).toString();
+        try {
+          await navigator.clipboard.writeText(url);
+          showToast('URL del estado copiada.');
+        } catch {
+          window.prompt('Copia esta URL:', url);
+        }
+      });
+
+      document.getElementById('openCleanPreview').addEventListener('click', () => {
+        window.open(buildStateUrl(currentScreen, true), '_blank', 'noopener,noreferrer');
+      });
+
+      window.addEventListener('popstate', () => {
+        const state = new URLSearchParams(window.location.search).get('screen');
+        setScreen(screenMeta[state] ? state : defaultScreen, { updateUrl: false });
+      });
+
+      setScreen(currentScreen, { updateUrl: false });
+      evaluatePassword();
+    })();
+  </script>
+</body>
+</html>
