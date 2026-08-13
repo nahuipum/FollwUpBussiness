@@ -4,6 +4,7 @@ import 'dart:io';
 
 import '../application/auth_models.dart';
 import '../application/auth_repository.dart';
+import '../application/auth_session.dart';
 import 'auth_secure_store.dart';
 import 'client_instance_id.dart';
 
@@ -55,11 +56,13 @@ class AuthHttpRepository implements AuthRepository {
       {required this.baseUri,
       required this.clientInstanceId,
       required this.secureStore,
+      this.sessionCoordinator,
       AuthTransport? transport})
       : _transport = transport ?? HttpAuthTransport();
   final Uri baseUri;
   final ClientInstanceIdProvider clientInstanceId;
   final AuthSessionStore secureStore;
+  final AuthSessionCoordinator? sessionCoordinator;
   final AuthTransport _transport;
 
   @override
@@ -70,10 +73,15 @@ class AuthHttpRepository implements AuthRepository {
     if (response.statusCode != 200) {
       return AuthResult.failure(_failure(response.statusCode));
     }
-    final seller = _seller(_decode(response.body));
+    final seller = parseSeller(_decode(response.body));
     if (seller == null) return const AuthResult.failure(AuthFailure.neutral);
     try {
-      await secureStore.replaceSession(seller);
+      final coordinator = sessionCoordinator;
+      if (coordinator == null) {
+        await secureStore.replaceSession(seller);
+      } else {
+        await coordinator.acceptLogin(seller);
+      }
       return AuthResult.success(seller);
     } on Object {
       await secureStore.clearSession();
@@ -107,7 +115,7 @@ class AuthHttpRepository implements AuthRepository {
     }
   }
 
-  AuthenticatedSeller? _seller(Map<String, dynamic>? json) {
+  static AuthenticatedSeller? parseSeller(Map<String, dynamic>? json) {
     if (json == null || json['channel'] != 'MOBILE') {
       return null;
     }

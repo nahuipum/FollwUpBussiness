@@ -52,6 +52,8 @@ class _Values implements SecureValueStore {
   final writes = <String, String>{};
   final deleted = <String>[];
   @override
+  Future<String?> read({required String key}) async => writes[key];
+  @override
   Future<void> delete({required String key}) async {
     deleted.add(key);
   }
