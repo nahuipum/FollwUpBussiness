@@ -54,7 +54,7 @@ public class SecurityConfiguration {
                         .requestMatchers(org.springframework.http.HttpMethod.PATCH, "/platform/companies/*/status").authenticated()
                         .requestMatchers("/api/v1/internal/outbox/dlq/*/reprocess").hasAuthority("PLATFORM_SUPERADMIN")
                         .anyRequest().authenticated())
-                .csrf(csrf -> csrf.ignoringRequestMatchers("/api/v1/internal/outbox/dlq/*/reprocess")
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/auth/logout", "/api/v1/internal/outbox/dlq/*/reprocess")
                         .requireCsrfProtectionMatcher(authenticatedCsrfRequest))
                 .cors(Customizer.withDefaults())
                 .exceptionHandling(exceptions -> exceptions

@@ -52,6 +52,8 @@ public final class LogoutController {
             if (cookie != null)
                 response.addHeader(HttpHeaders.SET_COOKIE, "__Host-fs-refresh=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Strict");
             return ResponseEntity.noContent().build();
+        } catch (LogoutSessionService.CsrfRejected e) {
+            return problem(403, correlation);
         } catch (LogoutSessionService.Rejected e) {
             return problem(401, correlation);
         }

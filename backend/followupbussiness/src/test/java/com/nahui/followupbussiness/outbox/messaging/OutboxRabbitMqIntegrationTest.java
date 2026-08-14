@@ -20,6 +20,7 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -89,5 +90,37 @@ class OutboxRabbitMqIntegrationTest {
         assertThat(org.assertj.core.api.Assertions.catchThrowable(
                 () -> new RabbitMqEventTransport(template, new ObjectMapper(), EXCHANGE).publish(event)))
                 .isInstanceOf(UnroutablePublicationException.class);
+    }
+
+    @Test
+    void realExchangePreservesEachTenantInItsOwnEnvelopeAndHeader() throws Exception {
+        RabbitAdmin admin = new RabbitAdmin(connectionFactory);
+        TopicExchange exchange = new TopicExchange(EXCHANGE, true, false);
+        Queue queue = QueueBuilder.nonDurable("int024." + UUID.randomUUID()).build();
+        admin.declareExchange(exchange);
+        admin.declareQueue(queue);
+        admin.declareBinding(BindingBuilder.bind(queue).to(exchange).with("company.user.*"));
+        RabbitMqEventTransport transport = new RabbitMqEventTransport(new RabbitTemplate(connectionFactory), new ObjectMapper(), EXCHANGE);
+        UUID tenantA = UUID.randomUUID(), tenantB = UUID.randomUUID();
+        transport.publish(event("company.user.invited", tenantA));
+        transport.publish(event("company.user.updated", tenantB));
+
+        assertTenantMessage(templateReceive(queue), tenantA);
+        assertTenantMessage(templateReceive(queue), tenantB);
+    }
+
+    private Message templateReceive(Queue queue) {
+        Message message = new RabbitTemplate(connectionFactory).receive(queue.getName(), 5_000);
+        assertThat(message).isNotNull();
+        return message;
+    }
+
+    private static OutboxEvent event(String type, UUID tenant) {
+        return new OutboxEvent(UUID.randomUUID(), type, 1, Instant.now(), tenant, UUID.randomUUID(), UUID.randomUUID(), "{\"scope\":\"company-user\"}");
+    }
+
+    private static void assertTenantMessage(Message message, UUID tenant) throws Exception {
+        assertThat(message.getMessageProperties().getHeaders()).containsEntry("tenantId", tenant.toString());
+        assertThat(new ObjectMapper().readTree(message.getBody()).get("tenantId").asText()).isEqualTo(tenant.toString());
     }
 }

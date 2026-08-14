@@ -145,6 +145,21 @@ class SecurityConfigurationTest {
     }
 
     @Test
+    void authenticatedLogoutReachesTheSessionBoundCsrfControlInsteadOfSpringCsrf() throws Exception {
+        var actor = new com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor(
+                java.util.UUID.randomUUID(), java.util.UUID.randomUUID(),
+                com.nahui.followupbussiness.identityaccess.domain.model.BaseRole.SELLER, java.util.UUID.randomUUID());
+        when(inboundJwtAuthenticator.authenticate("web-session-token")).thenReturn(
+                org.springframework.security.authentication.UsernamePasswordAuthenticationToken.authenticated(actor, "web-session-token", createAuthorityList("SELLER")));
+        mockMvc.perform(post("/auth/logout")
+                        .header("Authorization", "Bearer web-session-token")
+                        .header("X-CSRF-Token", "session-bound-token"))
+                .andExpect(status().isNoContent());
+        verify(logoutSessionUseCase).logout(org.mockito.ArgumentMatchers.argThat(command ->
+                command.actor().equals(actor) && "session-bound-token".equals(command.csrfToken())));
+    }
+
+    @Test
     void applicationDoesNotCreateDefaultUsers() {
         assertThat(applicationContext.getBeansOfType(UserDetailsService.class)).isEmpty();
     }

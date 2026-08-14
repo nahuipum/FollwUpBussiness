@@ -139,6 +139,28 @@ class CompanyUserPostgresIntegrationTest {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM audit_entry WHERE result='DENIED' AND (before_state::text LIKE '%@%' OR after_state::text LIKE '%@%' OR before_state::text LIKE '%other%' OR after_state::text LIKE '%other%')",Integer.class)).isZero();
         assertNoCompanyUserDurableSideEffects();
     }
+    @Test void bidirectionalCrossTenantApiMutationsLeaveVictimStateAndOutboxUntouched() {
+        var controller = new CompanyUserController(configuredService());
+        UUID aUser = account(tenant, "a-user", "a-user@example.test", BaseRole.SUPERVISOR, "ACTIVE");
+        UUID bUser = account(other, "b-user", "b-user@example.test", BaseRole.SUPERVISOR, "ACTIVE");
+        assertCrossTenantApiDenial(controller, aUser, new AuthenticatedActor(UUID.randomUUID(), other, BaseRole.COMPANY_ADMIN));
+        assertCrossTenantApiDenial(controller, bUser, admin);
+    }
+
+    private void assertCrossTenantApiDenial(CompanyUserController controller, UUID victim, AuthenticatedActor attacker) {
+        String before = jdbc.queryForObject("SELECT display_name||'|'||status||'|'||credential_version FROM identity_access_account WHERE id=?", String.class, victim);
+        int outboxBefore = jdbc.queryForObject("SELECT count(*) FROM transactional_outbox WHERE causation_id=?", Integer.class, victim);
+        int notificationsBefore = jdbc.queryForObject("SELECT count(*) FROM identity_access_notification WHERE account_id=?", Integer.class, victim);
+        UUID correlation = UUID.randomUUID();
+        assertThat(controller.get(victim, attacker, request(correlation)).getStatusCode().value()).isEqualTo(404);
+        assertThat(controller.update(victim, "0", new CompanyUserController.UpdateRequest("Compromised", "compromised", "compromised@example.test", BaseRole.SUPERVISOR), attacker, request(correlation)).getStatusCode().value()).isEqualTo(404);
+        assertThat(controller.status(victim, new CompanyUserController.StatusRequest("LOCKED"), attacker, request(correlation)).getStatusCode().value()).isEqualTo(404);
+        assertThat(controller.correctAndResendInvitation(victim, "\"1\"", new CompanyUserController.InviteRequest("Compromised", "compromised", "compromised@example.test", BaseRole.SUPERVISOR), attacker, request(correlation)).getStatusCode().value()).isEqualTo(404);
+        assertThat(jdbc.queryForObject("SELECT display_name||'|'||status||'|'||credential_version FROM identity_access_account WHERE id=?", String.class, victim)).isEqualTo(before);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM transactional_outbox WHERE causation_id=?", Integer.class, victim)).isEqualTo(outboxBefore);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM identity_access_notification WHERE account_id=?", Integer.class, victim)).isEqualTo(notificationsBefore);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM audit_entry WHERE result='DENIED' AND resource_id=? AND correlation_id=?", Integer.class, victim, correlation)).isEqualTo(4);
+    }
     private boolean attempt(CountDownLatch gate,CompanyUserService s,UUID id)throws Exception {gate.await();try{tx.executeWithoutResult(x->s.status(id,"INACTIVE",admin));return true;}catch(CompanyUserService.Conflict e){return false;}}
     private boolean activate(CountDownLatch gate,PasswordRecoveryService s,String token)throws Exception {gate.await();try{tx.executeWithoutResult(x->s.reset(token,"Valid123".toCharArray()));return true;}catch(PasswordRecoveryService.Rejected e){return false;}}
     private void assertRollback(UUID user,CompanyUserService s){

@@ -48,10 +48,15 @@ public final class LogoutSessionService implements LogoutSessionUseCase {
             if (c.actor().sessionFamilyId() == null) throw new Rejected();
             family = sessions.resolveById(c.actor().sessionFamilyId(), c.actor().accountId(), c.actor().tenantId());
             if (family == null) throw new Rejected();
-            if (!family.expiresAt().isAfter(now) || ("WEB".equals(family.channel()) && (c.csrfToken() == null || !MessageDigest.isEqual(family.csrfDigest(), digest(c.csrfToken()))))) {
-                auditRejected(family, c, now, "WEB".equals(family.channel()) ? RecordAuthenticationAuditCommand.Reason.CSRF_INVALID : RecordAuthenticationAuditCommand.Reason.INVALID);
+            if (!family.expiresAt().isAfter(now)) {
+                auditRejected(family, c, now, RecordAuthenticationAuditCommand.Reason.INVALID);
                 throw new Rejected();
             }
+            if ("WEB".equals(family.channel()) && (c.csrfToken() == null || !MessageDigest.isEqual(family.csrfDigest(), digest(c.csrfToken())))) {
+                auditRejected(family, c, now, RecordAuthenticationAuditCommand.Reason.CSRF_INVALID);
+                throw new CsrfRejected();
+            }
+            if (family.revokedAt() != null) return;
             if (c.allSessions()) { var ids=sessions.activeFamilyIds(c.actor().accountId(),c.actor().tenantId()); sessions.revokeAll(c.actor().accountId(), c.actor().tenantId(), now); for(var id:ids) installations.revoke(id,c.actor().tenantId()); }
             else { sessions.revoke(c.actor().sessionFamilyId(), now); installations.revoke(c.actor().sessionFamilyId(),c.actor().tenantId()); }
         } else {
@@ -60,6 +65,7 @@ public final class LogoutSessionService implements LogoutSessionUseCase {
             family = c.revocationTicket() != null ? sessions.consumeRevocationTicket(digest(c.revocationTicket()), now) : sessions.resolve(digest(c.webRefreshCookie()));
             if (family == null || !family.expiresAt().isAfter(now) || !(c.revocationTicket() != null ? "MOBILE".equals(family.channel()) : "WEB".equals(family.channel())))
                 throw new Rejected();
+            if (family.revokedAt() != null) return;
             sessions.revoke(family.familyId(), now);
             installations.revoke(family.familyId(),family.companyId());
         }
@@ -93,7 +99,9 @@ public final class LogoutSessionService implements LogoutSessionUseCase {
         try { audit.record(new RecordAuthenticationAuditCommand(family.accountId(), family.familyId(), family.companyId(), command.correlationId(), RecordAuthenticationAuditCommand.Channel.valueOf(family.channel()), RecordAuthenticationAuditCommand.Result.REJECTED, now, reason)); } catch (RuntimeException ignored) { }
     }
 
-    public static final class Rejected extends RuntimeException {
+    public static class Rejected extends RuntimeException {
+    }
+    public static final class CsrfRejected extends Rejected {
     }
     /** The transaction wrapper commits the already durable revocation, then exposes the failure. */
     public static final class AuditUnavailableAfterRevocation extends RuntimeException {
