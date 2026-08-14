@@ -1,12 +1,11 @@
 import { ShieldCheck, UserRound, X } from "lucide-react";
 import {
-  useRef,
   useState,
   type FormEvent,
   type ReactNode,
   type RefObject,
 } from "react";
-import { useFocusTrap } from "../hooks/useFocusTrap";
+import { ModalSurface } from "../../../shared/ui/ModalSurface";
 import type { CompanyUser, CompanyUserInput, CompanyUserRole } from "../types";
 
 export function CompanyUserInviteDialog({
@@ -16,7 +15,7 @@ export function CompanyUserInviteDialog({
   error,
   onClose,
   onSubmit,
-  returnFocusRef,
+  returnFocusRef: _returnFocusRef,
 }: {
   user: CompanyUser | null;
   mode: "invite" | "edit" | "resend";
@@ -30,11 +29,9 @@ export function CompanyUserInviteDialog({
   const [email, setEmail] = useState(user?.email ?? "");
   const [username, setUsername] = useState(user?.username ?? "");
   const [role, setRole] = useState<CompanyUserRole>(user?.role ?? "SUPERVISOR");
-  const dialogRef = useRef<HTMLElement>(null);
   const close = () => {
     if (!busy) onClose();
   };
-  useFocusTrap(dialogRef, close, returnFocusRef);
   const editing = mode === "edit";
   const resending = mode === "resend";
   const submit = (event: FormEvent) => {
@@ -58,16 +55,7 @@ export function CompanyUserInviteDialog({
       ? "Guardar cambios"
       : "Enviar invitación";
   return (
-    <div className="company-users__dialog-backdrop">
-      <section
-        ref={(node) => {
-          dialogRef.current = node;
-        }}
-        className="company-users__dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="invite-title"
-      >
+    <ModalSurface titleId="invite-title" onDismiss={close} className="company-users__dialog">
         <header>
           <h2 id="invite-title">
             {title}
@@ -159,8 +147,7 @@ export function CompanyUserInviteDialog({
             </button>
           </footer>
         </form>
-      </section>
-    </div>
+    </ModalSurface>
   );
 }
 

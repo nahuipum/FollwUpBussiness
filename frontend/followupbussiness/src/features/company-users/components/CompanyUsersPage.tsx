@@ -303,7 +303,7 @@ function StatusConfirmation({
   error,
   onClose,
   onConfirm,
-  returnFocusTarget,
+  returnFocusTarget: _returnFocusTarget,
 }: {
   user: CompanyUser;
   busy: boolean;
@@ -313,18 +313,12 @@ function StatusConfirmation({
   returnFocusTarget: HTMLButtonElement | null;
 }) {
   const dialogRef = useRef<HTMLElement>(null);
-  const returnFocusRef = useRef(returnFocusTarget);
+  const returnFocusRef = useRef(_returnFocusTarget);
   useFocusTrap(dialogRef, onClose, returnFocusRef);
   const reactivate = user.status === "LOCKED" || user.status === "INACTIVE";
   return (
     <div className="company-users__dialog-backdrop">
-      <section
-        ref={dialogRef}
-        className="company-users__dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="status-title"
-      >
+      <section ref={dialogRef} className="company-users__dialog" role="dialog" aria-modal="true" aria-labelledby="status-title">
         <header>
           <h2 id="status-title">
             {reactivate ? "Reactivar usuario" : "Bloquear usuario"}

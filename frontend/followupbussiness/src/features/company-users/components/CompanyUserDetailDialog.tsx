@@ -1,6 +1,5 @@
 import { X } from "lucide-react";
-import { useRef } from "react";
-import { useFocusTrap } from "../hooks/useFocusTrap";
+import { ModalSurface } from "../../../shared/ui/ModalSurface";
 import type { CompanyUser } from "../types";
 
 const roleLabel = { COMPANY_ADMIN: "Administrador", SUPERVISOR: "Supervisor" } as const;
@@ -17,11 +16,8 @@ export function CompanyUserDetailDialog({
   error: boolean;
   onClose: () => void;
 }) {
-  const dialogRef = useRef<HTMLElement>(null);
-  useFocusTrap(dialogRef, onClose);
   return (
-    <div className="company-users__dialog-backdrop">
-      <section ref={dialogRef} className="company-users__dialog" role="dialog" aria-modal="true" aria-labelledby="user-detail-title">
+    <ModalSurface titleId="user-detail-title" onDismiss={onClose} className="company-users__dialog">
         <header>
           <h2 id="user-detail-title">Detalle de usuario</h2>
           <button type="button" aria-label="Cerrar detalle" onClick={onClose}><X aria-hidden="true" /></button>
@@ -38,7 +34,6 @@ export function CompanyUserDetailDialog({
           </dl>
         )}
         <footer><button className="company-users__secondary" type="button" onClick={onClose}>Cerrar</button></footer>
-      </section>
-    </div>
+    </ModalSurface>
   );
 }

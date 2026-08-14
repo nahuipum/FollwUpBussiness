@@ -2,6 +2,23 @@
   position: relative;
   width: 100%;
 }
+.filter-field {
+  display: grid;
+  min-width: 0;
+  gap: 7px;
+  flex: 1 1 0;
+  color: #26384a;
+  font-size: 13px;
+  font-weight: 700;
+}
+.filter-field > span {
+  line-height: 1;
+}
+.filter-field--inline {
+  grid-template-columns: auto 170px;
+  align-items: center;
+  flex: 0 1 auto;
+}
 .visual-select__trigger {
   display: flex;
   width: 100%;
@@ -77,4 +94,9 @@
   color: #98a7b6;
   background: transparent;
   cursor: not-allowed;
+}
+@media (max-width: 760px) {
+  .filter-field--inline {
+    grid-template-columns: auto minmax(0, 170px);
+  }
 }

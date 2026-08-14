@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { ChartNoAxesCombined, LockKeyhole, ShieldCheck } from "lucide-react";
 import streetMapArtwork from "../assets/street-map-v3.svg";
 
@@ -44,6 +44,21 @@ export function BrandPanel({
   footer = "Plataforma de uso interno · Flujo protegido",
   mark = <PasswordRecoveryBrandMark />,
 }: BrandPanelProps) {
+  const [isDesktop, setIsDesktop] = useState(
+    () => typeof window === "undefined" || window.innerWidth > 900,
+  );
+
+  useEffect(() => {
+    const updateVisibility = () => setIsDesktop(window.innerWidth > 900);
+
+    window.addEventListener("resize", updateVisibility);
+    return () => window.removeEventListener("resize", updateVisibility);
+  }, []);
+
+  if (!isDesktop) {
+    return null;
+  }
+
   return (
     <section className="brand-panel" aria-label="FollowUpBusiness">
       <span className="brand-orb top" aria-hidden="true" />

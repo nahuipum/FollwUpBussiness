@@ -57,6 +57,11 @@ async function openStatusAction(label: "Suspender empresa" | "Reactivar empresa"
   fireEvent.change(screen.getByLabelText("Motivo"), { target: { value: "Incumplimiento operativo" } });
 }
 
+function selectCompanyStatus(label: "Activas" | "Suspendidas") {
+  fireEvent.click(screen.getByRole("button", { name: "Filtrar empresas por estado" }));
+  fireEvent.click(screen.getByRole("option", { name: label }));
+}
+
 beforeEach(() => {
   vi.useFakeTimers();
   testState.identity = { id: "platform-1", displayName: "Plataforma", roles: ["PLATFORM_SUPERADMIN"], company: null };
@@ -80,9 +85,9 @@ test("muestra carga, búsqueda y filtros de empresas", () => {
   render(<PlatformCompaniesPage />);
   expect(screen.getByRole("status").textContent).toBe("Cargando empresas…");
   expect(screen.getByRole("searchbox", { name: "Buscar empresa o código" })).toBeTruthy();
-  expect(screen.getByRole("button", { name: "Todas" }).getAttribute("aria-pressed")).toBe("true");
-  fireEvent.click(screen.getByRole("button", { name: "Activas" }));
-  expect(screen.getByRole("button", { name: "Activas" }).getAttribute("aria-pressed")).toBe("true");
+  expect(screen.getByRole("button", { name: "Filtrar empresas por estado" }).textContent).toContain("Todas");
+  selectCompanyStatus("Activas");
+  expect(screen.getByRole("button", { name: "Filtrar empresas por estado" }).textContent).toContain("Activas");
 });
 
 test("abre un formulario accesible para crear empresa", () => {
@@ -174,7 +179,7 @@ test("conserva búsqueda, filtro y página después del 200", async () => {
   await renderLoaded();
   fireEvent.change(screen.getByRole("searchbox", { name: "Buscar empresa o código" }), { target: { value: "Nova" } });
   await act(async () => { await vi.advanceTimersByTimeAsync(250); });
-  fireEvent.click(screen.getByRole("button", { name: "Activas" }));
+  selectCompanyStatus("Activas");
   await act(async () => { await vi.advanceTimersByTimeAsync(250); });
   fireEvent.click(screen.getByRole("button", { name: "Página siguiente" }));
   await act(async () => { await vi.advanceTimersByTimeAsync(250); });
@@ -182,7 +187,7 @@ test("conserva búsqueda, filtro y página después del 200", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Suspender empresa" }));
   await act(async () => {});
   expect((screen.getByRole("searchbox", { name: "Buscar empresa o código" }) as HTMLInputElement).value).toBe("Nova");
-  expect(screen.getByRole("button", { name: "Activas" }).getAttribute("aria-pressed")).toBe("true");
+  expect(screen.getByRole("button", { name: "Filtrar empresas por estado" }).textContent).toContain("Activas");
   expect(screen.getByRole("button", { name: "Página 2" })).toBeTruthy();
   expect(screen.getByText("Suspendida")).toBeTruthy();
 });

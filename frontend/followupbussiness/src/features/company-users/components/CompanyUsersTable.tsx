@@ -1,6 +1,5 @@
-import { MoreVertical } from "lucide-react";
+import { CirclePause, Eye, MoreVertical, Pencil, Send } from "lucide-react";
 import {
-  useEffect,
   useRef,
   type KeyboardEvent,
   type MutableRefObject,
@@ -12,6 +11,7 @@ import {
   DataTableStatus,
   type DataTableColumn,
 } from "../../../shared/ui/DataTable";
+import { TableActionMenu } from "../../../shared/ui/TableActionMenu";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 import type { CompanyUser, CompanyUserStatus } from "../types";
 
@@ -112,7 +112,7 @@ function userColumns({
       id: "user",
       header: "Usuario",
       label: "Usuario",
-      width: "36%",
+      width: "34%",
       render: (user) => (
         <DataTableIdentity
           mark={initials(user.displayName)}
@@ -125,21 +125,21 @@ function userColumns({
       id: "role",
       header: "Rol",
       label: "Rol",
-      width: "16%",
+      width: "17%",
       render: (user) => roleLabel[user.role],
     },
     {
       id: "status",
       header: "Estado",
       label: "Estado",
-      width: "18%",
+      width: "26%",
       render: (user) => <StatusBadge status={user.status} />,
     },
     {
       id: "updated",
       header: "Última actualización",
       label: "Última actualización",
-      width: "18%",
+      width: "16%",
       render: (user) => formatDate(user.updatedAt),
     },
   ];
@@ -166,6 +166,7 @@ function userColumns({
           {menuUser === user.id && (
             <UserActionMenu
               user={user}
+              anchor={menuTriggers.current[user.id] ?? null}
               readOnly={readOnly}
               onDetails={() => onDetails(user)}
               onEdit={() => onEdit(user)}
@@ -214,6 +215,7 @@ function StatusBadge({ status }: { status: CompanyUserStatus }) {
 }
 function UserActionMenu({
   user,
+  anchor,
   readOnly,
   onClose,
   onDetails,
@@ -222,6 +224,7 @@ function UserActionMenu({
   onStatus,
 }: {
   user: CompanyUser;
+  anchor: HTMLButtonElement | null;
   readOnly: boolean;
   onClose: () => void;
   onDetails: () => void;
@@ -231,18 +234,6 @@ function UserActionMenu({
 }) {
   const menuRef = useRef<HTMLDivElement>(null);
   useFocusTrap(menuRef, onClose);
-  useEffect(() => {
-    const closeOnOutsidePointer = (event: PointerEvent) => {
-      if (
-        event.target instanceof Node &&
-        !menuRef.current?.contains(event.target)
-      )
-        onClose();
-    };
-    document.addEventListener("pointerdown", closeOnOutsidePointer);
-    return () =>
-      document.removeEventListener("pointerdown", closeOnOutsidePointer);
-  }, [onClose]);
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const items = Array.from(
       menuRef.current?.querySelectorAll<HTMLButtonElement>("[role=menuitem]") ??
@@ -258,26 +249,14 @@ function UserActionMenu({
     }
   };
   return (
-    <div
-      ref={menuRef}
-      className="company-users__menu"
-      role="menu"
+    <TableActionMenu
+      anchor={anchor}
+      menuRef={menuRef}
+      ariaLabel={`Acciones de ${user.displayName}`}
       onKeyDown={onKeyDown}
-    >
-      <button role="menuitem" type="button" onClick={onDetails}>Ver detalle</button>
-      {!readOnly && <>
-        {user.status === "INVITED" ? (
-          <button role="menuitem" type="button" onClick={onResendInvitation}>
-            Corregir y reenviar invitación
-          </button>
-        ) : (
-          <button role="menuitem" type="button" onClick={onEdit}>Editar usuario</button>
-        )}
-        <button className={user.status === "ACTIVE" || user.status === "INVITED" ? "company-users__menu-danger" : undefined} role="menuitem" type="button" onClick={onStatus}>
-          {user.status === "LOCKED" || user.status === "INACTIVE" ? "Reactivar usuario" : "Bloquear usuario"}
-        </button>
-      </>}
-    </div>
+      onDismiss={onClose}
+      items={[{ label: "Ver detalle", icon: <Eye aria-hidden="true" />, onSelect: onDetails }, ...(!readOnly ? [user.status === "INVITED" ? { label: "Corregir y reenviar invitación", icon: <Send aria-hidden="true" />, onSelect: onResendInvitation } : { label: "Editar usuario", icon: <Pencil aria-hidden="true" />, onSelect: onEdit }, { label: user.status === "LOCKED" || user.status === "INACTIVE" ? "Reactivar usuario" : "Bloquear usuario", icon: <CirclePause aria-hidden="true" />, tone: user.status === "LOCKED" || user.status === "INACTIVE" ? ("default" as const) : ("danger" as const), onSelect: onStatus }] : [])]}
+    />
   );
 }
 export function ReadOnlyNotice() {

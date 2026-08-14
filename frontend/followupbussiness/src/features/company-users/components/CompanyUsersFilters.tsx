@@ -15,7 +15,7 @@ function Filter<T extends string>({
   onChange,
 }: Props<T>) {
   return (
-    <div className="company-users__filter">
+    <div className="filter-field">
       <span>{label}</span>
       <VisualSelect
         ariaLabel={label}
