@@ -76,7 +76,8 @@ class _Store implements SessionStore {
   var ticketCleared = false;
 
   @override
-  Future<void> clearPendingLogoutTicket() async => ticketCleared = true;
+  Future<void> clearPendingLogoutTicket(StoredSessionSecrets ticket) async =>
+      ticketCleared = true;
 
   @override
   Future<void> clearSession() async {}
@@ -92,6 +93,10 @@ class _Store implements SessionStore {
         refreshToken: '',
         sessionRevocationTicket: 'pending-ticket',
       );
+
+  @override
+  Future<List<StoredSessionSecrets>> readPendingLogoutTickets() async =>
+      [(await readSecrets())!];
 
   @override
   Future<void> replaceSession(AuthenticatedSeller seller) async {}

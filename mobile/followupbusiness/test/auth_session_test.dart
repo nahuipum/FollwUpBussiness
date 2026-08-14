@@ -122,6 +122,53 @@ void main() {
       expect(store.ticketCleared, isTrue);
     });
 
+    test('reintenta A pendiente después de login B sin usar B', () async {
+      final store = _Store()
+        ..secrets = const StoredSessionSecrets(
+          userId: 'b',
+          companyId: 'empresa-b',
+          refreshToken: 'refresh-b',
+          sessionRevocationTicket: 'ticket-b',
+        )
+        ..pending = [
+          const StoredSessionSecrets(
+            userId: 'a',
+            companyId: 'empresa-a',
+            refreshToken: '',
+            sessionRevocationTicket: 'ticket-a',
+          ),
+        ];
+      final remote = _Remote()..logoutResult = true;
+      final coordinator = _coordinator(store: store, remote: remote);
+
+      final completed = await coordinator.retryPendingLogout();
+
+      expect(completed, isTrue);
+      expect(remote.tickets, ['ticket-a']);
+      expect(store.pending, isEmpty);
+      expect(store.secrets.sessionRevocationTicket, 'ticket-b');
+      expect(store.secrets.refreshToken, 'refresh-b');
+    });
+
+    test('no borra ticket A cuando la revocación no responde 204', () async {
+      final store = _Store()
+        ..pending = [
+          const StoredSessionSecrets(
+            userId: 'a',
+            companyId: 'empresa-a',
+            refreshToken: '',
+            sessionRevocationTicket: 'ticket-a',
+          ),
+        ];
+      final remote = _Remote()..logoutResult = false;
+
+      expect(
+        await _coordinator(store: store, remote: remote).retryPendingLogout(),
+        isFalse,
+      );
+      expect(store.pending.single.sessionRevocationTicket, 'ticket-a');
+    });
+
     test('reconexión reinicia revocación agotada y borra ticket solo con 204',
         () async {
       final store = _Store()
@@ -254,8 +301,17 @@ class _Store implements SessionStore {
   );
   bool cleared = false;
   bool ticketCleared = false;
+  List<StoredSessionSecrets> pending = [];
   @override
-  Future<void> clearPendingLogoutTicket() async => ticketCleared = true;
+  Future<void> clearPendingLogoutTicket(StoredSessionSecrets ticket) async {
+    ticketCleared = true;
+    pending = pending
+        .where((candidate) =>
+            candidate.companyId != ticket.companyId ||
+            candidate.userId != ticket.userId ||
+            candidate.sessionRevocationTicket != ticket.sessionRevocationTicket)
+        .toList(growable: false);
+  }
   @override
   Future<void> clearSession() async => cleared = true;
   @override
@@ -266,12 +322,22 @@ class _Store implements SessionStore {
       refreshToken: '',
       sessionRevocationTicket: secrets.sessionRevocationTicket,
     );
+    pending = [secrets];
     return secrets;
   }
 
   @override
   Future<StoredSessionSecrets?> readSecrets() async =>
       secrets.sessionRevocationTicket.isEmpty ? null : secrets;
+  @override
+  Future<List<StoredSessionSecrets>> readPendingLogoutTickets() async =>
+      pending.isNotEmpty
+          ? List.unmodifiable(pending)
+          : secrets.refreshToken.isEmpty &&
+                  secrets.sessionRevocationTicket.isNotEmpty &&
+                  !ticketCleared
+              ? [secrets]
+              : const [];
   @override
   Future<void> replaceSession(AuthenticatedSeller seller) async {
     secrets = StoredSessionSecrets(
@@ -290,9 +356,11 @@ class _Remote implements SessionRemote {
   List<bool>? logoutResults;
   int refreshCalls = 0;
   int logoutCalls = 0;
+  final tickets = <String>[];
   @override
   Future<bool> logout({String? accessToken, required String ticket}) async {
     logoutCalls++;
+    tickets.add(ticket);
     await Future<void>.delayed(Duration.zero);
     return logoutResults?.removeAt(0) ?? logoutResult;
   }

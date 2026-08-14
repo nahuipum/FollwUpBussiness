@@ -51,7 +51,8 @@ abstract interface class SessionStore {
   Future<void> replaceSession(AuthenticatedSeller seller);
   Future<void> clearSession();
   Future<StoredSessionSecrets?> clearForLogout();
-  Future<void> clearPendingLogoutTicket();
+  Future<List<StoredSessionSecrets>> readPendingLogoutTickets();
+  Future<void> clearPendingLogoutTicket(StoredSessionSecrets ticket);
 }
 
 abstract interface class SessionRemote {
@@ -176,20 +177,20 @@ class AuthSessionCoordinator {
       ticket: secrets.sessionRevocationTicket,
     );
     if (completed) {
-      await store.clearPendingLogoutTicket();
+      await store.clearPendingLogoutTicket(secrets);
     }
   }
 
   Future<bool> retryPendingLogout() async {
-    final secrets = await store.readSecrets();
-    if (secrets == null || secrets.refreshToken.isNotEmpty) {
-      return true;
+    var completed = true;
+    for (final ticket in await store.readPendingLogoutTickets()) {
+      if (await remote.logout(ticket: ticket.sessionRevocationTicket)) {
+        await store.clearPendingLogoutTicket(ticket);
+      } else {
+        completed = false;
+      }
     }
-    if (await remote.logout(ticket: secrets.sessionRevocationTicket)) {
-      await store.clearPendingLogoutTicket();
-      return true;
-    }
-    return false;
+    return completed;
   }
 
   Future<void> _clearLocal(StoredSessionSecrets secrets) async {
