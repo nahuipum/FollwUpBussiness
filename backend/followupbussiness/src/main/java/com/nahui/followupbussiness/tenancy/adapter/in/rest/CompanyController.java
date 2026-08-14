@@ -10,6 +10,8 @@ import com.nahui.followupbussiness.tenancy.application.port.in.CreateCompanyUseC
 import com.nahui.followupbussiness.tenancy.application.ListCompaniesService;
 import com.nahui.followupbussiness.tenancy.application.port.in.ListCompaniesUseCase;
 import com.nahui.followupbussiness.tenancy.application.port.in.ListCompanyCurrenciesUseCase;
+import com.nahui.followupbussiness.tenancy.application.port.in.GetCompanyUseCase;
+import com.nahui.followupbussiness.tenancy.application.GetCompanyService;
 import com.nahui.followupbussiness.tenancy.domain.model.Company;
 import com.nahui.followupbussiness.tenancy.domain.model.CompanySettings;
 import jakarta.servlet.http.HttpServletRequest;
@@ -47,19 +49,25 @@ public class CompanyController {
     private final CreateCompanyUseCase service;
     private final ChangeCompanyStatusUseCase statusService;
     private final ListCompaniesUseCase listService;
+    private final GetCompanyUseCase detailService;
     private final ListCompanyCurrenciesUseCase currencyService;
     @Autowired
-    public CompanyController(CreateCompanyUseCase service, ChangeCompanyStatusUseCase statusService, ListCompaniesUseCase listService, ListCompanyCurrenciesUseCase currencyService) {
+    public CompanyController(CreateCompanyUseCase service, ChangeCompanyStatusUseCase statusService, ListCompaniesUseCase listService,
+            GetCompanyUseCase detailService, ListCompanyCurrenciesUseCase currencyService) {
         this.service = service;
         this.statusService = statusService;
         this.listService = listService;
+        this.detailService = detailService;
         this.currencyService = currencyService;
     }
     CompanyController(CreateCompanyUseCase service, ChangeCompanyStatusUseCase statusService) {
-        this(service, statusService, (query, actor) -> { throw new UnsupportedOperationException("List use case is required"); }, actor -> { throw new UnsupportedOperationException("Currency use case is required"); });
+        this(service, statusService, (query, actor) -> { throw new UnsupportedOperationException("List use case is required"); },
+                (companyId, actor) -> { throw new UnsupportedOperationException("Detail use case is required"); },
+                actor -> { throw new UnsupportedOperationException("Currency use case is required"); });
     }
     CompanyController(CreateCompanyUseCase service, ChangeCompanyStatusUseCase statusService, ListCompaniesUseCase listService) {
-        this(service, statusService, listService, actor -> { throw new UnsupportedOperationException("Currency use case is required"); });
+        this(service, statusService, listService, (companyId, actor) -> { throw new UnsupportedOperationException("Detail use case is required"); },
+                actor -> { throw new UnsupportedOperationException("Currency use case is required"); });
     }
 
     @GetMapping("/currencies")
@@ -87,6 +95,18 @@ public class CompanyController {
                     .body(new CompanyPageResponse(result.items().stream().map(CompanyResponse::from).toList(),
                             new PageInfoResponse(page, pageSize, result.totalElements(), totalPages)));
         } catch (ListCompaniesService.AccessDeniedException e) { return problem(HttpStatus.FORBIDDEN, correlation); }
+    }
+
+    @GetMapping("/{companyId}")
+    ResponseEntity<?> detail(@PathVariable UUID companyId, @AuthenticationPrincipal AuthenticatedActor actor,
+            HttpServletRequest servletRequest) {
+        UUID correlation = correlationId(servletRequest);
+        try {
+            return detailService.execute(companyId, actor)
+                    .<ResponseEntity<?>>map(company -> ResponseEntity.ok().header("X-Correlation-Id", correlation.toString())
+                            .body(CompanyResponse.from(company)))
+                    .orElseGet(() -> problem(HttpStatus.NOT_FOUND, correlation));
+        } catch (GetCompanyService.AccessDeniedException e) { return problem(HttpStatus.FORBIDDEN, correlation); }
     }
 
     @PostMapping

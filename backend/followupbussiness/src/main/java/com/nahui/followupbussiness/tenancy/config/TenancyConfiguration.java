@@ -5,18 +5,21 @@ import com.nahui.followupbussiness.tenancy.adapter.out.persistence.JdbcCompanyCr
 import com.nahui.followupbussiness.tenancy.adapter.out.persistence.JdbcCompanyCodeGenerator;
 import com.nahui.followupbussiness.tenancy.adapter.out.persistence.JdbcCompanyStatusStore;
 import com.nahui.followupbussiness.tenancy.adapter.out.persistence.JdbcCompanyListStore;
+import com.nahui.followupbussiness.tenancy.adapter.out.persistence.JdbcCompanyDetailStore;
 import com.nahui.followupbussiness.tenancy.adapter.out.persistence.JdbcCompanyCurrencyCatalog;
 import com.nahui.followupbussiness.tenancy.adapter.out.persistence.JdbcCurrentCompanyQuery;
 import com.nahui.followupbussiness.tenancy.application.ChangeCompanyStatusService;
 import com.nahui.followupbussiness.tenancy.application.CreateCompanyService;
 import com.nahui.followupbussiness.tenancy.application.ListCompaniesService;
 import com.nahui.followupbussiness.tenancy.application.ListCompanyCurrenciesService;
+import com.nahui.followupbussiness.tenancy.application.GetCompanyService;
 import com.nahui.followupbussiness.tenancy.application.port.in.ChangeCompanyStatusUseCase;
 import com.nahui.followupbussiness.tenancy.application.port.in.CompanyAccessStatusQuery;
 import com.nahui.followupbussiness.tenancy.application.port.in.CurrentCompanyQuery;
 import com.nahui.followupbussiness.tenancy.application.port.in.CreateCompanyUseCase;
 import com.nahui.followupbussiness.tenancy.application.port.in.ListCompaniesUseCase;
 import com.nahui.followupbussiness.tenancy.application.port.in.ListCompanyCurrenciesUseCase;
+import com.nahui.followupbussiness.tenancy.application.port.in.GetCompanyUseCase;
 import com.nahui.followupbussiness.audit.application.port.in.RecordPlatformCompanyAuditUseCase;
 import com.nahui.followupbussiness.audit.application.port.in.RecordCompanyDenialAuditUseCase;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -43,6 +46,11 @@ public class TenancyConfiguration {
     @Bean
     ListCompaniesUseCase listCompaniesUseCase(JdbcTemplate jdbcTemplate) {
         return new ListCompaniesService(new JdbcCompanyListStore(jdbcTemplate));
+    }
+
+    @Bean
+    GetCompanyUseCase getCompanyUseCase(JdbcTemplate jdbcTemplate) {
+        return new GetCompanyService(new JdbcCompanyDetailStore(jdbcTemplate));
     }
 
     @Bean

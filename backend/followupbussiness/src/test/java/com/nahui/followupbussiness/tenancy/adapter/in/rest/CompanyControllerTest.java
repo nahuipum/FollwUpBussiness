@@ -15,6 +15,8 @@ import com.nahui.followupbussiness.identityaccess.domain.model.BaseRole;
 import com.nahui.followupbussiness.tenancy.application.port.in.CreateCompanyUseCase;
 import com.nahui.followupbussiness.tenancy.application.port.in.ChangeCompanyStatusUseCase;
 import com.nahui.followupbussiness.tenancy.application.port.in.ListCompaniesUseCase;
+import com.nahui.followupbussiness.tenancy.application.port.in.GetCompanyUseCase;
+import com.nahui.followupbussiness.tenancy.application.GetCompanyService;
 import com.nahui.followupbussiness.tenancy.application.ListCompaniesService;
 import com.nahui.followupbussiness.tenancy.domain.model.Company;
 import com.nahui.followupbussiness.tenancy.domain.model.CompanySettings;
@@ -65,6 +67,39 @@ class CompanyControllerTest {
         mvc.perform(get("/platform/companies?page=-1").header("Authorization", "Bearer valid"))
                 .andExpect(status().isBadRequest());
         verifyNoInteractions(listUseCase);
+    }
+    @Test void postThenDetailAndListExposeTheSameCreatedCompanyId() throws Exception {
+        UUID companyId = UUID.randomUUID();
+        Company created = company(companyId, CompanyStatus.ACTIVE);
+        CreateCompanyUseCase create = (command, actor) -> CreateCompanyUseCase.Result.created(created);
+        GetCompanyUseCase detail = (id, actor) -> java.util.Optional.ofNullable(companyId.equals(id) ? created : null);
+        ListCompaniesUseCase list = (query, actor) -> new ListCompaniesUseCase.Result(List.of(created), 1);
+        MockMvc mvc = mvc(create, mock(ChangeCompanyStatusUseCase.class), list, detail, platform());
+
+        var createdResponse = mvc.perform(post("/platform/companies").header("Authorization", "Bearer valid")
+                        .contentType(MediaType.APPLICATION_JSON).content(validBody()))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.id").value(companyId.toString())).andReturn();
+        String location = createdResponse.getResponse().getHeader("Location");
+        mvc.perform(get(location).header("Authorization", "Bearer valid"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.id").value(companyId.toString()));
+        mvc.perform(get("/platform/companies").header("Authorization", "Bearer valid"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.items[0].id").value(companyId.toString()));
+    }
+    @Test void unknownDetailKeepsTheNeutral404Contract() throws Exception {
+        GetCompanyUseCase detail = (id, actor) -> java.util.Optional.empty();
+        MockMvc mvc = mvc(mock(CreateCompanyUseCase.class), mock(ChangeCompanyStatusUseCase.class),
+                mock(ListCompaniesUseCase.class), detail, platform());
+        mvc.perform(get("/platform/companies/{companyId}", UUID.randomUUID()).header("Authorization", "Bearer valid"))
+                .andExpect(status().isNotFound()).andExpect(header().string("Cache-Control", "no-store"));
+    }
+    @Test void tenantBoundPlatformActorIsDeniedBeforeAnyCompanyDetail() throws Exception {
+        GetCompanyUseCase detail = mock(GetCompanyUseCase.class);
+        var actor = new AuthenticatedActor(UUID.randomUUID(), UUID.randomUUID(), BaseRole.PLATFORM_SUPERADMIN);
+        when(detail.execute(any(), any())).thenThrow(new GetCompanyService.AccessDeniedException());
+        MockMvc mvc = mvc(mock(CreateCompanyUseCase.class), mock(ChangeCompanyStatusUseCase.class),
+                mock(ListCompaniesUseCase.class), detail, actor);
+        mvc.perform(get("/platform/companies/{companyId}", UUID.randomUUID()).header("Authorization", "Bearer valid"))
+                .andExpect(status().isForbidden()).andExpect(header().string("Cache-Control", "no-store"));
     }
     @Test void statusTransitionReturnsTheContractCompanyAndCorrelation() throws Exception {
         UUID companyId = UUID.randomUUID();
@@ -134,9 +169,15 @@ class CompanyControllerTest {
     }
     private static MockMvc mvc(CreateCompanyUseCase useCase, ChangeCompanyStatusUseCase statusUseCase,
             ListCompaniesUseCase listUseCase, AuthenticatedActor actor) {
+        return mvc(useCase, statusUseCase, listUseCase,
+                (companyId, principal) -> { throw new UnsupportedOperationException("Detail use case is required"); }, actor);
+    }
+    private static MockMvc mvc(CreateCompanyUseCase useCase, ChangeCompanyStatusUseCase statusUseCase,
+            ListCompaniesUseCase listUseCase, GetCompanyUseCase detailUseCase, AuthenticatedActor actor) {
         InboundJwtAuthenticator authenticator = mock(InboundJwtAuthenticator.class);
         when(authenticator.authenticate("valid")).thenReturn(UsernamePasswordAuthenticationToken.authenticated(actor, "valid", List.of()));
-        return MockMvcBuilders.standaloneSetup(new CompanyController(useCase, statusUseCase, listUseCase)).setControllerAdvice(new CompanyValidationErrorHandler())
+        return MockMvcBuilders.standaloneSetup(new CompanyController(useCase, statusUseCase, listUseCase, detailUseCase,
+                principal -> { throw new UnsupportedOperationException("Currency use case is required"); })).setControllerAdvice(new CompanyValidationErrorHandler())
                 .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
                 .addFilters(new InboundJwtAuthenticationFilter(authenticator, new RestAuthenticationEntryPoint())).build();
     }

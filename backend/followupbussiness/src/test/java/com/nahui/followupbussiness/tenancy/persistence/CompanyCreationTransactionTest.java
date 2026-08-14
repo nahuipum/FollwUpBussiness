@@ -16,6 +16,7 @@ import com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActo
 import com.nahui.followupbussiness.identityaccess.domain.model.BaseRole;
 import com.nahui.followupbussiness.tenancy.adapter.out.persistence.JdbcCompanyCreationStore;
 import com.nahui.followupbussiness.tenancy.adapter.out.persistence.JdbcCompanyCodeGenerator;
+import com.nahui.followupbussiness.tenancy.adapter.out.persistence.JdbcCompanyDetailStore;
 import com.nahui.followupbussiness.tenancy.application.CreateCompanyCommand;
 import com.nahui.followupbussiness.tenancy.application.CreateCompanyService;
 import com.nahui.followupbussiness.tenancy.config.TenancyConfiguration;
@@ -62,6 +63,10 @@ class CompanyCreationTransactionTest {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM tenancy_company", Integer.class)).isEqualTo(1);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM tenancy_company_settings", Integer.class)).isEqualTo(1);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM audit_entry WHERE scope = 'PLATFORM' AND tenant_id IS NULL", Integer.class)).isEqualTo(1);
+    }
+    @Test void createdCompanyIsAvailableToThePlatformDetailQueryByItsReturnedId() {
+        var created = execute(audit());
+        assertThat(new JdbcCompanyDetailStore(jdbc).findById(created.id())).contains(created);
     }
     @Test void rollsBackCompanyAndSettingsWhenAuditFails() {
         RecordPlatformCompanyAuditUseCase failing = command -> { throw new IllegalStateException("audit unavailable"); };
@@ -132,8 +137,8 @@ class CompanyCreationTransactionTest {
     private RecordCompanyDenialAuditUseCase denialAudit() {
         return new RecordCompanyDenialAudit(new JdbcAuditEntryStore(jdbc, jdbc), new SecurityContextCompanyDenialAuditTrustedContextProvider(Clock.systemUTC()));
     }
-    private void execute(RecordPlatformCompanyAuditUseCase audit) {
-        new TransactionTemplate(new DataSourceTransactionManager(dataSource)).executeWithoutResult(status -> service(audit).execute(command(), actor()));
+    private com.nahui.followupbussiness.tenancy.domain.model.Company execute(RecordPlatformCompanyAuditUseCase audit) {
+        return new TransactionTemplate(new DataSourceTransactionManager(dataSource)).execute(status -> service(audit).execute(command(), actor()).company());
     }
     private com.nahui.followupbussiness.tenancy.application.port.in.CreateCompanyUseCase transactionalService(RecordPlatformCompanyAuditUseCase audit, RecordCompanyDenialAuditUseCase denialAudit) {
         return new TenancyConfiguration().createCompanyUseCase(jdbc, new DataSourceTransactionManager(dataSource), audit, denialAudit);
