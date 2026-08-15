@@ -13,6 +13,12 @@ public interface SellerStore {
 
     Seller insert(Seller seller);
 
+    default boolean existsEmployeeCode(UUID tenantId, String employeeCode, UUID excludingSellerId) { return false; }
+
+    default void lockEmployeeCode(UUID tenantId, String employeeCode) { }
+
+    default Optional<Seller> update(Seller seller, long expectedVersion) { return Optional.empty(); }
+
     Optional<Seller> find(UUID tenantId, UUID sellerId);
 
     List<Seller> list(UUID tenantId, UUID supervisorId, com.nahui.followupbussiness.workforce.domain.TerritoryStatus status,

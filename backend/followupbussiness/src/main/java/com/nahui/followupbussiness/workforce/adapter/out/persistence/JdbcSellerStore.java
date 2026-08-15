@@ -30,11 +30,33 @@ public final class JdbcSellerStore implements SellerStore {
         return n != null && n > 0;
     }
 
+    private boolean exists(String sql, UUID tenant, String value, UUID id) {
+        Integer n = jdbc.queryForObject(sql, Integer.class, tenant, value, id);
+        return n != null && n > 0;
+    }
+
     public Seller insert(Seller s) {
         jdbc.update("insert into workforce_seller(id,tenant_id,user_id,display_name,email,phone,employee_code,supervisor_id,status,created_at,updated_at,version) values(?,?,?,?,?,?,?,?,?,?,?,?)", s.id(), s.tenantId(), s.userId(), s.displayName(), s.email(), s.phone(), s.employeeCode(), s.supervisorId(), s.status().name(), Timestamp.from(s.createdAt()), Timestamp.from(s.updatedAt()), s.version());
         for (UUID territory : s.territoryIds())
             jdbc.update("insert into workforce_seller_territory(seller_id,territory_id) values(?,?)", s.id(), territory);
         return s;
+    }
+
+    @Override
+    public boolean existsEmployeeCode(UUID tenant, String employeeCode, UUID excludingSellerId) {
+        return exists("select count(*) from workforce_seller where tenant_id=? and lower(employee_code)=lower(?) and id<>?", tenant, employeeCode, excludingSellerId);
+    }
+
+    @Override
+    public void lockEmployeeCode(UUID tenant, String employeeCode) {
+        jdbc.queryForObject("select pg_advisory_xact_lock(hashtextextended(?::text, 0))", Long.class, tenant + ":" + employeeCode.toLowerCase(Locale.ROOT));
+    }
+
+    @Override
+    public Optional<Seller> update(Seller seller, long expectedVersion) {
+        int updated = jdbc.update("update workforce_seller set display_name=?,phone=?,employee_code=?,updated_at=?,version=? where tenant_id=? and id=? and version=?",
+                seller.displayName(), seller.phone(), seller.employeeCode(), Timestamp.from(seller.updatedAt()), seller.version(), seller.tenantId(), seller.id(), expectedVersion);
+        return updated == 1 ? Optional.of(seller) : Optional.empty();
     }
 
     public Optional<Seller> find(UUID tenant, UUID id) {

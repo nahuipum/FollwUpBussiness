@@ -1,6 +1,7 @@
 package com.nahui.followupbussiness.workforce.adapter.in.rest;
 
 import com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.nahui.followupbussiness.workforce.application.SellerService;
 import com.nahui.followupbussiness.workforce.domain.Seller;
 import com.nahui.followupbussiness.workforce.domain.TerritoryStatus;
@@ -12,6 +13,7 @@ import java.time.Instant;
 import java.util.*;
 
 import org.springframework.http.*;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -67,6 +69,27 @@ public final class SellerController {
         }
     }
 
+    @PatchMapping("/{sellerId}")
+    public ResponseEntity<?> update(@PathVariable UUID sellerId, @RequestHeader("If-Match") String ifMatch,
+                                    @Valid @RequestBody Update request, @AuthenticationPrincipal AuthenticatedActor actor,
+                                    HttpServletRequest http) {
+        UUID correlation = correlationId(http);
+        try {
+            if (!request.hasChanges()) return problem(HttpStatus.BAD_REQUEST, correlation);
+            Seller seller = service.update(sellerId, new SellerService.Update(request.displayName(), request.phone(), request.employeeCode()),
+                    Long.parseLong(ifMatch.replace("\"", "")), actor, correlation);
+            return ResponseEntity.ok().eTag(Long.toString(seller.version())).header("X-Correlation-Id", correlation.toString()).body(Response.from(seller));
+        } catch (IllegalArgumentException exception) {
+            return problem(HttpStatus.BAD_REQUEST, correlation);
+        } catch (SellerService.Forbidden exception) {
+            return problem(HttpStatus.FORBIDDEN, correlation);
+        } catch (SellerService.NotFound exception) {
+            return problem(HttpStatus.NOT_FOUND, correlation);
+        } catch (SellerService.Conflict | DataIntegrityViolationException exception) {
+            return problem(HttpStatus.CONFLICT, correlation);
+        }
+    }
+
     private static ResponseEntity<ProblemDetail> problem(HttpStatus status, UUID correlation) {
         ProblemDetail p = ProblemDetail.forStatusAndDetail(status, "Request cannot be processed");
         p.setProperty("correlationId", correlation.toString());
@@ -86,6 +109,48 @@ public final class SellerController {
     record Create(@NotBlank @Size(min = 2, max = 160) String displayName, @Size(min = 3, max = 100) String username,
                   @NotBlank @Email @Size(max = 254) String email, @Size(max = 30) String phone,
                   @Size(max = 50) String employeeCode, UUID supervisorId, List<UUID> territoryIds) {
+    }
+
+    static final class Update {
+        @Size(min = 2, max = 160)
+        private String displayName;
+        @Size(max = 30)
+        private String phone;
+        @Size(max = 50)
+        private String employeeCode;
+
+        public String displayName() {
+            return displayName;
+        }
+
+        public String phone() {
+            return phone;
+        }
+
+        public String employeeCode() {
+            return employeeCode;
+        }
+
+        public void setDisplayName(String displayName) {
+            this.displayName = displayName;
+        }
+
+        public void setPhone(String phone) {
+            this.phone = phone;
+        }
+
+        public void setEmployeeCode(String employeeCode) {
+            this.employeeCode = employeeCode;
+        }
+
+        public boolean hasChanges() {
+            return displayName != null || phone != null || employeeCode != null;
+        }
+
+        @JsonAnySetter
+        void unknown(String key, Object ignored) {
+            throw new IllegalArgumentException("unknown property");
+        }
     }
 
     record Response(UUID id, UUID userId, String displayName, String email, String phone, String employeeCode,

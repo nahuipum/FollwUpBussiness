@@ -52,6 +52,28 @@ public class SellerService {
         return seller.filter(value -> actor.accountId().equals(value.supervisorId()));
     }
 
+    @Transactional
+    public Seller update(UUID sellerId, Update command, long version, AuthenticatedActor actor, UUID correlationId) {
+        UUID tenant = admin(actor);
+        if (sellerId == null || command == null || !command.hasChanges()) throw new Invalid();
+        Seller before = store.find(tenant, sellerId).orElseThrow(NotFound::new);
+        if (version != before.version()) throw new Conflict();
+        String displayName = command.displayName() == null ? before.displayName() : clean(command.displayName());
+        String phone = command.phone() == null ? before.phone() : optional(command.phone());
+        String employeeCode = command.employeeCode() == null ? before.employeeCode() : optional(command.employeeCode());
+        if (command.employeeCode() != null && employeeCode != null) {
+            store.lockEmployeeCode(tenant, employeeCode);
+            if (store.existsEmployeeCode(tenant, employeeCode, sellerId)) throw new Conflict();
+        }
+        if (before.displayName().equals(displayName) && Objects.equals(before.phone(), phone) && Objects.equals(before.employeeCode(), employeeCode))
+            return before;
+        Seller after = new Seller(before.id(), tenant, before.userId(), displayName, before.email(), phone, employeeCode, before.supervisorId(), before.territoryIds(), before.status(), before.createdAt(), clock.instant(), before.version() + 1);
+        Seller saved = store.update(after, version).orElseThrow(Conflict::new);
+        if (!audit.record(new RecordAuditEntryCommand(AuditAction.CRITICAL_MUTATION, AuditResourceType.SELLER, sellerId, AuditResult.SUCCESS, Map.of(), Map.of("operation", "PROFILE_UPDATED"))))
+            throw new IllegalStateException("Seller audit was not persisted");
+        return saved;
+    }
+
     public Page list(TerritoryStatus status, UUID requestedSupervisorId, UUID territoryId, String search, int page, int size, AuthenticatedActor actor) {
         UUID tenant = listViewer(actor);
         UUID teamSupervisor = actor.role() == BaseRole.SUPERVISOR ? actor.accountId() : null;
@@ -102,6 +124,12 @@ public class SellerService {
                           UUID supervisorId, List<UUID> territoryIds) {
     }
 
+    public record Update(String displayName, String phone, String employeeCode) {
+        public boolean hasChanges() {
+            return displayName != null || phone != null || employeeCode != null;
+        }
+    }
+
     public record Page(List<Seller> items, long total) {
     }
 
@@ -109,6 +137,9 @@ public class SellerService {
     }
 
     public static final class Conflict extends RuntimeException {
+    }
+
+    public static final class NotFound extends RuntimeException {
     }
 
     public static final class Invalid extends RuntimeException {
