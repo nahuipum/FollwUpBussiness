@@ -15,7 +15,9 @@ info:
       horaria de la empresa.
     - Importes usan decimal; el servidor recalcula totales.
     - Comandos mobile sensibles requieren idempotencia.
-    - Un `correlationId` se devuelve tanto en éxito como en error.
+    - Toda operación REST acepta opcionalmente `X-Correlation-Id` conforme a
+      `correlation-id-contract.md`, y devuelve el ID efectivo tanto en éxito
+      como en error.
     - Auth WEB usa refresh solo en cookie HttpOnly; MOBILE usa body solo fuera
       de contexto navegador. El canal nunca concede identidad, tenant o rol.
   contact:
@@ -100,6 +102,7 @@ paths:
       security: []
       x-story-ids: [EN-013, BE-003, FE-001, MOB-001, INT-002, INT-003]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/AuthClient'
         - $ref: '#/components/parameters/ClientInstanceId'
       requestBody:
@@ -146,6 +149,7 @@ paths:
         - {}
       x-story-ids: [EN-013, BE-004, FE-003, MOB-002, INT-002, INT-003]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/AuthClient'
         - $ref: '#/components/parameters/ClientInstanceId'
         - $ref: '#/components/parameters/WebCsrfToken'
@@ -203,6 +207,7 @@ paths:
       x-required-roles: [PLATFORM_SUPERADMIN, COMPANY_ADMIN, SUPERVISOR, SELLER]
       x-story-ids: [EN-013, BE-005, FE-003, MOB-002, INT-002, INT-003]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/AuthClient'
         - $ref: '#/components/parameters/ClientInstanceId'
         - $ref: '#/components/parameters/WebCsrfToken'
@@ -236,6 +241,7 @@ paths:
       security: []
       x-story-ids: [EN-013, BE-006, BE-057, FE-002, MOB-001]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/AuthClient'
         - $ref: '#/components/parameters/ClientInstanceId'
       requestBody:
@@ -270,6 +276,7 @@ paths:
       security: []
       x-story-ids: [EN-013, BE-006, BE-057, FE-002, MOB-001]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/AuthClient'
         - $ref: '#/components/parameters/ClientInstanceId'
       requestBody:
@@ -292,12 +299,15 @@ paths:
 
   /me:
     get:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       tags: [Authentication]
       operationId: getCurrentUser
       summary: Consultar identidad, empresa, roles y permisos actuales
       x-required-roles: [PLATFORM_SUPERADMIN, COMPANY_ADMIN, SUPERVISOR, SELLER]
       x-story-ids: [BE-003, BE-007, FE-003, MOB-001]
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Identidad autenticada
           headers:
@@ -322,11 +332,13 @@ paths:
       x-required-roles: [PLATFORM_SUPERADMIN]
       x-story-ids: [BE-056]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - name: eventId
           in: path
           required: true
           schema: { type: string, format: uuid }
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '202':
           description: Evento reencolado para un nuevo ciclo limitado de publicación
           headers:
@@ -343,6 +355,7 @@ paths:
       x-required-roles: [PLATFORM_SUPERADMIN]
       x-story-ids: [BE-001, BE-002, FE-039]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/PageSize'
         - $ref: '#/components/parameters/Search'
@@ -350,6 +363,7 @@ paths:
           in: query
           schema: { $ref: '#/components/schemas/CompanyStatus' }
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Empresas paginadas
           headers:
@@ -361,6 +375,8 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
     post:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       tags: [Platform companies]
       operationId: createCompany
       summary: Crear una empresa con configuración inicial
@@ -391,11 +407,14 @@ paths:
 
   /platform/companies/currencies:
     get:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       tags: [Platform companies]
       operationId: listCompanyCurrencies
       summary: Listar monedas disponibles para crear una empresa
       x-required-roles: [PLATFORM_SUPERADMIN]
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Monedas activas del catálogo
           content:
@@ -410,12 +429,15 @@ paths:
     parameters:
       - $ref: '#/components/parameters/CompanyId'
     get:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       tags: [Platform companies]
       operationId: getCompany
       summary: Consultar una empresa
       x-required-roles: [PLATFORM_SUPERADMIN]
       x-story-ids: [BE-001, BE-002]
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Empresa
           content:
@@ -429,6 +451,8 @@ paths:
     parameters:
       - $ref: '#/components/parameters/CompanyId'
     patch:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       tags: [Platform companies]
       operationId: changeCompanyStatus
       summary: Suspender o reactivar una empresa
@@ -441,6 +465,7 @@ paths:
             schema:
               $ref: '#/components/schemas/ChangeCompanyStatusRequest'
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Estado actualizado
           content:
@@ -455,6 +480,8 @@ paths:
     parameters:
       - $ref: '#/components/parameters/CompanyId'
     post:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       tags: [Platform companies]
       operationId: provisionInitialCompanyAdmin
       summary: Invitar al administrador inicial de una empresa
@@ -484,12 +511,15 @@ paths:
     parameters:
       - $ref: '#/components/parameters/CompanyId'
     get:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       tags: [Platform companies]
       operationId: listCompanyAdminInvitations
       summary: Consultar administradores e invitaciones de una empresa
       x-required-roles: [PLATFORM_SUPERADMIN]
       x-story-ids: [FE-039]
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Administradores y estado de su invitación
           content:
@@ -508,6 +538,7 @@ paths:
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
       x-story-ids: [BE-058, FE-004]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/PageSize'
         - $ref: '#/components/parameters/Search'
@@ -518,6 +549,7 @@ paths:
           in: query
           schema: { $ref: '#/components/schemas/UserStatus' }
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Usuarios paginados
           content:
@@ -526,6 +558,8 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
     post:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       tags: [Company users]
       operationId: inviteCompanyUser
       summary: Invitar un administrador o supervisor
@@ -552,12 +586,15 @@ paths:
     parameters:
       - $ref: '#/components/parameters/UserId'
     get:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       tags: [Company users]
       operationId: getCompanyUser
       summary: Consultar un usuario de empresa
       x-required-roles: [COMPANY_ADMIN]
       x-story-ids: [BE-058, FE-004]
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Usuario
           content:
@@ -572,6 +609,7 @@ paths:
       x-required-roles: [COMPANY_ADMIN]
       x-story-ids: [BE-058, FE-004]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/IfMatch'
       requestBody:
         required: true
@@ -580,6 +618,7 @@ paths:
             schema:
               $ref: '#/components/schemas/UpdateCompanyUserRequest'
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Usuario actualizado
           content:
@@ -594,6 +633,8 @@ paths:
     parameters:
       - $ref: '#/components/parameters/UserId'
     patch:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       tags: [Company users]
       operationId: changeCompanyUserStatus
       summary: Bloquear o reactivar un usuario
@@ -606,6 +647,7 @@ paths:
             schema:
               $ref: '#/components/schemas/ChangeUserStatusRequest'
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Estado actualizado y sesiones revocadas cuando aplica
           content:
@@ -630,6 +672,7 @@ paths:
       x-required-roles: [COMPANY_ADMIN]
       x-story-ids: [BE-063, FE-043]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/IfMatch'
       requestBody:
         required: true
@@ -652,12 +695,15 @@ paths:
 
   /company/settings:
     get:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       tags: [Settings]
       operationId: getCompanySettings
       summary: Consultar configuración operativa
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR, SELLER]
       x-story-ids: [BE-054, FE-033, MOB-011, MOB-017]
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Configuración vigente y versión
           content:
@@ -671,6 +717,7 @@ paths:
       x-required-roles: [COMPANY_ADMIN]
       x-story-ids: [BE-054, FE-033]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/IfMatch'
       requestBody:
         required: true
@@ -679,6 +726,7 @@ paths:
             schema:
               $ref: '#/components/schemas/UpdateCompanySettingsRequest'
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Configuración actualizada
           content:
@@ -696,6 +744,7 @@ paths:
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
       x-story-ids: [BE-062, FE-037]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/PageSize'
         - $ref: '#/components/parameters/Search'
@@ -703,6 +752,7 @@ paths:
           in: query
           schema: { $ref: '#/components/schemas/EntityStatus' }
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Territorios paginados
           content:
@@ -710,6 +760,8 @@ paths:
               schema: { $ref: '#/components/schemas/TerritoryPage' }
         '403': { $ref: '#/components/responses/Forbidden' }
     post:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       tags: [Territories]
       operationId: createTerritory
       summary: Crear una zona o territorio
@@ -721,6 +773,7 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/CreateTerritoryRequest' }
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '201':
           description: Territorio creado
           content:
@@ -734,12 +787,15 @@ paths:
     parameters:
       - $ref: '#/components/parameters/TerritoryId'
     get:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       tags: [Territories]
       operationId: getTerritory
       summary: Consultar un territorio
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
       x-story-ids: [BE-062, FE-037]
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Territorio
           content:
@@ -753,6 +809,7 @@ paths:
       x-required-roles: [COMPANY_ADMIN]
       x-story-ids: [BE-062, FE-037]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/IfMatch'
       requestBody:
         required: true
@@ -760,6 +817,7 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/UpdateTerritoryRequest' }
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Territorio actualizado
           content:
@@ -777,6 +835,7 @@ paths:
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
       x-story-ids: [BE-059, FE-005]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/PageSize'
         - $ref: '#/components/parameters/Search'
@@ -790,6 +849,7 @@ paths:
           in: query
           schema: { type: string, format: uuid }
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Vendedores paginados
           content:
@@ -797,6 +857,8 @@ paths:
               schema: { $ref: '#/components/schemas/SellerPage' }
         '403': { $ref: '#/components/responses/Forbidden' }
     post:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       tags: [Sellers]
       operationId: createSeller
       summary: Crear vendedor y usuario invitado
@@ -822,12 +884,15 @@ paths:
     parameters:
       - $ref: '#/components/parameters/SellerId'
     get:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       tags: [Sellers]
       operationId: getSeller
       summary: Consultar detalle de vendedor
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR, SELLER]
       x-story-ids: [BE-059, FE-005, FE-021]
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Vendedor
           content:
@@ -842,6 +907,7 @@ paths:
       x-required-roles: [COMPANY_ADMIN]
       x-story-ids: [BE-009, FE-006]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/IfMatch'
       requestBody:
         required: true
@@ -849,6 +915,7 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/UpdateSellerRequest' }
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Vendedor actualizado
           content:
@@ -862,6 +929,8 @@ paths:
     parameters:
       - $ref: '#/components/parameters/SellerId'
     patch:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       tags: [Sellers]
       operationId: changeSellerStatus
       summary: Activar o inactivar un vendedor
@@ -873,6 +942,7 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/ChangeEntityStatusRequest' }
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Estado actualizado
           content:
@@ -886,6 +956,8 @@ paths:
     parameters:
       - $ref: '#/components/parameters/SellerId'
     put:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       tags: [Sellers]
       operationId: assignSellerSupervisor
       summary: Asignar supervisor al vendedor
@@ -897,6 +969,7 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/AssignSupervisorRequest' }
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Supervisor asignado
           content:
@@ -910,6 +983,8 @@ paths:
     parameters:
       - $ref: '#/components/parameters/SellerId'
     put:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       tags: [Sellers]
       operationId: assignSellerTerritories
       summary: Reemplazar territorios vigentes del vendedor
@@ -921,6 +996,7 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/AssignTerritoriesRequest' }
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Territorios asignados
           content:
@@ -938,6 +1014,7 @@ paths:
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR, SELLER]
       x-story-ids: [BE-016, FE-008, FE-010]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/PageSize'
         - $ref: '#/components/parameters/Search'
@@ -960,6 +1037,7 @@ paths:
           in: query
           schema: { type: string, format: date }
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Clientes paginados
           content:
@@ -967,6 +1045,8 @@ paths:
               schema: { $ref: '#/components/schemas/CustomerPage' }
         '403': { $ref: '#/components/responses/Forbidden' }
     post:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       tags: [Customers]
       operationId: createCustomer
       summary: Crear un cliente geolocalizado
@@ -992,12 +1072,15 @@ paths:
     parameters:
       - $ref: '#/components/parameters/CustomerId'
     get:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       tags: [Customers]
       operationId: getCustomer
       summary: Consultar ficha de cliente
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR, SELLER]
       x-story-ids: [BE-016, FE-008, FE-009]
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Cliente
           content:
@@ -1012,6 +1095,7 @@ paths:
       x-required-roles: [COMPANY_ADMIN]
       x-story-ids: [BE-014, FE-009, INT-005]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/IfMatch'
       requestBody:
         required: true
@@ -1019,6 +1103,7 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/UpdateCustomerRequest' }
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Cliente actualizado
           content:
@@ -1031,6 +1116,8 @@ paths:
 
   /customers/duplicate-checks:
     post:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       tags: [Customers]
       operationId: checkCustomerDuplicates
       summary: Buscar posibles clientes duplicados
@@ -1042,6 +1129,7 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/CustomerDuplicateCheckRequest' }
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Candidatos y razones
           content:
@@ -1054,6 +1142,8 @@ paths:
     parameters:
       - $ref: '#/components/parameters/CustomerId'
     put:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       tags: [Customers]
       operationId: assignCustomer
       summary: Asignar o reasignar un cliente
@@ -1065,6 +1155,7 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/AssignCustomerRequest' }
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Asignación vigente
           content:
@@ -1083,6 +1174,7 @@ paths:
       x-required-roles: [COMPANY_ADMIN]
       x-story-ids: [BE-060, FE-036, INT-034]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
@@ -1090,6 +1182,7 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/BatchAssignCustomersRequest' }
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Resultado por cliente
           content:
@@ -1109,11 +1202,13 @@ paths:
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
       x-story-ids: [BE-017, FE-011, INT-020]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/DateFrom'
         - $ref: '#/components/parameters/DateTo'
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/PageSize'
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Historial de cliente
           content:
@@ -1124,12 +1219,15 @@ paths:
 
   /customers/import-template:
     get:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       tags: [Customer imports]
       operationId: downloadCustomerImportTemplate
       summary: Descargar plantilla versionada de clientes
       x-required-roles: [COMPANY_ADMIN]
       x-story-ids: [BE-018, FE-012]
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Plantilla CSV o XLSX
           headers:
@@ -1150,6 +1248,7 @@ paths:
       x-required-roles: [COMPANY_ADMIN]
       x-story-ids: [BE-019, FE-012, INT-006]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
@@ -1186,12 +1285,15 @@ paths:
     parameters:
       - $ref: '#/components/parameters/ImportId'
     get:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       tags: [Customer imports]
       operationId: getCustomerImport
       summary: Consultar estado y resultado de importación
       x-required-roles: [COMPANY_ADMIN]
       x-story-ids: [BE-019, FE-013, INT-006]
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Trabajo de importación
           content:
@@ -1204,12 +1306,15 @@ paths:
     parameters:
       - $ref: '#/components/parameters/ImportId'
     get:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       tags: [Customer imports]
       operationId: downloadCustomerImportErrors
       summary: Descargar errores seguros de una importación
       x-required-roles: [COMPANY_ADMIN]
       x-story-ids: [BE-020, FE-013, INT-006]
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Archivo de errores
           content:
@@ -1227,6 +1332,7 @@ paths:
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
       x-story-ids: [BE-061, FE-014]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/PageSize'
         - name: date
@@ -1253,6 +1359,7 @@ paths:
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
       x-story-ids: [BE-021, FE-015, INT-007]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
@@ -1277,12 +1384,15 @@ paths:
     parameters:
       - $ref: '#/components/parameters/RouteId'
     get:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       tags: [Routes]
       operationId: getRoute
       summary: Consultar una ruta
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR, SELLER]
       x-story-ids: [BE-061, FE-014, MOB-004]
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Ruta
           content:
@@ -1297,6 +1407,7 @@ paths:
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
       x-story-ids: [BE-021, FE-015, INT-007]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/IfMatch'
       requestBody:
         required: true
@@ -1317,6 +1428,8 @@ paths:
 
   /routes/optimize:
     post:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       tags: [Routes]
       operationId: optimizeRoute
       summary: Generar propuesta de ruta automática básica
@@ -1353,6 +1466,7 @@ paths:
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
       x-story-ids: [BE-023, FE-015, FE-016]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/IfMatch'
       requestBody:
         required: true
@@ -1381,6 +1495,7 @@ paths:
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
       x-story-ids: [BE-024, BE-053, FE-017, MOB-029, INT-007]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/IdempotencyKey'
         - $ref: '#/components/parameters/IfMatch'
       requestBody:
@@ -1389,6 +1504,7 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/PublishRouteRequest' }
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Ruta publicada
           content:
@@ -1409,6 +1525,7 @@ paths:
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
       x-story-ids: [BE-025, FE-018, INT-009]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/IdempotencyKey'
         - $ref: '#/components/parameters/IfMatch'
       requestBody:
@@ -1417,6 +1534,7 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/ReassignRouteRequest' }
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Ruta reasignada
           content:
@@ -1437,6 +1555,7 @@ paths:
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
       x-story-ids: [BE-026, FE-015]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
@@ -1444,6 +1563,7 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/CopyRouteRequest' }
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '201':
           description: Copia en borrador
           content:
@@ -1461,6 +1581,7 @@ paths:
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
       x-story-ids: [BE-027, FE-016]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - name: sellerId
           in: query
           required: true
@@ -1488,11 +1609,13 @@ paths:
       x-required-roles: [SELLER]
       x-story-ids: [BE-061, MOB-004, MOB-005]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - name: date
           in: query
           required: true
           schema: { type: string, format: date }
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Ruta del vendedor
           content:
@@ -1505,12 +1628,15 @@ paths:
     parameters:
       - $ref: '#/components/parameters/RouteId'
     get:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       tags: [Routes, Tracking]
       operationId: getRouteExecution
       summary: Comparar la ruta planificada con la ejecutada
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
       x-story-ids: [FE-019, INT-039]
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Ejecución de ruta
           content:
@@ -1527,6 +1653,7 @@ paths:
       x-required-roles: [SELLER]
       x-story-ids: [BE-028, MOB-007, INT-010]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
@@ -1546,12 +1673,15 @@ paths:
 
   /journeys/current:
     get:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       tags: [Journeys]
       operationId: getCurrentJourney
       summary: Recuperar la jornada activa propia
       x-required-roles: [SELLER]
       x-story-ids: [BE-028, MOB-007, MOB-015]
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Jornada activa
           content:
@@ -1564,12 +1694,15 @@ paths:
     parameters:
       - $ref: '#/components/parameters/JourneyId'
     get:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       tags: [Journeys]
       operationId: getJourney
       summary: Consultar una jornada
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR, SELLER]
       x-story-ids: [BE-028, BE-032, FE-021]
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Jornada
           content:
@@ -1589,6 +1722,7 @@ paths:
       x-required-roles: [SELLER]
       x-story-ids: [BE-029, BE-030, BE-031, MOB-008, MOB-009, INT-011]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
@@ -1619,6 +1753,7 @@ paths:
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
       x-story-ids: [BE-032, FE-022, INT-012]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/PageSize'
         - name: sellerId
@@ -1632,6 +1767,7 @@ paths:
           description: Fecha operativa usada por el filtro FE-022; debe coincidir con la jornada.
           schema: { type: string, format: date }
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Recorrido
           content:
@@ -1650,6 +1786,7 @@ paths:
       x-required-roles: [SELLER]
       x-story-ids: [BE-033, MOB-024, MOB-025, INT-023]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
@@ -1676,6 +1813,7 @@ paths:
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
       x-story-ids: [BE-030, BE-031, FE-020, FE-021, INT-011]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/PageSize'
         - name: supervisorId
@@ -1683,6 +1821,7 @@ paths:
           description: Filtro opcional solo para COMPANY_ADMIN; para SUPERVISOR se omite o debe coincidir con su identidad, sin ampliar su equipo.
           schema: { type: string, format: uuid }
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Presencia activa
           content:
@@ -1692,6 +1831,8 @@ paths:
 
   /visits/proximity-validations:
     post:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       tags: [Visits]
       operationId: validateVisitProximity
       summary: Validar proximidad del vendedor al cliente
@@ -1720,6 +1861,7 @@ paths:
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR, SELLER]
       x-story-ids: [BE-040, FE-023, INT-016]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/PageSize'
         - $ref: '#/components/parameters/DateFrom'
@@ -1754,6 +1896,7 @@ paths:
       x-required-roles: [SELLER]
       x-story-ids: [BE-035, BE-037, MOB-013, MOB-014, MOB-018, INT-013, INT-015]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
@@ -1775,12 +1918,15 @@ paths:
     parameters:
       - $ref: '#/components/parameters/VisitId'
     get:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       tags: [Visits]
       operationId: getVisit
       summary: Consultar detalle de visita
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR, SELLER]
       x-story-ids: [BE-040, FE-024, INT-016]
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Visita
           content:
@@ -1799,6 +1945,7 @@ paths:
       x-required-roles: [SELLER]
       x-story-ids: [BE-036, MOB-016, MOB-017, INT-014]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
@@ -1827,6 +1974,7 @@ paths:
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
       x-story-ids: [BE-039, FE-025]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/IfMatch'
       requestBody:
         required: true
@@ -1853,6 +2001,7 @@ paths:
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
       x-story-ids: [BE-038, FE-038, INT-036]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
@@ -1872,12 +2021,15 @@ paths:
 
   /visits/results:
     get:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       tags: [Visits]
       operationId: listVisitResults
       summary: Listar resultados permitidos para cerrar visita
       x-required-roles: [SELLER, SUPERVISOR, COMPANY_ADMIN]
       x-story-ids: [BE-036, MOB-017]
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Catálogo de resultados
           content:
@@ -1895,6 +2047,7 @@ paths:
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR, SELLER]
       x-story-ids: [BE-041, FE-035, MOB-019, INT-035]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/PageSize'
         - $ref: '#/components/parameters/Search'
@@ -1910,6 +2063,8 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '403': { $ref: '#/components/responses/Forbidden' }
     post:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       tags: [Products]
       operationId: createProduct
       summary: Crear producto
@@ -1934,12 +2089,15 @@ paths:
     parameters:
       - $ref: '#/components/parameters/ProductId'
     get:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       tags: [Products]
       operationId: getProduct
       summary: Consultar producto
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR, SELLER]
       x-story-ids: [BE-041, FE-035, MOB-019]
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Producto
           content:
@@ -1954,6 +2112,7 @@ paths:
       x-required-roles: [COMPANY_ADMIN]
       x-story-ids: [BE-041, FE-035, INT-035]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/IfMatch'
       requestBody:
         required: true
@@ -1979,6 +2138,7 @@ paths:
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR, SELLER]
       x-story-ids: [BE-046, FE-026, FE-027, INT-019]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/PageSize'
         - $ref: '#/components/parameters/DateFrom'
@@ -2007,6 +2167,7 @@ paths:
       x-required-roles: [SELLER]
       x-story-ids: [BE-042, MOB-020, MOB-021, MOB-022, INT-017, INT-018]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
@@ -2028,12 +2189,15 @@ paths:
     parameters:
       - $ref: '#/components/parameters/SaleId'
     get:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       tags: [Sales]
       operationId: getSale
       summary: Consultar venta
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR, SELLER]
       x-story-ids: [BE-046, FE-027]
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Venta
           content:
@@ -2048,6 +2212,7 @@ paths:
       x-required-roles: [SELLER]
       x-story-ids: [BE-043, MOB-032, INT-037]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/IdempotencyKey'
         - $ref: '#/components/parameters/IfMatch'
       requestBody:
@@ -2077,6 +2242,7 @@ paths:
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
       x-story-ids: [BE-044, FE-029]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/IdempotencyKey'
         - $ref: '#/components/parameters/IfMatch'
       requestBody:
@@ -2103,6 +2269,7 @@ paths:
       x-required-roles: [SELLER]
       x-story-ids: [BE-045, MOB-023, MOB-031, INT-019]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - name: date
           in: query
           required: true
@@ -2124,6 +2291,7 @@ paths:
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
       x-story-ids: [BE-047, FE-030, INT-022]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - name: date
           in: query
           required: true
@@ -2150,6 +2318,7 @@ paths:
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
       x-story-ids: [BE-048, FE-028, INT-021]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/DateFrom'
         - $ref: '#/components/parameters/DateTo'
       responses:
@@ -2172,6 +2341,7 @@ paths:
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
       x-story-ids: [BE-049, FE-011, INT-020]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/DateFrom'
         - $ref: '#/components/parameters/DateTo'
       responses:
@@ -2192,6 +2362,7 @@ paths:
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
       x-story-ids: [BE-047, BE-048, FE-031]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/DateFrom'
         - $ref: '#/components/parameters/DateTo'
         - name: territoryId
@@ -2214,6 +2385,7 @@ paths:
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
       x-story-ids: [BE-050, FE-031, INT-040]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
@@ -2237,12 +2409,15 @@ paths:
     parameters:
       - $ref: '#/components/parameters/ExportId'
     get:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       tags: [Reports]
       operationId: getReportExport
       summary: Consultar estado de exportación
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
       x-story-ids: [BE-050, FE-031, INT-040]
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Trabajo de exportación
           content:
@@ -2255,12 +2430,15 @@ paths:
     parameters:
       - $ref: '#/components/parameters/ExportId'
     get:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       tags: [Reports]
       operationId: downloadReportExport
       summary: Descargar una exportación terminada
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
       x-story-ids: [BE-050, FE-031, INT-040]
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Archivo exportado
           content:
@@ -2281,6 +2459,7 @@ paths:
       x-required-roles: [COMPANY_ADMIN]
       x-story-ids: [BE-051, BE-052, FE-032, INT-025]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/PageSize'
         - $ref: '#/components/parameters/DateFrom'
@@ -2314,6 +2493,7 @@ paths:
       x-required-roles: [SELLER]
       x-story-ids: [MOB-029, BE-053]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
@@ -2334,12 +2514,15 @@ paths:
     parameters:
       - $ref: '#/components/parameters/DeviceId'
     delete:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
       tags: [Devices]
       operationId: unregisterDevice
       summary: Revocar registro push del dispositivo propio
       x-required-roles: [SELLER]
       x-story-ids: [MOB-002, MOB-029]
       responses:
+        '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '204':
           description: Resuelve atómicamente tenant+usuario derivados+deviceId y devuelve 204 con resultado/tiempo indistinguibles para dispositivo propio, ajeno, revocado o inexistente; no revela pertenencia. Autenticación y rol se validan antes.
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -2352,6 +2535,7 @@ paths:
       x-required-roles: [SELLER]
       x-story-ids: [MOB-004, MOB-005, MOB-019, MOB-027]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - name: since
           in: query
           description: Cursor opaco retornado por una descarga anterior; omitir para carga completa.
@@ -2374,6 +2558,7 @@ paths:
       x-required-roles: [SELLER]
       x-story-ids: [MOB-010, MOB-014, MOB-022, MOB-025, MOB-028, INT-015, INT-018]
       parameters:
+        - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
@@ -2411,11 +2596,17 @@ components:
 
   headers:
     CorrelationId:
-      description: Identificador de trazabilidad de extremo a extremo.
+      description: |
+        ID efectivo de trazabilidad E2E. Siempre es el UUID canónico definido
+        en `correlation-id-contract.md`; es idéntico al campo `correlationId`
+        del problema cuando la respuesta es `application/problem+json`.
       schema:
         type: string
-        minLength: 1
-        maxLength: 100
+        format: uuid
+        pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+        minLength: 36
+        maxLength: 36
+        example: 018f4e22-7f40-4b9a-a8f9-5e9a3d7b1c20
     NoStore:
       description: Impide almacenar respuestas que contienen o alteran credenciales.
       schema: { type: string, const: no-store }
@@ -2504,6 +2695,20 @@ components:
       required: true
       description: UUID estable por comando lógico; reutilizarlo en reintentos del mismo comando.
       schema: { type: string, format: uuid }
+    CorrelationId:
+      name: X-Correlation-Id
+      in: header
+      required: false
+      description: |
+        ID de trazabilidad opcional aplicable a toda operación REST. El nombre
+        de header es insensible a mayúsculas/minúsculas; el valor debe cumplir
+        el contrato global. Un valor inválido produce `400 CORRELATION_ID_INVALID`.
+      schema:
+        type: string
+        format: uuid
+        pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+        minLength: 36
+        maxLength: 36
     CompanyId:
       name: companyId
       in: path
@@ -2571,8 +2776,17 @@ components:
       schema: { type: string, format: uuid }
 
   responses:
+    CorrelationIdInvalid:
+      description: Header `X-Correlation-Id` vacío, duplicado, no canónico o fuera de formato; ningún caso de negocio se ejecuta.
+      x-error-codes: [CORRELATION_ID_INVALID]
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
     BadRequest:
       description: Solicitud mal formada
+      x-error-codes: [CORRELATION_ID_INVALID, VALIDATION_FAILED]
       headers:
         X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
       content:
@@ -2588,7 +2802,7 @@ components:
           schema: { $ref: '#/components/schemas/ErrorResponse' }
     AuthRequestInvalid:
       description: Canal/origen de autenticación incompatible o solicitud mal formada
-      x-error-codes: [AUTH_CLIENT_CHANNEL_INVALID, VALIDATION_FAILED]
+      x-error-codes: [CORRELATION_ID_INVALID, AUTH_CLIENT_CHANNEL_INVALID, VALIDATION_FAILED]
       headers:
         X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
         Cache-Control: { $ref: '#/components/headers/NoStore' }
@@ -2633,7 +2847,7 @@ components:
           schema: { $ref: '#/components/schemas/ErrorResponse' }
     PasswordResetInvalid:
       description: Token malformado, desconocido, consumido o de propósito incompatible
-      x-error-codes: [PASSWORD_RESET_TOKEN_INVALID, AUTH_CLIENT_CHANNEL_INVALID, VALIDATION_FAILED]
+      x-error-codes: [CORRELATION_ID_INVALID, PASSWORD_RESET_TOKEN_INVALID, AUTH_CLIENT_CHANNEL_INVALID, VALIDATION_FAILED]
       headers:
         X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
         Cache-Control: { $ref: '#/components/headers/NoStore' }
@@ -2790,11 +3004,18 @@ components:
         code: { type: string, pattern: '^[A-Z][A-Z0-9_]{2,79}$' }
         detail: { type: string, maxLength: 1000 }
         instance: { type: string, format: uri-reference }
-        correlationId: { type: string, maxLength: 100 }
+        correlationId: { $ref: '#/components/schemas/CorrelationId' }
         fieldErrors:
           type: array
           maxItems: 100
           items: { $ref: '#/components/schemas/FieldError' }
+    CorrelationId:
+      type: string
+      format: uuid
+      pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+      minLength: 36
+      maxLength: 36
+      example: 018f4e22-7f40-4b9a-a8f9-5e9a3d7b1c20
     FieldError:
       type: object
       additionalProperties: false
@@ -4315,7 +4536,7 @@ components:
         resourceType: { type: string, maxLength: 100 }
         resourceId: { type: string, format: uuid }
         reason: { type: string, maxLength: 500 }
-        correlationId: { type: string, maxLength: 100 }
+        correlationId: { $ref: '#/components/schemas/CorrelationId' }
         before:
           type: object
           additionalProperties: true

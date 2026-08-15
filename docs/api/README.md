@@ -25,6 +25,11 @@ La relación entre capacidades, operaciones e historias está en
   únicamente fuera de contexto navegador y lo almacena en secure storage.
 - Los códigos de error de auth distinguen expiración, rotación/reutilización y
   reset inválido sin revelar si una cuenta existe.
+- La política única de entrada, validación, propagación y visualización de
+  `X-Correlation-Id` está en
+  [`correlation-id-contract.md`](correlation-id-contract.md); aplica a toda
+  operación REST, aunque el parámetro reutilizable se declare una sola vez en
+  `components.parameters`.
 
 ## Validación
 

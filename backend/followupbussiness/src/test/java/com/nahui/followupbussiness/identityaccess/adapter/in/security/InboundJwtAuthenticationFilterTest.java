@@ -83,7 +83,7 @@ class InboundJwtAuthenticationFilterTest {
         InboundJwtAuthenticator authenticator = mock(InboundJwtAuthenticator.class);
         RestAuthenticationEntryPoint entryPoint = new RestAuthenticationEntryPoint();
         MockMvc mvc = MockMvcBuilders.standaloneSetup(new LoginControllerForTest())
-                .addFilters(new InboundJwtAuthenticationFilter(authenticator, entryPoint))
+                .addFilters(new CorrelationIdFilter(), new InboundJwtAuthenticationFilter(authenticator, entryPoint))
                 .build();
 
         var response = mvc.perform(post("/api/test/protected").header(HttpHeaders.AUTHORIZATION, "not-bearer-token"))
@@ -92,5 +92,6 @@ class InboundJwtAuthenticationFilterTest {
 
         assertThat(response.getContentType()).contains("application/problem+json");
         assertThat(response.getContentAsString()).contains("UNAUTHORIZED");
+        assertThat(response.getContentAsString()).contains(response.getHeader("X-Correlation-Id"));
     }
 }

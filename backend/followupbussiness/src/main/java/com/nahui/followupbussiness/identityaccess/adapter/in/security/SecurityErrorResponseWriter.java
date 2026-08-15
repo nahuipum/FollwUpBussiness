@@ -12,7 +12,7 @@ final class SecurityErrorResponseWriter {
     }
 
     static void write(HttpServletRequest request, HttpServletResponse response, int status, String body) throws IOException {
-        String correlation; try { correlation=java.util.UUID.fromString(request.getHeader("X-Correlation-Id")).toString(); } catch (Exception e) { correlation=java.util.UUID.randomUUID().toString(); }
+        String correlation = correlationId(request);
         response.resetBuffer();
         response.setStatus(status);
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
@@ -20,7 +20,19 @@ final class SecurityErrorResponseWriter {
         response.setHeader("Cache-Control", "no-store");
         response.setHeader("Pragma", "no-cache");
         response.setHeader("X-Correlation-Id", correlation);
-        response.getWriter().write(body);
+        response.getWriter().write(body.substring(0, body.length() - 1) + ",\"correlationId\":\"" + correlation + "\"}");
         response.flushBuffer();
+    }
+
+    private static String correlationId(HttpServletRequest request) {
+        Object current = request.getAttribute(CorrelationIdFilter.REQUEST_ATTRIBUTE);
+        if (current instanceof java.util.UUID correlation) {
+            return correlation.toString();
+        }
+        try {
+            return java.util.UUID.fromString(request.getHeader("X-Correlation-Id")).toString();
+        } catch (Exception ignored) {
+            return java.util.UUID.randomUUID().toString();
+        }
     }
 }

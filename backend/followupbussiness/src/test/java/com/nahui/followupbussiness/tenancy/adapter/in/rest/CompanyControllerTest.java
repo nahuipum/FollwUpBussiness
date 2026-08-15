@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.nahui.followupbussiness.identityaccess.adapter.in.security.InboundJwtAuthenticationFilter;
 import com.nahui.followupbussiness.identityaccess.adapter.in.security.InboundJwtAuthenticator;
 import com.nahui.followupbussiness.identityaccess.adapter.in.security.RestAuthenticationEntryPoint;
+import com.nahui.followupbussiness.identityaccess.adapter.in.security.CorrelationIdFilter;
 import com.nahui.followupbussiness.audit.adapter.out.security.SecurityContextPlatformAuditTrustedContextProvider;
 import com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor;
 import com.nahui.followupbussiness.identityaccess.domain.model.BaseRole;
@@ -134,29 +135,33 @@ class CompanyControllerTest {
                 .andExpect(status().isBadRequest());
         verifyNoInteractions(statusUseCase);
     }
-    @Test void invalidCorrelationIsNotReflectedAndConflictIsNeutral() throws Exception {
+    @Test void invalidCorrelationIsRejectedBeforeTheUseCaseWithoutReflection() throws Exception {
         CreateCompanyUseCase useCase = mock(CreateCompanyUseCase.class);
         when(useCase.execute(any(), any())).thenReturn(CreateCompanyUseCase.Result.conflictResult());
         MockMvc mvc = mvc(useCase, platform());
         mvc.perform(post("/platform/companies").header("Authorization", "Bearer valid").header("X-Correlation-Id", "not-a-uuid")
                         .contentType(MediaType.APPLICATION_JSON).content(validBody()))
-                .andExpect(status().isConflict()).andExpect(header().exists("X-Correlation-Id"))
-                .andExpect(header().string("Cache-Control", "no-store")).andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("not-a-uuid"))));
+                .andExpect(status().isBadRequest()).andExpect(header().exists("X-Correlation-Id"))
+                .andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(jsonPath("$.code").value("CORRELATION_ID_INVALID"))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("not-a-uuid"))));
+        verifyNoInteractions(useCase);
     }
-    @Test void invalidCorrelationIsNormalizedOnceForResponseAndPlatformAuditContext() throws Exception {
+    @Test void validCorrelationIsPreservedForResponseAndPlatformAuditContext() throws Exception {
         AtomicReference<UUID> auditCorrelation = new AtomicReference<>();
+        UUID supplied = UUID.fromString("a0d0cf0e-7b8c-4143-b983-25d9e166aa30");
         var provider = new SecurityContextPlatformAuditTrustedContextProvider(Clock.systemUTC());
         CreateCompanyUseCase useCase = (command, actor) -> {
             auditCorrelation.set(provider.current().correlationId());
             return CreateCompanyUseCase.Result.conflictResult();
         };
         MockMvc mvc = mvc(useCase, platform());
-        var result = mvc.perform(post("/platform/companies").header("Authorization", "Bearer valid").header("X-Correlation-Id", "not-a-uuid")
+        var result = mvc.perform(post("/platform/companies").header("Authorization", "Bearer valid").header("X-Correlation-Id", supplied.toString())
                         .contentType(MediaType.APPLICATION_JSON).content(validBody()))
                 .andExpect(status().isConflict()).andExpect(header().exists("X-Correlation-Id"))
                 .andReturn();
         org.assertj.core.api.Assertions.assertThat(result.getResponse().getHeader("X-Correlation-Id"))
-                .isEqualTo(auditCorrelation.get().toString());
+                .isEqualTo(supplied.toString()).isEqualTo(auditCorrelation.get().toString());
     }
     @Test void companyBoundPlatformRoleIsRejectedByUseCaseBeforePersistence() throws Exception {
         CreateCompanyUseCase useCase = mock(CreateCompanyUseCase.class);
@@ -174,7 +179,7 @@ class CompanyControllerTest {
         when(authenticator.authenticate("valid")).thenReturn(UsernamePasswordAuthenticationToken.authenticated(actor, "valid", List.of()));
         return MockMvcBuilders.standaloneSetup(new CompanyController(useCase, statusUseCase)).setControllerAdvice(new CompanyValidationErrorHandler())
                 .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
-                .addFilters(new InboundJwtAuthenticationFilter(authenticator, new RestAuthenticationEntryPoint())).build();
+                .addFilters(new CorrelationIdFilter(), new InboundJwtAuthenticationFilter(authenticator, new RestAuthenticationEntryPoint())).build();
     }
     private static MockMvc mvc(CreateCompanyUseCase useCase, ChangeCompanyStatusUseCase statusUseCase,
             ListCompaniesUseCase listUseCase, AuthenticatedActor actor) {
@@ -188,7 +193,7 @@ class CompanyControllerTest {
         return MockMvcBuilders.standaloneSetup(new CompanyController(useCase, statusUseCase, listUseCase, detailUseCase,
                 principal -> { throw new UnsupportedOperationException("Currency use case is required"); })).setControllerAdvice(new CompanyValidationErrorHandler())
                 .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
-                .addFilters(new InboundJwtAuthenticationFilter(authenticator, new RestAuthenticationEntryPoint())).build();
+                .addFilters(new CorrelationIdFilter(), new InboundJwtAuthenticationFilter(authenticator, new RestAuthenticationEntryPoint())).build();
     }
     private static AuthenticatedActor platform() { return new AuthenticatedActor(UUID.randomUUID(), null, BaseRole.PLATFORM_SUPERADMIN); }
     private static Company company(UUID id, CompanyStatus status) {

@@ -19,6 +19,14 @@ payload, productores, consumidores e idempotencia antes de ser contrato.
 }
 ```
 
+`correlationId` es el UUID v4 canónico definido en
+[`../api/correlation-id-contract.md`](../api/correlation-id-contract.md). El
+productor conserva el ID efectivo de la operación que originó el evento; un
+consumidor conserva el mismo valor en su log y, si publica un evento derivado,
+lo reutiliza y fija `causationId` al `eventId` consumido. Reintentos y DLQ no
+lo sustituyen. `tenantId` se valida de forma independiente y el ID nunca es
+identidad, autorización, selector de tenant ni clave de idempotencia.
+
 ## Eventos iniciales
 
 | Evento | Productor | Consumidores |

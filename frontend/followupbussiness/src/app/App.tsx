@@ -36,8 +36,9 @@ export function App() {
     );
   }
 
-  if (error?.status === 403 || error?.status === 404 || error?.status === 500) {
+  if (error?.status === 400 || error?.status === 403 || error?.status === 404 || error?.status === 500) {
     const configuration = {
+      400: { variant: "temporary" as const, title: "No pudimos procesar la solicitud", message: "No pudimos completar la operación. Inténtalo nuevamente.", action: "Volver al inicio" },
       403: { variant: "forbidden" as const, title: "No tienes acceso a esta sección", message: "No tienes permiso para realizar esta acción.", action: "Volver al inicio" },
       404: { variant: "not-found" as const, title: "No encontramos lo que buscas", message: "El recurso ya no está disponible o no existe.", action: "Volver" },
       500: { variant: "temporary" as const, title: "Ocurrió un problema temporal", message: "No pudimos completar la operación. Inténtalo más tarde.", action: "Volver al inicio" },

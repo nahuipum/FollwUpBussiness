@@ -2,6 +2,7 @@ package com.nahui.followupbussiness.identityaccess.config;
 
 import com.nahui.followupbussiness.identityaccess.adapter.in.security.RestAccessDeniedHandler;
 import com.nahui.followupbussiness.identityaccess.adapter.in.security.RestAuthenticationEntryPoint;
+import com.nahui.followupbussiness.identityaccess.adapter.in.security.CorrelationIdFilter;
 import com.nahui.followupbussiness.identityaccess.adapter.in.security.InboundJwtAuthenticationFilter;
 import com.nahui.followupbussiness.identityaccess.adapter.in.security.InboundJwtAuthenticator;
 import jakarta.servlet.DispatcherType;
@@ -67,6 +68,7 @@ public class SecurityConfiguration {
                 .anonymous(Customizer.withDefaults());
 
         InboundJwtAuthenticator authenticator = inboundJwtAuthenticator.getIfAvailable();
+        http.addFilterBefore(new CorrelationIdFilter(), CsrfFilter.class);
         if (authenticator != null) {
             http.addFilterBefore(new InboundJwtAuthenticationFilter(authenticator, authenticationEntryPoint), AnonymousAuthenticationFilter.class);
         }

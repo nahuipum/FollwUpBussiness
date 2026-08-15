@@ -5,7 +5,7 @@ export class ApiConfigurationError extends Error {
   }
 }
 
-export type ApiErrorStatus = 401 | 403 | 404 | 409 | 422 | 500 | 503;
+export type ApiErrorStatus = 400 | 401 | 403 | 404 | 409 | 422 | 500 | 503;
 
 export type ApiFieldError = Readonly<{
   field: string;
@@ -16,6 +16,7 @@ export type ApiError = Readonly<{
   status: ApiErrorStatus;
   correlationId: string | null;
   fieldErrors: readonly ApiFieldError[];
+  code?: "CORRELATION_ID_INVALID";
 }>;
 
 export class ApiRequestObsoleteError extends Error {
@@ -26,12 +27,13 @@ export class ApiRequestObsoleteError extends Error {
 }
 
 type ProblemResponse = {
+  code?: unknown;
   correlationId?: unknown;
   fieldErrors?: unknown;
 };
 
-const handledStatuses = new Set<number>([401, 403, 404, 409, 422, 500, 503]);
-const correlationIdPattern = /^[\x20-\x7e]{1,100}$/;
+const handledStatuses = new Set<number>([400, 401, 403, 404, 409, 422, 500, 503]);
+const correlationIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const fieldPattern = /^[a-zA-Z][a-zA-Z0-9_.-]{0,63}$/;
 const apiErrorListeners = new Set<
   (error: ApiError, sessionGeneration: number) => void
@@ -39,7 +41,7 @@ const apiErrorListeners = new Set<
 const pendingRequestControllers = new Map<AbortController, number>();
 let activeSessionGeneration = 0;
 
-function safeCorrelationId(value: unknown): string | null {
+export function safeCorrelationId(value: unknown): string | null {
   return typeof value === "string" && correlationIdPattern.test(value)
     ? value
     : null;
@@ -87,10 +89,14 @@ export async function normalizeApiError(response: Response): Promise<ApiError | 
   const correlationId =
     safeCorrelationId(response.headers.get("X-Correlation-Id")) ??
     safeCorrelationId(problem?.correlationId);
+  const code = problem?.code === "CORRELATION_ID_INVALID"
+    ? "CORRELATION_ID_INVALID" as const
+    : undefined;
   return {
     status: response.status as ApiErrorStatus,
     correlationId,
     fieldErrors: safeFieldErrors(problem?.fieldErrors),
+    ...(code === undefined ? {} : { code }),
   };
 }
 
@@ -100,7 +106,8 @@ async function publishApiError(
 ): Promise<void> {
   if (sessionGeneration !== activeSessionGeneration) return;
   const error = await normalizeApiError(response);
-  if (error !== null && sessionGeneration === activeSessionGeneration)
+  if (error !== null && sessionGeneration === activeSessionGeneration &&
+    (error.status !== 400 || error.code === "CORRELATION_ID_INVALID"))
     apiErrorListeners.forEach((listener) => listener(error, sessionGeneration));
 }
 

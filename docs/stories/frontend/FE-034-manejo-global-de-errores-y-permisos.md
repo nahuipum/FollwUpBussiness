@@ -21,7 +21,10 @@
     1. Sin datos sensibles.
 2. Acción sugerida.
 3. Sesión vencida.
-4. CorrelationId visible.
+4. CorrelationId vigente visible y copiable, según
+   `docs/api/correlation-id-contract.md`; la UI toma el header de respuesta
+   antes que el body de problema, no muestra valores inválidos y limpia el ID
+   con el error al cambiar sesión, empresa o al llegar una respuesta obsoleta.
 
     ## Referencias
 
@@ -53,7 +56,7 @@
 
 - **Sprint objetivo:** Sprint 1 — Empresa, identidad y acceso utilizable.
 - **Predecesoras obligatorias:** `BE-003` — Autenticar usuario; `BE-007` — Gestionar roles y permisos
-- **Historias consecuentes que habilita:** `FE-004` — Gestión de usuarios y roles; `FE-005` — Listado de vendedores; `FE-008` — Listado y filtros de clientes; `FE-014` — Listado de rutas; `FE-020` — Mapa en tiempo real; `FE-022` — Historial de recorrido; `FE-023` — Listado de visitas; `FE-026` — Ventas del día; `FE-030` — Dashboard diario; `FE-032` — Consulta de auditoría; `FE-033` — Configurar geocerca y tracking; `FE-035` — Gestionar catálogo de productos; `FE-037` — Gestionar zonas y territorios; `FE-038` — Autorizar excepción de geocerca; `INT-002` — Autenticación web completa
+- **Historias consecuentes que habilita:** `FE-004` — Gestión de usuarios y roles; `FE-005` — Listado de vendedores; `FE-008` — Listado y filtros de clientes; `FE-014` — Listado de rutas; `FE-020` — Mapa en tiempo real; `FE-022` — Historial de recorrido; `FE-023` — Listado de visitas; `FE-026` — Ventas del día; `FE-030` — Dashboard diario; `FE-032` — Consulta de auditoría; `FE-033` — Configurar geocerca y tracking; `FE-035` — Gestionar catálogo de productos; `FE-037` — Gestionar zonas y territorios; `FE-038` — Autorizar excepción de geocerca; `INT-002` — Autenticación web completa; `INT-028` — Correlation ID E2E
 - **Validación vertical:** `INT-002` — Autenticación web completa
 
 ## Contratos y superficies

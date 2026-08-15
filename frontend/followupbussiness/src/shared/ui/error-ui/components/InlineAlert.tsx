@@ -1,5 +1,6 @@
 import { CircleAlert, Info } from "lucide-react";
 import type { ReactNode } from "react";
+import { CorrelationId } from "./CorrelationId";
 import "../styles/error-ui.css";
 
 export type InlineAlertVariant = "warning" | "error";
@@ -26,13 +27,9 @@ export function InlineAlert({ variant, title, message, action, correlationId }: 
       <div className="error-ui-inline-alert__content">
         {title && <h2>{title}</h2>}
         <p>{message}</p>
-        {correlationId && <CorrelationHint correlationId={correlationId} />}
+        {correlationId && <CorrelationId correlationId={correlationId} />}
       </div>
       {action && <button className="error-ui-inline-alert__action" type="button" onClick={action.onClick}>{action.label}</button>}
     </section>
   );
-}
-
-function CorrelationHint({ correlationId }: { correlationId: string }) {
-  return <span className="error-ui-inline-alert__tracking">ID de seguimiento: <code>{correlationId}</code></span>;
 }

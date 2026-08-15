@@ -12,7 +12,6 @@ type ErrorStateProps = {
   primaryAction: VisualAction;
   secondaryAction?: VisualAction;
   correlationId?: string;
-  onCopyCorrelationId?: () => void;
 };
 
 const visuals = {
@@ -21,7 +20,7 @@ const visuals = {
   temporary: CloudAlert,
 } as const;
 
-export function ErrorState({ variant, title, message, primaryAction, secondaryAction, correlationId, onCopyCorrelationId }: ErrorStateProps) {
+export function ErrorState({ variant, title, message, primaryAction, secondaryAction, correlationId }: ErrorStateProps) {
   const Icon = visuals[variant];
   const PrimaryIcon = variant === "temporary" ? RefreshCw : House;
 
@@ -34,7 +33,7 @@ export function ErrorState({ variant, title, message, primaryAction, secondaryAc
         <div className="error-ui-state__actions">
           <button className="error-ui-button error-ui-button--primary" type="button" onClick={primaryAction.onClick}><PrimaryIcon aria-hidden="true" />{primaryAction.label}</button>
           {secondaryAction && <button className="error-ui-button error-ui-button--secondary" type="button" onClick={secondaryAction.onClick}><House aria-hidden="true" />{secondaryAction.label}</button>}
-          {correlationId && <CorrelationId correlationId={correlationId} {...(onCopyCorrelationId ? { onCopy: onCopyCorrelationId } : {})} />}
+          {correlationId && <CorrelationId correlationId={correlationId} />}
         </div>
       </section>
     </main>

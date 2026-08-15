@@ -37,6 +37,9 @@ const webResponse = (role: string) => ({
   },
 });
 
+const currentUserResponse = (role: string) =>
+  new Response(JSON.stringify(webResponse(role).user), { status: 200 });
+
 afterEach(() => {
   cleanup();
   clearSession();
@@ -85,11 +88,14 @@ test("uses WEB headers and redirects each contractual role", async () => {
   ] as const;
 
   for (const [role, expectedPath] of roles) {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValue(
-        new Response(JSON.stringify(webResponse(role)), { status: 200 }),
-      );
+    const fetchMock = vi.fn<
+      (url: string, init?: RequestInit) => Promise<Response>
+    >((url) =>
+      Promise.resolve(
+        url.endsWith("/me")
+          ? currentUserResponse(role)
+          : new Response(JSON.stringify(webResponse(role)), { status: 200 }),
+      ));
     vi.stubGlobal("fetch", fetchMock);
     const view = render(<App />);
     fireEvent.change(screen.getByLabelText("Correo o nombre de usuario"), {
@@ -252,6 +258,7 @@ test("segregates routes and revokes the session on logout", async () => {
     .mockResolvedValueOnce(
       new Response(JSON.stringify(webResponse("SELLER")), { status: 200 }),
     )
+    .mockResolvedValueOnce(currentUserResponse("SELLER"))
     .mockResolvedValueOnce(new Response(null, { status: 204 }));
   vi.stubGlobal("fetch", fetchMock);
 
@@ -264,7 +271,7 @@ test("segregates routes and revokes the session on logout", async () => {
   await logout();
 
   expect(canAccessPath("/seller/dashboard")).toBe(false);
-  expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({
+  expect(fetchMock.mock.calls[2]?.[1]).toMatchObject({
     credentials: "include",
     headers: expect.objectContaining({ "X-CSRF-Token": "c".repeat(43) }),
   });
@@ -277,6 +284,7 @@ test("retries only a pending logout without keeping a renewable session", async 
     .mockResolvedValueOnce(
       new Response(JSON.stringify(webResponse("SELLER")), { status: 200 }),
     )
+    .mockResolvedValueOnce(currentUserResponse("SELLER"))
     .mockRejectedValueOnce(new Error("offline"))
     .mockResolvedValueOnce(new Response(null, { status: 204 }));
   vi.stubGlobal("fetch", fetchMock);
@@ -289,7 +297,7 @@ test("retries only a pending logout without keeping a renewable session", async 
   expect(hasPendingLogout()).toBe(true);
   expect(canAccessPath("/seller/dashboard")).toBe(false);
   await expect(retryPendingLogout()).resolves.toBe(true);
-  expect(fetchMock.mock.calls[2]?.[1]).toMatchObject({
+  expect(fetchMock.mock.calls[3]?.[1]).toMatchObject({
     headers: expect.objectContaining({ "X-Logout-Intent": "PENDING" }),
   });
   expect(hasPendingLogout()).toBe(false);
@@ -303,6 +311,7 @@ test("redirects once to login after a terminal scheduled refresh", async () => {
     .mockResolvedValueOnce(
       new Response(JSON.stringify(webResponse("SELLER")), { status: 200 }),
     )
+    .mockResolvedValueOnce(currentUserResponse("SELLER"))
     .mockResolvedValueOnce(new Response(null, { status: 401 }));
   vi.stubGlobal("fetch", fetchMock);
   await login({
@@ -315,7 +324,7 @@ test("redirects once to login after a terminal scheduled refresh", async () => {
 
   expect(window.location.pathname).toBe("/");
   expect(hasSession()).toBe(false);
-  expect(fetchMock).toHaveBeenCalledTimes(2);
+  expect(fetchMock).toHaveBeenCalledTimes(3);
 });
 
 test("restores the protected route after a reload before rendering its panel", async () => {
@@ -325,7 +334,8 @@ test("restores the protected route after a reload before rendering its panel", a
     .fn()
     .mockResolvedValueOnce(
       new Response(JSON.stringify(webResponse("SELLER")), { status: 200 }),
-    );
+    )
+    .mockResolvedValueOnce(currentUserResponse("SELLER"));
   vi.stubGlobal("fetch", fetchMock);
 
   render(<App />);
@@ -368,9 +378,11 @@ test("does not show a session-restoration screen or load companies during a prot
 });
 
 test("muestra el sidebar y un contenido vacío en el dashboard de plataforma", async () => {
-  const fetchMock = vi.fn().mockResolvedValue(
-    new Response(JSON.stringify(webResponse("PLATFORM_SUPERADMIN")), { status: 200 }),
-  );
+  const fetchMock = vi.fn((url: string) => Promise.resolve(
+    url.endsWith("/me")
+      ? currentUserResponse("PLATFORM_SUPERADMIN")
+      : new Response(JSON.stringify(webResponse("PLATFORM_SUPERADMIN")), { status: 200 }),
+  ));
   vi.stubGlobal("fetch", fetchMock);
   await login({ identifier: "platform@example.com", password: "correct-password" });
   window.history.replaceState({}, "", "/platform/dashboard");
@@ -420,8 +432,9 @@ test("clears one active session and shows the expired-session flow after an API 
     .mockResolvedValueOnce(
       new Response(JSON.stringify(webResponse("SELLER")), { status: 200 }),
     )
+    .mockResolvedValueOnce(currentUserResponse("SELLER"))
     .mockResolvedValueOnce(
-      new Response(JSON.stringify({ correlationId: "corr-401" }), { status: 401 }),
+      new Response(JSON.stringify({ correlationId: "00000000-0000-4000-8000-000000000401" }), { status: 401 }),
     );
   vi.stubGlobal("fetch", fetchMock);
   await login({ identifier: "seller@example.com", password: "correct-password" });
@@ -432,13 +445,14 @@ test("clears one active session and shows the expired-session flow after an API 
   await waitFor(() =>
     expect(screen.getByRole("dialog", { name: "Tu sesión terminó" })).toBeTruthy(),
   );
-  expect(screen.getByText("Correlation ID: corr-401")).toBeTruthy();
+  expect(screen.getByText("Correlation ID: 00000000-0000-4000-8000-000000000401")).toBeTruthy();
   expect(hasSession()).toBe(false);
   expect(window.location.pathname).toBe("/");
-  expect(fetchMock).toHaveBeenCalledTimes(2);
+  expect(fetchMock).toHaveBeenCalledTimes(3);
 });
 
 test.each([
+  [400, "No pudimos procesar la solicitud"],
   [403, "No tienes acceso a esta sección"],
   [404, "No encontramos lo que buscas"],
   [409, "La información cambió"],
@@ -451,7 +465,10 @@ test.each([
       new Response(JSON.stringify(webResponse("SELLER")), { status: 200 }),
     )
     .mockResolvedValueOnce(
-      new Response(JSON.stringify({ detail: "do not show", correlationId: "corr-safe" }), { status }),
+      new Response(JSON.stringify(webResponse("SELLER").user), { status: 200 }),
+    )
+    .mockResolvedValueOnce(
+      new Response(JSON.stringify({ ...(status === 400 ? { code: "CORRELATION_ID_INVALID" } : {}), detail: "do not show", correlationId: "00000000-0000-4000-8000-000000000402" }), { status }),
     );
   vi.stubGlobal("fetch", fetchMock);
   await login({ identifier: "seller@example.com", password: "correct-password" });
@@ -466,7 +483,7 @@ test.each([
   if (status === 409) {
     fireEvent.click(screen.getByRole("button", { name: "Recargar y revisar" }));
     expect(screen.queryByText("La información cambió")).toBeNull();
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   }
 });
 
@@ -484,8 +501,10 @@ test("clears a pending API error when a different tenant replaces the session", 
     vi
       .fn()
       .mockResolvedValueOnce(new Response(JSON.stringify(tenantA), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(tenantA.user), { status: 200 }))
       .mockResolvedValueOnce(new Response(null, { status: 409 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify(tenantB), { status: 200 })),
+      .mockResolvedValueOnce(new Response(JSON.stringify(tenantB), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(tenantB.user), { status: 200 })),
   );
   await login({ identifier: "seller@example.com", password: "correct-password" });
   window.history.replaceState({}, "", "/seller/dashboard");
@@ -516,10 +535,12 @@ test("discards a delayed 401 from tenant A after tenant B replaces its session",
   const fetchMock = vi
     .fn()
     .mockResolvedValueOnce(new Response(JSON.stringify(tenantA), { status: 200 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify(tenantA.user), { status: 200 }))
     .mockImplementationOnce(() => delayedA)
     .mockResolvedValueOnce(new Response(JSON.stringify(tenantB), { status: 200 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify(tenantB.user), { status: 200 }))
     .mockResolvedValueOnce(
-      new Response(JSON.stringify({ correlationId: "corr-b" }), { status: 401 }),
+      new Response(JSON.stringify({ correlationId: "00000000-0000-4000-8000-000000000403" }), { status: 401 }),
     );
   vi.stubGlobal("fetch", fetchMock);
   await login({ identifier: "seller@example.com", password: "correct-password" });
@@ -528,20 +549,20 @@ test("discards a delayed 401 from tenant A after tenant B replaces its session",
 
   const requestA = apiRequest("/protected-resource", { method: "GET" });
   await login({ identifier: "admin@example.com", password: "correct-password" });
-  resolveA(new Response(JSON.stringify({ correlationId: "corr-a" }), { status: 401 }));
+  resolveA(new Response(JSON.stringify({ correlationId: "00000000-0000-4000-8000-000000000404" }), { status: 401 }));
 
   await expect(requestA).rejects.toBeInstanceOf(ApiRequestObsoleteError);
   expect(getSessionIdentity()).toMatchObject({ id: "admin-b", company: "tenant-b" });
   expect(canAccessPath("/company/dashboard")).toBe(true);
   expect(canAccessPath("/seller/dashboard")).toBe(false);
   expect(screen.queryByRole("dialog", { name: "Tu sesión terminó" })).toBeNull();
-  expect(screen.queryByText("Correlation ID: corr-a")).toBeNull();
+  expect(screen.queryByText("Correlation ID: 00000000-0000-4000-8000-000000000404")).toBeNull();
 
   await apiRequest("/protected-resource", { method: "GET" });
 
   await waitFor(() =>
     expect(screen.getByRole("dialog", { name: "Tu sesión terminó" })).toBeTruthy(),
   );
-  expect(screen.getByText("Correlation ID: corr-b")).toBeTruthy();
+  expect(screen.getByText("Correlation ID: 00000000-0000-4000-8000-000000000403")).toBeTruthy();
   expect(hasSession()).toBe(false);
 });
