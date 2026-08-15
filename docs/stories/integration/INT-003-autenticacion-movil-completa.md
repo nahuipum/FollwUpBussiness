@@ -50,14 +50,14 @@
 <!-- delivery-traceability:start -->
 ## Secuencia de entrega y trazabilidad
 
-- **Sprint objetivo:** Sprint 1 — Empresa, identidad y acceso utilizable.
-- **Predecesoras obligatorias:** `BE-003` — Autenticar usuario; `BE-004` — Renovar sesión; `BE-005` — Cerrar y revocar sesión; `MOB-001` — Iniciar sesión móvil; `MOB-002` — Renovar y cerrar sesión; `MOB-027` — Proteger datos locales
+- **Sprint objetivo:** Sprint 2 — Equipo, zonas, clientes y cartera.
+- **Predecesoras obligatorias:** `BE-003` — Autenticar usuario; `BE-004` — Renovar sesión; `BE-005` — Cerrar y revocar sesión; `INT-004` — Alta de vendedor disponible en mobile; `MOB-001` — Iniciar sesión móvil; `MOB-002` — Renovar y cerrar sesión; `MOB-027` — Proteger datos locales
 - **Historias consecuentes que habilita:** `INT-032` — Revisión de seguridad del flujo crítico
 - **Validación vertical:** Esta historia es la validación vertical E2E y constituye la puerta de salida de su capacidad.
 
 ## Contratos y superficies
 
-- **Debe estar listo antes de desarrollar:** ADR de autenticación; OpenAPI `/auth/*`; manejo de sesión por cliente.
+- **Debe estar listo antes de desarrollar:** ADR de autenticación; OpenAPI `/auth/*`; manejo de sesión por cliente; seller activo, perteneciente a una empresa y validado por `INT-004`.
 - El contrato no puede modificarse silenciosamente para acomodar una
   implementación; Backend, consumidores y QA de contrato deben revisarlo.
 

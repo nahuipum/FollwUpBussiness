@@ -50,14 +50,14 @@
 <!-- delivery-traceability:start -->
 ## Secuencia de entrega y trazabilidad
 
-- **Sprint objetivo:** Sprint 1 — Empresa, identidad y acceso utilizable.
-- **Predecesoras obligatorias:** `BE-003` — Autenticar usuario; `BE-055` — Implementar outbox transaccional
-- **Historias consecuentes que habilita:** No tiene sucesora directa; su cierre alimenta la regresión y el DoF del MVP.
+- **Sprint objetivo:** Sprint 4 — Planificación y entrega de rutas, después de `BE-053`.
+- **Predecesoras obligatorias:** `BE-003` — Autenticar usuario; `BE-053` — Notificar ruta publicada o modificada; `BE-055` — Implementar outbox transaccional; `BE-056` — Gestionar reintentos y DLQ; `FE-034` — Manejo global de errores y permisos
+- **Historias consecuentes que habilita:** No bloquea historias funcionales ni los Sprint 1–3; su cierre alimenta la regresión transversal y el DoF del Sprint 4.
 - **Validación vertical:** Esta historia es la validación vertical E2E y constituye la puerta de salida de su capacidad.
 
 ## Contratos y superficies
 
-- **Debe estar listo antes de desarrollar:** Contrato de correlationId en HTTP, eventos, logs y UI.
+- **Debe estar listo antes de desarrollar:** Contrato de correlationId en HTTP, eventos, logs y UI; consumidor RabbitMQ productivo de `BE-053`; retry/DLQ de `BE-056`; mecanismo autorizado de consulta de logs por `correlationId`.
 - El contrato no puede modificarse silenciosamente para acomodar una
   implementación; Backend, consumidores y QA de contrato deben revisarlo.
 

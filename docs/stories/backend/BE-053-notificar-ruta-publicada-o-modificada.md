@@ -52,7 +52,7 @@
 
 - **Sprint objetivo:** Sprint 4 — Planificación y entrega de rutas.
 - **Predecesoras obligatorias:** `BE-024` — Publicar ruta; `BE-055` — Implementar outbox transaccional; `BE-056` — Gestionar reintentos y DLQ; `EN-017` — Definir canales de notificación
-- **Historias consecuentes que habilita:** `BE-025` — Reasignar ruta; `INT-007` — Creación manual E2E; `INT-009` — Reasignación E2E; `INT-027` — Reintentos y DLQ E2E; `MOB-029` — Recibir ruta asignada o modificada
+- **Historias consecuentes que habilita:** `BE-025` — Reasignar ruta; `INT-007` — Creación manual E2E; `INT-009` — Reasignación E2E; `INT-027` — Reintentos y DLQ E2E; `INT-028` — Correlation ID E2E; `MOB-029` — Recibir ruta asignada o modificada
 - **Validación vertical:** `INT-007` — Creación manual E2E; `INT-009` — Reasignación E2E; `INT-027` — Reintentos y DLQ E2E
 
 ## Contratos y superficies

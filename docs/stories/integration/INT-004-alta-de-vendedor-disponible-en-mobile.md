@@ -52,7 +52,7 @@
 
 - **Sprint objetivo:** Sprint 2 — Equipo, zonas, clientes y cartera.
 - **Predecesoras obligatorias:** `BE-008` — Crear vendedor; `BE-010` — Activar o inactivar vendedor; `BE-059` — Listar y consultar vendedores; `FE-005` — Listado de vendedores; `FE-006` — Formulario de vendedor; `FE-007` — Activar o inactivar vendedor; `MOB-001` — Iniciar sesión móvil
-- **Historias consecuentes que habilita:** No tiene sucesora directa; su cierre alimenta la regresión y el DoF del MVP.
+- **Historias consecuentes que habilita:** `INT-003` — Autenticación móvil completa
 - **Validación vertical:** Esta historia es la validación vertical E2E y constituye la puerta de salida de su capacidad.
 
 ## Contratos y superficies

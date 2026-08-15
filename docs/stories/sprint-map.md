@@ -11,10 +11,11 @@ historia y sus flechas de dependencia está en
 2. Backend estabiliza el contrato antes de que Frontend/Mobile integren.
 3. Una historia puede usar un mock acordado para trabajar en paralelo, pero no
    alcanza `PASS` sin productor real y prueba de contrato.
-4. `INT-024` web (aislamiento) e `INT-028` (correlationId) comienzan en Sprint 1
-   y se ejecutan como regresión sobre sus superficies disponibles en los sprints
-   posteriores. WebSocket se incorpora mediante EN-020 y se valida en INT-011;
-   Mobile y exportaciones conservan sus validaciones verticales propias.
+4. `INT-024` web comienza en Sprint 1 y se ejecuta como regresión sobre sus
+   superficies disponibles. `correlationId` se incorpora incrementalmente, pero
+   `INT-028` cierra en Sprint 4 cuando existen consumidor RabbitMQ y consulta de
+   logs. WebSocket se valida en INT-011; Mobile y exportaciones conservan sus
+   validaciones verticales propias.
 5. Las historias `Should Have / MVP condicionado` no bloquean el flujo base si
    la empresa mantiene deshabilitada esa capacidad.
 
@@ -63,11 +64,12 @@ historia y sus flechas de dependencia está en
 
 ### Ola 1D — Validación vertical
 
-- INT-001, INT-002, INT-003, INT-038, INT-024 e INT-028.
+- INT-001, INT-002, INT-038 e INT-024.
 
 ### Salida del sprint
 
-- Sí existe login web y móvil probado.
+- Existe login web probado y la base técnica de sesión móvil queda lista para
+  integrarse con un seller real en Sprint 2.
 - Una instalación vacía puede crear al operador de plataforma, una empresa y
   su administrador sin insertar usuarios manualmente en base de datos.
 - Suspender una empresa bloquea su acceso sin afectar otros tenants.
@@ -88,12 +90,19 @@ historia y sus flechas de dependencia está en
 
 - INT-004, INT-005, INT-033 e INT-034.
 
+### Ola 2D — Autenticación móvil con seller real
+
+- INT-003, únicamente después de que INT-004 valide un seller activo y
+  perteneciente a una empresa.
+
 ### Salida del sprint
 
 - Administrador, supervisor, vendedor, zona, cliente y cartera tienen origen,
   consulta y permisos definidos.
 - Un supervisor solo ve su equipo.
 - No hay selectores de zonas/vendedores que dependan de datos inexistentes.
+- Un seller real puede iniciar, renovar y cerrar sesión móvil sin mezclar datos
+  locales entre empresas.
 
 ## Sprint 3 — Importación y configuración operativa
 
@@ -142,6 +151,12 @@ historia y sus flechas de dependencia está en
 - EN-020: contrato y aislamiento multiempresa WebSocket.
 - EN-020 debe alcanzar DoF `PASS` antes de iniciar BE-029, BE-030, BE-031,
   FE-020 o INT-011.
+
+### Ola 4F — Observabilidad E2E
+
+- INT-028, después de BE-053 y con retry/DLQ y consulta autorizada de logs
+  disponibles.
+- INT-028 no bloquea historias funcionales ni la salida de los Sprint 1–3.
 
 ### Salida del sprint
 

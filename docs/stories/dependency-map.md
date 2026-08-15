@@ -18,7 +18,7 @@ no entra a sprint si sus predecesoras o contratos no están listos.
 | EN-017 | Definir canales de notificación | EN-013, EN-015 | BE-006, BE-053, FE-002, MOB-029 |
 | EN-018 | Definir motor de rutas y límites del MVP | EN-014 | BE-022, FE-016 |
 | BE-055 | Implementar outbox transaccional | EN-005 | BE-024, BE-035, BE-042, BE-044, BE-053, BE-056, INT-027, INT-028 |
-| BE-056 | Gestionar reintentos y DLQ | BE-055, EN-005 | BE-019, BE-050, BE-053, INT-006, INT-027, INT-040 |
+| BE-056 | Gestionar reintentos y DLQ | BE-055, EN-005 | BE-019, BE-050, BE-053, INT-006, INT-027, INT-028, INT-040 |
 
 ## Sprint 1 — Empresa, identidad y acceso utilizable
 
@@ -37,7 +37,7 @@ no entra a sprint si sus predecesoras o contratos no están listos.
 | FE-001 | Pantalla de inicio de sesión | BE-003, EN-013 | FE-003, INT-001, INT-002, INT-038 |
 | FE-002 | Recuperación de contraseña | BE-006, EN-013, EN-017 | INT-002 |
 | FE-003 | Gestión de sesión | BE-004, BE-005, FE-001 | FE-004, FE-005, FE-008, FE-014, FE-020, FE-022, FE-023, FE-026, FE-030, FE-032, FE-033, FE-035, FE-037, INT-002 |
-| FE-034 | Manejo global de errores y permisos | BE-003, BE-007 | FE-004, FE-005, FE-008, FE-014, FE-020, FE-022, FE-023, FE-026, FE-030, FE-032, FE-033, FE-035, FE-037, FE-038, INT-002 |
+| FE-034 | Manejo global de errores y permisos | BE-003, BE-007 | FE-004, FE-005, FE-008, FE-014, FE-020, FE-022, FE-023, FE-026, FE-030, FE-032, FE-033, FE-035, FE-037, FE-038, INT-002, INT-028 |
 | FE-039 | Onboarding de empresa desde plataforma | BE-001, BE-057, FE-003, FE-034 | INT-001 |
 | FE-004 | Gestión de usuarios y roles | BE-058, FE-003, FE-034 | INT-033 |
 | MOB-001 | Iniciar sesión móvil | BE-003, EN-013 | INT-003, INT-004, MOB-002, MOB-003, MOB-027 |
@@ -45,10 +45,8 @@ no entra a sprint si sus predecesoras o contratos no están listos.
 | MOB-027 | Proteger datos locales | EN-015, MOB-001 | INT-003, MOB-004, MOB-015, MOB-019, MOB-028 |
 | INT-001 | Onboarding completo de empresa | BE-001, BE-006, BE-057, FE-001, FE-039 | Cierre/DoF |
 | INT-002 | Autenticación web completa | BE-003, BE-004, BE-005, BE-006, BE-007, FE-001, FE-002, FE-003, FE-034 | Cierre/DoF |
-| INT-003 | Autenticación móvil completa | BE-003, BE-004, BE-005, MOB-001, MOB-002, MOB-027 | INT-032 |
 | INT-038 | Suspensión y reactivación de empresa E2E | BE-002, BE-003, BE-004, BE-005, FE-001 | Cierre/DoF |
 | INT-024 | Aislamiento multiempresa E2E | BE-007, EN-011 | INT-032 |
-| INT-028 | Correlation ID E2E | BE-003, BE-055 | Cierre/DoF |
 
 ## Sprint 2 — Equipo, zonas, clientes y cartera
 
@@ -74,7 +72,8 @@ no entra a sprint si sus predecesoras o contratos no están listos.
 | FE-010 | Mapa de clientes | BE-016, EN-014, FE-008 | INT-005 |
 | FE-037 | Gestionar zonas y territorios | BE-062, FE-003, FE-034 | FE-036, INT-034 |
 | FE-036 | Asignar cartera de clientes | BE-060, FE-005, FE-008, FE-037 | INT-034 |
-| INT-004 | Alta de vendedor disponible en mobile | BE-008, BE-010, BE-059, FE-005, FE-006, FE-007, MOB-001 | Cierre/DoF |
+| INT-004 | Alta de vendedor disponible en mobile | BE-008, BE-010, BE-059, FE-005, FE-006, FE-007, MOB-001 | INT-003 |
+| INT-003 | Autenticación móvil completa | BE-003, BE-004, BE-005, INT-004, MOB-001, MOB-002, MOB-027 | INT-032 |
 | INT-005 | Cliente visible en mapa | BE-013, BE-014, BE-015, BE-016, FE-008, FE-009, FE-010 | Cierre/DoF |
 | INT-033 | Gestión de supervisores y equipo E2E | BE-011, BE-058, BE-059, FE-004, FE-006 | Cierre/DoF |
 | INT-034 | Asignación de cartera E2E | BE-059, BE-060, BE-062, FE-036, FE-037 | Cierre/DoF |
@@ -101,7 +100,7 @@ no entra a sprint si sus predecesoras o contratos no están listos.
 | BE-022 | Generar ruta automática básica | BE-021, EN-018 | FE-016, INT-008 |
 | BE-023 | Reordenar puntos de ruta | BE-021 | BE-024, FE-015, FE-016, INT-007, INT-008 |
 | BE-024 | Publicar ruta | BE-021, BE-023, BE-055 | BE-025, BE-035, BE-053, BE-061, FE-017, INT-007 |
-| BE-053 | Notificar ruta publicada o modificada | BE-024, BE-055, BE-056, EN-017 | BE-025, INT-007, INT-009, INT-027, MOB-029 |
+| BE-053 | Notificar ruta publicada o modificada | BE-024, BE-055, BE-056, EN-017 | BE-025, INT-007, INT-009, INT-027, INT-028, MOB-029 |
 | BE-025 | Reasignar ruta | BE-024, BE-053 | FE-018, INT-009 |
 | BE-026 | Duplicar ruta | BE-021 | FE-014, INT-007 |
 | BE-027 | Sugerir clientes por frecuencia | BE-013, BE-060 | FE-015, INT-008 |
@@ -118,6 +117,7 @@ no entra a sprint si sus predecesoras o contratos no están listos.
 | INT-007 | Creación manual E2E | BE-021, BE-023, BE-024, BE-026, BE-053, BE-061, FE-014, FE-015, FE-017, MOB-004, MOB-006, MOB-029 | Cierre/DoF |
 | INT-008 | Generación automática E2E | BE-022, BE-023, BE-027, BE-061, FE-015, FE-016 | Cierre/DoF |
 | INT-009 | Reasignación E2E | BE-025, BE-053, FE-018, MOB-029 | Cierre/DoF |
+| INT-028 | Correlation ID E2E | BE-003, BE-053, BE-055, BE-056, FE-034 | DoF del Sprint 4; no bloquea historias funcionales ni Sprint 1–3 |
 
 ## Sprint 5 — Jornada y tracking en vivo
 

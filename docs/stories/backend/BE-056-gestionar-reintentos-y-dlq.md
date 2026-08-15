@@ -52,7 +52,7 @@
 
 - **Sprint objetivo:** Sprint 0 — Fundaciones y decisiones.
 - **Predecesoras obligatorias:** `BE-055` — Implementar outbox transaccional; `EN-005` — Configurar Docker Compose con PostGIS, Redis y RabbitMQ
-- **Historias consecuentes que habilita:** `BE-019` — Procesar importación de clientes; `BE-050` — Exportar reportes; `BE-053` — Notificar ruta publicada o modificada; `INT-006` — Importación completa de clientes; `INT-027` — Reintentos y DLQ E2E; `INT-040` — Exportación de reportes E2E
+- **Historias consecuentes que habilita:** `BE-019` — Procesar importación de clientes; `BE-050` — Exportar reportes; `BE-053` — Notificar ruta publicada o modificada; `INT-006` — Importación completa de clientes; `INT-027` — Reintentos y DLQ E2E; `INT-028` — Correlation ID E2E; `INT-040` — Exportación de reportes E2E
 - **Validación vertical:** `INT-006` — Importación completa de clientes; `INT-027` — Reintentos y DLQ E2E; `INT-040` — Exportación de reportes E2E
 
 ## Contratos y superficies
