@@ -13,7 +13,7 @@ no entra a sprint si sus predecesoras o contratos no están listos.
 | EN-012 | Bootstrap controlado del superadministrador de plataforma | EN-010, EN-011 | BE-003 |
 | EN-013 | Definir autenticación, sesiones y recuperación | EN-010, EN-011 | BE-003, BE-004, BE-006, EN-015, EN-017, FE-001, FE-002, MOB-001 |
 | EN-014 | Definir proveedor de mapas, geocodificación y navegación | EN-005 | BE-013, BE-015, EN-018, FE-009, FE-010, FE-019, FE-020, FE-022, MOB-006 |
-| EN-015 | Definir persistencia local y sincronización móvil | EN-010, EN-013 | EN-017, INT-015, INT-018, INT-024, MOB-004, MOB-009, MOB-014, MOB-019, MOB-022, MOB-027, MOB-028, MOB-032 |
+| EN-015 | Definir persistencia local y sincronización móvil | EN-010, EN-013 | EN-017, INT-015, INT-018, MOB-004, MOB-009, MOB-014, MOB-019, MOB-022, MOB-027, MOB-028, MOB-032 |
 | EN-016 | Definir privacidad, retención y rastreo | — | BE-028, BE-029, BE-032, BE-034, BE-054, FE-020, FE-022, INT-031, MOB-003, MOB-026, MOB-030 |
 | EN-017 | Definir canales de notificación | EN-013, EN-015 | BE-006, BE-053, FE-002, MOB-029 |
 | EN-018 | Definir motor de rutas y límites del MVP | EN-014 | BE-022, FE-016 |
@@ -47,7 +47,7 @@ no entra a sprint si sus predecesoras o contratos no están listos.
 | INT-002 | Autenticación web completa | BE-003, BE-004, BE-005, BE-006, BE-007, FE-001, FE-002, FE-003, FE-034 | Cierre/DoF |
 | INT-003 | Autenticación móvil completa | BE-003, BE-004, BE-005, MOB-001, MOB-002, MOB-027 | INT-032 |
 | INT-038 | Suspensión y reactivación de empresa E2E | BE-002, BE-003, BE-004, BE-005, FE-001 | Cierre/DoF |
-| INT-024 | Aislamiento multiempresa E2E | BE-007, EN-011, EN-015 | INT-032 |
+| INT-024 | Aislamiento multiempresa E2E | BE-007, EN-011 | INT-032 |
 | INT-028 | Correlation ID E2E | BE-003, BE-055 | Cierre/DoF |
 
 ## Sprint 2 — Equipo, zonas, clientes y cartera
@@ -96,6 +96,7 @@ no entra a sprint si sus predecesoras o contratos no están listos.
 
 | ID | Historia | Depende de | Desbloquea |
 |---|---|---|---|
+| EN-020 | Definir contrato y aislamiento multiempresa WebSocket | EN-010, EN-011, EN-013, EN-016 | BE-029, BE-030, BE-031, FE-020, INT-011 |
 | BE-021 | Crear ruta manual | BE-013, BE-059, BE-060 | BE-022, BE-023, BE-024, BE-026, BE-061, FE-015, INT-007 |
 | BE-022 | Generar ruta automática básica | BE-021, EN-018 | FE-016, INT-008 |
 | BE-023 | Reordenar puntos de ruta | BE-021 | BE-024, FE-015, FE-016, INT-007, INT-008 |
@@ -123,11 +124,11 @@ no entra a sprint si sus predecesoras o contratos no están listos.
 | ID | Historia | Depende de | Desbloquea |
 |---|---|---|---|
 | BE-028 | Iniciar jornada | BE-054, BE-061, EN-016 | BE-029, BE-033, BE-034, INT-010, MOB-007 |
-| BE-029 | Recibir ubicaciones | BE-028, EN-016 | BE-030, BE-032, BE-033, INT-010, INT-011, INT-026, MOB-008 |
-| BE-030 | Mantener última ubicación en Redis | BE-029 | BE-031, FE-021, INT-010, INT-011, INT-026 |
-| BE-031 | Publicar ubicación por WebSocket | BE-030 | BE-047, FE-020, INT-010, INT-011, INT-026 |
+| BE-029 | Recibir ubicaciones | BE-028, EN-016, EN-020 | BE-030, BE-032, BE-033, INT-010, INT-011, INT-026, MOB-008 |
+| BE-030 | Mantener última ubicación en Redis | BE-029, EN-020 | BE-031, FE-021, INT-010, INT-011, INT-026 |
+| BE-031 | Publicar ubicación por WebSocket | BE-030, EN-020 | BE-047, FE-020, INT-010, INT-011, INT-026 |
 | BE-033 | Cerrar jornada | BE-028, BE-029 | INT-023, MOB-024 |
-| FE-020 | Mapa en tiempo real | BE-031, EN-014, EN-016, FE-003, FE-034 | FE-021, INT-010, INT-011, INT-023, INT-026 |
+| FE-020 | Mapa en tiempo real | BE-031, EN-014, EN-016, EN-020, FE-003, FE-034 | FE-021, INT-010, INT-011, INT-023, INT-026 |
 | MOB-003 | Solicitar permiso de ubicación | EN-016, MOB-001 | MOB-007, MOB-026, MOB-030 |
 | MOB-026 | Mostrar indicador de rastreo | EN-016, MOB-003 | INT-023, MOB-007, MOB-008 |
 | MOB-007 | Iniciar jornada | BE-028, MOB-003, MOB-004, MOB-026 | INT-010, MOB-008, MOB-011, MOB-024 |
@@ -138,7 +139,7 @@ no entra a sprint si sus predecesoras o contratos no están listos.
 | MOB-028 | Recuperar cola tras cierre forzado | EN-015, MOB-009, MOB-027 | INT-015, INT-018 |
 | MOB-030 | Manejar batería y servicios desactivados | EN-016, MOB-003, MOB-008 | INT-010 |
 | INT-010 | Inicio de jornada y presencia | BE-028, BE-029, BE-030, BE-031, FE-020, MOB-007, MOB-008, MOB-030 | Cierre/DoF |
-| INT-011 | Ubicación en tiempo real E2E | BE-029, BE-030, BE-031, FE-020, MOB-008 | INT-030 |
+| INT-011 | Ubicación en tiempo real E2E | BE-029, BE-030, BE-031, EN-020, FE-020, MOB-008 | INT-030 |
 | INT-026 | Operación ante caída de Redis | BE-029, BE-030, BE-031, FE-020 | Cierre/DoF |
 
 ## Sprint 6 — Recorrido histórico

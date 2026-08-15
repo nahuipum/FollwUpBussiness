@@ -53,7 +53,7 @@
 ## Secuencia de entrega y trazabilidad
 
 - **Sprint objetivo:** Sprint 5 — Jornada y tracking en vivo.
-- **Predecesoras obligatorias:** `BE-028` — Iniciar jornada; `EN-016` — Definir privacidad, retención y rastreo
+- **Predecesoras obligatorias:** `BE-028` — Iniciar jornada; `EN-016` — Definir privacidad, retención y rastreo; `EN-020` — Definir contrato y aislamiento multiempresa WebSocket
 - **Historias consecuentes que habilita:** `BE-030` — Mantener última ubicación en Redis; `BE-032` — Consultar historial de recorrido; `BE-033` — Cerrar jornada; `INT-010` — Inicio de jornada y presencia; `INT-011` — Ubicación en tiempo real E2E; `INT-026` — Operación ante caída de Redis; `MOB-008` — Capturar ubicación en segundo plano
 - **Validación vertical:** `INT-010` — Inicio de jornada y presencia; `INT-011` — Ubicación en tiempo real E2E; `INT-026` — Operación ante caída de Redis
 

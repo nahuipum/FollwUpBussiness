@@ -51,7 +51,7 @@
 ## Secuencia de entrega y trazabilidad
 
 - **Sprint objetivo:** Sprint 5 — Jornada y tracking en vivo.
-- **Predecesoras obligatorias:** `BE-029` — Recibir ubicaciones; `BE-030` — Mantener última ubicación en Redis; `BE-031` — Publicar ubicación por WebSocket; `FE-020` — Mapa en tiempo real; `MOB-008` — Capturar ubicación en segundo plano
+- **Predecesoras obligatorias:** `BE-029` — Recibir ubicaciones; `BE-030` — Mantener última ubicación en Redis; `BE-031` — Publicar ubicación por WebSocket; `EN-020` — Definir contrato y aislamiento multiempresa WebSocket; `FE-020` — Mapa en tiempo real; `MOB-008` — Capturar ubicación en segundo plano
 - **Historias consecuentes que habilita:** `INT-030` — Validación de rendimiento MVP
 - **Validación vertical:** Esta historia es la validación vertical E2E y constituye la puerta de salida de su capacidad.
 

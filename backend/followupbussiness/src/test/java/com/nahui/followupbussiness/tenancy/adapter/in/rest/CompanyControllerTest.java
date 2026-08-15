@@ -117,6 +117,15 @@ class CompanyControllerTest {
                         .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"ACTIVE\",\"reason\":\"Operational review\"}"))
                 .andExpect(status().isNotFound()).andExpect(header().string("Cache-Control", "no-store"));
     }
+    @Test void deniedStatusTransitionKeepsTheNeutral403Contract() throws Exception {
+        ChangeCompanyStatusUseCase statusUseCase = (id, command, actor) -> ChangeCompanyStatusUseCase.Result.deniedResult();
+        MockMvc mvc = mvc(mock(CreateCompanyUseCase.class), statusUseCase,
+                new AuthenticatedActor(UUID.randomUUID(), UUID.randomUUID(), BaseRole.COMPANY_ADMIN));
+        mvc.perform(patch("/platform/companies/{companyId}/status", UUID.randomUUID()).header("Authorization", "Bearer valid")
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"SUSPENDED\",\"reason\":\"Operational review\"}"))
+                .andExpect(status().isForbidden()).andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(header().exists("X-Correlation-Id"));
+    }
     @Test void invalidStatusReasonIsRejectedBeforeTheUseCase() throws Exception {
         ChangeCompanyStatusUseCase statusUseCase = mock(ChangeCompanyStatusUseCase.class);
         MockMvc mvc = mvc(mock(CreateCompanyUseCase.class), statusUseCase, platform());

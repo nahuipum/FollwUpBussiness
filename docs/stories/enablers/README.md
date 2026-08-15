@@ -1,6 +1,6 @@
 ﻿# Enablers
 
-Total: **10**
+Total: **12**
 
 | ID | Enabler | Prioridad | Fase |
 |---|---|---|---|
@@ -14,3 +14,5 @@ Total: **10**
 | [EN-016](./EN-016-definir-privacidad-retencion-y-rastreo.md) | Definir privacidad, retención y rastreo | Must Have | MVP |
 | [EN-017](./EN-017-definir-canales-de-notificacion.md) | Definir canales de notificación | Must Have | MVP |
 | [EN-018](./EN-018-definir-motor-de-rutas.md) | Definir motor de rutas y límites del MVP | Must Have | MVP |
+| [EN-019](./EN-019-fundacion-empresas-y-estado-acceso.md) | Fundación de empresas y estado de acceso | Must Have | MVP |
+| [EN-020](./EN-020-definir-contrato-y-aislamiento-websocket.md) | Definir contrato y aislamiento multiempresa WebSocket | Must Have | MVP |

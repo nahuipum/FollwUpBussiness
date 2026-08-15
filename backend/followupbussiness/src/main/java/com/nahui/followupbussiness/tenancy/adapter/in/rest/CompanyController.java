@@ -132,6 +132,7 @@ public class CompanyController {
         try {
             var result = statusService.execute(companyId,
                     new ChangeCompanyStatusCommand(request.status(), request.reason()), actor);
+            if (result.denied()) return problem(HttpStatus.FORBIDDEN, correlation);
             if (!result.found()) return problem(HttpStatus.NOT_FOUND, correlation);
             return ResponseEntity.ok().header("X-Correlation-Id", correlation.toString())
                     .body(CompanyResponse.from(result.company()));

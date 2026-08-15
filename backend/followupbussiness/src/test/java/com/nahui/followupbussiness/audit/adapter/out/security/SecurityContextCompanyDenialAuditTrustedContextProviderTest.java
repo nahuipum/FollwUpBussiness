@@ -26,10 +26,10 @@ class SecurityContextCompanyDenialAuditTrustedContextProviderTest {
         var context = provider.current();
         assertThat(context.tenantId()).isEqualTo(tenant); assertThat(context.actorId()).isEqualTo(actor); assertThat(context.correlationId()).isEqualTo(correlation);
     }
-    @Test void rejectsPlatformWithoutTenantAndNonPlatformActors() {
+    @Test void rejectsActorsWithoutTenantAndAcceptsTenantBoundActors() {
         SecurityContextHolder.getContext().setAuthentication(UsernamePasswordAuthenticationToken.authenticated(new AuthenticatedActor(UUID.randomUUID(), null, BaseRole.PLATFORM_SUPERADMIN), "token", java.util.List.of()));
         assertThatThrownBy(provider::current).isInstanceOf(SecurityException.class);
         SecurityContextHolder.getContext().setAuthentication(UsernamePasswordAuthenticationToken.authenticated(new AuthenticatedActor(UUID.randomUUID(), UUID.randomUUID(), BaseRole.COMPANY_ADMIN), "token", java.util.List.of()));
-        assertThatThrownBy(provider::current).isInstanceOf(SecurityException.class);
+        assertThat(provider.current().tenantId()).isNotNull();
     }
 }

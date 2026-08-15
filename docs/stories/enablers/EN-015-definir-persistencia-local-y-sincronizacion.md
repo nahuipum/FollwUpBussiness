@@ -34,8 +34,8 @@ la aplicación móvil.
 
 - **Sprint objetivo:** Sprint 0 — Fundaciones y decisiones.
 - **Predecesoras obligatorias:** `EN-010` — Configurar Spring Security y gestión local de secretos; `EN-013` — Definir autenticación, sesiones y recuperación
-- **Historias consecuentes que habilita:** `EN-017` — Definir canales de notificación; `INT-015` — Visita offline sincronizada; `INT-018` — Venta offline sincronizada; `INT-024` — Aislamiento multiempresa E2E; `MOB-004` — Descargar ruta del día; `MOB-009` — Encolar ubicaciones sin conexión; `MOB-014` — Iniciar visita offline; `MOB-019` — Consultar catálogo offline; `MOB-022` — Sincronizar venta idempotente; `MOB-027` — Proteger datos locales; `MOB-028` — Recuperar cola tras cierre forzado; `MOB-032` — Editar venta dentro de ventana
-- **Validación vertical:** `INT-015` — Visita offline sincronizada; `INT-018` — Venta offline sincronizada; `INT-024` — Aislamiento multiempresa E2E
+- **Historias consecuentes que habilita:** `EN-017` — Definir canales de notificación; `INT-015` — Visita offline sincronizada; `INT-018` — Venta offline sincronizada; `MOB-004` — Descargar ruta del día; `MOB-009` — Encolar ubicaciones sin conexión; `MOB-014` — Iniciar visita offline; `MOB-019` — Consultar catálogo offline; `MOB-022` — Sincronizar venta idempotente; `MOB-027` — Proteger datos locales; `MOB-028` — Recuperar cola tras cierre forzado; `MOB-032` — Editar venta dentro de ventana
+- **Validación vertical:** `INT-015` — Visita offline sincronizada; `INT-018` — Venta offline sincronizada
 
 ## Contratos y superficies
 

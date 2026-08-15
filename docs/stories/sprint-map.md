@@ -11,8 +11,10 @@ historia y sus flechas de dependencia está en
 2. Backend estabiliza el contrato antes de que Frontend/Mobile integren.
 3. Una historia puede usar un mock acordado para trabajar en paralelo, pero no
    alcanza `PASS` sin productor real y prueba de contrato.
-4. `INT-024` (aislamiento) e `INT-028` (correlationId) comienzan en Sprint 1 y
-   se ejecutan como regresión en todos los sprints posteriores.
+4. `INT-024` web (aislamiento) e `INT-028` (correlationId) comienzan en Sprint 1
+   y se ejecutan como regresión sobre sus superficies disponibles en los sprints
+   posteriores. WebSocket se incorpora mediante EN-020 y se valida en INT-011;
+   Mobile y exportaciones conservan sus validaciones verticales propias.
 5. Las historias `Should Have / MVP condicionado` no bloquean el flujo base si
    la empresa mantiene deshabilitada esa capacidad.
 
@@ -135,6 +137,12 @@ historia y sus flechas de dependencia está en
 
 - INT-007, INT-008 e INT-009.
 
+### Ola 4E — Ready de tracking en vivo
+
+- EN-020: contrato y aislamiento multiempresa WebSocket.
+- EN-020 debe alcanzar DoF `PASS` antes de iniciar BE-029, BE-030, BE-031,
+  FE-020 o INT-011.
+
 ### Salida del sprint
 
 - Una ruta puede crearse, consultarse, publicarse, descargarse y actualizarse.
@@ -142,6 +150,10 @@ historia y sus flechas de dependencia está en
   consulta al servidor.
 
 ## Sprint 5 — Jornada y tracking en vivo
+
+La entrada al sprint exige EN-020 en DoF `PASS`; un contrato incompleto bloquea
+el inicio de las historias que reciben, cachean, publican, consumen o validan
+ubicaciones en tiempo real.
 
 ### Ola 5A — Jornada y recepción de ubicación
 

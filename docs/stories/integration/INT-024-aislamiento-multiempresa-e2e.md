@@ -14,7 +14,7 @@
 
     ## Alcance
 
-    API + DB + Redis + WebSocket + cola + clientes.
+    Incremento web actual: API + DB + Redis + cola + cliente web.
 
     ## Criterios de aceptación
 
@@ -52,7 +52,7 @@
 ## Secuencia de entrega y trazabilidad
 
 - **Sprint objetivo:** Sprint 1 — Empresa, identidad y acceso utilizable.
-- **Predecesoras obligatorias:** `BE-007` — Gestionar roles y permisos; `EN-011` — Definir catálogo de roles base; `EN-015` — Definir persistencia local y sincronización móvil
+- **Predecesoras obligatorias:** `BE-007` — Gestionar roles y permisos; `EN-011` — Definir catálogo de roles base
 - **Historias consecuentes que habilita:** `INT-032` — Revisión de seguridad del flujo crítico
 - **Validación vertical:** Esta historia es la validación vertical E2E y constituye la puerta de salida de su capacidad.
 
@@ -79,6 +79,13 @@
 
 ## Fuera de alcance
 
+- WebSocket no bloquea este incremento web: su contrato se cierra en `EN-020`
+  y su aislamiento productivo se valida en `INT-011` después de `BE-029`,
+  `BE-030`, `BE-031` y `FE-020`.
+- Mobile permanece pendiente para sus validaciones verticales y no se declara
+  validado por este incremento.
+- Exportaciones permanecen pendientes de `BE-050`, `FE-031` e `INT-040` y no se
+  declaran validadas por este incremento.
 - capacidades no descritas en el alcance y cambios de arquitectura sin ADR.
 
 ## Puerta de Ready para esta historia
