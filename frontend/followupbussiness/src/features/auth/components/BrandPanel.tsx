@@ -39,8 +39,8 @@ type BrandPanelProps = {
 /** Presentational visual shell shared by every authentication route. */
 export function BrandPanel({
   eyebrow = "Acceso seguro",
-  title = "Recupera tu acceso de forma segura.",
-  description = "Solicita un enlace para restablecer tu contraseña y volver a tu panel sin perder continuidad.",
+  title = "Cada seguimiento, en el momento justo.",
+  description = "Conecta a tu equipo con las oportunidades que mueven tu negocio.",
   footer = "Plataforma de uso interno · Flujo protegido",
   mark = <PasswordRecoveryBrandMark />,
 }: BrandPanelProps) {

@@ -25,6 +25,8 @@ test("renders the brand panel above 900px and removes it after resizing down", (
   render(<BrandPanel />);
 
   expect(screen.queryByLabelText("FollowUpBusiness")).not.toBeNull();
+  expect(screen.getByRole("heading", { name: "Cada seguimiento, en el momento justo." })).toBeTruthy();
+  expect(screen.getByText("Conecta a tu equipo con las oportunidades que mueven tu negocio.")).toBeTruthy();
 
   act(() => {
     setViewportWidth(900);
