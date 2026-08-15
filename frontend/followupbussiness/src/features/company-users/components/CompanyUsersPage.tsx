@@ -250,7 +250,6 @@ export function CompanyUsersPage() {
               users.setError(null);
             }}
             onSubmit={saveUser}
-            returnFocusRef={users.inviteButtonRef}
           />
         )}
         {users.statusUser && (

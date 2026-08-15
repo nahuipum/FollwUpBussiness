@@ -3,7 +3,6 @@ import {
   useState,
   type FormEvent,
   type ReactNode,
-  type RefObject,
 } from "react";
 import { ModalSurface } from "../../../shared/ui/ModalSurface";
 import type { CompanyUser, CompanyUserInput, CompanyUserRole } from "../types";
@@ -15,7 +14,6 @@ export function CompanyUserInviteDialog({
   error,
   onClose,
   onSubmit,
-  returnFocusRef: _returnFocusRef,
 }: {
   user: CompanyUser | null;
   mode: "invite" | "edit" | "resend";
@@ -23,7 +21,6 @@ export function CompanyUserInviteDialog({
   error: string | null;
   onClose: () => void;
   onSubmit: (input: CompanyUserInput) => void;
-  returnFocusRef: RefObject<HTMLButtonElement | null>;
 }) {
   const [displayName, setDisplayName] = useState(user?.displayName ?? "");
   const [email, setEmail] = useState(user?.email ?? "");

@@ -70,6 +70,7 @@ export function PlatformCompaniesPage() {
   const [invitations, setInvitations] = useState<readonly CompanyAdminInvitation[]>([]);
   const [invitationsLoading, setInvitationsLoading] = useState(false);
   const [invitationsUnavailable, setInvitationsUnavailable] = useState(false);
+  const selectedCompanyId = selectedCompany?.id;
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -149,11 +150,9 @@ export function PlatformCompaniesPage() {
     [],
   );
   useEffect(() => {
-    if (!selectedCompany || (view !== "provision" && view !== "success")) return;
+    if (!selectedCompanyId || (view !== "provision" && view !== "success")) return;
     let cancelled = false;
-    setInvitationsLoading(true);
-    setInvitationsUnavailable(false);
-    const loadInvitations = () => listCompanyAdminInvitations(selectedCompany.id)
+    const loadInvitations = () => listCompanyAdminInvitations(selectedCompanyId)
       .then(({ response, invitations: items }) => {
         if (cancelled) return;
         if (response.status === 200 && items !== null) setInvitations(items);
@@ -161,10 +160,19 @@ export function PlatformCompaniesPage() {
       })
       .catch(() => { if (!cancelled) setInvitationsUnavailable(true); })
       .finally(() => { if (!cancelled) setInvitationsLoading(false); });
-    void loadInvitations();
+    const initialLoad = window.setTimeout(() => {
+      if (cancelled) return;
+      setInvitationsLoading(true);
+      setInvitationsUnavailable(false);
+      void loadInvitations();
+    }, 0);
     const poll = window.setInterval(() => { void loadInvitations(); }, 5_000);
-    return () => { cancelled = true; window.clearInterval(poll); };
-  }, [reloadKey, selectedCompany?.id, view]);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(initialLoad);
+      window.clearInterval(poll);
+    };
+  }, [reloadKey, selectedCompanyId, view]);
 
   const submitCompany = async (input: CreateCompanyInput) => {
     setSubmitting(true);

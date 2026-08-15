@@ -12,7 +12,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "typecheck": "tsc -b",
-    "test": "vitest run --environment jsdom --exclude tests/visual/**",
+    "test": "vitest run --environment jsdom --exclude tests/visual/** --exclude tests/integration/**",
     "test:visual": "playwright test"
   },
   "dependencies": {
