@@ -110,7 +110,7 @@ public final class CompanyUserController {
         return ResponseEntity.status(status).header("X-Correlation-Id", correlationId(request).toString()).body(problem);
     }
 
-    static UUID correlationId(HttpServletRequest request) {
+    public static UUID correlationId(HttpServletRequest request) {
         Object current = request.getAttribute(CORRELATION_ID_ATTRIBUTE);
         if (current instanceof UUID value) return value;
         UUID value;

@@ -107,9 +107,17 @@ public class CompanyUserService {
     }
 
     public User invite(Invite command, AuthenticatedActor actor, UUID correlationId) {
+        return invite(command, actor, correlationId, false);
+    }
+
+    public User inviteSeller(Invite command, AuthenticatedActor actor, UUID correlationId) {
+        return invite(command, actor, correlationId, true);
+    }
+
+    private User invite(Invite command, AuthenticatedActor actor, UUID correlationId, boolean seller) {
         UUID tenant = admin(actor);
         validInvite(command);
-        validRole(command.role());
+        if (seller ? command.role() != BaseRole.SELLER : (command.role() != BaseRole.COMPANY_ADMIN && command.role() != BaseRole.SUPERVISOR)) throw new Invalid();
         String login = canonical(command.username() == null ? command.email() : command.username());
         String email = canonical(command.email());
         try {
