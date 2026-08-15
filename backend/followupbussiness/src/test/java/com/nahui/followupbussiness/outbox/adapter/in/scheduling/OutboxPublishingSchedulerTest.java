@@ -45,7 +45,9 @@ class OutboxPublishingSchedulerTest {
     }
 
     private static EventTransport failingTransport() {
-        return ignored -> { throw new IllegalStateException("broker unavailable"); };
+        return ignored -> {
+            throw new IllegalStateException("broker unavailable");
+        };
     }
 
     private static final class FailingEventStore implements OutboxStore {
@@ -53,22 +55,68 @@ class OutboxPublishingSchedulerTest {
 
         private static ClaimedOutboxEvent event(int attempts) {
             return new ClaimedOutboxEvent(
-                new OutboxEvent(UUID.randomUUID(), "route.published", 1, NOW, UUID.randomUUID(), UUID.randomUUID(),
-                        UUID.randomUUID(), "{\"routeId\":\"redacted\"}"),
-                UUID.randomUUID(), attempts, NOW.plusSeconds(30));
+                    new OutboxEvent(UUID.randomUUID(), "route.published", 1, NOW, UUID.randomUUID(), UUID.randomUUID(),
+                            UUID.randomUUID(), "{\"routeId\":\"redacted\"}"),
+                    UUID.randomUUID(), attempts, NOW.plusSeconds(30));
         }
 
-        @Override public void append(OutboxEvent event) { }
-        @Override public List<ClaimedOutboxEvent> claimAvailable(Instant now, Instant leaseExpiresAt, int limit) { return claimed; }
-        @Override public boolean markPublished(UUID eventId, UUID leaseToken, Instant publishedAt) { return false; }
-        @Override public boolean scheduleRetry(UUID eventId, UUID leaseToken, Instant nextAttemptAt, String failureType, String failureDetail) { return true; }
-        @Override public boolean moveToDlq(UUID eventId, UUID leaseToken, Instant terminalAt, PublicationFailureKind failureKind, String failureType, String failureDetail) { return true; }
-        @Override public int moveExpiredLeasesToDlqAtMaxAttempts(Instant now) { return 0; }
-        @Override public boolean reprocessFromDlq(UUID eventId, UUID operatorId, Instant reprocessedAt) { return false; }
-        @Override public long dlqDepth() { return 0; }
-        @Override public long oldestDlqAgeSeconds(Instant now) { return 0; }
-        @Override public long countReadyToPublish() { return 0; }
-        @Override public long oldestReadyAgeSeconds(Instant now) { return 0; }
-        @Override public int deleteCompletedBefore(Instant cutoff) { return 0; }
+        @Override
+        public void append(OutboxEvent event) {
+        }
+
+        @Override
+        public List<ClaimedOutboxEvent> claimAvailable(Instant now, Instant leaseExpiresAt, int limit) {
+            return claimed;
+        }
+
+        @Override
+        public boolean markPublished(UUID eventId, UUID leaseToken, Instant publishedAt) {
+            return false;
+        }
+
+        @Override
+        public boolean scheduleRetry(UUID eventId, UUID leaseToken, Instant nextAttemptAt, String failureType, String failureDetail) {
+            return true;
+        }
+
+        @Override
+        public boolean moveToDlq(UUID eventId, UUID leaseToken, Instant terminalAt, PublicationFailureKind failureKind, String failureType, String failureDetail) {
+            return true;
+        }
+
+        @Override
+        public int moveExpiredLeasesToDlqAtMaxAttempts(Instant now) {
+            return 0;
+        }
+
+        @Override
+        public boolean reprocessFromDlq(UUID eventId, UUID operatorId, Instant reprocessedAt) {
+            return false;
+        }
+
+        @Override
+        public long dlqDepth() {
+            return 0;
+        }
+
+        @Override
+        public long oldestDlqAgeSeconds(Instant now) {
+            return 0;
+        }
+
+        @Override
+        public long countReadyToPublish() {
+            return 0;
+        }
+
+        @Override
+        public long oldestReadyAgeSeconds(Instant now) {
+            return 0;
+        }
+
+        @Override
+        public int deleteCompletedBefore(Instant cutoff) {
+            return 0;
+        }
     }
 }

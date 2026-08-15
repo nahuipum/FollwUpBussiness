@@ -3,11 +3,14 @@ package com.nahui.followupbussiness.audit.application;
 import com.nahui.followupbussiness.audit.domain.AuditAction;
 import com.nahui.followupbussiness.audit.domain.AuditResourceType;
 import com.nahui.followupbussiness.audit.domain.AuditResult;
+
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
-/** Producer input deliberately excludes identity, tenant, correlation, scope and timestamp. */
+/**
+ * Producer input deliberately excludes identity, tenant, correlation, scope and timestamp.
+ */
 public record RecordAuditEntryCommand(AuditAction action, AuditResourceType resourceType, UUID resourceId,
                                       AuditResult result, Map<String, String> before, Map<String, String> after) {
     public RecordAuditEntryCommand {

@@ -5,6 +5,7 @@ import com.nahui.followupbussiness.audit.application.port.out.AuditEntryStore;
 import com.nahui.followupbussiness.audit.application.port.out.PlatformAuditTrustedContextProvider;
 import com.nahui.followupbussiness.audit.domain.AuditEntry;
 import com.nahui.followupbussiness.audit.domain.AuditScope;
+
 import java.util.UUID;
 
 public final class RecordPlatformCompanyAudit implements RecordPlatformCompanyAuditUseCase {
@@ -16,7 +17,8 @@ public final class RecordPlatformCompanyAudit implements RecordPlatformCompanyAu
         this.contextProvider = contextProvider;
     }
 
-    @Override public void record(RecordPlatformCompanyAuditCommand command) {
+    @Override
+    public void record(RecordPlatformCompanyAuditCommand command) {
         PlatformAuditTrustedContext context = contextProvider.current();
         boolean appended = store.append(new AuditEntry(UUID.randomUUID(), null, context.actorId(), command.action(),
                 "COMPANY", command.resourceId(), command.result(), context.correlationId(), AuditScope.PLATFORM.name(),

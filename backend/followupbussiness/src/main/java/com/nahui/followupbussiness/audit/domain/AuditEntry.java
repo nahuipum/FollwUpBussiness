@@ -6,7 +6,9 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
-/** Immutable, append-only evidence of one critical operation. */
+/**
+ * Immutable, append-only evidence of one critical operation.
+ */
 public record AuditEntry(
         UUID id,
         UUID tenantId,
@@ -38,7 +40,8 @@ public record AuditEntry(
         if ("PLATFORM".equals(scope)) {
             if (tenantId != null) throw new IllegalArgumentException("PLATFORM audit entries must not have a tenantId");
         } else if ("TENANT_BOUND_DENIAL".equals(scope)) {
-            if (tenantId == null) throw new IllegalArgumentException("TENANT_BOUND_DENIAL audit entries require a tenantId");
+            if (tenantId == null)
+                throw new IllegalArgumentException("TENANT_BOUND_DENIAL audit entries require a tenantId");
         } else if (!"ANONYMOUS_AUTH".equals(scope) && tenantId == null) {
             throw new IllegalArgumentException("tenantId is required outside PLATFORM scope");
         }
@@ -57,8 +60,8 @@ public record AuditEntry(
     }
 
     public AuditEntry(UUID id, UUID tenantId, UUID actorId, AuditAction action, String resourceType, UUID resourceId,
-            AuditResult result, UUID correlationId, String scope, Map<String, String> before,
-            Map<String, String> after, Instant occurredAt) {
+                      AuditResult result, UUID correlationId, String scope, Map<String, String> before,
+                      Map<String, String> after, Instant occurredAt) {
         this(id, tenantId, actorId, action, resourceType, resourceId, result, correlationId, scope, before, after, null, occurredAt);
     }
 

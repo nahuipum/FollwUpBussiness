@@ -8,6 +8,7 @@ import com.nahui.followupbussiness.audit.application.PurgeAuditRetention;
 import com.nahui.followupbussiness.audit.domain.AuditAction;
 import com.nahui.followupbussiness.audit.domain.AuditEntry;
 import com.nahui.followupbussiness.audit.domain.AuditResult;
+
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -21,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -37,21 +39,30 @@ class AuditEntryMigrationTest {
     private JdbcTemplate jdbc;
     private JdbcAuditEntryStore store;
 
-    @BeforeAll static void startPostgres() {
+    @BeforeAll
+    static void startPostgres() {
         postgres = new PostgreSQLContainer(POSTGIS_IMAGE).withDatabaseName("followupbussiness_be051")
                 .withUsername("followupbussiness_be051").withPassword("BE051_TEST_ONLY_PASSWORD_0123456789");
         postgres.start();
     }
-    @AfterAll static void stopPostgres() { if (postgres != null) postgres.stop(); }
-    @BeforeEach void migrateCleanDatabase() {
+
+    @AfterAll
+    static void stopPostgres() {
+        if (postgres != null) postgres.stop();
+    }
+
+    @BeforeEach
+    void migrateCleanDatabase() {
         Flyway flyway = Flyway.configure().dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
                 .locations("classpath:db/migration").cleanDisabled(false).load();
-        flyway.clean(); flyway.migrate();
+        flyway.clean();
+        flyway.migrate();
         jdbc = new JdbcTemplate(new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword()));
         store = new JdbcAuditEntryStore(jdbc, jdbc);
     }
 
-    @Test void appendsOnlyOnceForTheSameIdAndPersistsTenantScopedEvidence() {
+    @Test
+    void appendsOnlyOnceForTheSameIdAndPersistsTenantScopedEvidence() {
         AuditEntry entry = entry(Instant.parse("2025-08-04T12:00:00Z"));
         assertThat(store.append(entry)).isTrue();
         assertThat(store.append(entry)).isFalse();
@@ -59,7 +70,8 @@ class AuditEntryMigrationTest {
                 entry.tenantId(), entry.resourceId())).isEqualTo(1);
     }
 
-    @Test void concurrentRetriesOfTheSameAuditIdCreateOnlyOneEntry() throws Exception {
+    @Test
+    void concurrentRetriesOfTheSameAuditIdCreateOnlyOneEntry() throws Exception {
         AuditEntry entry = entry(Instant.parse("2026-08-04T12:00:00Z"));
         try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
             Future<Boolean> first = executor.submit(() -> store.append(entry));
@@ -69,12 +81,15 @@ class AuditEntryMigrationTest {
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM audit_entry WHERE id = ?", Integer.class, entry.id())).isEqualTo(1);
     }
 
-    @Test void retentionKeepsCutoffAndPurgesNetworkBeforeEntriesInBoundedBatches() {
+    @Test
+    void retentionKeepsCutoffAndPurgesNetworkBeforeEntriesInBoundedBatches() {
         Instant now = Instant.parse("2026-08-04T12:00:00Z");
         AuditEntry networkExpired = entry(now.minus(java.time.Duration.ofDays(91)));
         AuditEntry entryExpired = entry(now.minus(java.time.Duration.ofDays(366)));
         AuditEntry atCutoff = entry(now.minus(java.time.Duration.ofDays(365)));
-        store.append(networkExpired); store.append(entryExpired); store.append(atCutoff);
+        store.append(networkExpired);
+        store.append(entryExpired);
+        store.append(atCutoff);
         jdbc.update("INSERT INTO audit_network_context(id, audit_entry_id, tenant_id, ip_address, occurred_at) VALUES (?, ?, ?, CAST(? AS inet), ?)",
                 UUID.randomUUID(), networkExpired.id(), networkExpired.tenantId(), "192.0.2.1", java.sql.Timestamp.from(networkExpired.occurredAt()));
         PurgeAuditRetention.PurgeResult result = new PurgeAuditRetention(store, Clock.fixed(now, ZoneOffset.UTC)).purge();
@@ -84,7 +99,8 @@ class AuditEntryMigrationTest {
         assertThat(new PurgeAuditRetention(store, Clock.fixed(now, ZoneOffset.UTC)).purge().entriesDeleted()).isZero();
     }
 
-    @Test void writerCannotReadNetworkOrMutateEvidenceAndPurgerCannotDeleteDirectly() throws Exception {
+    @Test
+    void writerCannotReadNetworkOrMutateEvidenceAndPurgerCannotDeleteDirectly() throws Exception {
         try (Connection writer = DriverManager.getConnection(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
              Connection purger = DriverManager.getConnection(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())) {
             writer.createStatement().execute("SET ROLE audit_writer");
@@ -101,7 +117,8 @@ class AuditEntryMigrationTest {
         }
     }
 
-    @Test void allowsPlatformEvidenceOnlyWithoutTenantAndRejectsInvalidScopeCombinations() {
+    @Test
+    void allowsPlatformEvidenceOnlyWithoutTenantAndRejectsInvalidScopeCombinations() {
         AuditEntry platform = new AuditEntry(UUID.randomUUID(), null, UUID.randomUUID(), AuditAction.CRITICAL_MUTATION,
                 "COMPANY", UUID.randomUUID(), AuditResult.SUCCESS, UUID.randomUUID(), "PLATFORM", Map.of(), Map.of(), Instant.now());
         assertThat(store.append(platform)).isTrue();
@@ -110,7 +127,8 @@ class AuditEntryMigrationTest {
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
-    @Test void persistsTheApprovedInitialCompanyAdminActionAndConflictResult() {
+    @Test
+    void persistsTheApprovedInitialCompanyAdminActionAndConflictResult() {
         AuditEntry conflict = new AuditEntry(UUID.randomUUID(), null, UUID.randomUUID(),
                 AuditAction.PROVISION_INITIAL_COMPANY_ADMIN, "COMPANY", UUID.randomUUID(), AuditResult.CONFLICT,
                 UUID.randomUUID(), "PLATFORM", Map.of(), Map.of(), Instant.now());
@@ -121,7 +139,8 @@ class AuditEntryMigrationTest {
                 .isEqualTo("CONFLICT");
     }
 
-    @Test void allowsTenantBoundDenialOnlyWithTheRealTenant() {
+    @Test
+    void allowsTenantBoundDenialOnlyWithTheRealTenant() {
         UUID tenant = UUID.randomUUID();
         AuditEntry denial = new AuditEntry(UUID.randomUUID(), tenant, UUID.randomUUID(), AuditAction.CRITICAL_MUTATION,
                 "COMPANY", UUID.randomUUID(), AuditResult.DENIED, UUID.randomUUID(), "TENANT_BOUND_DENIAL", Map.of(), Map.of(), Instant.now());
@@ -134,7 +153,8 @@ class AuditEntryMigrationTest {
                 .isInstanceOf(Exception.class);
     }
 
-    @Test void rejectsUnknownScopesWithAndWithoutTenantAndPreservesTheClosedScopeMatrix() {
+    @Test
+    void rejectsUnknownScopesWithAndWithoutTenantAndPreservesTheClosedScopeMatrix() {
         assertThatThrownBy(() -> entry(UUID.randomUUID(), "UNRECOGNIZED_SCOPE"))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> entry(null, "UNRECOGNIZED_SCOPE"))
@@ -151,8 +171,11 @@ class AuditEntryMigrationTest {
         assertThat(store.append(entry(UUID.randomUUID(), "ANONYMOUS_AUTH"))).isTrue();
     }
 
-    @Test void v13TenantlessAuthenticationEvidenceSurvivesV14AndTheMatrixFailsClosed() {
-        Flyway beforeV14 = flyway("13"); beforeV14.clean(); beforeV14.migrate();
+    @Test
+    void v13TenantlessAuthenticationEvidenceSurvivesV14AndTheMatrixFailsClosed() {
+        Flyway beforeV14 = flyway("13");
+        beforeV14.clean();
+        beforeV14.migrate();
         UUID id = UUID.randomUUID();
         jdbc = new JdbcTemplate(new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword()));
         jdbc.update("INSERT INTO audit_entry(id,tenant_id,actor_id,action,resource_type,resource_id,result,correlation_id,scope,before_state,after_state,occurred_at) VALUES (?,?,?,?,?,?,?,?,'ANONYMOUS_AUTH','{}'::jsonb,'{\"channel\":\"MOBILE\",\"result\":\"LOGGED_OUT\"}'::jsonb,CURRENT_TIMESTAMP)", id, null, UUID.randomUUID(), "AUTHENTICATION", "SESSION_FAMILY", UUID.randomUUID(), "SUCCESS", UUID.randomUUID());
@@ -161,7 +184,8 @@ class AuditEntryMigrationTest {
         assertThatThrownBy(() -> jdbc.update("INSERT INTO audit_entry(id,tenant_id,actor_id,action,resource_type,resource_id,result,correlation_id,scope,before_state,after_state,occurred_at) VALUES (?,?,?,?,?,?,?,?,'PLATFORM','{}'::jsonb,'{}'::jsonb,CURRENT_TIMESTAMP)", UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), "AUTHENTICATION", "SESSION_FAMILY", UUID.randomUUID(), "SUCCESS", UUID.randomUUID())).isInstanceOf(Exception.class);
     }
 
-    @Test void parameterizedPurgeRejectsFutureAndNullCutoffsAndInvalidBatchSizesSeparately() {
+    @Test
+    void parameterizedPurgeRejectsFutureAndNullCutoffsAndInvalidBatchSizesSeparately() {
         java.sql.Timestamp future = jdbc.queryForObject("SELECT CURRENT_TIMESTAMP + INTERVAL '1 minute'", java.sql.Timestamp.class);
         assertSqlState("P0001", () -> purgeEntries(future, 1));
         assertSqlState("P0001", () -> purgeEntries(null, 1));
@@ -170,7 +194,8 @@ class AuditEntryMigrationTest {
         assertSqlState("P0001", () -> purgeEntries(java.sql.Timestamp.from(Instant.parse("2026-08-04T12:00:00Z")), 501));
     }
 
-    @Test void parameterizedPurgeAcceptsMinimumAndMaximumBoundedBatches() {
+    @Test
+    void parameterizedPurgeAcceptsMinimumAndMaximumBoundedBatches() {
         Instant cutoff = Instant.parse("2026-08-04T12:00:00Z");
         for (int i = 0; i < 501; i++) store.append(entry(cutoff.minusSeconds(1)));
 
@@ -179,7 +204,8 @@ class AuditEntryMigrationTest {
         assertThat(purgeEntries(java.sql.Timestamp.from(cutoff), 500)).isZero();
     }
 
-    @Test void v12DataSurvivesUpgradeToV13AndUsesTheParameterizedPurge() {
+    @Test
+    void v12DataSurvivesUpgradeToV13AndUsesTheParameterizedPurge() {
         Flyway beforeV13 = flyway("12");
         beforeV13.clean();
         beforeV13.migrate();
@@ -200,7 +226,8 @@ class AuditEntryMigrationTest {
         assertThat(purgeEntries(java.sql.Timestamp.from(cutoff), 1)).isEqualTo(1);
     }
 
-    @Test void concurrentPurgersDeleteEachExpiredEntryAndCountItOnlyOnce() throws Exception {
+    @Test
+    void concurrentPurgersDeleteEachExpiredEntryAndCountItOnlyOnce() throws Exception {
         Instant cutoff = Instant.parse("2026-08-04T12:00:00Z");
         for (int i = 0; i < 501; i++) store.append(entry(cutoff.minusSeconds(1)));
         JdbcAuditEntryStore firstPurger = new JdbcAuditEntryStore(jdbc, new JdbcTemplate(new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())));
@@ -214,7 +241,8 @@ class AuditEntryMigrationTest {
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM audit_entry", Integer.class)).isZero();
     }
 
-    @Test void onlyAuditPurgerCanExecuteEachLegacyAndParameterizedPurgeFunction() throws Exception {
+    @Test
+    void onlyAuditPurgerCanExecuteEachLegacyAndParameterizedPurgeFunction() throws Exception {
         jdbc.execute("CREATE ROLE audit_public_runtime LOGIN PASSWORD 'BE051_PUBLIC_TEST_ONLY_0123456789'");
         try (Connection publicRuntime = DriverManager.getConnection(postgres.getJdbcUrl(), "audit_public_runtime", "BE051_PUBLIC_TEST_ONLY_0123456789");
              Connection writer = DriverManager.getConnection(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
@@ -228,7 +256,8 @@ class AuditEntryMigrationTest {
         }
     }
 
-    @Test void dedicatedLoginIdentitiesUseTheirOwnDatasourceForAppendAndPurge() throws Exception {
+    @Test
+    void dedicatedLoginIdentitiesUseTheirOwnDatasourceForAppendAndPurge() throws Exception {
         jdbc.execute("DROP ROLE IF EXISTS audit_writer_runtime");
         jdbc.execute("DROP ROLE IF EXISTS audit_purger_runtime");
         jdbc.execute("CREATE ROLE audit_writer_runtime LOGIN PASSWORD 'BE051_WRITER_TEST_ONLY_0123456789'");

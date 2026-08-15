@@ -1,6 +1,7 @@
 package com.nahui.followupbussiness.identityaccess.adapter.out.persistence;
 
 import com.nahui.followupbussiness.identityaccess.application.port.out.PasswordRecoveryRequestPort;
+
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
@@ -12,9 +13,12 @@ import javax.crypto.Cipher;
 import javax.crypto.Mac;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+
 import org.springframework.jdbc.core.JdbcTemplate;
 
-/** Encrypted durable intake; it deliberately contains no resolved account or token. */
+/**
+ * Encrypted durable intake; it deliberately contains no resolved account or token.
+ */
 public final class JdbcPasswordRecoveryRequestAdapter implements PasswordRecoveryRequestPort {
     private static final SecureRandom RANDOM = new SecureRandom();
     private final JdbcTemplate jdbc;

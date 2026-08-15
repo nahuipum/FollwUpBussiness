@@ -96,5 +96,6 @@ public final class OutboxPublisher {
                 event.event().eventId(), event.event().correlationId(), result, errorType);
     }
 
-    public record DispatchResult(int claimed, int published, int retried, int terminal, int failures) { }
+    public record DispatchResult(int claimed, int published, int retried, int terminal, int failures) {
+    }
 }

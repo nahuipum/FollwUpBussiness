@@ -1,6 +1,7 @@
 package com.nahui.followupbussiness.identityaccess.config;
 
 import com.nahui.followupbussiness.audit.application.port.out.AuditEntryStore;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.core.authority.AuthorityUtils.createAuthorityList;
@@ -15,10 +16,12 @@ import com.nahui.followupbussiness.identityaccess.application.port.in.ProvisionI
 import com.nahui.followupbussiness.identityaccess.application.port.in.RefreshSessionUseCase;
 import com.nahui.followupbussiness.outbox.adapter.in.rest.DlqReprocessRateLimiter;
 import com.nahui.followupbussiness.outbox.application.ReprocessOutboxEvent;
+
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -35,19 +38,32 @@ import org.springframework.transaction.PlatformTransactionManager;
 })
 class SecurityErrorDispatchIntegrationTest {
 
-    @MockitoBean private ReprocessOutboxEvent reprocessOutboxEvent;
-    @MockitoBean private DlqReprocessRateLimiter dlqReprocessRateLimiter;
-    @MockitoBean private InboundJwtAuthenticator inboundJwtAuthenticator;
-    @MockitoBean private CompanyUserService companyUserService;
-    @MockitoBean private LoginService loginService;
-    @MockitoBean private ProvisionInitialCompanyAdminUseCase provisionInitialCompanyAdminUseCase;
-    @MockitoBean private LogoutSessionUseCase logoutSessionUseCase;
-    @MockitoBean private PasswordRecoveryService passwordRecoveryService;
-    @MockitoBean private RefreshSessionUseCase refreshSessionUseCase;
-    @MockitoBean private JdbcTemplate jdbcTemplate;
-    @MockitoBean private PlatformTransactionManager transactionManager;
-    @MockitoBean private AuditEntryStore auditEntryStore;
-    @MockitoBean private PasswordRecoveryRequestWorker passwordRecoveryRequestWorker;
+    @MockitoBean
+    private ReprocessOutboxEvent reprocessOutboxEvent;
+    @MockitoBean
+    private DlqReprocessRateLimiter dlqReprocessRateLimiter;
+    @MockitoBean
+    private InboundJwtAuthenticator inboundJwtAuthenticator;
+    @MockitoBean
+    private CompanyUserService companyUserService;
+    @MockitoBean
+    private LoginService loginService;
+    @MockitoBean
+    private ProvisionInitialCompanyAdminUseCase provisionInitialCompanyAdminUseCase;
+    @MockitoBean
+    private LogoutSessionUseCase logoutSessionUseCase;
+    @MockitoBean
+    private PasswordRecoveryService passwordRecoveryService;
+    @MockitoBean
+    private RefreshSessionUseCase refreshSessionUseCase;
+    @MockitoBean
+    private JdbcTemplate jdbcTemplate;
+    @MockitoBean
+    private PlatformTransactionManager transactionManager;
+    @MockitoBean
+    private AuditEntryStore auditEntryStore;
+    @MockitoBean
+    private PasswordRecoveryRequestWorker passwordRecoveryRequestWorker;
 
     @LocalServerPort
     private int port;

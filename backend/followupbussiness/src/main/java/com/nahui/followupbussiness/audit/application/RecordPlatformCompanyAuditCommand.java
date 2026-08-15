@@ -2,13 +2,16 @@ package com.nahui.followupbussiness.audit.application;
 
 import com.nahui.followupbussiness.audit.domain.AuditAction;
 import com.nahui.followupbussiness.audit.domain.AuditResult;
+
 import java.util.Objects;
 import java.util.Map;
 import java.util.UUID;
 
-/** Deliberately excludes caller-supplied identity, tenant, time and HTTP values. */
+/**
+ * Deliberately excludes caller-supplied identity, tenant, time and HTTP values.
+ */
 public record RecordPlatformCompanyAuditCommand(UUID resourceId, AuditAction action, AuditResult result,
-        Map<String, String> before, Map<String, String> after, String reason) {
+                                                Map<String, String> before, Map<String, String> after, String reason) {
     public RecordPlatformCompanyAuditCommand {
         Objects.requireNonNull(resourceId, "resourceId is required");
         Objects.requireNonNull(action, "action is required");

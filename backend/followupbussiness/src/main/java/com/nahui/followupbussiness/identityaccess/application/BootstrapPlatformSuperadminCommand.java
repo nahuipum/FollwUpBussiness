@@ -49,9 +49,13 @@ public final class BootstrapPlatformSuperadminCommand implements AutoCloseable {
         return correlationId;
     }
 
-    public String displayName() { return displayName; }
+    public String displayName() {
+        return displayName;
+    }
 
-    public String email() { return email; }
+    public String email() {
+        return email;
+    }
 
     private static String requireProfileValue(String value, String field) {
         if (value == null || value.isBlank()) {

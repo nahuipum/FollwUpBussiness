@@ -30,14 +30,14 @@ public final class InitialCompanyAdminController {
 
     @org.springframework.beans.factory.annotation.Autowired
     public InitialCompanyAdminController(ProvisionInitialCompanyAdminUseCase service,
-            ListCompanyAdminInvitationsUseCase invitations) {
+                                         ListCompanyAdminInvitationsUseCase invitations) {
         this.service = service;
         this.invitations = invitations;
     }
 
     @GetMapping("/{companyId}/admins")
     ResponseEntity<?> list(@PathVariable UUID companyId, @AuthenticationPrincipal AuthenticatedActor actor,
-            HttpServletRequest servlet) {
+                           HttpServletRequest servlet) {
         UUID correlation = correlation(servlet);
         if (invitations == null) return problem(HttpStatus.SERVICE_UNAVAILABLE, correlation);
         try {

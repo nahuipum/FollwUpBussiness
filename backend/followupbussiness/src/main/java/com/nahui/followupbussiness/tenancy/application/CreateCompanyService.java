@@ -12,6 +12,7 @@ import com.nahui.followupbussiness.tenancy.application.port.out.CompanyCreationS
 import com.nahui.followupbussiness.tenancy.application.port.out.CompanyCodeGenerator;
 import com.nahui.followupbussiness.tenancy.domain.model.Company;
 import com.nahui.followupbussiness.tenancy.domain.model.CompanyStatus;
+
 import java.time.Clock;
 import java.time.Instant;
 import java.util.UUID;
@@ -22,18 +23,26 @@ public final class CreateCompanyService implements CreateCompanyUseCase {
     private final RecordPlatformCompanyAuditUseCase audit;
     private final RecordCompanyDenialAuditUseCase denialAudit;
     private final Clock clock;
+
     public CreateCompanyService(CompanyCreationStore store, CompanyCodeGenerator codeGenerator, RecordPlatformCompanyAuditUseCase audit,
-            RecordCompanyDenialAuditUseCase denialAudit, Clock clock) {
-        this.store = store; this.codeGenerator = codeGenerator; this.audit = audit; this.denialAudit = denialAudit; this.clock = clock;
+                                RecordCompanyDenialAuditUseCase denialAudit, Clock clock) {
+        this.store = store;
+        this.codeGenerator = codeGenerator;
+        this.audit = audit;
+        this.denialAudit = denialAudit;
+        this.clock = clock;
     }
-    @Override public Result execute(CreateCompanyCommand command, AuthenticatedActor actor) {
+
+    @Override
+    public Result execute(CreateCompanyCommand command, AuthenticatedActor actor) {
         if (actor == null || actor.role() != BaseRole.PLATFORM_SUPERADMIN)
             throw new AccessDeniedException();
         if (actor.tenantId() != null) {
             denialAudit.record(new RecordCompanyDenialAuditCommand(UUID.randomUUID()));
             return Result.deniedResult();
         }
-        Instant now = clock.instant(); UUID id = UUID.randomUUID();
+        Instant now = clock.instant();
+        UUID id = UUID.randomUUID();
         Company company = new Company(id, command.legalName(), command.tradeName(), codeGenerator.nextCode(), command.taxId(), CompanyStatus.ACTIVE,
                 command.settings(), now, now, 1);
         if (!store.create(company)) {
@@ -43,5 +52,7 @@ public final class CreateCompanyService implements CreateCompanyUseCase {
         audit.record(new RecordPlatformCompanyAuditCommand(id, AuditResult.SUCCESS));
         return Result.created(company);
     }
-    public static final class AccessDeniedException extends RuntimeException { }
+
+    public static final class AccessDeniedException extends RuntimeException {
+    }
 }

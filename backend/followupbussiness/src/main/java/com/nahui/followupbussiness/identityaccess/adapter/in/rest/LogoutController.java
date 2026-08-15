@@ -75,5 +75,6 @@ public final class LogoutController {
         return ResponseEntity.status(status).header(HttpHeaders.CACHE_CONTROL, "no-store").header("X-Correlation-Id", c.toString()).body(p);
     }
 
-    record Body(boolean allSessions) { }
+    record Body(boolean allSessions) {
+    }
 }

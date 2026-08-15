@@ -1,8 +1,10 @@
 package com.nahui.followupbussiness.identityaccess.adapter.in.rest;
 
 import com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor;
+
 import java.net.URI;
 import java.util.UUID;
+
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -16,7 +18,10 @@ import org.springframework.web.bind.annotation.RestController;
 @ConditionalOnProperty(prefix = "followupbussiness.authentication", name = "rs256-private-key")
 public final class CurrentUserController {
     private final CurrentUserProjection projection;
-    CurrentUserController(CurrentUserProjection projection) { this.projection = projection; }
+
+    CurrentUserController(CurrentUserProjection projection) {
+        this.projection = projection;
+    }
 
     @GetMapping("/me")
     ResponseEntity<?> current(@AuthenticationPrincipal AuthenticatedActor actor) {

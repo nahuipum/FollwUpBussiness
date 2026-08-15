@@ -2,6 +2,7 @@ package com.nahui.followupbussiness.identityaccess.adapter.in.rest;
 
 import java.net.URI;
 import java.util.UUID;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -11,7 +12,9 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 
-/** Keeps malformed and validation-rejected credential values out of logs and responses. */
+/**
+ * Keeps malformed and validation-rejected credential values out of logs and responses.
+ */
 @RestControllerAdvice(assignableTypes = {LoginController.class, CompanyUserController.class})
 public final class LoginValidationErrorHandler {
     @ExceptionHandler({MethodArgumentNotValidException.class, HttpMessageNotReadableException.class})

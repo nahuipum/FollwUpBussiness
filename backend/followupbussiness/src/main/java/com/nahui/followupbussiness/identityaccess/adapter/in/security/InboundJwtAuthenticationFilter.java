@@ -32,7 +32,8 @@ public final class InboundJwtAuthenticationFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = resolveRequestPath(request);
         if (isPublicAuthEndpoint(path)) return true;
-        if ("POST".equals(request.getMethod()) && "/auth/logout".equals(path) && "PENDING".equals(request.getHeader("X-Logout-Intent"))) return true;
+        if ("POST".equals(request.getMethod()) && "/auth/logout".equals(path) && "PENDING".equals(request.getHeader("X-Logout-Intent")))
+            return true;
         return request.getHeader("Authorization") == null;
     }
 

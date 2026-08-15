@@ -4,6 +4,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -11,10 +12,13 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.UUID;
 import java.util.regex.Pattern;
+
 import org.springframework.http.MediaType;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-/** Establishes one trusted correlation identifier before security and application processing. */
+/**
+ * Establishes one trusted correlation identifier before security and application processing.
+ */
 public final class CorrelationIdFilter extends OncePerRequestFilter {
     public static final String REQUEST_ATTRIBUTE = "com.nahui.followupbussiness.request.correlationId";
     private static final String HEADER = "X-Correlation-Id";

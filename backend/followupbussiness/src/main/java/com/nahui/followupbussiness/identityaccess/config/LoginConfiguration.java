@@ -58,6 +58,7 @@ public class LoginConfiguration {
     CurrentUserProjection currentUserProjection(JdbcTemplate jdbc, CurrentCompanyQuery companies) {
         return new CurrentUserProjection(new JdbcLoginAccountQuery(jdbc), companies);
     }
+
     @Bean
     public CompanyUserService companyUserService(JdbcTemplate jdbc, AuthenticationProperties.Values properties) {
         byte[] secret = properties.getHmacSecret().getBytes(StandardCharsets.UTF_8);
@@ -68,16 +69,86 @@ public class LoginConfiguration {
         deniedTransaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         var denialStore = new JdbcCompanyUserAuditStore(jdbc);
         return new CompanyUserService(jdbc, Clock.systemUTC()) {
-            @Override public CompanyUserService.UserPage list(int page, int pageSize, String search, BaseRole role, String status, com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor actor) { try { return delegate.list(page,pageSize,search,role,status,actor); } catch (CompanyUserService.Forbidden denied) { denial(actor, actor == null ? null : actor.accountId(), new java.util.UUID(0L,0L)); throw denied; } }
-            @Override public CompanyUserService.User get(java.util.UUID id, com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor actor) { return get(id,actor,new java.util.UUID(0L,0L)); }
-            @Override public CompanyUserService.User get(java.util.UUID id, com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor actor, java.util.UUID correlation) { try { return delegate.get(id,actor,correlation); } catch (CompanyUserService.Forbidden | CompanyUserService.NotFound denied) { denial(actor,id,correlation); throw denied; } }
-            @Override public CompanyUserService.User invite(CompanyUserService.Invite c, com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor a) { return invite(c,a,new java.util.UUID(0L,0L)); }
-            @Override public CompanyUserService.User invite(CompanyUserService.Invite c, com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor a, java.util.UUID correlation) { try { return java.util.Objects.requireNonNull(transaction.execute(s -> delegate.invite(c,a,correlation))); } catch (CompanyUserService.Forbidden denied) { denial(a,a == null ? null : a.accountId(),correlation); throw denied; } }
-            @Override public CompanyUserService.User update(java.util.UUID id, CompanyUserService.Update c, com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor a) { return update(id,c,a,new java.util.UUID(0L,0L)); }
-            @Override public CompanyUserService.User update(java.util.UUID id, CompanyUserService.Update c, com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor a, java.util.UUID correlation) { try { return java.util.Objects.requireNonNull(transaction.execute(s -> delegate.update(id,c,a,correlation))); } catch (CompanyUserService.Forbidden | CompanyUserService.NotFound denied) { denial(a,id,correlation); throw denied; } }
-            @Override public CompanyUserService.User correctAndResendInvitation(java.util.UUID id, CompanyUserService.Invite c, long version, com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor a, java.util.UUID correlation) { try { return java.util.Objects.requireNonNull(transaction.execute(s -> delegate.correctAndResendInvitation(id,c,version,a,correlation))); } catch (CompanyUserService.Forbidden | CompanyUserService.NotFound denied) { denial(a,id,correlation); throw denied; } }
-            @Override public CompanyUserService.User status(java.util.UUID id, String target, com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor a) { return status(id,target,a,new java.util.UUID(0L,0L)); }
-            @Override public CompanyUserService.User status(java.util.UUID id, String target, com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor a, java.util.UUID correlation) { try { return java.util.Objects.requireNonNull(transaction.execute(s -> delegate.status(id,target,a,correlation))); } catch (CompanyUserService.Forbidden | CompanyUserService.NotFound denied) { denial(a,id,correlation); throw denied; } }
+            @Override
+            public CompanyUserService.UserPage list(int page, int pageSize, String search, BaseRole role, String status, com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor actor) {
+                try {
+                    return delegate.list(page, pageSize, search, role, status, actor);
+                } catch (CompanyUserService.Forbidden denied) {
+                    denial(actor, actor == null ? null : actor.accountId(), new java.util.UUID(0L, 0L));
+                    throw denied;
+                }
+            }
+
+            @Override
+            public CompanyUserService.User get(java.util.UUID id, com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor actor) {
+                return get(id, actor, new java.util.UUID(0L, 0L));
+            }
+
+            @Override
+            public CompanyUserService.User get(java.util.UUID id, com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor actor, java.util.UUID correlation) {
+                try {
+                    return delegate.get(id, actor, correlation);
+                } catch (CompanyUserService.Forbidden | CompanyUserService.NotFound denied) {
+                    denial(actor, id, correlation);
+                    throw denied;
+                }
+            }
+
+            @Override
+            public CompanyUserService.User invite(CompanyUserService.Invite c, com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor a) {
+                return invite(c, a, new java.util.UUID(0L, 0L));
+            }
+
+            @Override
+            public CompanyUserService.User invite(CompanyUserService.Invite c, com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor a, java.util.UUID correlation) {
+                try {
+                    return java.util.Objects.requireNonNull(transaction.execute(s -> delegate.invite(c, a, correlation)));
+                } catch (CompanyUserService.Forbidden denied) {
+                    denial(a, a == null ? null : a.accountId(), correlation);
+                    throw denied;
+                }
+            }
+
+            @Override
+            public CompanyUserService.User update(java.util.UUID id, CompanyUserService.Update c, com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor a) {
+                return update(id, c, a, new java.util.UUID(0L, 0L));
+            }
+
+            @Override
+            public CompanyUserService.User update(java.util.UUID id, CompanyUserService.Update c, com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor a, java.util.UUID correlation) {
+                try {
+                    return java.util.Objects.requireNonNull(transaction.execute(s -> delegate.update(id, c, a, correlation)));
+                } catch (CompanyUserService.Forbidden | CompanyUserService.NotFound denied) {
+                    denial(a, id, correlation);
+                    throw denied;
+                }
+            }
+
+            @Override
+            public CompanyUserService.User correctAndResendInvitation(java.util.UUID id, CompanyUserService.Invite c, long version, com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor a, java.util.UUID correlation) {
+                try {
+                    return java.util.Objects.requireNonNull(transaction.execute(s -> delegate.correctAndResendInvitation(id, c, version, a, correlation)));
+                } catch (CompanyUserService.Forbidden | CompanyUserService.NotFound denied) {
+                    denial(a, id, correlation);
+                    throw denied;
+                }
+            }
+
+            @Override
+            public CompanyUserService.User status(java.util.UUID id, String target, com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor a) {
+                return status(id, target, a, new java.util.UUID(0L, 0L));
+            }
+
+            @Override
+            public CompanyUserService.User status(java.util.UUID id, String target, com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor a, java.util.UUID correlation) {
+                try {
+                    return java.util.Objects.requireNonNull(transaction.execute(s -> delegate.status(id, target, a, correlation)));
+                } catch (CompanyUserService.Forbidden | CompanyUserService.NotFound denied) {
+                    denial(a, id, correlation);
+                    throw denied;
+                }
+            }
+
             private void denial(com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor actor, java.util.UUID resource, java.util.UUID correlation) {
                 if (actor == null || actor.accountId() == null || actor.tenantId() == null) return;
                 java.util.UUID safeResource = resource == null ? actor.accountId() : resource;
@@ -86,6 +157,7 @@ public class LoginConfiguration {
             }
         };
     }
+
     @Bean
     LoginService loginService(JdbcTemplate j, CompanyAccessStatusQuery c, AuthenticationProperties.Values p) {
         try {
@@ -135,8 +207,8 @@ public class LoginConfiguration {
 
     @Bean
     ProvisionInitialCompanyAdminUseCase provisionInitialCompanyAdminUseCase(JdbcTemplate jdbc, CompanyAccessStatusQuery companies,
-            AuthenticationProperties.Values p, RecordPlatformCompanyAuditUseCase audit, RecordCompanyDenialAuditUseCase denialAudit,
-            @Value("${followupbussiness.email.enabled:false}") boolean emailEnabled) {
+                                                                            AuthenticationProperties.Values p, RecordPlatformCompanyAuditUseCase audit, RecordCompanyDenialAuditUseCase denialAudit,
+                                                                            @Value("${followupbussiness.email.enabled:false}") boolean emailEnabled) {
         byte[] secret = p.getHmacSecret().getBytes(StandardCharsets.UTF_8);
         var service = new ProvisionInitialCompanyAdminService(new JdbcInitialCompanyAdminStore(jdbc), companies, new JdbcPasswordRecoveryAdapter(jdbc),
                 new JdbcIdentityNotificationAdapter(jdbc, secret), new BCryptPasswordHashingAdapter(), audit, Clock.systemUTC(), secret);

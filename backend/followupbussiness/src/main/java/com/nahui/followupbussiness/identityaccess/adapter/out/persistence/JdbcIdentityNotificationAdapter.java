@@ -37,7 +37,8 @@ public final class JdbcIdentityNotificationAdapter implements IdentityNotificati
         jdbc.update("INSERT INTO identity_access_notification(id,account_id,company_id,purpose,payload_ciphertext,payload_digest,expires_at,next_attempt_at,created_at) VALUES (?,?,?,?,?,?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) ON CONFLICT (account_id,purpose,payload_digest) DO NOTHING", UUID.randomUUID(), account, tenant, purpose.name(), ByteBuffer.allocate(nonce.length + encrypted.length).put(nonce).put(encrypted).array(), digest(identifier + "\n" + token), java.sql.Timestamp.from(expires));
     }
 
-    @Override public java.util.List<Work> claimDue(Instant now, int limit) {
+    @Override
+    public java.util.List<Work> claimDue(Instant now, int limit) {
         return jdbc.query("""
                 WITH due AS (SELECT id FROM identity_access_notification
                   WHERE delivered_at IS NULL AND superseded_at IS NULL AND next_attempt_at <= ?
@@ -46,17 +47,37 @@ public final class JdbcIdentityNotificationAdapter implements IdentityNotificati
                 WHERE n.id=due.id RETURNING n.id,n.company_id,n.payload_ciphertext,n.expires_at,n.attempt_count
                 """, (rs, row) -> new Work((UUID) rs.getObject(1), (UUID) rs.getObject(2), decrypt(rs.getBytes(3)), rs.getTimestamp(4).toInstant(), rs.getInt(5)), java.sql.Timestamp.from(now), limit, java.sql.Timestamp.from(now.plusSeconds(30)));
     }
-    @Override public void delivered(UUID id, UUID tenant, Instant now) { requireSingleTransition(jdbc.update("UPDATE identity_access_notification SET delivered_at=?,payload_ciphertext=decode('','hex') WHERE id=? AND company_id IS NOT DISTINCT FROM ? AND delivered_at IS NULL AND superseded_at IS NULL", java.sql.Timestamp.from(now), id, tenant)); }
-    @Override public void retry(UUID id, UUID tenant, Instant at) { requireSingleTransition(jdbc.update("UPDATE identity_access_notification SET attempt_count=attempt_count+1,next_attempt_at=? WHERE id=? AND company_id IS NOT DISTINCT FROM ? AND delivered_at IS NULL AND superseded_at IS NULL", java.sql.Timestamp.from(at), id, tenant)); }
-    @Override public void erase(UUID id, UUID tenant, Instant now) { requireSingleTransition(jdbc.update("UPDATE identity_access_notification SET superseded_at=?,payload_ciphertext=decode('','hex') WHERE id=? AND company_id IS NOT DISTINCT FROM ? AND delivered_at IS NULL AND superseded_at IS NULL", java.sql.Timestamp.from(now), id, tenant)); }
+
+    @Override
+    public void delivered(UUID id, UUID tenant, Instant now) {
+        requireSingleTransition(jdbc.update("UPDATE identity_access_notification SET delivered_at=?,payload_ciphertext=decode('','hex') WHERE id=? AND company_id IS NOT DISTINCT FROM ? AND delivered_at IS NULL AND superseded_at IS NULL", java.sql.Timestamp.from(now), id, tenant));
+    }
+
+    @Override
+    public void retry(UUID id, UUID tenant, Instant at) {
+        requireSingleTransition(jdbc.update("UPDATE identity_access_notification SET attempt_count=attempt_count+1,next_attempt_at=? WHERE id=? AND company_id IS NOT DISTINCT FROM ? AND delivered_at IS NULL AND superseded_at IS NULL", java.sql.Timestamp.from(at), id, tenant));
+    }
+
+    @Override
+    public void erase(UUID id, UUID tenant, Instant now) {
+        requireSingleTransition(jdbc.update("UPDATE identity_access_notification SET superseded_at=?,payload_ciphertext=decode('','hex') WHERE id=? AND company_id IS NOT DISTINCT FROM ? AND delivered_at IS NULL AND superseded_at IS NULL", java.sql.Timestamp.from(now), id, tenant));
+    }
 
     private static void requireSingleTransition(int affected) {
-        if (affected != 1) throw new IllegalStateException("Identity notification transition did not affect exactly one row");
+        if (affected != 1)
+            throw new IllegalStateException("Identity notification transition did not affect exactly one row");
     }
 
     private Delivery decrypt(byte[] sealed) {
-        try { byte[] nonce=java.util.Arrays.copyOfRange(sealed,0,12); Cipher c=Cipher.getInstance("AES/GCM/NoPadding"); c.init(Cipher.DECRYPT_MODE,new SecretKeySpec(key,"AES"),new GCMParameterSpec(128,nonce)); String[] fields=new String(c.doFinal(java.util.Arrays.copyOfRange(sealed,12,sealed.length)),StandardCharsets.UTF_8).split("\\n",2); return new Delivery(fields[0],fields[1]); }
-        catch (Exception e) { throw new IllegalStateException("Unable to decrypt identity notification", e); }
+        try {
+            byte[] nonce = java.util.Arrays.copyOfRange(sealed, 0, 12);
+            Cipher c = Cipher.getInstance("AES/GCM/NoPadding");
+            c.init(Cipher.DECRYPT_MODE, new SecretKeySpec(key, "AES"), new GCMParameterSpec(128, nonce));
+            String[] fields = new String(c.doFinal(java.util.Arrays.copyOfRange(sealed, 12, sealed.length)), StandardCharsets.UTF_8).split("\\n", 2);
+            return new Delivery(fields[0], fields[1]);
+        } catch (Exception e) {
+            throw new IllegalStateException("Unable to decrypt identity notification", e);
+        }
     }
 
     private byte[] encrypt(byte[] plain, byte[] nonce) {

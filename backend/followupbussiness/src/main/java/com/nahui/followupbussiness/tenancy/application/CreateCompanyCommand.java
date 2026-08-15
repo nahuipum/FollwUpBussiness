@@ -1,6 +1,7 @@
 package com.nahui.followupbussiness.tenancy.application;
 
 import com.nahui.followupbussiness.tenancy.domain.model.CompanySettings;
+
 import java.util.Objects;
 
 public record CreateCompanyCommand(String legalName, String tradeName, String taxId, CompanySettings settings) {

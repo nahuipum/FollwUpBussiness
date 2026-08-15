@@ -28,6 +28,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
+
 import java.time.Clock;
 
 @Configuration(proxyBeanMethods = false)
@@ -60,8 +61,8 @@ public class TenancyConfiguration {
 
     @Bean
     public CreateCompanyUseCase createCompanyUseCase(JdbcTemplate jdbcTemplate, PlatformTransactionManager transactionManager,
-            RecordPlatformCompanyAuditUseCase audit,
-            RecordCompanyDenialAuditUseCase denialAudit) {
+                                                     RecordPlatformCompanyAuditUseCase audit,
+                                                     RecordCompanyDenialAuditUseCase denialAudit) {
         var service = new CreateCompanyService(new JdbcCompanyCreationStore(jdbcTemplate), new JdbcCompanyCodeGenerator(jdbcTemplate), audit, denialAudit, Clock.systemUTC());
         var transaction = new TransactionTemplate(transactionManager);
         return (command, actor) -> {
@@ -73,8 +74,8 @@ public class TenancyConfiguration {
 
     @Bean
     public ChangeCompanyStatusUseCase changeCompanyStatusUseCase(JdbcTemplate jdbcTemplate,
-            PlatformTransactionManager transactionManager, RecordPlatformCompanyAuditUseCase audit,
-            RecordCompanyDenialAuditUseCase denialAudit) {
+                                                                 PlatformTransactionManager transactionManager, RecordPlatformCompanyAuditUseCase audit,
+                                                                 RecordCompanyDenialAuditUseCase denialAudit) {
         var service = new ChangeCompanyStatusService(new JdbcCompanyStatusStore(jdbcTemplate), audit, denialAudit,
                 Clock.systemUTC());
         var transaction = new TransactionTemplate(transactionManager);

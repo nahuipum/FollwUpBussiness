@@ -36,7 +36,9 @@ public class PasswordRecoveryService {
         this.hmacKey = hmacKey.clone();
     }
 
-    /** Accepts only the opaque request input; account resolution happens in the worker. */
+    /**
+     * Accepts only the opaque request input; account resolution happens in the worker.
+     */
     public void accept(String identifier) {
         requests.accept(identifier, clock.instant());
     }
@@ -68,7 +70,8 @@ public class PasswordRecoveryService {
     }
 
     private boolean policy(char[] value) {
-        if (value == null || value.length < 8 || new String(value).getBytes(StandardCharsets.UTF_8).length > 72) return false;
+        if (value == null || value.length < 8 || new String(value).getBytes(StandardCharsets.UTF_8).length > 72)
+            return false;
         boolean upper = false, lower = false, digit = false;
         for (char c : value) {
             upper |= Character.isUpperCase(c);

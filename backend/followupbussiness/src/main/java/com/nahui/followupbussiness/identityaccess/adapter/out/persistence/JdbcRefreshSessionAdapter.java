@@ -58,5 +58,8 @@ public final class JdbcRefreshSessionAdapter implements RefreshSessionPort {
     public Resolution resolveById(UUID id, UUID accountId, UUID tenantId) {
         return jdbc.query("SELECT id,account_id,company_id,channel,client_instance_digest,csrf_token_digest,expires_at,revoked_at,refresh_rotated_at FROM identity_access_session_family WHERE id=? AND account_id=? AND company_id IS NOT DISTINCT FROM ? FOR UPDATE", (rs, n) -> new Resolution(rs.getObject(1, UUID.class), rs.getObject(2, UUID.class), rs.getObject(3, UUID.class), rs.getString(4), rs.getBytes(5), rs.getBytes(6), rs.getTimestamp(7).toInstant(), rs.getTimestamp(8) == null ? null : rs.getTimestamp(8).toInstant(), rs.getTimestamp(9) == null ? null : rs.getTimestamp(9).toInstant(), true), id, accountId, tenantId).stream().findFirst().orElse(null);
     }
-    public List<UUID> activeFamilyIds(UUID accountId, UUID tenantId) { return jdbc.query("SELECT id FROM identity_access_session_family WHERE account_id=? AND company_id IS NOT DISTINCT FROM ?", (rs,n)->rs.getObject(1,UUID.class),accountId,tenantId); }
+
+    public List<UUID> activeFamilyIds(UUID accountId, UUID tenantId) {
+        return jdbc.query("SELECT id FROM identity_access_session_family WHERE account_id=? AND company_id IS NOT DISTINCT FROM ?", (rs, n) -> rs.getObject(1, UUID.class), accountId, tenantId);
+    }
 }

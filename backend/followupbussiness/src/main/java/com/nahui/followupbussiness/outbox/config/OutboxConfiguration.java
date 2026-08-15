@@ -113,19 +113,60 @@ public class OutboxConfiguration {
         private long maxBackoffMs = 300000;
         private String exchange = "followupbussiness.events";
 
-        public long getPollDelayMs() { return pollDelayMs; }
-        public void setPollDelayMs(long pollDelayMs) { this.pollDelayMs = pollDelayMs; }
-        public int getBatchSize() { return batchSize; }
-        public void setBatchSize(int batchSize) { this.batchSize = batchSize; }
-        public long getLeaseSeconds() { return leaseSeconds; }
-        public void setLeaseSeconds(long leaseSeconds) { this.leaseSeconds = leaseSeconds; }
-        public int getMaxAttempts() { return maxAttempts; }
-        public void setMaxAttempts(int maxAttempts) { this.maxAttempts = maxAttempts; }
-        public long getInitialBackoffMs() { return initialBackoffMs; }
-        public void setInitialBackoffMs(long initialBackoffMs) { this.initialBackoffMs = initialBackoffMs; }
-        public long getMaxBackoffMs() { return maxBackoffMs; }
-        public void setMaxBackoffMs(long maxBackoffMs) { this.maxBackoffMs = maxBackoffMs; }
-        public String getExchange() { return exchange; }
-        public void setExchange(String exchange) { this.exchange = exchange; }
+        public long getPollDelayMs() {
+            return pollDelayMs;
+        }
+
+        public void setPollDelayMs(long pollDelayMs) {
+            this.pollDelayMs = pollDelayMs;
+        }
+
+        public int getBatchSize() {
+            return batchSize;
+        }
+
+        public void setBatchSize(int batchSize) {
+            this.batchSize = batchSize;
+        }
+
+        public long getLeaseSeconds() {
+            return leaseSeconds;
+        }
+
+        public void setLeaseSeconds(long leaseSeconds) {
+            this.leaseSeconds = leaseSeconds;
+        }
+
+        public int getMaxAttempts() {
+            return maxAttempts;
+        }
+
+        public void setMaxAttempts(int maxAttempts) {
+            this.maxAttempts = maxAttempts;
+        }
+
+        public long getInitialBackoffMs() {
+            return initialBackoffMs;
+        }
+
+        public void setInitialBackoffMs(long initialBackoffMs) {
+            this.initialBackoffMs = initialBackoffMs;
+        }
+
+        public long getMaxBackoffMs() {
+            return maxBackoffMs;
+        }
+
+        public void setMaxBackoffMs(long maxBackoffMs) {
+            this.maxBackoffMs = maxBackoffMs;
+        }
+
+        public String getExchange() {
+            return exchange;
+        }
+
+        public void setExchange(String exchange) {
+            this.exchange = exchange;
+        }
     }
 }

@@ -10,6 +10,7 @@ import com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActo
 import com.nahui.followupbussiness.identityaccess.domain.model.BaseRole;
 import com.nahui.followupbussiness.tenancy.application.port.in.ChangeCompanyStatusUseCase;
 import com.nahui.followupbussiness.tenancy.application.port.out.CompanyStatusStore;
+
 import java.time.Clock;
 import java.util.Map;
 import java.util.UUID;
@@ -22,7 +23,7 @@ public final class ChangeCompanyStatusService implements ChangeCompanyStatusUseC
     private final Clock clock;
 
     public ChangeCompanyStatusService(CompanyStatusStore store, RecordPlatformCompanyAuditUseCase audit,
-            RecordCompanyDenialAuditUseCase denialAudit, Clock clock) {
+                                      RecordCompanyDenialAuditUseCase denialAudit, Clock clock) {
         this.store = store;
         this.audit = audit;
         this.denialAudit = denialAudit;
@@ -57,5 +58,6 @@ public final class ChangeCompanyStatusService implements ChangeCompanyStatusUseC
         return REASON_PROVIDED;
     }
 
-    public static final class AccessDeniedException extends RuntimeException { }
+    public static final class AccessDeniedException extends RuntimeException {
+    }
 }

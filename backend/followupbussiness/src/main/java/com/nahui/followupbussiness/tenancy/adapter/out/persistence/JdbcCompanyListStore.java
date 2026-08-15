@@ -5,9 +5,11 @@ import com.nahui.followupbussiness.tenancy.application.port.out.CompanyListStore
 import com.nahui.followupbussiness.tenancy.domain.model.Company;
 import com.nahui.followupbussiness.tenancy.domain.model.CompanySettings;
 import com.nahui.followupbussiness.tenancy.domain.model.CompanyStatus;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+
 import org.springframework.jdbc.core.JdbcTemplate;
 
 public final class JdbcCompanyListStore implements CompanyListStore {
@@ -20,7 +22,9 @@ public final class JdbcCompanyListStore implements CompanyListStore {
             """;
     private final JdbcTemplate jdbc;
 
-    public JdbcCompanyListStore(JdbcTemplate jdbc) { this.jdbc = jdbc; }
+    public JdbcCompanyListStore(JdbcTemplate jdbc) {
+        this.jdbc = jdbc;
+    }
 
     @Override
     public List<Company> find(ListCompaniesUseCase.Query query) {

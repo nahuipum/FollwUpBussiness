@@ -16,10 +16,12 @@ import com.nahui.followupbussiness.tenancy.application.ChangeCompanyStatusComman
 import com.nahui.followupbussiness.tenancy.application.port.in.ChangeCompanyStatusUseCase;
 import com.nahui.followupbussiness.tenancy.config.TenancyConfiguration;
 import com.nahui.followupbussiness.tenancy.domain.model.CompanyStatus;
+
 import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
+
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -38,9 +40,18 @@ class CompanyStatusTransactionTest {
     private DriverManagerDataSource dataSource;
     private UUID companyId;
 
-    @BeforeAll static void start() { postgres.start(); }
-    @AfterAll static void stop() { postgres.stop(); }
-    @BeforeEach void migrate() {
+    @BeforeAll
+    static void start() {
+        postgres.start();
+    }
+
+    @AfterAll
+    static void stop() {
+        postgres.stop();
+    }
+
+    @BeforeEach
+    void migrate() {
         Flyway.configure().dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
                 .locations("classpath:db/migration").cleanDisabled(false).load().clean();
         Flyway.configure().dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
@@ -52,7 +63,8 @@ class CompanyStatusTransactionTest {
         jdbc.update("INSERT INTO tenancy_company_settings(company_id,timezone,currency,geofence_radius_meters,tracking_interval_seconds,location_retention_days,created_at,updated_at) VALUES (?,'America/Lima','PEN',100,60,90,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)", companyId);
     }
 
-    @Test void transitionPersistsOnlyReasonPresenceAndStructuredAuditWhileRepeatedStatusIsAWriteFreeNoOp() {
+    @Test
+    void transitionPersistsOnlyReasonPresenceAndStructuredAuditWhileRepeatedStatusIsAWriteFreeNoOp() {
         UUID actorId = UUID.randomUUID();
         var service = service(audit(actorId));
         var first = service.execute(companyId, command(CompanyStatus.SUSPENDED, "Alice Smith admin@example.test token=opaque Bearer demo-token api_key=demo-secret arbitrary free text"), actor(actorId));
@@ -73,8 +85,11 @@ class CompanyStatusTransactionTest {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM audit_entry", Integer.class)).isEqualTo(1);
     }
 
-    @Test void failedAuditRollsBackTheStatusMutation() {
-        RecordPlatformCompanyAuditUseCase failing = command -> { throw new IllegalStateException("audit unavailable"); };
+    @Test
+    void failedAuditRollsBackTheStatusMutation() {
+        RecordPlatformCompanyAuditUseCase failing = command -> {
+            throw new IllegalStateException("audit unavailable");
+        };
         assertThatThrownBy(() -> service(failing).execute(companyId, command(CompanyStatus.SUSPENDED), actor()))
                 .isInstanceOf(IllegalStateException.class);
         assertThat(jdbc.queryForObject("SELECT status FROM tenancy_company WHERE id=?", String.class, companyId)).isEqualTo("ACTIVE");
@@ -82,12 +97,19 @@ class CompanyStatusTransactionTest {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM audit_entry", Integer.class)).isZero();
     }
 
-    @Test void concurrentIdenticalRequestsProduceOneMutationAndOneChangeAudit() throws Exception {
+    @Test
+    void concurrentIdenticalRequestsProduceOneMutationAndOneChangeAudit() throws Exception {
         var service = service(audit());
         CountDownLatch gate = new CountDownLatch(1);
         try (var pool = Executors.newFixedThreadPool(2)) {
-            var first = pool.submit(() -> { gate.await(); return service.execute(companyId, command(CompanyStatus.SUSPENDED), actor()); });
-            var second = pool.submit(() -> { gate.await(); return service.execute(companyId, command(CompanyStatus.SUSPENDED), actor()); });
+            var first = pool.submit(() -> {
+                gate.await();
+                return service.execute(companyId, command(CompanyStatus.SUSPENDED), actor());
+            });
+            var second = pool.submit(() -> {
+                gate.await();
+                return service.execute(companyId, command(CompanyStatus.SUSPENDED), actor());
+            });
             gate.countDown();
             assertThat(first.get().company().status()).isEqualTo(CompanyStatus.SUSPENDED);
             assertThat(second.get().company().status()).isEqualTo(CompanyStatus.SUSPENDED);
@@ -96,7 +118,8 @@ class CompanyStatusTransactionTest {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM audit_entry WHERE result='SUCCESS'", Integer.class)).isEqualTo(1);
     }
 
-    @Test void tenantBoundDenialCommitsDurableEvidenceWithoutMutatingTheCompany() {
+    @Test
+    void tenantBoundDenialCommitsDurableEvidenceWithoutMutatingTheCompany() {
         UUID tenantId = UUID.randomUUID();
         UUID actorId = UUID.randomUUID();
         UUID correlationId = UUID.randomUUID();
@@ -112,24 +135,36 @@ class CompanyStatusTransactionTest {
     }
 
     private ChangeCompanyStatusUseCase service(RecordPlatformCompanyAuditUseCase audit) {
-        return service(audit, command -> { });
+        return service(audit, command -> {
+        });
     }
+
     private ChangeCompanyStatusUseCase service(RecordPlatformCompanyAuditUseCase audit, RecordCompanyDenialAuditUseCase denial) {
         return new TenancyConfiguration().changeCompanyStatusUseCase(jdbc, new DataSourceTransactionManager(dataSource), audit, denial);
     }
+
     private RecordPlatformCompanyAuditUseCase audit() {
         return audit(UUID.randomUUID());
     }
+
     private RecordPlatformCompanyAuditUseCase audit(UUID actorId) {
         return new RecordPlatformCompanyAudit(new JdbcAuditEntryStore(jdbc, jdbc),
                 () -> new PlatformAuditTrustedContext(actorId, UUID.randomUUID(), Instant.parse("2026-08-06T12:00:00Z")));
     }
+
     private ChangeCompanyStatusCommand command(CompanyStatus status) {
         return command(status, "Operational review");
     }
-    private ChangeCompanyStatusCommand command(CompanyStatus status, String reason) { return new ChangeCompanyStatusCommand(status, reason); }
+
+    private ChangeCompanyStatusCommand command(CompanyStatus status, String reason) {
+        return new ChangeCompanyStatusCommand(status, reason);
+    }
+
     private AuthenticatedActor actor() {
         return actor(UUID.randomUUID());
     }
-    private AuthenticatedActor actor(UUID actorId) { return new AuthenticatedActor(actorId, null, BaseRole.PLATFORM_SUPERADMIN); }
+
+    private AuthenticatedActor actor(UUID actorId) {
+        return new AuthenticatedActor(actorId, null, BaseRole.PLATFORM_SUPERADMIN);
+    }
 }

@@ -27,10 +27,15 @@ public final class LogoutSessionService implements LogoutSessionUseCase {
     private final byte[] key;
 
     public LogoutSessionService(RefreshSessionPort sessions, RecordAuthenticationAuditUseCase audit, Clock clock, byte[] key) {
-        this(sessions, audit, (account, tenant) -> new LogoutAbuseMonitor.Decision(false, 0), (family, tenant) -> { }, clock, key);
+        this(sessions, audit, (account, tenant) -> new LogoutAbuseMonitor.Decision(false, 0), (family, tenant) -> {
+        }, clock, key);
     }
 
-    public LogoutSessionService(RefreshSessionPort sessions, RecordAuthenticationAuditUseCase audit, LogoutAbuseMonitor abuse, Clock clock, byte[] key) { this(sessions,audit,abuse,(family,tenant)->{},clock,key); }
+    public LogoutSessionService(RefreshSessionPort sessions, RecordAuthenticationAuditUseCase audit, LogoutAbuseMonitor abuse, Clock clock, byte[] key) {
+        this(sessions, audit, abuse, (family, tenant) -> {
+        }, clock, key);
+    }
+
     public LogoutSessionService(RefreshSessionPort sessions, RecordAuthenticationAuditUseCase audit, LogoutAbuseMonitor abuse, RevokeInstallationsForSession installations, Clock clock, byte[] key) {
         this.sessions = sessions;
         this.audit = audit;
@@ -57,8 +62,14 @@ public final class LogoutSessionService implements LogoutSessionUseCase {
                 throw new CsrfRejected();
             }
             if (family.revokedAt() != null) return;
-            if (c.allSessions()) { var ids=sessions.activeFamilyIds(c.actor().accountId(),c.actor().tenantId()); sessions.revokeAll(c.actor().accountId(), c.actor().tenantId(), now); for(var id:ids) installations.revoke(id,c.actor().tenantId()); }
-            else { sessions.revoke(c.actor().sessionFamilyId(), now); installations.revoke(c.actor().sessionFamilyId(),c.actor().tenantId()); }
+            if (c.allSessions()) {
+                var ids = sessions.activeFamilyIds(c.actor().accountId(), c.actor().tenantId());
+                sessions.revokeAll(c.actor().accountId(), c.actor().tenantId(), now);
+                for (var id : ids) installations.revoke(id, c.actor().tenantId());
+            } else {
+                sessions.revoke(c.actor().sessionFamilyId(), now);
+                installations.revoke(c.actor().sessionFamilyId(), c.actor().tenantId());
+            }
         } else {
             if (c.allSessions() || (c.revocationTicket() == null) == (c.webRefreshCookie() == null))
                 throw new Rejected();
@@ -67,7 +78,7 @@ public final class LogoutSessionService implements LogoutSessionUseCase {
                 throw new Rejected();
             if (family.revokedAt() != null) return;
             sessions.revoke(family.familyId(), now);
-            installations.revoke(family.familyId(),family.companyId());
+            installations.revoke(family.familyId(), family.companyId());
         }
         try {
             audit.record(new RecordAuthenticationAuditCommand(family.accountId(), family.familyId(), family.companyId(), c.correlationId(), RecordAuthenticationAuditCommand.Channel.valueOf(family.channel()), RecordAuthenticationAuditCommand.Result.LOGGED_OUT, now, c.allSessions() ? RecordAuthenticationAuditCommand.Reason.GLOBAL : null));
@@ -75,7 +86,10 @@ public final class LogoutSessionService implements LogoutSessionUseCase {
             if (isTenantlessPlatformLogout(c, family)) throw new AuditUnavailableAfterRevocation(failure);
             throw failure;
         }
-        if (c.allSessions()) try { abuse.recordGlobal(family.accountId(), family.companyId()); } catch (RuntimeException ignored) { }
+        if (c.allSessions()) try {
+            abuse.recordGlobal(family.accountId(), family.companyId());
+        } catch (RuntimeException ignored) {
+        }
     }
 
     private boolean isTenantlessPlatformLogout(Command command, RefreshSessionPort.Resolution family) {
@@ -96,15 +110,24 @@ public final class LogoutSessionService implements LogoutSessionUseCase {
     }
 
     private void auditRejected(RefreshSessionPort.Resolution family, Command command, Instant now, RecordAuthenticationAuditCommand.Reason reason) {
-        try { audit.record(new RecordAuthenticationAuditCommand(family.accountId(), family.familyId(), family.companyId(), command.correlationId(), RecordAuthenticationAuditCommand.Channel.valueOf(family.channel()), RecordAuthenticationAuditCommand.Result.REJECTED, now, reason)); } catch (RuntimeException ignored) { }
+        try {
+            audit.record(new RecordAuthenticationAuditCommand(family.accountId(), family.familyId(), family.companyId(), command.correlationId(), RecordAuthenticationAuditCommand.Channel.valueOf(family.channel()), RecordAuthenticationAuditCommand.Result.REJECTED, now, reason));
+        } catch (RuntimeException ignored) {
+        }
     }
 
     public static class Rejected extends RuntimeException {
     }
+
     public static final class CsrfRejected extends Rejected {
     }
-    /** The transaction wrapper commits the already durable revocation, then exposes the failure. */
+
+    /**
+     * The transaction wrapper commits the already durable revocation, then exposes the failure.
+     */
     public static final class AuditUnavailableAfterRevocation extends RuntimeException {
-        public AuditUnavailableAfterRevocation(RuntimeException cause) { super(cause); }
+        public AuditUnavailableAfterRevocation(RuntimeException cause) {
+            super(cause);
+        }
     }
 }

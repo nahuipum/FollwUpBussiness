@@ -4,16 +4,20 @@ import com.nahui.followupbussiness.tenancy.application.port.out.CompanyStatusSto
 import com.nahui.followupbussiness.tenancy.domain.model.Company;
 import com.nahui.followupbussiness.tenancy.domain.model.CompanySettings;
 import com.nahui.followupbussiness.tenancy.domain.model.CompanyStatus;
+
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
+
 import org.springframework.jdbc.core.JdbcTemplate;
 
 public final class JdbcCompanyStatusStore implements CompanyStatusStore {
     private final JdbcTemplate jdbc;
 
-    public JdbcCompanyStatusStore(JdbcTemplate jdbc) { this.jdbc = jdbc; }
+    public JdbcCompanyStatusStore(JdbcTemplate jdbc) {
+        this.jdbc = jdbc;
+    }
 
     @Override
     public Optional<Transition> changeStatus(UUID companyId, CompanyStatus desiredStatus, Instant changedAt) {

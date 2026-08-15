@@ -5,10 +5,14 @@ import com.nahui.followupbussiness.identityaccess.application.port.out.LoginAcco
 import com.nahui.followupbussiness.identityaccess.domain.model.BaseRole;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.json.JsonMapper;
+
 import java.nio.charset.StandardCharsets;
+
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+
 import java.util.List;
 import java.util.UUID;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.system.CapturedOutput;
@@ -40,8 +44,8 @@ class LoginControllerTest {
         when(redis.execute(any(), anyList(), anyString())).thenReturn(List.of(6L, 321L));
         LoginService service = mock(LoginService.class);
         MockMvc mvc = MockMvcBuilders.standaloneSetup(new LoginController(
-                service, origin -> "https://web.example.test".equals(origin), new SimpleMeterRegistry(),
-                new LoginRateLimiter(redis, hmacKey()), projection()))
+                        service, origin -> "https://web.example.test".equals(origin), new SimpleMeterRegistry(),
+                        new LoginRateLimiter(redis, hmacKey()), projection()))
                 .build();
 
         mvc.perform(post("/auth/login")
@@ -98,8 +102,8 @@ class LoginControllerTest {
         when(service.login(anyString(), any(char[].class), anyString(), any(UUID.class)))
                 .thenReturn(result("MOBILE"));
         MockMvc mvc = MockMvcBuilders.standaloneSetup(new LoginController(
-                service, origin -> "https://web.example.test".equals(origin), new SimpleMeterRegistry(),
-                new LoginRateLimiter(redis, hmacKey()), projection()))
+                        service, origin -> "https://web.example.test".equals(origin), new SimpleMeterRegistry(),
+                        new LoginRateLimiter(redis, hmacKey()), projection()))
                 .build();
 
         mvc.perform(login("MOBILE"))
@@ -116,8 +120,8 @@ class LoginControllerTest {
         when(failedService.login(anyString(), any(char[].class), anyString(), any(UUID.class)))
                 .thenThrow(new LoginService.LoginFailedException());
         MockMvc failedMvc = MockMvcBuilders.standaloneSetup(new LoginController(
-                failedService, origin -> "https://web.example.test".equals(origin), new SimpleMeterRegistry(),
-                new LoginRateLimiter(failedRedis, hmacKey()), projection()))
+                        failedService, origin -> "https://web.example.test".equals(origin), new SimpleMeterRegistry(),
+                        new LoginRateLimiter(failedRedis, hmacKey()), projection()))
                 .build();
 
         failedMvc.perform(login("MOBILE"))
@@ -127,8 +131,8 @@ class LoginControllerTest {
         StringRedisTemplate limitedRedis = mock(StringRedisTemplate.class);
         when(limitedRedis.execute(any(), anyList(), anyString())).thenReturn(List.of(6L, 321L));
         MockMvc limitedMvc = MockMvcBuilders.standaloneSetup(new LoginController(
-                mock(LoginService.class), origin -> "https://web.example.test".equals(origin), new SimpleMeterRegistry(),
-                new LoginRateLimiter(limitedRedis, hmacKey()), projection()))
+                        mock(LoginService.class), origin -> "https://web.example.test".equals(origin), new SimpleMeterRegistry(),
+                        new LoginRateLimiter(limitedRedis, hmacKey()), projection()))
                 .build();
 
         limitedMvc.perform(login("MOBILE"))
@@ -139,8 +143,8 @@ class LoginControllerTest {
         StringRedisTemplate unavailableRedis = mock(StringRedisTemplate.class);
         when(unavailableRedis.execute(any(), anyList(), anyString())).thenThrow(new IllegalStateException("down"));
         MockMvc unavailableMvc = MockMvcBuilders.standaloneSetup(new LoginController(
-                mock(LoginService.class), origin -> "https://web.example.test".equals(origin), new SimpleMeterRegistry(),
-                new LoginRateLimiter(unavailableRedis, hmacKey()), projection()))
+                        mock(LoginService.class), origin -> "https://web.example.test".equals(origin), new SimpleMeterRegistry(),
+                        new LoginRateLimiter(unavailableRedis, hmacKey()), projection()))
                 .build();
 
         unavailableMvc.perform(login("MOBILE"))
@@ -213,8 +217,8 @@ class LoginControllerTest {
         var converter = new JacksonJsonHttpMessageConverter(
                 JsonMapper.builder().enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES).build());
         return MockMvcBuilders.standaloneSetup(new LoginController(
-                service, origin -> "https://web.example.test".equals(origin), new SimpleMeterRegistry(),
-                new LoginRateLimiter(redis, hmacKey()), projection()))
+                        service, origin -> "https://web.example.test".equals(origin), new SimpleMeterRegistry(),
+                        new LoginRateLimiter(redis, hmacKey()), projection()))
                 .setMessageConverters(converter)
                 .setControllerAdvice(new LoginValidationErrorHandler())
                 .addFilters(new LoginRequestSizeFilter())

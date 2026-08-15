@@ -6,6 +6,7 @@ import com.nahui.followupbussiness.audit.application.port.out.CompanyDenialAudit
 import com.nahui.followupbussiness.audit.domain.AuditEntry;
 import com.nahui.followupbussiness.audit.domain.AuditResult;
 import com.nahui.followupbussiness.audit.domain.AuditScope;
+
 import java.util.Map;
 
 public final class RecordCompanyDenialAudit implements RecordCompanyDenialAuditUseCase {
@@ -17,7 +18,8 @@ public final class RecordCompanyDenialAudit implements RecordCompanyDenialAuditU
         this.contextProvider = contextProvider;
     }
 
-    @Override public void record(RecordCompanyDenialAuditCommand command) {
+    @Override
+    public void record(RecordCompanyDenialAuditCommand command) {
         CompanyDenialAuditTrustedContext context = contextProvider.current();
         store.append(new AuditEntry(command.attemptId(), context.tenantId(), context.actorId(),
                 command.action(), "COMPANY", command.resourceId(), AuditResult.DENIED,

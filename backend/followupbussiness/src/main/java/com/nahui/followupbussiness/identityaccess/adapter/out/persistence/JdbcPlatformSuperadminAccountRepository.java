@@ -25,12 +25,12 @@ public final class JdbcPlatformSuperadminAccountRepository
     public Optional<ExistingAccount> findAnyByLoginIdentifier(LoginIdentifier loginIdentifier) {
         List<ExistingAccount> accounts = jdbcTemplate.query(
                 """
-                SELECT id, role_code, company_id
-                FROM identity_access_account
-                WHERE login_identifier = ?
-                ORDER BY created_at, id
-                LIMIT 1
-                """,
+                        SELECT id, role_code, company_id
+                        FROM identity_access_account
+                        WHERE login_identifier = ?
+                        ORDER BY created_at, id
+                        LIMIT 1
+                        """,
                 JdbcPlatformSuperadminAccountRepository::mapExistingAccount,
                 loginIdentifier.value());
         return accounts.stream().findFirst();
@@ -40,12 +40,12 @@ public final class JdbcPlatformSuperadminAccountRepository
     public Optional<ExistingAccount> findPlatformSuperadmin() {
         List<ExistingAccount> accounts = jdbcTemplate.query(
                 """
-                SELECT id, role_code, company_id
-                FROM identity_access_account
-                WHERE role_code = 'PLATFORM_SUPERADMIN'
-                ORDER BY created_at, id
-                LIMIT 1
-                """,
+                        SELECT id, role_code, company_id
+                        FROM identity_access_account
+                        WHERE role_code = 'PLATFORM_SUPERADMIN'
+                        ORDER BY created_at, id
+                        LIMIT 1
+                        """,
                 JdbcPlatformSuperadminAccountRepository::mapExistingAccount);
         return accounts.stream().findFirst();
     }
@@ -54,17 +54,17 @@ public final class JdbcPlatformSuperadminAccountRepository
     public boolean insertIfAbsent(PlatformSuperadminAccount account) {
         int updated = jdbcTemplate.update(
                 """
-                INSERT INTO identity_access_account(
-                    id,
-                    login_identifier,
-                    password_hash,
-                    role_code,
-                    company_id,
-                    created_at
-                )
-                VALUES (?, ?, ?, ?, ?, ?)
-                ON CONFLICT DO NOTHING
-                """,
+                        INSERT INTO identity_access_account(
+                            id,
+                            login_identifier,
+                            password_hash,
+                            role_code,
+                            company_id,
+                            created_at
+                        )
+                        VALUES (?, ?, ?, ?, ?, ?)
+                        ON CONFLICT DO NOTHING
+                        """,
                 account.id(),
                 account.loginIdentifier().value(),
                 account.passwordHash(),

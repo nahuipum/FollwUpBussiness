@@ -5,6 +5,7 @@ import com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActo
 import com.nahui.followupbussiness.identityaccess.domain.model.RoleScope;
 import com.nahui.followupbussiness.tenancy.application.port.in.CurrentCompanyQuery;
 import com.nahui.followupbussiness.tenancy.domain.model.Company;
+
 import java.time.Instant;
 import java.util.List;
 
@@ -33,9 +34,12 @@ public final class CurrentUserProjection {
     }
 
     record CurrentUser(java.util.UUID id, String displayName, String email, String status, List<String> roles,
-                       CompanyResponse company) { }
+                       CompanyResponse company) {
+    }
+
     record CompanyResponse(java.util.UUID id, String legalName, String tradeName, String code, String taxId,
-                           String status, SettingsResponse settings, Instant createdAt, Instant updatedAt, long version) {
+                           String status, SettingsResponse settings, Instant createdAt, Instant updatedAt,
+                           long version) {
         static CompanyResponse from(Company company) {
             var s = company.settings();
             return new CompanyResponse(company.id(), company.legalName(), company.tradeName(), company.code(), company.taxId(),
@@ -44,7 +48,11 @@ public final class CurrentUserProjection {
                     company.updatedAt(), company.version());
         }
     }
+
     record SettingsResponse(String timezone, String currency, int geofenceRadiusMeters, int trackingIntervalSeconds,
-                            int locationRetentionDays, Integer saleEditWindowMinutes) { }
-    static final class Unauthenticated extends RuntimeException { }
+                            int locationRetentionDays, Integer saleEditWindowMinutes) {
+    }
+
+    static final class Unauthenticated extends RuntimeException {
+    }
 }

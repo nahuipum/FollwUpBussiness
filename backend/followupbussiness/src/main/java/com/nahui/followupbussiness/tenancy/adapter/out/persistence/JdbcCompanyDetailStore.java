@@ -4,14 +4,18 @@ import com.nahui.followupbussiness.tenancy.application.port.out.CompanyDetailSto
 import com.nahui.followupbussiness.tenancy.domain.model.Company;
 import com.nahui.followupbussiness.tenancy.domain.model.CompanySettings;
 import com.nahui.followupbussiness.tenancy.domain.model.CompanyStatus;
+
 import java.util.Optional;
 import java.util.UUID;
+
 import org.springframework.jdbc.core.JdbcTemplate;
 
 public final class JdbcCompanyDetailStore implements CompanyDetailStore {
     private final JdbcTemplate jdbc;
 
-    public JdbcCompanyDetailStore(JdbcTemplate jdbc) { this.jdbc = jdbc; }
+    public JdbcCompanyDetailStore(JdbcTemplate jdbc) {
+        this.jdbc = jdbc;
+    }
 
     @Override
     public Optional<Company> findById(UUID companyId) {

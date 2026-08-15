@@ -1,6 +1,7 @@
 package com.nahui.followupbussiness.tenancy.application;
 
 import com.nahui.followupbussiness.tenancy.domain.model.CompanyStatus;
+
 import java.util.Objects;
 
 public record ChangeCompanyStatusCommand(CompanyStatus status, String reason) {

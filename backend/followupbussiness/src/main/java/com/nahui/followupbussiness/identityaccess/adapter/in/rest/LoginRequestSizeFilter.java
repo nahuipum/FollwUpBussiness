@@ -7,12 +7,16 @@ import jakarta.servlet.ServletInputStream;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletRequestWrapper;
 import jakarta.servlet.http.HttpServletResponse;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
+
 import org.springframework.web.filter.OncePerRequestFilter;
 
-/** Caps both declared and chunked login bodies before JSON deserialization. */
+/**
+ * Caps both declared and chunked login bodies before JSON deserialization.
+ */
 public class LoginRequestSizeFilter extends OncePerRequestFilter {
     public static final int MAX_LOGIN_REQUEST_BYTES = 4096;
 
@@ -85,13 +89,24 @@ public class LoginRequestSizeFilter extends OncePerRequestFilter {
             this.correlationId = correlationId;
         }
 
-        @Override public int read() throws IOException { int value = delegate.read(); check(value < 0 ? 0 : 1); return value; }
-        @Override public int read(byte[] bytes, int offset, int length) throws IOException {
+        @Override
+        public int read() throws IOException {
+            int value = delegate.read();
+            check(value < 0 ? 0 : 1);
+            return value;
+        }
+
+        @Override
+        public int read(byte[] bytes, int offset, int length) throws IOException {
             int value = delegate.read(bytes, offset, Math.min(length, remainingWithProbe()));
             check(value < 0 ? 0 : value);
             return value;
         }
-        private int remainingWithProbe() { return (int) Math.max(1, Math.min(Integer.MAX_VALUE, MAX_LOGIN_REQUEST_BYTES - bytesRead + 1)); }
+
+        private int remainingWithProbe() {
+            return (int) Math.max(1, Math.min(Integer.MAX_VALUE, MAX_LOGIN_REQUEST_BYTES - bytesRead + 1));
+        }
+
         private void check(int read) throws IOException {
             bytesRead += read;
             if (bytesRead > MAX_LOGIN_REQUEST_BYTES) {
@@ -99,8 +114,20 @@ public class LoginRequestSizeFilter extends OncePerRequestFilter {
                 throw new IOException("Login request exceeds configured maximum");
             }
         }
-        @Override public boolean isFinished() { return delegate.isFinished(); }
-        @Override public boolean isReady() { return delegate.isReady(); }
-        @Override public void setReadListener(ReadListener listener) { delegate.setReadListener(listener); }
+
+        @Override
+        public boolean isFinished() {
+            return delegate.isFinished();
+        }
+
+        @Override
+        public boolean isReady() {
+            return delegate.isReady();
+        }
+
+        @Override
+        public void setReadListener(ReadListener listener) {
+            delegate.setReadListener(listener);
+        }
     }
 }

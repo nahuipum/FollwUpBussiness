@@ -1,6 +1,7 @@
 package com.nahui.followupbussiness.audit.application;
 
 import com.nahui.followupbussiness.audit.application.port.out.AuditEntryStore;
+
 import java.time.Clock;
 import java.time.Duration;
 
@@ -31,7 +32,10 @@ public final class PurgeAuditRetention {
     }
 
     @FunctionalInterface
-    private interface DeleteBatch { int delete(java.time.Instant before, int batchSize); }
+    private interface DeleteBatch {
+        int delete(java.time.Instant before, int batchSize);
+    }
 
-    public record PurgeResult(int entriesDeleted, int networkContextsDeleted) { }
+    public record PurgeResult(int entriesDeleted, int networkContextsDeleted) {
+    }
 }

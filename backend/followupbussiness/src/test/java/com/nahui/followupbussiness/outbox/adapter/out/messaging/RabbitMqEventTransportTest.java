@@ -59,7 +59,7 @@ class RabbitMqEventTransportTest {
                 UUID.randomUUID(), UUID.randomUUID(), "{}");
 
         org.assertj.core.api.Assertions.assertThatThrownBy(
-                () -> new RabbitMqEventTransport(template, new ObjectMapper(), "followupbussiness.events").publish(event))
+                        () -> new RabbitMqEventTransport(template, new ObjectMapper(), "followupbussiness.events").publish(event))
                 .isInstanceOf(IllegalStateException.class);
     }
 

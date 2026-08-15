@@ -27,6 +27,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
+
 import javax.sql.DataSource;
 
 @Configuration(proxyBeanMethods = false)
@@ -34,7 +35,9 @@ import javax.sql.DataSource;
 public class AuditConfiguration {
     @Bean
     @ConfigurationProperties(prefix = "followupbussiness.audit.database")
-    AuditDatabaseProperties auditDatabaseProperties() { return new AuditDatabaseProperties(); }
+    AuditDatabaseProperties auditDatabaseProperties() {
+        return new AuditDatabaseProperties();
+    }
 
     @Bean
     AuditEntryStore auditEntryStore(AuditDatabaseProperties properties) {
@@ -44,7 +47,9 @@ public class AuditConfiguration {
     }
 
     @Bean
-    AuditTrustedContextProvider auditTrustedContextProvider() { return new SecurityContextAuditTrustedContextProvider(); }
+    AuditTrustedContextProvider auditTrustedContextProvider() {
+        return new SecurityContextAuditTrustedContextProvider();
+    }
 
     @Bean
     RecordAuditEntryUseCase recordAuditEntryUseCase(AuditEntryStore store, AuditTrustedContextProvider contextProvider) {

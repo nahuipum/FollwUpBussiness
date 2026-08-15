@@ -8,7 +8,9 @@ import com.nahui.followupbussiness.tenancy.application.port.out.CompanyListStore
 public final class ListCompaniesService implements ListCompaniesUseCase {
     private final CompanyListStore store;
 
-    public ListCompaniesService(CompanyListStore store) { this.store = store; }
+    public ListCompaniesService(CompanyListStore store) {
+        this.store = store;
+    }
 
     @Override
     public Result execute(Query query, AuthenticatedActor actor) {
@@ -18,5 +20,6 @@ public final class ListCompaniesService implements ListCompaniesUseCase {
         return new Result(store.find(query), store.count(query));
     }
 
-    public static final class AccessDeniedException extends RuntimeException { }
+    public static final class AccessDeniedException extends RuntimeException {
+    }
 }

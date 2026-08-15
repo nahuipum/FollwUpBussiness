@@ -3,7 +3,9 @@ package com.nahui.followupbussiness.identityaccess.adapter.in.scheduling;
 import com.nahui.followupbussiness.identityaccess.application.PasswordRecoveryRequestWorker;
 import org.springframework.scheduling.annotation.Scheduled;
 
-/** Drains accepted recovery requests after their durable HTTP acknowledgement. */
+/**
+ * Drains accepted recovery requests after their durable HTTP acknowledgement.
+ */
 public final class PasswordRecoveryRequestScheduler {
     private final PasswordRecoveryRequestWorker worker;
 

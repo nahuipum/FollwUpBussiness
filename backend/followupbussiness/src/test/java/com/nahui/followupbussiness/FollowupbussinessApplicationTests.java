@@ -22,56 +22,56 @@ import org.springframework.transaction.PlatformTransactionManager;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(properties = {
-		"followupbussiness.security.local-secret=TEST_ONLY_NON_SECRET_012345678901234567890123456789",
-		"spring.autoconfigure.exclude=org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration",
-		"followupbussiness.outbox.enabled=false"
+        "followupbussiness.security.local-secret=TEST_ONLY_NON_SECRET_012345678901234567890123456789",
+        "spring.autoconfigure.exclude=org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration",
+        "followupbussiness.outbox.enabled=false"
 })
 class FollowupbussinessApplicationTests {
 
-	@MockitoBean
-	private CompanyUserService companyUserService;
+    @MockitoBean
+    private CompanyUserService companyUserService;
 
-	@MockitoBean
-	private LoginService loginService;
+    @MockitoBean
+    private LoginService loginService;
 
-	@MockitoBean
-	private ProvisionInitialCompanyAdminUseCase provisionInitialCompanyAdminUseCase;
+    @MockitoBean
+    private ProvisionInitialCompanyAdminUseCase provisionInitialCompanyAdminUseCase;
 
-	@MockitoBean
-	private LogoutSessionUseCase logoutSessionUseCase;
+    @MockitoBean
+    private LogoutSessionUseCase logoutSessionUseCase;
 
-	@MockitoBean
-	private PasswordRecoveryService passwordRecoveryService;
+    @MockitoBean
+    private PasswordRecoveryService passwordRecoveryService;
 
-	@MockitoBean
-	private RefreshSessionUseCase refreshSessionUseCase;
+    @MockitoBean
+    private RefreshSessionUseCase refreshSessionUseCase;
 
-	@MockitoBean
-	private JdbcTemplate jdbcTemplate;
+    @MockitoBean
+    private JdbcTemplate jdbcTemplate;
 
-	@MockitoBean
-	private PlatformTransactionManager transactionManager;
+    @MockitoBean
+    private PlatformTransactionManager transactionManager;
 
-	@MockitoBean
-	private AuditEntryStore auditEntryStore;
+    @MockitoBean
+    private AuditEntryStore auditEntryStore;
 
-	@MockitoBean
-	private PasswordRecoveryRequestWorker passwordRecoveryRequestWorker;
+    @MockitoBean
+    private PasswordRecoveryRequestWorker passwordRecoveryRequestWorker;
 
-	@MockitoBean
-	private InboundJwtAuthenticator inboundJwtAuthenticator;
+    @MockitoBean
+    private InboundJwtAuthenticator inboundJwtAuthenticator;
 
-	@Autowired
-	private ApplicationContext applicationContext;
+    @Autowired
+    private ApplicationContext applicationContext;
 
-	@Test
-	void contextLoads() {
-	}
+    @Test
+    void contextLoads() {
+    }
 
-	@Test
-	void ordinaryStartupDoesNotRegisterBootstrapCommand() {
-		assertThat(applicationContext.getBeansOfType(PlatformSuperadminBootstrapRunner.class)).isEmpty();
-		assertThat(applicationContext.getBeansOfType(BootstrapPlatformSuperadminUseCase.class)).isEmpty();
-	}
+    @Test
+    void ordinaryStartupDoesNotRegisterBootstrapCommand() {
+        assertThat(applicationContext.getBeansOfType(PlatformSuperadminBootstrapRunner.class)).isEmpty();
+        assertThat(applicationContext.getBeansOfType(BootstrapPlatformSuperadminUseCase.class)).isEmpty();
+    }
 
 }
