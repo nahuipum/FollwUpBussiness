@@ -111,6 +111,29 @@ public class SellerService {
         return saved;
     }
 
+    @Transactional
+    public Seller assignTerritories(UUID sellerId, List<UUID> territoryIds, AuthenticatedActor actor, UUID correlationId) {
+        UUID tenant = admin(actor);
+        if (sellerId == null || territoryIds == null || territoryIds.isEmpty() || territoryIds.stream().anyMatch(Objects::isNull)
+                || new HashSet<>(territoryIds).size() != territoryIds.size()) throw new Invalid();
+        Seller before = store.find(tenant, sellerId).orElseThrow(NotFound::new);
+        before.requireActiveForAssignment();
+        List<UUID> requested = List.copyOf(territoryIds);
+        for (UUID territoryId : requested)
+            if (!store.activeTerritory(tenant, territoryId)) {
+                if (!store.territoryBelongsToTenant(tenant, territoryId)) throw new NotFound();
+                throw new Invalid();
+            }
+        if (new HashSet<>(before.territoryIds()).equals(new HashSet<>(requested))) return before;
+        Seller after = new Seller(before.id(), tenant, before.userId(), before.displayName(), before.email(), before.phone(), before.employeeCode(),
+                before.supervisorId(), requested, before.status(), before.createdAt(), clock.instant(), before.version() + 1);
+        Seller saved = store.replaceTerritories(after, before.version()).orElseThrow(Conflict::new);
+        if (!audit.record(new RecordAuditEntryCommand(AuditAction.CRITICAL_MUTATION, AuditResourceType.SELLER, sellerId, AuditResult.SUCCESS,
+                Map.of("territoryIds", territoryAuditValue(before.territoryIds())), Map.of("territoryIds", territoryAuditValue(requested)))))
+            throw new IllegalStateException("Seller territory audit was not persisted");
+        return saved;
+    }
+
     public Page list(TerritoryStatus status, UUID requestedSupervisorId, UUID territoryId, String search, int page, int size, AuthenticatedActor actor) {
         UUID tenant = listViewer(actor);
         UUID teamSupervisor = actor.role() == BaseRole.SUPERVISOR ? actor.accountId() : null;
@@ -159,6 +182,10 @@ public class SellerService {
 
     private static String auditValue(UUID value) {
         return value == null ? "NONE" : value.toString();
+    }
+
+    private static String territoryAuditValue(List<UUID> territoryIds) {
+        return territoryIds.isEmpty() ? "NONE" : territoryIds.stream().map(UUID::toString).sorted().collect(java.util.stream.Collectors.joining(","));
     }
 
     public record Command(String displayName, String username, String email, String phone, String employeeCode,

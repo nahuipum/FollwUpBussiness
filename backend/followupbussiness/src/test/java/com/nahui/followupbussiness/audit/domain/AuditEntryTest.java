@@ -18,6 +18,15 @@ class AuditEntryTest {
     }
 
     @Test
+    void acceptsOnlyUuidTerritoryDifferences() {
+        UUID first = UUID.randomUUID();
+        UUID second = UUID.randomUUID();
+        entry(Map.of("territoryIds", first + "," + second), Map.of("territoryIds", "NONE"));
+        assertThatThrownBy(() -> entry(Map.of("territoryIds", "free-text"), Map.of()))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void rejectsUnknownScopesWithAndWithoutTenantAndAcceptsClosedScopeMatrix() {
         assertThatThrownBy(() -> entry(UUID.randomUUID(), "UNRECOGNIZED_SCOPE"))
                 .isInstanceOf(IllegalArgumentException.class);

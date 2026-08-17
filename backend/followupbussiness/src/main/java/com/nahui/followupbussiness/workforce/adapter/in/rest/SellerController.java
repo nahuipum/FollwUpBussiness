@@ -127,13 +127,31 @@ public final class SellerController {
         }
     }
 
-    private static ResponseEntity<ProblemDetail> problem(HttpStatus status, UUID correlation) {
+    @PutMapping("/{sellerId}/territories")
+    public ResponseEntity<?> assignTerritories(@PathVariable UUID sellerId, @Valid @RequestBody AssignTerritoriesRequest request,
+                                               @AuthenticationPrincipal AuthenticatedActor actor, HttpServletRequest http) {
+        UUID correlation = correlationId(http);
+        try {
+            Seller seller = service.assignTerritories(sellerId, request.territoryIds(), actor, correlation);
+            return ResponseEntity.ok().header("X-Correlation-Id", correlation.toString()).body(Response.from(seller));
+        } catch (SellerService.Forbidden exception) {
+            return problem(HttpStatus.FORBIDDEN, correlation);
+        } catch (SellerService.NotFound exception) {
+            return problem(HttpStatus.NOT_FOUND, correlation);
+        } catch (SellerService.Invalid | Seller.InactiveForAssignment exception) {
+            return problem(HttpStatus.UNPROCESSABLE_CONTENT, correlation);
+        } catch (SellerService.Conflict exception) {
+            return problem(HttpStatus.UNPROCESSABLE_CONTENT, correlation);
+        }
+    }
+
+    static ResponseEntity<ProblemDetail> problem(HttpStatus status, UUID correlation) {
         ProblemDetail p = ProblemDetail.forStatusAndDetail(status, "Request cannot be processed");
         p.setProperty("correlationId", correlation.toString());
         return ResponseEntity.status(status).header("X-Correlation-Id", correlation.toString()).body(p);
     }
 
-    private static UUID correlationId(HttpServletRequest request) {
+    static UUID correlationId(HttpServletRequest request) {
         Object current = request.getAttribute("com.nahui.followupbussiness.request.correlationId");
         if (current instanceof UUID value) return value;
         UUID correlation;
@@ -220,6 +238,8 @@ public final class SellerController {
         @JsonAnySetter
         void unknown(String key, Object ignored) { throw new IllegalArgumentException("unknown property"); }
     }
+
+    record AssignTerritoriesRequest(@NotNull @Size(min = 1) List<UUID> territoryIds) { }
 
     record Response(UUID id, UUID userId, String displayName, String email, String phone, String employeeCode,
                     UUID supervisorId, List<UUID> territoryIds, String status, Instant createdAt, Instant updatedAt,

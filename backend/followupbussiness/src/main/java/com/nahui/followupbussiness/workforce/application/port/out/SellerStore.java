@@ -12,6 +12,8 @@ public interface SellerStore {
 
     boolean activeTerritory(UUID tenantId, UUID territoryId);
 
+    default boolean territoryBelongsToTenant(UUID tenantId, UUID territoryId) { return false; }
+
     Seller insert(Seller seller);
 
     default boolean existsEmployeeCode(UUID tenantId, String employeeCode, UUID excludingSellerId) { return false; }
@@ -23,6 +25,8 @@ public interface SellerStore {
     default Optional<Seller> updateStatus(Seller seller, TerritoryStatus expectedStatus) { return Optional.empty(); }
 
     default Optional<Seller> updateSupervisor(Seller seller, UUID expectedSupervisorId, long expectedVersion) { return Optional.empty(); }
+
+    default Optional<Seller> replaceTerritories(Seller seller, long expectedVersion) { return Optional.empty(); }
 
     Optional<Seller> find(UUID tenantId, UUID sellerId);
 

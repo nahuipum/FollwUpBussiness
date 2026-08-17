@@ -24,7 +24,7 @@ public record AuditEntry(
         String reason,
         Instant occurredAt) {
 
-    private static final Set<String> ALLOWED_CHANGE_FIELDS = Set.of("status");
+    private static final Set<String> ALLOWED_CHANGE_FIELDS = Set.of("status", "territoryIds");
     private static final Set<String> ALLOWED_SCOPES = Set.of(
             AuditScope.AUTHORIZED_RESOURCE.name(),
             AuditScope.PLATFORM.name(),
@@ -77,9 +77,27 @@ public record AuditEntry(
             return Map.of();
         }
         if (!ALLOWED_CHANGE_FIELDS.containsAll(values.keySet())
-                || values.values().stream().anyMatch(value -> value == null || !value.matches("[A-Z_]{1,64}"))) {
+                || values.entrySet().stream().anyMatch(entry -> !validChange(entry.getKey(), entry.getValue()))) {
             throw new IllegalArgumentException("Only approved, non-null audit change fields may be recorded");
         }
         return Map.copyOf(values);
+    }
+
+    private static boolean validChange(String field, String value) {
+        if (value == null) return false;
+        if ("status".equals(field)) return value.matches("[A-Z_]{1,64}");
+        if (!"territoryIds".equals(field)) return false;
+        if ("NONE".equals(value)) return true;
+        String[] ids = value.split(",", -1);
+        return ids.length > 0 && java.util.Arrays.stream(ids).allMatch(AuditEntry::uuid);
+    }
+
+    private static boolean uuid(String value) {
+        try {
+            UUID.fromString(value);
+            return true;
+        } catch (IllegalArgumentException exception) {
+            return false;
+        }
     }
 }

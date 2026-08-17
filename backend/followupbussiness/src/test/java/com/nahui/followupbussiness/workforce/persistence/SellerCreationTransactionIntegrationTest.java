@@ -100,6 +100,34 @@ class SellerCreationTransactionIntegrationTest {
         assertThat(jdbc.queryForObject("SELECT version FROM workforce_seller WHERE id=?", Long.class, seller)).isEqualTo(1L);
     }
 
+    @Test
+    void rollsBackTerritoryReplacementWhenItsAuditCannotBePersisted() {
+        UUID sellerAccount = account("seller@example.test", "SELLER");
+        UUID seller = UUID.randomUUID();
+        UUID oldTerritory = territory("Old", "OLD");
+        UUID requestedTerritory = territory("Requested", "REQ");
+        jdbc.update("INSERT INTO workforce_seller(id,tenant_id,user_id,display_name,email,status,created_at,updated_at,version) VALUES (?,?,?,?,?,'ACTIVE',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,1)",
+                seller, tenant, sellerAccount, "Seller", "seller@example.test");
+        jdbc.update("INSERT INTO workforce_seller_territory(seller_id,territory_id) VALUES (?,?)", seller, oldTerritory);
+
+        try (var context = new AnnotationConfigApplicationContext()) {
+            context.registerBean(JdbcTemplate.class, () -> jdbc);
+            context.registerBean(PlatformTransactionManager.class, () -> new DataSourceTransactionManager(dataSource));
+            context.registerBean(CompanyUserService.class, () -> invitationWritingUsers(jdbc));
+            context.registerBean(RecordAuditEntryUseCase.class, () -> command -> false);
+            context.register(TransactionalSellerConfiguration.class);
+            context.refresh();
+
+            assertThatThrownBy(() -> context.getBean(SellerService.class)
+                    .assignTerritories(seller, List.of(requestedTerritory), admin(), UUID.randomUUID()))
+                    .isInstanceOf(IllegalStateException.class);
+        }
+
+        assertThat(jdbc.queryForList("SELECT territory_id FROM workforce_seller_territory WHERE seller_id=?", UUID.class, seller))
+                .containsExactly(oldTerritory);
+        assertThat(jdbc.queryForObject("SELECT version FROM workforce_seller WHERE id=?", Long.class, seller)).isEqualTo(1L);
+    }
+
     private CompanyUserService invitationWritingUsers(JdbcTemplate jdbc) {
         byte[] hmac = "01234567890123456789012345678901".getBytes(java.nio.charset.StandardCharsets.UTF_8);
         return new CompanyUserService(jdbc, Clock.systemUTC(), new JdbcPasswordRecoveryAdapter(jdbc),
@@ -112,6 +140,13 @@ class SellerCreationTransactionIntegrationTest {
         UUID id = UUID.randomUUID();
         jdbc.update("INSERT INTO identity_access_account(id,login_identifier,password_hash,role_code,company_id,created_at) VALUES (?,?,?,?,?,CURRENT_TIMESTAMP)",
                 id, login, "$2a$12$7EqJtq98hPqEX7fNZaFWoOa2K7lTznWh.4Dq1EzDY9B6avS1KDo7a", role, tenant);
+        return id;
+    }
+
+    private UUID territory(String name, String code) {
+        UUID id = UUID.randomUUID();
+        jdbc.update("INSERT INTO workforce_territory(id,tenant_id,name,code,status,created_at,updated_at,version) VALUES (?,?,?,?,'ACTIVE',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,1)",
+                id, tenant, name, code);
         return id;
     }
 

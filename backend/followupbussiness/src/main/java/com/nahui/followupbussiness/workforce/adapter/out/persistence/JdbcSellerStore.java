@@ -25,6 +25,11 @@ public final class JdbcSellerStore implements SellerStore {
         return exists("select count(*) from workforce_territory where tenant_id=? and id=? and status='ACTIVE'", tenant, id);
     }
 
+    @Override
+    public boolean territoryBelongsToTenant(UUID tenant, UUID id) {
+        return exists("select count(*) from workforce_territory where tenant_id=? and id=?", tenant, id);
+    }
+
     private boolean exists(String sql, UUID tenant, UUID id) {
         Integer n = jdbc.queryForObject(sql, Integer.class, tenant, id);
         return n != null && n > 0;
@@ -71,6 +76,17 @@ public final class JdbcSellerStore implements SellerStore {
         int updated = jdbc.update("update workforce_seller set supervisor_id=?,updated_at=?,version=? where tenant_id=? and id=? and version=? and supervisor_id is not distinct from ?",
                 seller.supervisorId(), Timestamp.from(seller.updatedAt()), seller.version(), seller.tenantId(), seller.id(), expectedVersion, expectedSupervisorId);
         return updated == 1 ? Optional.of(seller) : Optional.empty();
+    }
+
+    @Override
+    public Optional<Seller> replaceTerritories(Seller seller, long expectedVersion) {
+        int updated = jdbc.update("update workforce_seller set updated_at=?,version=? where tenant_id=? and id=? and version=?",
+                Timestamp.from(seller.updatedAt()), seller.version(), seller.tenantId(), seller.id(), expectedVersion);
+        if (updated != 1) return Optional.empty();
+        jdbc.update("delete from workforce_seller_territory where seller_id=?", seller.id());
+        for (UUID territoryId : seller.territoryIds())
+            jdbc.update("insert into workforce_seller_territory(seller_id,territory_id) values(?,?)", seller.id(), territoryId);
+        return Optional.of(seller);
     }
 
     public Optional<Seller> find(UUID tenant, UUID id) {
