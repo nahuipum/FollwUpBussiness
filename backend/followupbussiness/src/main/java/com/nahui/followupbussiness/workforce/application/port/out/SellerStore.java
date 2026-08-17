@@ -1,6 +1,7 @@
 package com.nahui.followupbussiness.workforce.application.port.out;
 
 import com.nahui.followupbussiness.workforce.domain.Seller;
+import com.nahui.followupbussiness.workforce.domain.TerritoryStatus;
 
 import java.util.List;
 import java.util.Optional;
@@ -18,6 +19,8 @@ public interface SellerStore {
     default void lockEmployeeCode(UUID tenantId, String employeeCode) { }
 
     default Optional<Seller> update(Seller seller, long expectedVersion) { return Optional.empty(); }
+
+    default Optional<Seller> updateStatus(Seller seller, TerritoryStatus expectedStatus) { return Optional.empty(); }
 
     Optional<Seller> find(UUID tenantId, UUID sellerId);
 

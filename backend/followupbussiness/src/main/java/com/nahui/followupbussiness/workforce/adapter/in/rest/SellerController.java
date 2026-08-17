@@ -90,6 +90,24 @@ public final class SellerController {
         }
     }
 
+    @PatchMapping("/{sellerId}/status")
+    public ResponseEntity<?> status(@PathVariable UUID sellerId, @Valid @RequestBody StatusRequest request,
+                                    @AuthenticationPrincipal AuthenticatedActor actor, HttpServletRequest http) {
+        UUID correlation = correlationId(http);
+        try {
+            Seller seller = service.status(sellerId, request.status(), request.reason(), actor, correlation);
+            return ResponseEntity.ok().eTag(Long.toString(seller.version())).header("X-Correlation-Id", correlation.toString()).body(Response.from(seller));
+        } catch (SellerService.Forbidden exception) {
+            return problem(HttpStatus.FORBIDDEN, correlation);
+        } catch (SellerService.NotFound exception) {
+            return problem(HttpStatus.NOT_FOUND, correlation);
+        } catch (SellerService.Conflict exception) {
+            return problem(HttpStatus.CONFLICT, correlation);
+        } catch (SellerService.Invalid | IllegalArgumentException exception) {
+            return problem(HttpStatus.BAD_REQUEST, correlation);
+        }
+    }
+
     private static ResponseEntity<ProblemDetail> problem(HttpStatus status, UUID correlation) {
         ProblemDetail p = ProblemDetail.forStatusAndDetail(status, "Request cannot be processed");
         p.setProperty("correlationId", correlation.toString());
@@ -151,6 +169,22 @@ public final class SellerController {
         void unknown(String key, Object ignored) {
             throw new IllegalArgumentException("unknown property");
         }
+    }
+
+    static final class StatusRequest {
+        @NotNull
+        private TerritoryStatus status;
+        @NotBlank
+        @Size(min = 5, max = 500)
+        private String reason;
+
+        public TerritoryStatus status() { return status; }
+        public String reason() { return reason; }
+        public void setStatus(TerritoryStatus status) { this.status = status; }
+        public void setReason(String reason) { this.reason = reason; }
+
+        @JsonAnySetter
+        void unknown(String key, Object ignored) { throw new IllegalArgumentException("unknown property"); }
     }
 
     record Response(UUID id, UUID userId, String displayName, String email, String phone, String employeeCode,

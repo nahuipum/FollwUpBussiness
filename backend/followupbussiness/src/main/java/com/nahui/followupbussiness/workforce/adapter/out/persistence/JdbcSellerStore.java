@@ -59,6 +59,13 @@ public final class JdbcSellerStore implements SellerStore {
         return updated == 1 ? Optional.of(seller) : Optional.empty();
     }
 
+    @Override
+    public Optional<Seller> updateStatus(Seller seller, com.nahui.followupbussiness.workforce.domain.TerritoryStatus expectedStatus) {
+        int updated = jdbc.update("update workforce_seller set status=?,updated_at=?,version=? where tenant_id=? and id=? and status=? and version=?",
+                seller.status().name(), Timestamp.from(seller.updatedAt()), seller.version(), seller.tenantId(), seller.id(), expectedStatus.name(), seller.version() - 1);
+        return updated == 1 ? Optional.of(seller) : Optional.empty();
+    }
+
     public Optional<Seller> find(UUID tenant, UUID id) {
         List<Seller> sellers = jdbc.query("select * from workforce_seller where tenant_id=? and id=?", (RowMapper<Seller>) this::map, tenant, id);
         populateTerritories(sellers);
