@@ -1,14 +1,13 @@
 # BE-013 — Definition of Finished
 
-**Estado:** `BLOCKED`  
-**Candidate-ID:** `HEAD 5702c0a + BE-013 customers/V28/PostGIS/REST/auditoría-atómica`.
+**Estado:** `PASS`
+**Candidate-ID:** `HEAD dde8160cc7cd249cb7bab8def95f700487789086 + dbb4655c`.
 
-## Evidencia de compuerta
+## Compuertas verificadas
 
-- QA `PASS` y Seguridad `PASS` declaran el Candidate-ID indicado; no hay hallazgos abiertos.
-- `HEAD` es `5702c0a`; el árbol contiene los cambios BE-013 declarados y `git diff --check` no reporta errores.
+- Desarrollo `READY_FOR_HANDOFF`, QA `PASS` y Seguridad `PASS` existen y declaran el mismo Candidate-ID.
+- Evidencia aplicable declarada: pruebas focalizadas, arranque Spring, integración de rollback y `mvn -q "-Dmaven.repo.local=C:\\Users\\LUIS\\.m2\\repository" clean verify`: `PASS` para el candidato.
+- `HEAD` actual coincide con el candidato declarado; el árbol conserva únicamente los cambios BE-013 y artefactos de flujo, además de un paquete no relacionado BE-014.
+- `git diff --check` y `git diff --cached --check`: sin errores (solo avisos de normalización LF/CRLF).
 
-## Compuertas faltantes
-
-- El handoff de Desarrollo está `READY_FOR_HANDOFF`, pero su Candidate-ID figura como «Pendiente de cálculo por Orquestación»; falta evidencia Dev trazable al candidato actual.
-- Para este cambio de composición compartida, falta evidencia CI-equivalente local `clean verify` aprobada para el candidato actual: la ejecución declarada terminó por timeout y el PASS reutilizado no está ligado al Candidate-ID.
+No hay hallazgos abiertos ni compuertas aplicables pendientes.

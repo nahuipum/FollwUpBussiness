@@ -1,19 +1,29 @@
 # BE-013 — Handoff de Desarrollo
 
-**Estado:** READY_FOR_HANDOFF  
-**Candidate-ID:** Pendiente de cálculo por Orquestación.
+**Estado:** READY_FOR_HANDOFF
+**Candidate-ID:** `HEAD dde8160cc7cd249cb7bab8def95f700487789086 + dbb4655c`.
 
-## Alcance de remediación
+## Alcance
 
-Se corrigió exclusivamente la atomicidad cliente–auditoría. `CustomerConfiguration` construye la auditoría de creación con el mismo `JdbcTemplate` de la transacción del cliente; ya no usa el escritor de auditoría con `DataSource` independiente. Así, inserción de `customer` y evidencia `CUSTOMER/SUCCESS` se confirman o revierten juntas.
+Se corrigió el límite modular y se conservó la atomicidad cliente–auditoría.
+`CustomerConfiguration` consume el puerto `RecordAuditEntryUseCase` calificado
+como transaccional; la composición de ese puerto reside en `audit` y usa el
+mismo `JdbcTemplate`. El puerto general queda `@Primary`, por lo que no cambia
+la inyección de los demás módulos. La integración de clientes aporta el bean
+transaccional equivalente y continúa verificando rollback de ambas escrituras.
 
-Archivos modificados: `backend/followupbussiness/src/main/java/com/nahui/followupbussiness/customers/config/CustomerConfiguration.java` y `backend/followupbussiness/src/test/java/com/nahui/followupbussiness/customers/persistence/CustomerCreationTransactionIntegrationTest.java`. No cambiaron contratos, migraciones ni reglas de negocio.
+Archivos: `audit/config/AuditConfiguration.java`,
+`customers/config/CustomerConfiguration.java` y
+`customers/persistence/CustomerCreationTransactionIntegrationTest.java`.
+No cambiaron contratos, migraciones ni reglas de negocio.
 
 ## Verificación
 
-- `mvn -q -Dtest=CustomerCreationTransactionIntegrationTest test`: PASS.
-- `mvn -q "-Dtest=CreateCustomerServiceTest,CustomerControllerTest,CustomerCreationTransactionIntegrationTest" test`: PASS.
-- La nueva integración provoca una FK diferida inválida al confirmar, después de escribir auditoría, y verifica cero filas en `customer` y cero auditorías exitosas `CUSTOMER`.
-- `mvn -q clean verify`: no concluyente por timeout local (124 s), sin error emitido; se reutiliza el `clean verify` PASS previo y QA debe conservar esta limitación.
+- `mvn -q "-Dmaven.repo.local=C:\Users\LUIS\.m2\repository" "-Dtest=ModuleBoundaryTest,CustomerCreationTransactionIntegrationTest,FollowupbussinessApplicationTests" test`: PASS.
+- `mvn -q "-Dmaven.repo.local=C:\Users\LUIS\.m2\repository" clean verify`: PASS (212 s).
+- `git diff --check`: PASS.
 
-Criterio cubierto: fallo/commit posterior a auditoría no deja efectos parciales. Riesgo residual: validación completa no se completó en esta ejecución; cambios sin commit. Reproducción: ejecutar la segunda prueba focalizada anterior.
+Criterios cubiertos: no dependencia de `customers` hacia adaptadores internos
+de `audit`; auditoría y cliente revierten juntos ante fallo de commit; el
+contexto Spring arranca sin ambigüedad. Riesgo residual: ninguno identificado.
+Reproducción: ejecutar el `clean verify` anterior desde `backend/followupbussiness`.

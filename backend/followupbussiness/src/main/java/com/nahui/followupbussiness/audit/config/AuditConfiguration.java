@@ -22,6 +22,7 @@ import java.time.Clock;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -52,8 +53,14 @@ public class AuditConfiguration {
     }
 
     @Bean
+    @Primary
     RecordAuditEntryUseCase recordAuditEntryUseCase(AuditEntryStore store, AuditTrustedContextProvider contextProvider) {
         return new RecordAuditEntry(store, contextProvider, Clock.systemUTC());
+    }
+
+    @Bean("transactionalAuditEntryUseCase")
+    RecordAuditEntryUseCase transactionalAuditEntryUseCase(JdbcTemplate jdbcTemplate, AuditTrustedContextProvider contextProvider) {
+        return new RecordAuditEntry(new JdbcAuditEntryStore(jdbcTemplate, jdbcTemplate), contextProvider, Clock.systemUTC());
     }
 
     @Bean

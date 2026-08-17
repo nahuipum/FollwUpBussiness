@@ -1,16 +1,22 @@
 # BE-013 — Handoff QA
 
-**Estado:** `PASS`  
-**Candidate-ID:** `HEAD 5702c0a + BE-013 customers/V28/PostGIS/REST/auditoría-atómica`.
+**Estado:** PASS
+**Candidate-ID:** `HEAD dde8160cc7cd249cb7bab8def95f700487789086 + dbb4655c`.
 
-## Mapeo y evidencia
+## Trazabilidad
 
-- **Atomicidad ante fallo de commit:** `CustomerConfiguration` inyecta el mismo `JdbcTemplate` en `JdbcCustomerStore` y `JdbcAuditEntryStore`; `CustomerCreationTransactionIntegrationTest#rollsBackCustomerAndAuditWhenCommitFailsAfterAuditWasWritten` fuerza una FK diferida tras auditar y comprueba cero `customer` y cero auditorías `CUSTOMER/SUCCESS`.
-- **Creación directa y geodato:** servicio/controlador y prueba de integración conservan creación solo por `COMPANY_ADMIN`, `tenantId` del actor y PostGIS SRID 4326.
-- **Denegación sin efectos:** `CreateCustomerServiceTest` cubre `SELLER` y territorio ajeno/inactivo sin inserción ni auditoría; `CustomerControllerTest` verifica 403 y que el cuerpo no admita `tenantId`.
+| Criterio | Implementación | Prueba/evidencia |
+|---|---|---|
+| Solo `COMPANY_ADMIN`, tenant de sesión y rechazos sin efectos | `CreateCustomerService` y controlador sin cambios de regresión | `CreateCustomerServiceTest` y `CustomerControllerTest`: PASS; `SELLER` no llama store/audit y `tenantId` en cuerpo retorna 400. |
+| Auditoría por puerto y frontera modular | `CustomerConfiguration` inyecta `RecordAuditEntryUseCase` calificado; composición en `AuditConfiguration` | `ModuleBoundaryTest` y `FollowupbussinessApplicationTests`: PASS. |
+| Atomicidad cliente–auditoría ante fallo posterior a auditoría | `transactionalAuditEntryUseCase` con el `JdbcTemplate` transaccional | `CustomerCreationTransactionIntegrationTest`: PASS; fallo diferido deja 0 `customer` y 0 auditorías `CUSTOMER/SUCCESS`. |
 
-**Comando/evidencia:** `mvn -q "-Dtest=CreateCustomerServiceTest,CustomerControllerTest,CustomerCreationTransactionIntegrationTest" test` → PASS (Flyway V28 + PostGIS/Testcontainers). `git rev-parse --short HEAD` → `5702c0a`; árbol con cambios BE-013 esperados y `git diff --check` sin hallazgos.
+## Comandos y evidencia
+
+- `mvn -q "-Dmaven.repo.local=C:\Users\LUIS\.m2\repository" "-Dtest=ModuleBoundaryTest,CustomerCreationTransactionIntegrationTest,CustomerControllerTest,CreateCustomerServiceTest,FollowupbussinessApplicationTests" test`: PASS.
+- `mvn -q "-Dmaven.repo.local=C:\Users\LUIS\.m2\repository" clean verify`: PASS reutilizado del handoff Dev para el mismo Candidate-ID.
+- `git diff --check`: PASS.
 
 ## Hallazgos y riesgos
 
-El hallazgo alto anterior queda cerrado; no hay hallazgos reproducibles en esta revalidación. Riesgo residual: `mvn -q clean verify` previo no concluyó por timeout, por lo que no se reclama validación completa; la regresión focalizada sí es PASS. No se abrieron fuentes primarias: no hubo ambigüedad, contradicción ni riesgo nuevo.
+Sin hallazgos reproducibles. Riesgo residual: ninguno directo; la semántica de duplicados permanece fuera de BE-013 según el paquete.

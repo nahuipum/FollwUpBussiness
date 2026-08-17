@@ -3,12 +3,16 @@ package com.nahui.followupbussiness.customers.persistence;
 import static org.assertj.core.api.Assertions.*;
 
 import com.nahui.followupbussiness.audit.application.AuditTrustedContext;
+import com.nahui.followupbussiness.audit.application.RecordAuditEntry;
+import com.nahui.followupbussiness.audit.application.port.in.RecordAuditEntryUseCase;
 import com.nahui.followupbussiness.audit.application.port.out.AuditTrustedContextProvider;
+import com.nahui.followupbussiness.audit.adapter.out.persistence.JdbcAuditEntryStore;
 import com.nahui.followupbussiness.customers.application.CreateCustomerService;
 import com.nahui.followupbussiness.customers.config.CustomerConfiguration;
 import com.nahui.followupbussiness.customers.domain.GeoPoint;
 import com.nahui.followupbussiness.identityaccess.domain.model.*;
 import java.util.UUID;
+import java.time.Clock;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.*;
 import org.springframework.aop.support.AopUtils;
@@ -44,5 +48,9 @@ class CustomerCreationTransactionIntegrationTest {
     private AnnotationConfigApplicationContext context() { var c = new AnnotationConfigApplicationContext(); c.registerBean(JdbcTemplate.class, () -> jdbc); c.registerBean(PlatformTransactionManager.class, () -> new DataSourceTransactionManager(dataSource)); c.registerBean(AuditTrustedContextProvider.class, () -> () -> new AuditTrustedContext(tenant, UUID.randomUUID(), UUID.randomUUID(), com.nahui.followupbussiness.audit.domain.AuditScope.AUTHORIZED_RESOURCE)); c.register(Config.class); c.refresh(); return c; }
     private CreateCustomerService.Command command() { return new CreateCustomerService.Command("Customer", null, null, null, null, "Address", new GeoPoint(-12.1, -77.1), null, null); }
     private AuthenticatedActor actor() { return new AuthenticatedActor(UUID.randomUUID(), tenant, BaseRole.COMPANY_ADMIN); }
-    @Configuration(proxyBeanMethods = false) @EnableTransactionManagement @Import(CustomerConfiguration.class) static class Config {}
+    @Configuration(proxyBeanMethods = false) @EnableTransactionManagement @Import(CustomerConfiguration.class) static class Config {
+        @Bean("transactionalAuditEntryUseCase") RecordAuditEntryUseCase transactionalAuditEntryUseCase(JdbcTemplate jdbc, AuditTrustedContextProvider contextProvider) {
+            return new RecordAuditEntry(new JdbcAuditEntryStore(jdbc, jdbc), contextProvider, Clock.systemUTC());
+        }
+    }
 }

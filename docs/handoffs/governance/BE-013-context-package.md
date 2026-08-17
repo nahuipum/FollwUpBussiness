@@ -1,7 +1,7 @@
 # Paquete de contexto — BE-013 Registrar cliente
 
-**Estado actual:** BLOCKED  
-**Candidate-ID:** `HEAD 5702c0a + BE-013 customers/V28/PostGIS/REST/auditoría-atómica`.
+**Estado actual:** READY_FOR_HANDOFF
+**Candidate-ID:** `HEAD dde8160cc7cd249cb7bab8def95f700487789086 + dbb4655c`.
 
 ## Predecesoras verificadas
 
@@ -37,13 +37,15 @@ la evidencia focalizada posterior.
 
 ## Cierre de flujo
 
-Dev quedó `READY_FOR_HANDOFF`, QA revalidó `PASS` y Seguridad `PASS` para el
-Candidate-ID actual. DoF quedó `BLOCKED`: el último `clean verify` del
-candidato corregido no concluyó por timeout y el handoff Dev no porta el
-Candidate-ID actualizado. No se afirma evidencia que no existe. Para
-desbloquear: ejecutar `mvn -q clean verify` sobre este árbol, actualizar el
-handoff Dev con el Candidate-ID vigente y reiniciar DoF sobre ese mismo
-candidato.
+Desarrollo quedó `READY_FOR_HANDOFF` para el Candidate-ID vigente. La
+composición transaccional de auditoría se trasladó al módulo `audit` y
+`customers` consume su puerto calificado; el puerto general quedó `@Primary`.
+La prueba de límite modular, la integración de rollback cliente–auditoría y el
+arranque Spring pasaron; `mvn -q "-Dmaven.repo.local=C:\Users\LUIS\.m2\repository"
+clean verify` pasó en 212 s, al igual que `git diff --check`. Los resultados
+QA y Seguridad anteriores corresponden al Candidate-ID previo: QA debe
+revalidar el cierre antes de DoF y Seguridad reabre solo si cambia la
+superficie sensible o la evidencia decisiva.
 
 ## Artefactos esperados
 
