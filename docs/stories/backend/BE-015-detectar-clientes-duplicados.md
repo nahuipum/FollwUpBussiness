@@ -14,14 +14,24 @@
 
     ## Alcance
 
-    Comparar código, documento, teléfono, dirección, nombre y proximidad.
+    Advertir candidatos posibles antes del registro mediante
+    `POST /customers/duplicate-checks`. Compara, solo dentro del tenant del
+    administrador autenticado, código cuando esté disponible, documento,
+    teléfono, dirección, nombre comercial y proximidad geográfica PostGIS.
+    La advertencia es informativa: devuelve candidatos y campos coincidentes
+    para que el administrador decida; no bloquea ni crea clientes, y no altera
+    la semántica de `POST /customers` de BE-013.
 
     ## Criterios de aceptación
 
-    1. Devuelve candidatos y razones.
-2. Respeta tenant.
-3. Proximidad usa PostGIS.
-4. Permite decisión autorizada.
+    1. `POST /customers/duplicate-checks` devuelve candidatos posibles y los
+       campos coincidentes de RN-015, sin persistir ni auditar un cliente.
+2. Respeta tenant y solo `COMPANY_ADMIN` puede consultar candidatos.
+3. Proximidad usa PostGIS y los datos de otro tenant nunca participan ni se
+   revelan.
+4. La respuesta es una advertencia; el administrador conserva la decisión de
+   registrar posteriormente. Un posible duplicado no produce `409` ni una
+   creación parcial.
 
     ## Referencias
 

@@ -20,7 +20,9 @@
 
     1. Valida datos y coordenadas.
 2. SRID correcto.
-3. Advierte duplicados.
+    3. La advertencia de posibles duplicados se ofrece por BE-015 antes del
+registro; la creación no bloquea ni acepta silenciosamente una regla de
+duplicado no contractual.
 4. Queda disponible si activo.
 
     ## Referencias
