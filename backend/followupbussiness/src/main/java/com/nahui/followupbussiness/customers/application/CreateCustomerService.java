@@ -26,7 +26,7 @@ public class CreateCustomerService {
         UUID tenant = tenant(actor);
         if (command.territoryId() != null && !store.activeTerritory(tenant, command.territoryId())) throw new InvalidTerritory();
         var now = clock.instant();
-        Customer customer = new Customer(UUID.randomUUID(), tenant, clean(command.name()), optional(command.documentType()), optional(command.documentNumber()), optional(command.phone()), optional(command.email()), clean(command.address()), command.location(), command.visitFrequencyDays(), command.territoryId(), now, now, 1);
+        Customer customer = new Customer(UUID.randomUUID(), tenant, clean(command.name()), optional(command.documentType()), optional(command.documentNumber()), optional(command.phone()), optional(command.email()), clean(command.address()), command.location(), command.visitFrequencyDays(), command.territoryId(), "ACTIVE", now, now, 1);
         Customer saved = store.insert(customer);
         if (!audit.record(new RecordAuditEntryCommand(AuditAction.CRITICAL_MUTATION, AuditResourceType.CUSTOMER, saved.id(), AuditResult.SUCCESS, Map.of(), Map.of("status", "ACTIVE")))) throw new IllegalStateException("audit persistence failed");
         return saved;
