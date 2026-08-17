@@ -22,6 +22,8 @@ public interface SellerStore {
 
     default Optional<Seller> updateStatus(Seller seller, TerritoryStatus expectedStatus) { return Optional.empty(); }
 
+    default Optional<Seller> updateSupervisor(Seller seller, UUID expectedSupervisorId, long expectedVersion) { return Optional.empty(); }
+
     Optional<Seller> find(UUID tenantId, UUID sellerId);
 
     List<Seller> list(UUID tenantId, UUID supervisorId, com.nahui.followupbussiness.workforce.domain.TerritoryStatus status,

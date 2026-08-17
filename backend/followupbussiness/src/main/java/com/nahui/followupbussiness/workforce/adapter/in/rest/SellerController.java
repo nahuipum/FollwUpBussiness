@@ -108,6 +108,25 @@ public final class SellerController {
         }
     }
 
+    @PutMapping("/{sellerId}/supervisor")
+    public ResponseEntity<?> assignSupervisor(@PathVariable UUID sellerId, @Valid @RequestBody AssignSupervisorRequest request,
+                                              @AuthenticationPrincipal AuthenticatedActor actor, HttpServletRequest http) {
+        UUID correlation = correlationId(http);
+        try {
+            if (!request.present()) return problem(HttpStatus.BAD_REQUEST, correlation);
+            Seller seller = service.assignSupervisor(sellerId, request.supervisorId(), actor, correlation);
+            return ResponseEntity.ok().header("X-Correlation-Id", correlation.toString()).body(Response.from(seller));
+        } catch (SellerService.Forbidden exception) {
+            return problem(HttpStatus.FORBIDDEN, correlation);
+        } catch (SellerService.NotFound exception) {
+            return problem(HttpStatus.NOT_FOUND, correlation);
+        } catch (SellerService.Invalid exception) {
+            return problem(HttpStatus.UNPROCESSABLE_CONTENT, correlation);
+        } catch (SellerService.Conflict exception) {
+            return problem(HttpStatus.UNPROCESSABLE_CONTENT, correlation);
+        }
+    }
+
     private static ResponseEntity<ProblemDetail> problem(HttpStatus status, UUID correlation) {
         ProblemDetail p = ProblemDetail.forStatusAndDetail(status, "Request cannot be processed");
         p.setProperty("correlationId", correlation.toString());
@@ -117,11 +136,14 @@ public final class SellerController {
     private static UUID correlationId(HttpServletRequest request) {
         Object current = request.getAttribute("com.nahui.followupbussiness.request.correlationId");
         if (current instanceof UUID value) return value;
+        UUID correlation;
         try {
-            return UUID.fromString(request.getHeader("X-Correlation-Id"));
+            correlation = UUID.fromString(request.getHeader("X-Correlation-Id"));
         } catch (Exception ignored) {
-            return UUID.randomUUID();
+            correlation = UUID.randomUUID();
         }
+        request.setAttribute("com.nahui.followupbussiness.request.correlationId", correlation);
+        return correlation;
     }
 
     record Create(@NotBlank @Size(min = 2, max = 160) String displayName, @Size(min = 3, max = 100) String username,
@@ -182,6 +204,18 @@ public final class SellerController {
         public String reason() { return reason; }
         public void setStatus(TerritoryStatus status) { this.status = status; }
         public void setReason(String reason) { this.reason = reason; }
+
+        @JsonAnySetter
+        void unknown(String key, Object ignored) { throw new IllegalArgumentException("unknown property"); }
+    }
+
+    static final class AssignSupervisorRequest {
+        private UUID supervisorId;
+        private boolean present;
+
+        UUID supervisorId() { return supervisorId; }
+        boolean present() { return present; }
+        public void setSupervisorId(UUID supervisorId) { this.supervisorId = supervisorId; this.present = true; }
 
         @JsonAnySetter
         void unknown(String key, Object ignored) { throw new IllegalArgumentException("unknown property"); }

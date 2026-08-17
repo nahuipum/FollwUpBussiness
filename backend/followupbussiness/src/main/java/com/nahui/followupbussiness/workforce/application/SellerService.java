@@ -95,6 +95,22 @@ public class SellerService {
         return saved;
     }
 
+    @Transactional
+    public Seller assignSupervisor(UUID sellerId, UUID supervisorId, AuthenticatedActor actor, UUID correlationId) {
+        UUID tenant = admin(actor);
+        if (sellerId == null) throw new Invalid();
+        Seller before = store.find(tenant, sellerId).orElseThrow(NotFound::new);
+        if (Objects.equals(before.supervisorId(), supervisorId)) return before;
+        if (supervisorId != null && !store.activeSupervisor(tenant, supervisorId)) throw new Invalid();
+        Seller after = new Seller(before.id(), tenant, before.userId(), before.displayName(), before.email(), before.phone(), before.employeeCode(),
+                supervisorId, before.territoryIds(), before.status(), before.createdAt(), clock.instant(), before.version() + 1);
+        Seller saved = store.updateSupervisor(after, before.supervisorId(), before.version()).orElseThrow(Conflict::new);
+        if (!audit.record(new RecordAuditEntryCommand(AuditAction.CRITICAL_MUTATION, AuditResourceType.SELLER, sellerId, AuditResult.SUCCESS,
+                Map.of("supervisorId", auditValue(before.supervisorId())), Map.of("supervisorId", auditValue(supervisorId), "operation", "SUPERVISOR_ASSIGNED"))))
+            throw new IllegalStateException("Seller supervisor audit was not persisted");
+        return saved;
+    }
+
     public Page list(TerritoryStatus status, UUID requestedSupervisorId, UUID territoryId, String search, int page, int size, AuthenticatedActor actor) {
         UUID tenant = listViewer(actor);
         UUID teamSupervisor = actor.role() == BaseRole.SUPERVISOR ? actor.accountId() : null;
@@ -139,6 +155,10 @@ public class SellerService {
 
     private static String optional(String v) {
         return v == null ? null : (v.trim().isEmpty() ? null : v.trim());
+    }
+
+    private static String auditValue(UUID value) {
+        return value == null ? "NONE" : value.toString();
     }
 
     public record Command(String displayName, String username, String email, String phone, String employeeCode,

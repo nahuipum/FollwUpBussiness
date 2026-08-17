@@ -66,6 +66,13 @@ public final class JdbcSellerStore implements SellerStore {
         return updated == 1 ? Optional.of(seller) : Optional.empty();
     }
 
+    @Override
+    public Optional<Seller> updateSupervisor(Seller seller, UUID expectedSupervisorId, long expectedVersion) {
+        int updated = jdbc.update("update workforce_seller set supervisor_id=?,updated_at=?,version=? where tenant_id=? and id=? and version=? and supervisor_id is not distinct from ?",
+                seller.supervisorId(), Timestamp.from(seller.updatedAt()), seller.version(), seller.tenantId(), seller.id(), expectedVersion, expectedSupervisorId);
+        return updated == 1 ? Optional.of(seller) : Optional.empty();
+    }
+
     public Optional<Seller> find(UUID tenant, UUID id) {
         List<Seller> sellers = jdbc.query("select * from workforce_seller where tenant_id=? and id=?", (RowMapper<Seller>) this::map, tenant, id);
         populateTerritories(sellers);
