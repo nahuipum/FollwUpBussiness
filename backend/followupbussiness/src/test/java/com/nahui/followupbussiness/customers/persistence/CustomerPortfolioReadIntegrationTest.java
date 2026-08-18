@@ -58,6 +58,20 @@ class CustomerPortfolioReadIntegrationTest {
         var inclusiveVisit = read.read(new CustomerPortfolioReadUseCase.Query(null, null, null, null, null, LocalDate.of(2026, 1, 1), null, 0, 20), scope(scopes.resolve(actor(adminA, tenantA, BaseRole.COMPANY_ADMIN))));
         assertThat(absentPurchase.total()).isEqualTo(2); assertThat(inclusiveVisit.total()).isEqualTo(2);
     }
+    @Test void replacementRecordsOneCoherentPreviousToNewSellerTransition() {
+        Instant recordedAt=Instant.parse("2026-02-01T10:15:30Z");
+        new JdbcCustomerPortfolioStore(jdbc).replace(tenantA,customerA,java.util.Set.of(sellerOther),adminA,LocalDate.of(2026,2,1),"reasignacion",recordedAt);
+        var history=new JdbcCustomerPortfolioStore(jdbc).history(tenantA,customerA);
+        assertThat(history).anySatisfy(entry -> {
+            assertThat(entry.previousSellerId()).isEqualTo(sellerA);
+            assertThat(entry.newSellerId()).isEqualTo(sellerOther);
+            assertThat(entry.actorId()).isEqualTo(adminA);
+            assertThat(entry.effectiveFrom()).isEqualTo(LocalDate.of(2026,2,1));
+            assertThat(entry.reason()).isEqualTo("reasignacion");
+            assertThat(entry.recordedAt()).isEqualTo(recordedAt);
+        });
+        assertThat(history).noneMatch(entry -> entry.previousSellerId() == null || entry.newSellerId() == null);
+    }
     private CustomerPortfolioReadService read() { return new CustomerPortfolioReadService(new JdbcCustomerPortfolioStore(jdbc), new JdbcCustomerActivityStore(jdbc)); }
     private PortfolioAccessScopeService scopes() { return new PortfolioAccessScopeService(new JdbcSellerStore(jdbc)); }
     private CustomerPortfolioReadUseCase.Scope scope(com.nahui.followupbussiness.workforce.application.port.in.PortfolioAccessScopeUseCase.Scope s) { return new CustomerPortfolioReadUseCase.Scope(s.tenantId(), s.allCurrentPortfolios(), s.sellerIds()); }

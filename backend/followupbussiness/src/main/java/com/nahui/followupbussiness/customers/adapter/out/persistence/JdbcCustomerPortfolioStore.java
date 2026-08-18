@@ -6,7 +6,11 @@ import com.nahui.followupbussiness.customers.domain.Customer;
 import com.nahui.followupbussiness.customers.domain.GeoPoint;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.time.Instant;
+import java.time.LocalDate;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -29,6 +33,28 @@ public final class JdbcCustomerPortfolioStore implements CustomerPortfolioStore 
     public List<HistoryEntry> history(UUID tenantId, UUID customerId) {
         return jdbc.query("select id,customer_id,previous_seller_id,new_seller_id,actor_id,effective_from,reason,recorded_at from customer_portfolio_history where tenant_id=? and customer_id=? order by effective_from desc,recorded_at desc", (rs, row) -> new HistoryEntry(rs.getObject(1, UUID.class), rs.getObject(2, UUID.class), rs.getObject(3, UUID.class), rs.getObject(4, UUID.class), rs.getObject(5, UUID.class), rs.getDate(6).toLocalDate(), rs.getString(7), rs.getTimestamp(8).toInstant()), tenantId, customerId);
     }
+    @Override public void replace(UUID tenantId, UUID customerId, Set<UUID> sellerIds, UUID actorId, LocalDate effectiveFrom, String reason, Instant now) {
+        Set<UUID> before=current(tenantId,customerId).stream().map(Assignment::sellerId).collect(java.util.stream.Collectors.toSet());
+        List<UUID> removed=before.stream().filter(id -> !sellerIds.contains(id)).sorted().toList();
+        List<UUID> added=sellerIds.stream().filter(id -> !before.contains(id)).sorted().toList();
+        jdbc.update("delete from customer_portfolio_assignment where tenant_id=? and customer_id=?",tenantId,customerId);
+        int paired=Math.min(removed.size(),added.size());
+        for(int index=0;index<paired;index++) history(tenantId, customerId, removed.get(index), added.get(index), actorId, effectiveFrom, reason, now);
+        for(int index=paired;index<removed.size();index++) history(tenantId, customerId, removed.get(index), null, actorId, effectiveFrom, reason, now);
+        for(int index=paired;index<added.size();index++) history(tenantId, customerId, null, added.get(index), actorId, effectiveFrom, reason, now);
+        for(UUID seller:sellerIds) {
+          jdbc.update("insert into customer_portfolio_assignment(tenant_id,customer_id,seller_id,effective_from,assigned_by,reason,created_at) values(?,?,?,?,?,?,?)",tenantId,customerId,seller,effectiveFrom,actorId,reason,java.sql.Timestamp.from(now));
+        }
+    }
+    @Override public IdempotencyReservation reserveIdempotency(UUID tenantId, UUID key, String fingerprint, Instant now) {
+        int inserted=jdbc.update("insert into customer_portfolio_assignment_idempotency(tenant_id,idempotency_key,request_fingerprint,results,recorded_at,status) values(?,?,?,ARRAY[]::text[],?, 'PENDING') on conflict (tenant_id,idempotency_key) do nothing",tenantId,key,fingerprint,java.sql.Timestamp.from(now));
+        if(inserted==1) return new IdempotencyReservation(true,null);
+        IdempotencyRecord record=jdbc.query("select request_fingerprint,results from customer_portfolio_assignment_idempotency where tenant_id=? and idempotency_key=? and status='COMPLETED'",rs -> rs.next() ? new IdempotencyRecord(rs.getString(1),List.of((String[])rs.getArray(2).getArray())) : null,tenantId,key);
+        if(record==null) throw new IllegalStateException("idempotency reservation is not complete");
+        return new IdempotencyReservation(false,record);
+    }
+    @Override public void completeIdempotency(UUID tenantId, UUID key, List<String> results) { jdbc.update("update customer_portfolio_assignment_idempotency set results=?, status='COMPLETED' where tenant_id=? and idempotency_key=? and status='PENDING'",results.toArray(new String[0]),tenantId,key); }
+    private void history(UUID tenantId, UUID customerId, UUID previous, UUID next, UUID actorId, LocalDate effectiveFrom, String reason, Instant now) { jdbc.update("insert into customer_portfolio_history(id,tenant_id,customer_id,previous_seller_id,new_seller_id,actor_id,effective_from,reason,recorded_at) values(?,?,?,?,?,?,?,?,?)",UUID.randomUUID(),tenantId,customerId,previous,next,actorId,effectiveFrom,reason,java.sql.Timestamp.from(now)); }
 
     @Override
     public List<Customer> list(CustomerPortfolioReadUseCase.Query q, CustomerPortfolioReadUseCase.Scope scope) {

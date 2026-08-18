@@ -5,11 +5,15 @@ import com.nahui.followupbussiness.customers.adapter.out.persistence.JdbcCustome
 import com.nahui.followupbussiness.customers.adapter.out.persistence.JdbcCustomerPortfolioStore;
 import com.nahui.followupbussiness.customers.adapter.out.persistence.JdbcCustomerActivityStore;
 import com.nahui.followupbussiness.customers.application.CustomerPortfolioReadService;
+import com.nahui.followupbussiness.customers.application.CustomerPortfolioAssignmentService;
 import com.nahui.followupbussiness.customers.application.port.in.CustomerPortfolioReadUseCase;
+import com.nahui.followupbussiness.customers.application.port.in.CustomerPortfolioAssignmentUseCase;
 import com.nahui.followupbussiness.customers.application.CreateCustomerService;
 import com.nahui.followupbussiness.customers.application.UpdateCustomerService;
 import com.nahui.followupbussiness.customers.application.CheckCustomerDuplicatesService;
 import com.nahui.followupbussiness.workforce.application.port.in.TerritoryReferenceUseCase;
+import com.nahui.followupbussiness.workforce.application.port.in.SellerReferenceUseCase;
+import com.nahui.followupbussiness.workforce.config.SellerReferenceConfiguration;
 
 import java.time.Clock;
 
@@ -19,6 +23,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 @Configuration(proxyBeanMethods = false)
+@org.springframework.context.annotation.Import(SellerReferenceConfiguration.class)
 public class CustomerConfiguration {
     @Bean
     CreateCustomerService createCustomerService(JdbcTemplate jdbc, TerritoryReferenceUseCase territories, @Qualifier("transactionalAuditEntryUseCase") RecordAuditEntryUseCase audit) {
@@ -38,5 +43,9 @@ public class CustomerConfiguration {
     @Bean
     CustomerPortfolioReadUseCase customerPortfolioReadUseCase(JdbcTemplate jdbc) {
         return new CustomerPortfolioReadService(new JdbcCustomerPortfolioStore(jdbc), new JdbcCustomerActivityStore(jdbc));
+    }
+    @Bean
+    CustomerPortfolioAssignmentUseCase customerPortfolioAssignmentUseCase(JdbcTemplate jdbc, SellerReferenceUseCase sellers, @Qualifier("transactionalAuditEntryUseCase") RecordAuditEntryUseCase audit) {
+        return new CustomerPortfolioAssignmentService(new JdbcCustomerStore(jdbc), new JdbcCustomerPortfolioStore(jdbc), sellers, audit, Clock.systemUTC());
     }
 }
