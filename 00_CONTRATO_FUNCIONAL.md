@@ -329,12 +329,21 @@ Cada ruta deberá pertenecer a:
 
 El sistema deberá advertir posibles duplicados usando:
 
-- Código de cliente.
 - Documento.
 - Teléfono.
 - Dirección.
 - Proximidad geográfica.
 - Nombre comercial.
+
+El código de cliente queda diferido hasta que sea un atributo contractual de
+Cliente. No se infiere ni se introduce únicamente para la detección de
+duplicados.
+
+Para BE-015, documento, teléfono, nombre comercial y dirección se normalizan
+con `trim` y comparación sin distinguir mayúsculas; documento y teléfono
+también ignoran espacios y guiones. La proximidad se evalúa en PostGIS hasta
+100 m. El `score` es la cantidad de campos coincidentes dividida entre cinco
+(documento, teléfono, nombre, dirección y ubicación).
 
 ## RN-016. Ubicación desactualizada
 

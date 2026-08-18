@@ -4,6 +4,7 @@ import com.nahui.followupbussiness.audit.application.port.in.RecordAuditEntryUse
 import com.nahui.followupbussiness.customers.adapter.out.persistence.JdbcCustomerStore;
 import com.nahui.followupbussiness.customers.application.CreateCustomerService;
 import com.nahui.followupbussiness.customers.application.UpdateCustomerService;
+import com.nahui.followupbussiness.customers.application.CheckCustomerDuplicatesService;
 import java.time.Clock;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
@@ -16,4 +17,5 @@ public class CustomerConfiguration {
         return new CreateCustomerService(new JdbcCustomerStore(jdbc), audit, Clock.systemUTC());
     }
     @Bean UpdateCustomerService updateCustomerService(JdbcTemplate jdbc, @Qualifier("transactionalAuditEntryUseCase") RecordAuditEntryUseCase audit) { return new UpdateCustomerService(new JdbcCustomerStore(jdbc), audit, Clock.systemUTC()); }
+    @Bean CheckCustomerDuplicatesService checkCustomerDuplicatesService(JdbcTemplate jdbc) { return new CheckCustomerDuplicatesService(new JdbcCustomerStore(jdbc)); }
 }

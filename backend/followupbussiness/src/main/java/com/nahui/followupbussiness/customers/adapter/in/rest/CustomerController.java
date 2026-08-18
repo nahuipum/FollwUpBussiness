@@ -3,6 +3,8 @@ package com.nahui.followupbussiness.customers.adapter.in.rest;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.nahui.followupbussiness.customers.application.CreateCustomerService;
 import com.nahui.followupbussiness.customers.application.UpdateCustomerService;
+import com.nahui.followupbussiness.customers.application.CheckCustomerDuplicatesService;
+import com.nahui.followupbussiness.customers.application.port.out.CustomerStore;
 import com.nahui.followupbussiness.customers.domain.Customer;
 import com.nahui.followupbussiness.customers.domain.GeoPoint;
 import com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor;
@@ -19,8 +21,8 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/customers")
 public final class CustomerController {
-    private final CreateCustomerService service; private final UpdateCustomerService updates;
-    public CustomerController(CreateCustomerService service, UpdateCustomerService updates) { this.service = service; this.updates=updates; }
+    private final CreateCustomerService service; private final UpdateCustomerService updates; private final CheckCustomerDuplicatesService duplicates;
+    public CustomerController(CreateCustomerService service, UpdateCustomerService updates, CheckCustomerDuplicatesService duplicates) { this.service = service; this.updates=updates; this.duplicates=duplicates; }
 
     @PostMapping
     public ResponseEntity<?> create(@Valid @RequestBody Create request, @AuthenticationPrincipal AuthenticatedActor actor, HttpServletRequest http) {
@@ -36,6 +38,15 @@ public final class CustomerController {
     public ResponseEntity<?> update(@PathVariable UUID customerId, @RequestHeader("If-Match") String ifMatch, @Valid @RequestBody Update request, @AuthenticationPrincipal AuthenticatedActor actor, HttpServletRequest http) {
         UUID correlation=correlationId(http); try { long version=parseVersion(ifMatch); Customer customer=updates.update(customerId,version,request.patch(),actor); return ResponseEntity.ok().header("X-Correlation-Id",correlation.toString()).body(Response.from(customer));
         } catch (UpdateCustomerService.Forbidden e) { return problem(HttpStatus.FORBIDDEN,correlation); } catch (UpdateCustomerService.NotFound e) { return problem(HttpStatus.NOT_FOUND,correlation); } catch (UpdateCustomerService.Conflict e) { return problem(HttpStatus.CONFLICT,correlation); } catch (UpdateCustomerService.InvalidTerritory|IllegalArgumentException e) { return problem(HttpStatus.UNPROCESSABLE_CONTENT,correlation); }
+    }
+    @PostMapping("/duplicate-checks")
+    public ResponseEntity<?> duplicateChecks(@Valid @RequestBody DuplicateCheck request, @AuthenticationPrincipal AuthenticatedActor actor, HttpServletRequest http) {
+        UUID correlation = correlationId(http);
+        try {
+            CheckCustomerDuplicatesService.Result result = duplicates.check(request.command(), actor);
+            return ResponseEntity.ok().header("X-Correlation-Id", correlation.toString()).body(DuplicateResponse.from(result));
+        } catch (CheckCustomerDuplicatesService.Forbidden e) { return problem(HttpStatus.FORBIDDEN, correlation); }
+        catch (CheckCustomerDuplicatesService.Invalid e) { return problem(HttpStatus.UNPROCESSABLE_CONTENT, correlation); }
     }
     private static long parseVersion(String value) { if(value==null||!value.matches("^\\\"[1-9][0-9]*\\\"$")) throw new IllegalArgumentException("invalid version"); return Long.parseLong(value.substring(1,value.length()-1)); }
     static ResponseEntity<ProblemDetail> problem(HttpStatus status, UUID correlation) { ProblemDetail p = ProblemDetail.forStatusAndDetail(status, "Request cannot be processed"); p.setProperty("correlationId", correlation.toString()); return ResponseEntity.status(status).header("X-Correlation-Id", correlation.toString()).body(p); }
@@ -62,6 +73,17 @@ public final class CustomerController {
         UpdateCustomerService.Patch patch(){ if(!(nameSet||documentTypeSet||documentNumberSet||phoneSet||emailSet||addressSet||locationSet||visitFrequencyDaysSet||territoryIdSet||statusSet)|| (nameSet&&name==null)||(addressSet&&address==null)||(locationSet&&location==null)||(statusSet&&status==null)) throw new IllegalArgumentException("invalid patch"); return new UpdateCustomerService.Patch(name,nameSet,documentType,documentTypeSet,documentNumber,documentNumberSet,phone,phoneSet,email,emailSet,address,addressSet,locationSet?location.point():null,locationSet,visitFrequencyDays,visitFrequencyDaysSet,territoryId,territoryIdSet,status,statusSet); }
         @JsonAnySetter void unknown(String key,Object ignored){throw new IllegalArgumentException("unknown property");}
     }
+    static final class DuplicateCheck {
+        @NotBlank @Size(min = 2, max = 200) private String name;
+        @Size(max = 40) private String documentNumber;
+        @Size(max = 30) private String phone;
+        @Size(min = 3, max = 300) private String address;
+        @Valid private Location location;
+        private UUID excludeCustomerId;
+        public void setName(String x) { name = x; } public void setDocumentNumber(String x) { documentNumber = x; } public void setPhone(String x) { phone = x; } public void setAddress(String x) { address = x; } public void setLocation(Location x) { location = x; } public void setExcludeCustomerId(UUID x) { excludeCustomerId = x; }
+        CheckCustomerDuplicatesService.Command command() { return new CheckCustomerDuplicatesService.Command(name, documentNumber, phone, address, location == null ? null : location.point(), excludeCustomerId); }
+        @JsonAnySetter void unknown(String key, Object ignored) { throw new IllegalArgumentException("unknown property"); }
+    }
     static final class Location {
         @NotNull @DecimalMin("-90.0") @DecimalMax("90.0") private Double latitude;
         @NotNull @DecimalMin("-180.0") @DecimalMax("180.0") private Double longitude;
@@ -70,4 +92,6 @@ public final class CustomerController {
         @JsonAnySetter void unknown(String key, Object ignored) { throw new IllegalArgumentException("unknown property"); }
     }
     record Response(UUID id, String name, String documentType, String documentNumber, String phone, String email, String address, GeoPoint location, Integer visitFrequencyDays, UUID territoryId, List<UUID> assignedSellerIds, String status, Instant createdAt, Instant updatedAt, long version) { static Response from(Customer c) { return new Response(c.id(), c.name(), c.documentType(), c.documentNumber(), c.phone(), c.email(), c.address(), c.location(), c.visitFrequencyDays(), c.territoryId(), List.of(), c.status(), c.createdAt(), c.updatedAt(), c.version()); } }
+    record DuplicateResponse(boolean hasPossibleDuplicates, List<DuplicateCandidate> candidates) { static DuplicateResponse from(CheckCustomerDuplicatesService.Result result) { return new DuplicateResponse(result.hasPossibleDuplicates(), result.candidates().stream().map(candidate -> new DuplicateCandidate(Response.from(candidate.customer()), candidate.score(), candidate.matchedFields())).toList()); } }
+    record DuplicateCandidate(Response customer, double score, java.util.Set<CustomerStore.MatchedField> matchedFields) {}
 }

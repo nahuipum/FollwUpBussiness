@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.nahui.followupbussiness.customers.application.CreateCustomerService;
 import com.nahui.followupbussiness.customers.application.UpdateCustomerService;
+import com.nahui.followupbussiness.customers.application.CheckCustomerDuplicatesService;
 import com.nahui.followupbussiness.customers.domain.Customer;
 import com.nahui.followupbussiness.customers.domain.GeoPoint;
 import com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor;
@@ -23,8 +24,8 @@ import org.springframework.test.web.servlet.*;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 class CustomerControllerTest {
-    private CreateCustomerService service; private UpdateCustomerService updates; private MockMvc mvc;
-    @BeforeEach void setUp() { service = mock(CreateCustomerService.class); updates=mock(UpdateCustomerService.class); mvc = MockMvcBuilders.standaloneSetup(new CustomerController(service,updates)).setControllerAdvice(new CustomerValidationErrorHandler()).setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver()).build(); }
+    private CreateCustomerService service; private UpdateCustomerService updates; private CheckCustomerDuplicatesService duplicates; private MockMvc mvc;
+    @BeforeEach void setUp() { service = mock(CreateCustomerService.class); updates=mock(UpdateCustomerService.class); duplicates=mock(CheckCustomerDuplicatesService.class); mvc = MockMvcBuilders.standaloneSetup(new CustomerController(service,updates,duplicates)).setControllerAdvice(new CustomerValidationErrorHandler()).setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver()).build(); }
     @AfterEach void clear() { SecurityContextHolder.clearContext(); }
     @Test void createsOnlyForSessionAdminAndRejectsUnknownProperties() throws Exception {
         UUID tenant = UUID.randomUUID(); authenticate(tenant, BaseRole.COMPANY_ADMIN); UUID id = UUID.randomUUID();
@@ -48,6 +49,15 @@ class CustomerControllerTest {
         authenticate(UUID.randomUUID(), BaseRole.SUPERVISOR); when(updates.update(any(), anyLong(), any(), any())).thenThrow(new UpdateCustomerService.Forbidden());
         mvc.perform(patch("/customers/{id}", UUID.randomUUID()).header("If-Match", "\"1\"").contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"Updated\"}"))
                 .andExpect(status().isForbidden()).andExpect(jsonPath("$.detail").value("Request cannot be processed"));
+    }
+    @Test void duplicateCheckReturnsOnlyUseCaseCandidatesAndMapsForbidden() throws Exception {
+        UUID tenant = UUID.randomUUID(); authenticate(tenant, BaseRole.COMPANY_ADMIN); UUID id = UUID.randomUUID();
+        Customer candidate = new Customer(id, tenant, "Customer", null, null, null, null, "Address", new GeoPoint(-12.1, -77.1), null, null, "ACTIVE", Instant.EPOCH, Instant.EPOCH, 1);
+        when(duplicates.check(any(), any())).thenReturn(new CheckCustomerDuplicatesService.Result(List.of(new CheckCustomerDuplicatesService.Candidate(candidate, Set.of(com.nahui.followupbussiness.customers.application.port.out.CustomerStore.MatchedField.NAME), .2d))));
+        mvc.perform(post("/customers/duplicate-checks").contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"Customer\"}"))
+                .andExpect(status().isOk()).andExpect(header().exists("X-Correlation-Id")).andExpect(jsonPath("$.hasPossibleDuplicates").value(true)).andExpect(jsonPath("$.candidates[0].score").value(.2d)).andExpect(jsonPath("$.candidates[0].matchedFields[0]").value("NAME"));
+        authenticate(tenant, BaseRole.SELLER); when(duplicates.check(any(), any())).thenThrow(new CheckCustomerDuplicatesService.Forbidden());
+        mvc.perform(post("/customers/duplicate-checks").contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"Customer\"}")).andExpect(status().isForbidden());
     }
     private void authenticate(UUID tenant, BaseRole role) { SecurityContextHolder.getContext().setAuthentication(UsernamePasswordAuthenticationToken.authenticated(new AuthenticatedActor(UUID.randomUUID(), tenant, role), "test", List.of())); }
     private static String valid() { return "{\"name\":\"Customer\",\"address\":\"Address\",\"location\":{\"latitude\":-12.1,\"longitude\":-77.1}}"; }

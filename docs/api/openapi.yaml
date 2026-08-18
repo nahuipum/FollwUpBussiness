@@ -3547,10 +3547,12 @@ components:
       type: object
       additionalProperties: false
       required: [name]
+      description: Nombre, documento, teléfono y dirección se normalizan con trim y sin distinguir mayúsculas; documento y teléfono ignoran espacios y guiones. location participa por proximidad PostGIS de hasta 100 m.
       properties:
         name: { type: string, minLength: 2, maxLength: 200 }
         documentNumber: { type: string, maxLength: 40 }
         phone: { type: string, maxLength: 30 }
+        address: { type: string, minLength: 3, maxLength: 300 }
         location: { $ref: '#/components/schemas/GeoPoint' }
         excludeCustomerId: { type: string, format: uuid }
     DuplicateCandidate:
@@ -3559,11 +3561,11 @@ components:
       required: [customer, score, matchedFields]
       properties:
         customer: { $ref: '#/components/schemas/Customer' }
-        score: { type: number, format: double, minimum: 0, maximum: 1 }
+        score: { type: number, format: double, minimum: 0, maximum: 1, description: Cantidad de campos coincidentes dividida entre cinco: documento, teléfono, nombre, dirección y ubicación. }
         matchedFields:
           type: array
           uniqueItems: true
-          items: { type: string, enum: [DOCUMENT, PHONE, NAME, LOCATION] }
+          items: { type: string, enum: [DOCUMENT, PHONE, NAME, ADDRESS, LOCATION] }
     CustomerDuplicateCheckResponse:
       type: object
       additionalProperties: false

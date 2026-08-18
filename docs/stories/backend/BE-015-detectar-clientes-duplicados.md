@@ -16,11 +16,19 @@
 
     Advertir candidatos posibles antes del registro mediante
     `POST /customers/duplicate-checks`. Compara, solo dentro del tenant del
-    administrador autenticado, código cuando esté disponible, documento,
-    teléfono, dirección, nombre comercial y proximidad geográfica PostGIS.
+    administrador autenticado, documento, teléfono, dirección, nombre
+    comercial y proximidad geográfica PostGIS. El código de cliente queda
+    fuera de este alcance hasta que exista como atributo contractual de
+    Cliente.
     La advertencia es informativa: devuelve candidatos y campos coincidentes
     para que el administrador decida; no bloquea ni crea clientes, y no altera
     la semántica de `POST /customers` de BE-013.
+
+    Documento, teléfono, nombre y dirección se comparan tras `trim` sin
+    distinguir mayúsculas; documento y teléfono ignoran además espacios y
+    guiones. La proximidad se calcula exclusivamente con PostGIS hasta 100 m.
+    El score es los campos coincidentes divididos entre cinco: documento,
+    teléfono, nombre, dirección y ubicación.
 
     ## Criterios de aceptación
 
