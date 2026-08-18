@@ -14,31 +14,148 @@ import { AsyncStateCard } from "../../shared/ui/AsyncStateCard";
 import "./styles/company-sellers.css";
 
 export function CompanySellersPage() {
-  const canManage = getSessionIdentity()?.roles.includes("COMPANY_ADMIN") ?? false;
+  const canManage =
+    getSessionIdentity()?.roles.includes("COMPANY_ADMIN") ?? false;
   const sellers = useSellers();
   const form = useSellerForm(sellers.retry);
   const items = sellers.result?.items ?? [];
   const [detail, setDetail] = useState<Seller | null>(null);
   const sessionKeyRef = useRef(sellers.sessionKey);
 
-  useEffect(() => subscribeToSession(() => {
-    const nextKey = sellerSessionKey();
-    if (sessionKeyRef.current === nextKey) return;
-    sessionKeyRef.current = nextKey;
-    setDetail(null);
-  }), []);
+  useEffect(
+    () =>
+      subscribeToSession(() => {
+        const nextKey = sellerSessionKey();
+        if (sessionKeyRef.current === nextKey) return;
+        sessionKeyRef.current = nextKey;
+        setDetail(null);
+      }),
+    [],
+  );
 
   return (
     <section className="seller-list" aria-labelledby="seller-list-title">
-        <header className="seller-list__heading"><div><h1 id="seller-list-title">Vendedores</h1><p>Consulta y organiza el equipo comercial de la empresa.</p></div>{canManage && <button className="seller-list__primary" type="button" onClick={() => form.open(null)}><Plus aria-hidden="true" />Crear vendedor</button>}</header>
-        <section className="seller-list__card" aria-label="Listado de vendedores">
-          <SellerFilters query={sellers.search} status={sellers.status} supervisorId={sellers.supervisorId} territoryId={sellers.territoryId} supervisors={sellers.filterOptions.supervisors} territories={sellers.filterOptions.territories} onQueryChange={sellers.changeSearch} onStatusChange={sellers.changeStatus} onSupervisorChange={sellers.changeSupervisor} onTerritoryChange={sellers.changeTerritory} />
-          {!canManage && <ReadOnlyNotice />}
-          {sellers.error && <AsyncStateCard tone="error" title={sellers.error.status === 403 ? "No tienes permisos" : "Ocurrió un problema temporal"} description={sellers.error.status === 403 ? "No tienes permiso para consultar vendedores." : "No pudimos mostrar los vendedores. Inténtalo más tarde."} actionLabel="Reintentar" onAction={sellers.retry} />}
-          {sellers.loading && items.length === 0 ? <TableLoadingIndicator label="Cargando vendedores" /> : !sellers.error && items.length === 0 ? <AsyncStateCard title={sellers.search || sellers.status || sellers.supervisorId || sellers.territoryId ? "No encontramos vendedores" : "Aún no hay vendedores"} description={sellers.search || sellers.status || sellers.supervisorId || sellers.territoryId ? "Prueba con otros filtros o términos de búsqueda." : "Cuando existan vendedores aparecerán en este listado."} {...((sellers.search || sellers.status || sellers.supervisorId || sellers.territoryId) ? { actionLabel: "Limpiar filtros", onAction: sellers.clearFilters } : {})} /> : !sellers.error && <><SellerTable sellers={items} page={sellers.page} totalPages={sellers.result?.page.totalPages ?? 0} totalElements={sellers.result?.page.totalElements ?? items.length} canManage={canManage} onPageChange={sellers.goToPage} onDetail={setDetail} onEdit={form.open} />{sellers.loading && <div className="seller-list__stale"><TableLoadingIndicator label="Actualizando vendedores" compact /></div>}</>}
-        </section>
-        {detail && <SellerDetailDialog seller={detail} onClose={() => setDetail(null)} />}
-        {form.seller !== undefined && <SellerFormDialog seller={form.seller} options={form.options} loadingOptions={form.loadingOptions} busy={form.busy} error={form.error} conflict={form.conflict} onClose={form.close} onRetryOptions={form.loadOptions} onReload={form.reloadAfterConflict} onSubmit={form.submit} />}
+      <header className="seller-list__heading">
+        <div>
+          <h1 id="seller-list-title">Vendedores</h1>
+          <p>Consulta y organiza el equipo comercial de la empresa.</p>
+        </div>
+        {canManage && (
+          <button
+            className="seller-list__primary"
+            type="button"
+            onClick={() => form.open(null)}
+          >
+            <Plus aria-hidden="true" />
+            Crear vendedor
+          </button>
+        )}
+      </header>
+      <section className="seller-list__card" aria-label="Listado de vendedores">
+        <SellerFilters
+          query={sellers.search}
+          status={sellers.status}
+          supervisorId={sellers.supervisorId}
+          territoryId={sellers.territoryId}
+          supervisors={sellers.filterOptions.supervisors}
+          territories={sellers.filterOptions.territories}
+          onQueryChange={sellers.changeSearch}
+          onStatusChange={sellers.changeStatus}
+          onSupervisorChange={sellers.changeSupervisor}
+          onTerritoryChange={sellers.changeTerritory}
+        />
+        {!canManage && <ReadOnlyNotice />}
+        {sellers.error && (
+          <AsyncStateCard
+            tone="error"
+            title={
+              sellers.error.status === 403
+                ? "No tienes permisos"
+                : "Ocurrió un problema temporal"
+            }
+            description={
+              sellers.error.status === 403
+                ? "No tienes permiso para consultar vendedores."
+                : "No pudimos mostrar los vendedores. Inténtalo más tarde."
+            }
+            actionLabel="Reintentar"
+            onAction={sellers.retry}
+          />
+        )}
+        {sellers.loading && items.length === 0 ? (
+          <TableLoadingIndicator label="Cargando vendedores" />
+        ) : !sellers.error && items.length === 0 ? (
+          <AsyncStateCard
+            title={
+              sellers.search ||
+              sellers.status ||
+              sellers.supervisorId ||
+              sellers.territoryId
+                ? "No encontramos vendedores"
+                : "Aún no hay vendedores"
+            }
+            description={
+              sellers.search ||
+              sellers.status ||
+              sellers.supervisorId ||
+              sellers.territoryId
+                ? "Prueba con otros filtros o términos de búsqueda."
+                : "Cuando existan vendedores aparecerán en este listado."
+            }
+            {...(sellers.search ||
+            sellers.status ||
+            sellers.supervisorId ||
+            sellers.territoryId
+              ? {
+                  actionLabel: "Limpiar filtros",
+                  onAction: sellers.clearFilters,
+                }
+              : {})}
+          />
+        ) : (
+          !sellers.error && (
+            <>
+              <SellerTable
+                sellers={items}
+                page={sellers.page}
+                totalPages={sellers.result?.page.totalPages ?? 0}
+                totalElements={
+                  sellers.result?.page.totalElements ?? items.length
+                }
+                canManage={canManage}
+                onPageChange={sellers.goToPage}
+                onDetail={setDetail}
+                onEdit={form.open}
+              />
+              {sellers.loading && (
+                <div className="seller-list__stale">
+                  <TableLoadingIndicator
+                    label="Actualizando vendedores"
+                    compact
+                  />
+                </div>
+              )}
+            </>
+          )
+        )}
+      </section>
+      {detail && (
+        <SellerDetailDialog seller={detail} onClose={() => setDetail(null)} />
+      )}
+      {form.seller !== undefined && (
+        <SellerFormDialog
+          seller={form.seller}
+          options={form.options}
+          loadingOptions={form.loadingOptions}
+          busy={form.busy}
+          error={form.error}
+          conflict={form.conflict}
+          onClose={form.close}
+          onRetryOptions={form.loadOptions}
+          onReload={form.reloadAfterConflict}
+          onSubmit={form.submit}
+        />
+      )}
     </section>
   );
 }
