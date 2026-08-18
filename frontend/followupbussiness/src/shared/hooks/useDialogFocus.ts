@@ -1,10 +1,11 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useEffectEvent, useRef } from 'react'
 
 const focusableSelector = 'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
 
 export function useDialogFocus(onDismiss: () => void) {
   const dialogRef = useRef<HTMLElement>(null)
   const initialFocusRef = useRef<HTMLButtonElement>(null)
+  const dismiss = useEffectEvent(onDismiss)
 
   useEffect(() => {
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
@@ -15,7 +16,7 @@ export function useDialogFocus(onDismiss: () => void) {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault()
-        onDismiss()
+        dismiss()
         return
       }
       if (event.key !== 'Tab') return
@@ -41,7 +42,7 @@ export function useDialogFocus(onDismiss: () => void) {
       document.body.style.overflow = previousOverflow
       previousFocus?.focus()
     }
-  }, [onDismiss])
+  }, [])
 
   return { dialogRef, initialFocusRef }
 }

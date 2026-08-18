@@ -83,7 +83,7 @@ afterEach(() => {
 
 test("muestra carga, búsqueda y filtros de empresas", () => {
   render(<PlatformCompaniesPage />);
-  expect(screen.getByRole("status").textContent).toBe("Cargando empresas…");
+  expect(screen.getByRole("status").getAttribute("aria-label")).toBe("Cargando empresas");
   expect(screen.getByRole("searchbox", { name: "Buscar empresa o código" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Filtrar empresas por estado" }).textContent).toContain("Todas");
   selectCompanyStatus("Activas");

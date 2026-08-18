@@ -107,17 +107,99 @@ public final class JdbcSellerStore implements SellerStore {
 
     public List<Seller> list(UUID tenant, UUID teamSupervisor, com.nahui.followupbussiness.workforce.domain.TerritoryStatus status,
                              UUID requestedSupervisor, UUID territory, String search, int offset, int limit) {
-        String sql = "select distinct s.* from workforce_seller s left join workforce_seller_territory st on st.seller_id=s.id where s.tenant_id=? and (? is null or s.supervisor_id=?) and (? is null or s.status=?) and (? is null or s.supervisor_id=?) and (? is null or st.territory_id=?) and (? is null or lower(s.display_name) like lower(?) or lower(s.email) like lower(?) or lower(coalesce(s.employee_code,'')) like lower(?)) order by s.display_name,s.id offset ? limit ?";
-        List<Seller> sellers = jdbc.query(sql, (RowMapper<Seller>) this::map, tenant, teamSupervisor, teamSupervisor, status == null ? null : status.name(), status == null ? null : status.name(), requestedSupervisor, requestedSupervisor, territory, territory, search, search == null ? null : "%" + search + "%", search == null ? null : "%" + search + "%", search == null ? null : "%" + search + "%", offset, limit);
+        Filter filter = filter(tenant, teamSupervisor, status, requestedSupervisor, territory, search);
+        List<Object> parameters = new ArrayList<>(filter.parameters());
+        parameters.add(offset);
+        parameters.add(limit);
+        String sql = "select distinct s.* from workforce_seller s left join workforce_seller_territory st on st.seller_id=s.id"
+                + filter.where() + " order by s.display_name,s.id offset ? limit ?";
+        List<Seller> sellers = jdbc.query(sql, (RowMapper<Seller>) this::map, parameters.toArray());
         populateTerritories(sellers);
         return sellers;
     }
 
     public long count(UUID tenant, UUID teamSupervisor, com.nahui.followupbussiness.workforce.domain.TerritoryStatus status,
                       UUID requestedSupervisor, UUID territory, String search) {
-        String sql = "select count(distinct s.id) from workforce_seller s left join workforce_seller_territory st on st.seller_id=s.id where s.tenant_id=? and (? is null or s.supervisor_id=?) and (? is null or s.status=?) and (? is null or s.supervisor_id=?) and (? is null or st.territory_id=?) and (? is null or lower(s.display_name) like lower(?) or lower(s.email) like lower(?) or lower(coalesce(s.employee_code,'')) like lower(?))";
-        Long total = jdbc.queryForObject(sql, Long.class, tenant, teamSupervisor, teamSupervisor, status == null ? null : status.name(), status == null ? null : status.name(), requestedSupervisor, requestedSupervisor, territory, territory, search, search == null ? null : "%" + search + "%", search == null ? null : "%" + search + "%", search == null ? null : "%" + search + "%");
+        Filter filter = filter(tenant, teamSupervisor, status, requestedSupervisor, territory, search);
+        String sql = "select count(distinct s.id) from workforce_seller s left join workforce_seller_territory st on st.seller_id=s.id" + filter.where();
+        Long total = jdbc.queryForObject(sql, Long.class, filter.parameters().toArray());
         return total == null ? 0 : total;
+    }
+
+    private static Filter filter(UUID tenant, UUID teamSupervisor, com.nahui.followupbussiness.workforce.domain.TerritoryStatus status,
+                                 UUID requestedSupervisor, UUID territory, String search) {
+        StringBuilder where = new StringBuilder(" where s.tenant_id=?");
+        List<Object> parameters = new ArrayList<>();
+        parameters.add(tenant);
+        if (teamSupervisor != null) {
+            where.append(" and s.supervisor_id=?");
+            parameters.add(teamSupervisor);
+        }
+        if (status != null) {
+            where.append(" and s.status=?");
+            parameters.add(status.name());
+        }
+        if (requestedSupervisor != null) {
+            where.append(" and s.supervisor_id=?");
+            parameters.add(requestedSupervisor);
+        }
+        if (territory != null) {
+            where.append(" and st.territory_id=?");
+            parameters.add(territory);
+        }
+        if (search != null) {
+            where.append(" and (lower(s.display_name) like lower(?) or lower(s.email) like lower(?) or lower(coalesce(s.employee_code,'')) like lower(?))");
+            String pattern = "%" + search + "%";
+            parameters.add(pattern);
+            parameters.add(pattern);
+            parameters.add(pattern);
+        }
+        return new Filter(where.toString(), List.copyOf(parameters));
+    }
+
+    private record Filter(String where, List<Object> parameters) {}
+
+    @Override
+    public Map<UUID, SellerReferences> references(UUID tenant, List<Seller> sellers) {
+        if (tenant == null || sellers == null || sellers.isEmpty()) return Map.of();
+        Map<UUID, SellerReferences> references = new LinkedHashMap<>();
+        Set<UUID> supervisorIds = new LinkedHashSet<>();
+        Map<UUID, List<Territory>> territories = new LinkedHashMap<>();
+        for (Seller seller : sellers) {
+            references.put(seller.id(), new SellerReferences(null, List.of()));
+            territories.put(seller.id(), new ArrayList<>());
+            if (seller.supervisorId() != null) supervisorIds.add(seller.supervisorId());
+        }
+        Map<UUID, Supervisor> supervisors = supervisors(tenant, supervisorIds);
+        if (!territories.isEmpty()) {
+            String sellerPlaceholders = String.join(",", Collections.nCopies(territories.size(), "?"));
+            jdbc.query("select st.seller_id,t.id,t.code,t.name from workforce_seller_territory st join workforce_territory t on t.id=st.territory_id and t.tenant_id=? where st.seller_id in (" + sellerPlaceholders + ") order by st.seller_id,t.code,t.id",
+                    (RowCallbackHandler) row -> territories.get(row.getObject("seller_id", UUID.class)).add(new Territory(row.getObject("id", UUID.class), row.getString("code"), row.getString("name"))),
+                    join(tenant, territories.keySet()));
+        }
+        for (Seller seller : sellers)
+            references.put(seller.id(), new SellerReferences(supervisors.get(seller.supervisorId()), territories.get(seller.id())));
+        return Map.copyOf(references);
+    }
+
+    private Map<UUID, Supervisor> supervisors(UUID tenant, Set<UUID> ids) {
+        if (ids.isEmpty()) return Map.of();
+        String placeholders = String.join(",", Collections.nCopies(ids.size(), "?"));
+        Map<UUID, Supervisor> values = new HashMap<>();
+        jdbc.query("select id,display_name from identity_access_account where company_id=? and role_code='SUPERVISOR' and id in (" + placeholders + ")",
+                (RowCallbackHandler) row -> {
+                    UUID id = row.getObject("id", UUID.class);
+                    values.put(id, new Supervisor(id, row.getString("display_name")));
+                }, join(tenant, ids));
+        return Map.copyOf(values);
+    }
+
+    private static Object[] join(UUID first, Collection<UUID> values) {
+        Object[] arguments = new Object[values.size() + 1];
+        arguments[0] = first;
+        int index = 1;
+        for (UUID value : values) arguments[index++] = value;
+        return arguments;
     }
 
     private void populateTerritories(List<Seller> sellers) {

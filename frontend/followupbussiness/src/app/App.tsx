@@ -4,13 +4,16 @@ import { PasswordRecoveryScreen } from "../features/auth/components/PasswordReco
 import { SessionStatusPage } from "./components/SessionStatusPage";
 import { navigate } from "./navigation";
 import { useSessionRoute } from "./hooks/useSessionRoute";
-import { canAccessPath, getSessionIdentity, hasSession, logout } from "../features/auth/auth";
+import { canAccessPath, getSessionHomePath, getSessionIdentity, hasSession, logout } from "../features/auth/auth";
 import { ErrorState, InlineAlert, SessionExpiredDialog } from "../shared/ui/error-ui/components";
 import { useGlobalApiError } from "../shared/ui/error-ui/useGlobalApiError";
 import { PlatformCompaniesPage } from "../features/platform-companies/PlatformCompaniesPage";
 import { PlatformDashboardPage } from "../features/platform-dashboard/PlatformDashboardPage";
 import { CompanyDashboardPage } from "../features/company-dashboard/CompanyDashboardPage";
+import { CompanyClientsPage } from "../features/company-clients/CompanyClientsPage";
+import { CompanySellersPage } from "../features/company-sellers/CompanySellersPage";
 import { CompanyUsersPageRoute } from "../features/company-users/CompanyUsersPageRoute";
+import { SupervisorDashboardPage } from "../features/supervisor-dashboard/SupervisorDashboardPage";
 
 export function App() {
   const { path, sessionState, clearSessionNotice } = useSessionRoute();
@@ -38,12 +41,12 @@ export function App() {
 
   if (error?.status === 400 || error?.status === 403 || error?.status === 404 || error?.status === 500) {
     const configuration = {
-      400: { variant: "temporary" as const, title: "No pudimos procesar la solicitud", message: "No pudimos completar la operación. Inténtalo nuevamente.", action: "Volver al inicio" },
-      403: { variant: "forbidden" as const, title: "No tienes acceso a esta sección", message: "No tienes permiso para realizar esta acción.", action: "Volver al inicio" },
-      404: { variant: "not-found" as const, title: "No encontramos lo que buscas", message: "El recurso ya no está disponible o no existe.", action: "Volver" },
-      500: { variant: "temporary" as const, title: "Ocurrió un problema temporal", message: "No pudimos completar la operación. Inténtalo más tarde.", action: "Volver al inicio" },
+      400: { variant: "temporary" as const, title: "No pudimos procesar la solicitud", message: "No pudimos completar la operación. Inténtalo nuevamente." },
+      403: { variant: "forbidden" as const, title: "No tienes acceso a esta sección", message: "No tienes permiso para realizar esta acción." },
+      404: { variant: "not-found" as const, title: "No encontramos lo que buscas", message: "El recurso ya no está disponible o no existe." },
+      500: { variant: "temporary" as const, title: "Ocurrió un problema temporal", message: "No pudimos completar la operación. Inténtalo más tarde." },
     }[error.status];
-    return <ErrorState variant={configuration.variant} title={configuration.title} message={configuration.message} {...(error.correlationId === null ? {} : { correlationId: error.correlationId })} primaryAction={{ label: configuration.action, onClick: () => { clearError(); navigate("/", { replace: true }); } }} />;
+    return <ErrorState variant={configuration.variant} title={configuration.title} message={configuration.message} {...(error.correlationId === null ? {} : { correlationId: error.correlationId })} primaryAction={{ label: "Volver al panel", onClick: () => { clearError(); navigate(getSessionHomePath() ?? "/", { replace: true }); } }} />;
   }
 
   if (path === "/password-recovery")
@@ -83,6 +86,14 @@ export function App() {
       return <PlatformCompaniesPage />;
     if (path === "/company/dashboard")
       return <CompanyDashboardPage />;
+    if (path === "/company/clients")
+      return <CompanyClientsPage />;
+    if (path === "/company/sellers")
+      return <CompanySellersPage />;
+    if (path === "/supervisor/dashboard")
+      return <SupervisorDashboardPage view="dashboard" />;
+    if (path === "/supervisor/sellers")
+      return <CompanySellersPage />;
     if (path === "/company/administrators-supervisors")
       return <CompanyUsersPageRoute />;
     return (

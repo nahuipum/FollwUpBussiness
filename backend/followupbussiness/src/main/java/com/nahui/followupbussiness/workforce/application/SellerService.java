@@ -144,6 +144,10 @@ public class SellerService {
                 store.count(tenant, teamSupervisor, status, requestedSupervisorId, territoryId, query));
     }
 
+    public Map<UUID, SellerStore.SellerReferences> references(List<Seller> sellers, AuthenticatedActor actor) {
+        return store.references(listViewer(actor), sellers);
+    }
+
     private void validate(Command c, UUID tenant) {
         if (c == null || c.email() == null || c.displayName() == null) throw new Invalid();
         if (c.supervisorId() != null && !store.activeSupervisor(tenant, c.supervisorId())) throw new Invalid();

@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.Set;
+import java.util.Map;
 
 public interface SellerStore {
     boolean activeSupervisor(UUID tenantId, UUID accountId);
@@ -50,6 +51,11 @@ public interface SellerStore {
     long count(UUID tenantId, UUID supervisorId, com.nahui.followupbussiness.workforce.domain.TerritoryStatus status,
                UUID requestedSupervisorId, UUID territoryId, String search);
 
+    /** Batch-only display references for a page of sellers already scoped to the tenant. */
+    default Map<UUID, SellerReferences> references(UUID tenantId, List<Seller> sellers) {
+        return Map.of();
+    }
+
     default Set<UUID> activeSellerIdsForUser(UUID tenantId, UUID userId) {
         return Set.of();
     }
@@ -57,4 +63,14 @@ public interface SellerStore {
     default Set<UUID> activeSellerIdsForSupervisor(UUID tenantId, UUID supervisorId) {
         return Set.of();
     }
+
+    record SellerReferences(Supervisor supervisor, List<Territory> territories) {
+        public SellerReferences {
+            territories = List.copyOf(territories == null ? List.of() : territories);
+        }
+    }
+
+    record Supervisor(UUID id, String displayName) { }
+
+    record Territory(UUID id, String code, String name) { }
 }

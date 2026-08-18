@@ -40,6 +40,16 @@ const webResponse = (role: string) => ({
 const currentUserResponse = (role: string) =>
   new Response(JSON.stringify(webResponse(role).user), { status: 200 });
 
+const sellerPageResponse = () => new Response(JSON.stringify({
+  items: [{ id: "seller-1", userId: "user-1", displayName: "Ana Vendedora", email: "ana@example.com", phone: null, employeeCode: "VEN-001", status: "ACTIVE", supervisorId: "supervisor-1", territoryIds: ["territory-1"], supervisor: { id: "supervisor-1", displayName: "Sofía Supervisora" }, territories: [{ id: "territory-1", code: "LIM", name: "Lima Centro" }], createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z", version: 1 }],
+  page: { page: 0, pageSize: 20, totalElements: 1, totalPages: 1 },
+}), { status: 200 });
+
+const tenantSellerPageResponse = (tenant: "a" | "b") => new Response(JSON.stringify({
+  items: [{ id: `seller-${tenant}`, userId: `user-${tenant}`, displayName: `Vendedor tenant ${tenant}`, email: `tenant-${tenant}@example.test`, phone: "+51 900 000 000", employeeCode: `VEN-${tenant.toUpperCase()}`, status: "ACTIVE", supervisorId: null, territoryIds: [], supervisor: null, territories: [], createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z", version: 1 }],
+  page: { page: 0, pageSize: 20, totalElements: 1, totalPages: 1 },
+}), { status: 200 });
+
 afterEach(() => {
   cleanup();
   clearSession();
@@ -396,6 +406,94 @@ test("muestra el sidebar y un contenido vacío en el dashboard de plataforma", a
   expect(screen.queryByRole("heading", { name: "Empresas" })).toBeNull();
 });
 
+test("ubica Clientes entre usuarios y auditoría en dashboard de empresa", async () => {
+  const fetchMock = vi.fn((url: string) => Promise.resolve(
+    url.endsWith("/me")
+      ? currentUserResponse("COMPANY_ADMIN")
+      : url.includes("/sellers?")
+        ? sellerPageResponse()
+      : new Response(JSON.stringify(webResponse("COMPANY_ADMIN")), { status: 200 }),
+  ));
+  vi.stubGlobal("fetch", fetchMock);
+  await login({ identifier: "admin@example.com", password: "correct-password" });
+  window.history.replaceState({}, "", "/company/dashboard");
+
+  render(<App />);
+
+  await waitFor(() => expect(screen.getByRole("navigation")).toBeTruthy());
+  const items = Array.from(screen.getByRole("navigation").querySelectorAll("button")).map((item) => item.textContent);
+  expect(items).toEqual(["Resumen", "Administradores y supervisores", "Vendedores", "Clientes", "Auditoría", "Configuración"]);
+  fireEvent.click(screen.getByRole("button", { name: "Vendedores" }));
+  expect(window.location.pathname).toBe("/company/sellers");
+  expect(screen.getByRole("button", { name: "Vendedores" }).className).toContain("dashboard-nav__item--active");
+  expect(screen.getByRole("heading", { name: "Vendedores" })).toBeTruthy();
+  await screen.findByText("Ana Vendedora");
+  fireEvent.click(screen.getByRole("button", { name: "Más acciones para Ana Vendedora" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: "Ver detalle" }));
+  expect(screen.getByRole("dialog", { name: "Detalle de vendedor" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Clientes" }));
+  expect(window.location.pathname).toBe("/company/clients");
+  expect(screen.getByRole("button", { name: "Clientes" }).className).toContain("dashboard-nav__item--active");
+  expect(screen.getByLabelText("Contenido de clientes de empresa").childElementCount).toBe(0);
+});
+
+test("muestra el listado contractual al supervisor sin abrir navegación administrativa", async () => {
+  const fetchMock = vi.fn((url: string) => Promise.resolve(
+    url.endsWith("/me")
+      ? currentUserResponse("SUPERVISOR")
+      : url.includes("/sellers?")
+        ? sellerPageResponse()
+      : new Response(JSON.stringify(webResponse("SUPERVISOR")), { status: 200 }),
+  ));
+  vi.stubGlobal("fetch", fetchMock);
+  await login({ identifier: "supervisor@example.com", password: "correct-password" });
+  window.history.replaceState({}, "", "/supervisor/dashboard");
+
+  render(<App />);
+
+  await waitFor(() => expect(screen.getByRole("navigation")).toBeTruthy());
+  expect(screen.getByRole("button", { name: "Resumen" }).className).toContain("dashboard-nav__item--active");
+  expect(screen.getByLabelText("Contenido del dashboard principal de supervisor").childElementCount).toBe(0);
+  fireEvent.click(screen.getByRole("button", { name: "Vendedores" }));
+  expect(window.location.pathname).toBe("/supervisor/sellers");
+  expect(screen.getByRole("button", { name: "Vendedores" }).className).toContain("dashboard-nav__item--active");
+  await screen.findByText("Ana Vendedora");
+  expect(screen.getByRole("table", { name: "Vendedores" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Administradores y supervisores" })).toBeNull();
+  expect(fetchMock.mock.calls.some(([url]) => String(url).includes("/sellers?page=0&pageSize=20"))).toBe(true);
+});
+
+test("revoca el detalle del tenant anterior al reemplazar la sesión", async () => {
+  let activeTenant: "a" | "b" = "a";
+  const tenantResponse = (tenant: "a" | "b") => ({
+    ...webResponse("COMPANY_ADMIN"),
+    user: { ...webResponse("COMPANY_ADMIN").user, id: `admin-${tenant}`, company: { id: `tenant-${tenant}`, legalName: `Empresa ${tenant}` } },
+  });
+  const fetchMock = vi.fn((url: string) => Promise.resolve(
+    url.endsWith("/me")
+      ? new Response(JSON.stringify(tenantResponse(activeTenant).user), { status: 200 })
+      : url.includes("/sellers?")
+        ? tenantSellerPageResponse(activeTenant)
+        : new Response(JSON.stringify(tenantResponse(activeTenant)), { status: 200 }),
+  ));
+  vi.stubGlobal("fetch", fetchMock);
+  await login({ identifier: "admin-a@example.test", password: "correct-password" });
+  window.history.replaceState({}, "", "/company/sellers");
+  render(<App />);
+
+  await screen.findByText("Vendedor tenant a");
+  fireEvent.click(screen.getByRole("button", { name: "Más acciones para Vendedor tenant a" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: "Ver detalle" }));
+  expect(screen.getByRole("dialog").textContent).toContain("tenant-a@example.test");
+
+  activeTenant = "b";
+  await login({ identifier: "admin-b@example.test", password: "correct-password" });
+  await waitFor(() => expect(screen.queryAllByText("tenant-a@example.test")).toHaveLength(0));
+  await screen.findByText("Vendedor tenant b");
+  expect(screen.queryByText("Vendedor tenant a")).toBeNull();
+  expect(screen.queryByText("VEN-A")).toBeNull();
+});
+
 test("explains an expired session on a protected reload and redirects to login", async () => {
   window.history.replaceState({}, "", "/seller/dashboard");
   render(<App />);
@@ -484,6 +582,11 @@ test.each([
     fireEvent.click(screen.getByRole("button", { name: "Recargar y revisar" }));
     expect(screen.queryByText("La información cambió")).toBeNull();
     expect(fetchMock).toHaveBeenCalledTimes(3);
+  }
+  if (status === 500) {
+    fireEvent.click(screen.getByRole("button", { name: "Volver al panel" }));
+    expect(window.location.pathname).toBe("/seller/dashboard");
+    expect(hasSession()).toBe(true);
   }
 });
 

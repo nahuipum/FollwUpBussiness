@@ -1,10 +1,15 @@
 package com.nahui.followupbussiness.workforce.adapter.in.rest;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -37,6 +42,31 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 class SellerTerritoryAssignmentControllerTest {
+    @Test
+    void listsSellersWithBatchResolvedSupervisorAndTerritoryReferences() throws Exception {
+        UUID tenant = UUID.randomUUID();
+        UUID sellerId = UUID.randomUUID();
+        UUID supervisorId = UUID.randomUUID();
+        UUID territoryId = UUID.randomUUID();
+        SellerService service = mock(SellerService.class);
+        Seller seller = new Seller(sellerId, tenant, UUID.randomUUID(), "Seller", "seller@example.test", null, null, supervisorId,
+                List.of(territoryId), TerritoryStatus.ACTIVE, Instant.EPOCH, Instant.EPOCH, 1);
+        when(service.list(isNull(), isNull(), isNull(), isNull(), eq(0), eq(20), any()))
+                .thenReturn(new SellerService.Page(List.of(seller), 1));
+        when(service.references(anyList(), any())).thenReturn(Map.of(sellerId,
+                new SellerStore.SellerReferences(new SellerStore.Supervisor(supervisorId, "Supervisor visible"),
+                        List.of(new SellerStore.Territory(territoryId, "NORTE", "Zona Norte")))));
+
+        mvc(service, Map.of("admin", actor(tenant, BaseRole.COMPANY_ADMIN)))
+                .perform(get("/sellers").header("Authorization", "Bearer admin"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].supervisor.id").value(supervisorId.toString()))
+                .andExpect(jsonPath("$.items[0].supervisor.displayName").value("Supervisor visible"))
+                .andExpect(jsonPath("$.items[0].territories[0].id").value(territoryId.toString()))
+                .andExpect(jsonPath("$.items[0].territories[0].code").value("NORTE"))
+                .andExpect(jsonPath("$.items[0].territories[0].name").value("Zona Norte"));
+    }
+
     @Test
     void mapsSuccessfulAndDomainResponsesAndRejectsUnauthorizedActorsWithoutEffects() throws Exception {
         UUID tenant = UUID.randomUUID();

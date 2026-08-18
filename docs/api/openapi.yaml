@@ -3422,9 +3422,31 @@ components:
           type: array
           uniqueItems: true
           items: { type: string, format: uuid }
+        supervisor:
+          oneOf:
+            - $ref: '#/components/schemas/SellerSupervisorReference'
+            - type: 'null'
+        territories:
+          type: array
+          items: { $ref: '#/components/schemas/SellerTerritoryReference' }
         createdAt: { type: string, format: date-time, readOnly: true }
         updatedAt: { type: string, format: date-time, readOnly: true }
         version: { type: integer, minimum: 1, readOnly: true }
+    SellerSupervisorReference:
+      type: object
+      additionalProperties: false
+      required: [id, displayName]
+      properties:
+        id: { type: string, format: uuid }
+        displayName: { type: string, maxLength: 160 }
+    SellerTerritoryReference:
+      type: object
+      additionalProperties: false
+      required: [id, code, name]
+      properties:
+        id: { type: string, format: uuid }
+        code: { type: string, maxLength: 40 }
+        name: { type: string, maxLength: 160 }
     SellerPage:
       type: object
       additionalProperties: false

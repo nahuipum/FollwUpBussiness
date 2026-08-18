@@ -17,6 +17,7 @@ import {
 } from "../../../shared/ui/DataTable";
 import { TableActionMenu } from "../../../shared/ui/TableActionMenu";
 import { VisualSelect } from "../../../shared/ui/VisualSelect";
+import { TableLoadingIndicator } from "../../../shared/ui/TableLoadingIndicator";
 import type { Company, CompanyPage, CompanyStatus } from "../types";
 
 type Props = {
@@ -94,7 +95,7 @@ export function CompanyTable({
         </div>
       </div>
       {loading ? (
-        <p className="company-empty" role="status">Cargando empresas…</p>
+        <TableLoadingIndicator label="Cargando empresas" />
       ) : companies.length === 0 ? (
         <NoResults search={search} />
       ) : (

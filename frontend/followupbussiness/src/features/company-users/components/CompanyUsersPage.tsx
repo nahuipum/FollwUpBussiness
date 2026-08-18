@@ -1,4 +1,4 @@
-import { ClipboardList, LayoutDashboard, Settings, Users } from "lucide-react";
+import { ClipboardList, ContactRound, LayoutDashboard, Settings, UserRound, Users } from "lucide-react";
 import { useRef } from "react";
 import { navigate } from "../../../app/navigation";
 import { DashboardLayout } from "../../../shared/layout/DashboardLayout";
@@ -21,6 +21,7 @@ import { CompanyUsersHeader } from "./CompanyUsersHeader";
 import { CompanyUsersStateCard } from "./CompanyUsersStateCard";
 import { CompanyUsersTable, ReadOnlyNotice } from "./CompanyUsersTable";
 import { ApiRequestObsoleteError, normalizeApiError } from "../../../lib/api";
+import { TableLoadingIndicator } from "../../../shared/ui/TableLoadingIndicator";
 
 export function CompanyUsersPage() {
   const users = useCompanyUsers();
@@ -132,6 +133,8 @@ export function CompanyUsersPage() {
           icon: <Users />,
           active: true,
         },
+        { id: "sellers", label: "Vendedores", icon: <UserRound />, onSelect: () => navigate("/company/sellers") },
+        { id: "clients", label: "Clientes", icon: <ContactRound />, onSelect: () => navigate("/company/clients") },
         { id: "audit", label: "Auditoría", icon: <ClipboardList /> },
         { id: "settings", label: "Configuración", icon: <Settings /> },
       ]}
@@ -177,7 +180,7 @@ export function CompanyUsersPage() {
             onStatusChange={users.changeStatus}
           />
           {users.loading ? (
-            <p role="status">Cargando usuarios…</p>
+            <TableLoadingIndicator label="Cargando usuarios" />
           ) : items.length === 0 ? (
             <CompanyUsersStateCard
               title={

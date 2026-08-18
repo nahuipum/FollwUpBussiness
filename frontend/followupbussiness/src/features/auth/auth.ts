@@ -170,6 +170,11 @@ function redirectFor(roles: UserRole[]): string | null {
   return null;
 }
 
+/** Default panel for the active in-memory session. */
+export function getSessionHomePath(): string | null {
+  return session === null ? null : redirectFor(session.roles);
+}
+
 function isUserRole(value: unknown): value is UserRole {
   return (
     value === "PLATFORM_SUPERADMIN" ||
@@ -347,7 +352,10 @@ export function canAccessPath(path: string): boolean {
     "/platform/dashboard": "PLATFORM_SUPERADMIN",
     "/platform/companies": "PLATFORM_SUPERADMIN",
     "/company/dashboard": "COMPANY_ADMIN",
+    "/company/clients": "COMPANY_ADMIN",
+    "/company/sellers": "COMPANY_ADMIN",
     "/supervisor/dashboard": "SUPERVISOR",
+    "/supervisor/sellers": "SUPERVISOR",
     "/seller/dashboard": "SELLER",
   };
   const role = requiredRole[path];

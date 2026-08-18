@@ -3,6 +3,7 @@ package com.nahui.followupbussiness.workforce.adapter.in.rest;
 import com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.nahui.followupbussiness.workforce.application.SellerService;
+import com.nahui.followupbussiness.workforce.application.port.out.SellerStore;
 import com.nahui.followupbussiness.workforce.domain.Seller;
 import com.nahui.followupbussiness.workforce.domain.TerritoryStatus;
 import jakarta.servlet.http.HttpServletRequest;
@@ -37,7 +38,8 @@ public final class SellerController {
         UUID correlation = correlationId(http);
         try {
             var result = service.list(status, supervisorId, territoryId, search, page, pageSize, actor);
-            return ResponseEntity.ok().header("X-Correlation-Id", correlation.toString()).body(new Page(result.items().stream().map(Response::from).toList(), PageInfo.from(page, pageSize, result.total())));
+            var references = service.references(result.items(), actor);
+            return ResponseEntity.ok().header("X-Correlation-Id", correlation.toString()).body(new Page(result.items().stream().map(seller -> Response.from(seller, references.get(seller.id()))).toList(), PageInfo.from(page, pageSize, result.total())));
         } catch (SellerService.Forbidden exception) {
             return problem(HttpStatus.FORBIDDEN, correlation);
         }
@@ -243,10 +245,23 @@ public final class SellerController {
 
     record Response(UUID id, UUID userId, String displayName, String email, String phone, String employeeCode,
                     UUID supervisorId, List<UUID> territoryIds, String status, Instant createdAt, Instant updatedAt,
-                    long version) {
+                    long version, Supervisor supervisor, List<Territory> territories) {
         static Response from(Seller s) {
-            return new Response(s.id(), s.userId(), s.displayName(), s.email(), s.phone(), s.employeeCode(), s.supervisorId(), s.territoryIds(), s.status().name(), s.createdAt(), s.updatedAt(), s.version());
+            return from(s, null);
         }
+        static Response from(Seller s, SellerStore.SellerReferences references) {
+            Supervisor supervisor = references == null || references.supervisor() == null ? null : Supervisor.from(references.supervisor());
+            List<Territory> territories = references == null ? List.of() : references.territories().stream().map(Territory::from).toList();
+            return new Response(s.id(), s.userId(), s.displayName(), s.email(), s.phone(), s.employeeCode(), s.supervisorId(), s.territoryIds(), s.status().name(), s.createdAt(), s.updatedAt(), s.version(), supervisor, territories);
+        }
+    }
+
+    record Supervisor(UUID id, String displayName) {
+        static Supervisor from(SellerStore.Supervisor supervisor) { return new Supervisor(supervisor.id(), supervisor.displayName()); }
+    }
+
+    record Territory(UUID id, String code, String name) {
+        static Territory from(SellerStore.Territory territory) { return new Territory(territory.id(), territory.code(), territory.name()); }
     }
 
     record Page(List<Response> items, PageInfo page) {
