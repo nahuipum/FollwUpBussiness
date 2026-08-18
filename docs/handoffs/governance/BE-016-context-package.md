@@ -1,34 +1,33 @@
-# Paquete de contexto — BE-016 Listar y filtrar clientes
+﻿# Paquete de contexto — BE-016 Listar y filtrar clientes
 
-**Estado actual:** `BLOCKED`.
-**Candidate-ID:** Pendiente; se calculará una sola vez tras Desarrollo.
+**Estado actual:** `READY_FOR_DEVELOPMENT`.
+**Candidate-ID:** `HEAD 055bab6 + BE-016 customer-list UTC-cutoff`.
 
 ## Predecesoras verificadas
 
-- `BE-013`: DoF `PASS` en `docs/handoffs/dof/BE-013-dof.md`; `POST /customers` y el modelo `Customer` tienen contrato estable.
-- `BE-059`: DoF `PASS` en `docs/handoffs/dof/BE-059-dof.md`; consulta de vendedores/equipo disponible y estable.
+- `BE-013`: DoF `PASS` en `docs/handoffs/dof/BE-013-dof.md`; `POST /customers` y `Customer` poseen contrato estable.
+- `BE-059`: DoF `PASS` en `docs/handoffs/dof/BE-059-dof.md`; consulta de vendedores/equipo estable.
+- El bloqueo previo queda levantado: `BE-060` tiene DoF `PASS` y la base de cartera/actividad ya existe. No se rediscuten reglas ni contrato.
 
-## Alcance y contrato
+## Alcance contractual
 
-Implementar exclusivamente `GET /customers` según `docs/api/openapi.yaml`: colección paginada, orden estable, `Customer` contractual y respuestas `200`, `400`, `403`, con `correlationId`. Filtros combinables: `search`, `status`, `territoryId`, `sellerId`, `segment`, `withoutVisitSince`, `withoutPurchaseSince`. No modificar contrato ni reglas/relaciones de cartera.
+Implementar exclusivamente BE-016: `GET /customers` de `docs/api/openapi.yaml`, `x-required-roles: COMPANY_ADMIN, SUPERVISOR, SELLER`; paginación/orden estables, `CustomerPage`/`Customer`, `correlationId` y respuestas `200`, `400`, `403`. Filtros combinables: `search`, `status`, `territoryId`, `sellerId`, `segment`, `withoutVisitSince`, `withoutPurchaseSince`. Las fechas incluyen ausencia de hecho y hechos anteriores al límite contractual UTC. No modificar contrato, permisos ni relaciones de cartera.
 
-## Autorización e invariantes
+## Controles obligatorios
 
-- Tenant únicamente de sesión. `COMPANY_ADMIN`: todo y solo su tenant, con todos los filtros. `SUPERVISOR`: solo clientes vinculados a vendedores de su equipo vigente. `SELLER`: solo clientes propios asignados. `PLATFORM_SUPERADMIN`, no autenticado y otros roles: `403` sin lectura transversal.
-- El alcance tenant/equipo/cartera se impone en la consulta antes de filtros, conteo y paginación. Ningún filtro, ID, página o tamaño amplía ni revela alcance. Vacío y denegación no enumeran recursos ajenos.
-- Actor/recurso: identidad, tenant, rol, equipo/cartera. Éxito: página consistente y orden estable. Denegación: `403`, sin datos ni efectos. Parámetro inválido: `400`. Fallo/no-op: no escrituras, auditoría ni eventos; errores y observabilidad omiten PII completa, dirección y coordenadas.
+1. Tenant e identidad derivan exclusivamente de sesión y se imponen en la consulta, conteo y paginación antes de filtros.
+2. `COMPANY_ADMIN`: todo y solo el tenant; todos los filtros contractuales. `SUPERVISOR`: solo cartera vigente de vendedores de su equipo. `SELLER`: solo cartera propia asignada. Ningún parámetro, ID, página o tamaño amplía ni permite inferir alcance ajeno.
+3. Sin autenticación, `PLATFORM_SUPERADMIN` y demás roles: `403`, sin lectura transversal. `sellerId`/territorio inactivo, ajeno, filtros incompatibles y parámetros inválidos siguen el contrato sin enumeración.
+4. Éxito: página consistente y orden estable. Vacío/denegación: sin PII, clientes, vendedores, territorios o cartera ajenos. La respuesta no incluye secretos, credenciales, asignaciones ajenas ni PII innecesaria.
+5. Operación de lectura: cero escrituras, asignaciones, auditoría o eventos. Propagar `correlationId`; fallos sin PII completa, dirección o coordenadas exactas.
 
-Puertos alcanzables: autenticación/actor y lectura de clientes, asignaciones, equipo, territorios e historial de visitas/compras si el modelo lo exige. No deben alcanzarse puertos de escritura, auditoría ni publicación.
+Puertos permitidos: actor/sesión; lectura de clientes, cartera vigente, equipo, territorios y actividad. Prohibidos: escritura, auditoría y publicación.
 
-## Artefactos y fases
+## Fases y artefactos
 
-- Desarrollo: `docs/handoffs/backend/BE-016-development-handoff.md`.
-- QA: `docs/handoffs/qa/BE-016-qa-handoff.md`.
-- Seguridad: `docs/handoffs/security/BE-016-security-review.md`.
-- DoF: `docs/handoffs/dof/BE-016-dof.md`.
+- Development: `docs/handoffs/backend/BE-016-development-handoff.md` (reemplazar estado anterior), pruebas focalizadas; ejecutar `clean verify` por superficie de autorización/consulta/persistencia.
+- QA: `docs/handoffs/qa/BE-016-qa-handoff.md`; solo tras `READY_FOR_HANDOFF` y Candidate-ID coincidente.
+- Seguridad aplicable (BOLA/IDOR, multiempresa, equipo/cartera, PII): `docs/handoffs/security/BE-016-security-review.md`; reproducir manipulación `sellerId`/`territoryId` para equipo y tenant ajenos.
+- DoF: `docs/handoffs/dof/BE-016-dof.md`; solo tras QA y Seguridad `PASS`.
 
-Seguridad es aplicable: BOLA/IDOR, multiempresa, equipo/cartera y PII. No hay preflight: las semánticas públicas requeridas están definidas en el contrato. Sin commits, push ni PR.
-
-## Bloqueo registrado
-
-Desarrollo confirmó que `V28__create_customers.sql` solo persiste cliente y territorio; faltan cartera cliente–vendedor, segmento e historial de visitas/compras. Sin esas fuentes no puede imponerse alcance de `SUPERVISOR`/`SELLER` antes de filtros, conteo y paginación, ni ejecutar fielmente `sellerId`, `segment`, `withoutVisitSince` y `withoutPurchaseSince`, sin inventar reglas ni introducir riesgo BOLA/IDOR. No hubo cambios de código ni Candidate-ID. Cierre acordado: `EN-021` define contrato, migraciones y fuentes de actividad; `BE-060` materializa la cartera vigente e histórica; ambos deben alcanzar DoF `PASS` junto con `BE-011`, `BE-013` y `BE-059` antes de reanudar Desarrollo de BE-016.
+Sin commits, push, PR ni cambios fuera de BE-016.

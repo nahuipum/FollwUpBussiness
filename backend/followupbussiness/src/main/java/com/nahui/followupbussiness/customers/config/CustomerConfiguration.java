@@ -20,10 +20,11 @@ import java.time.Clock;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 @Configuration(proxyBeanMethods = false)
-@org.springframework.context.annotation.Import(SellerReferenceConfiguration.class)
+@Import(SellerReferenceConfiguration.class)
 public class CustomerConfiguration {
     @Bean
     CreateCustomerService createCustomerService(JdbcTemplate jdbc, TerritoryReferenceUseCase territories, @Qualifier("transactionalAuditEntryUseCase") RecordAuditEntryUseCase audit) {

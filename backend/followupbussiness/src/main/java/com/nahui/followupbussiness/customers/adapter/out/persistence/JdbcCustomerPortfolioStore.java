@@ -33,28 +33,42 @@ public final class JdbcCustomerPortfolioStore implements CustomerPortfolioStore 
     public List<HistoryEntry> history(UUID tenantId, UUID customerId) {
         return jdbc.query("select id,customer_id,previous_seller_id,new_seller_id,actor_id,effective_from,reason,recorded_at from customer_portfolio_history where tenant_id=? and customer_id=? order by effective_from desc,recorded_at desc", (rs, row) -> new HistoryEntry(rs.getObject(1, UUID.class), rs.getObject(2, UUID.class), rs.getObject(3, UUID.class), rs.getObject(4, UUID.class), rs.getObject(5, UUID.class), rs.getDate(6).toLocalDate(), rs.getString(7), rs.getTimestamp(8).toInstant()), tenantId, customerId);
     }
-    @Override public void replace(UUID tenantId, UUID customerId, Set<UUID> sellerIds, UUID actorId, LocalDate effectiveFrom, String reason, Instant now) {
-        Set<UUID> before=current(tenantId,customerId).stream().map(Assignment::sellerId).collect(java.util.stream.Collectors.toSet());
-        List<UUID> removed=before.stream().filter(id -> !sellerIds.contains(id)).sorted().toList();
-        List<UUID> added=sellerIds.stream().filter(id -> !before.contains(id)).sorted().toList();
-        jdbc.update("delete from customer_portfolio_assignment where tenant_id=? and customer_id=?",tenantId,customerId);
-        int paired=Math.min(removed.size(),added.size());
-        for(int index=0;index<paired;index++) history(tenantId, customerId, removed.get(index), added.get(index), actorId, effectiveFrom, reason, now);
-        for(int index=paired;index<removed.size();index++) history(tenantId, customerId, removed.get(index), null, actorId, effectiveFrom, reason, now);
-        for(int index=paired;index<added.size();index++) history(tenantId, customerId, null, added.get(index), actorId, effectiveFrom, reason, now);
-        for(UUID seller:sellerIds) {
-          jdbc.update("insert into customer_portfolio_assignment(tenant_id,customer_id,seller_id,effective_from,assigned_by,reason,created_at) values(?,?,?,?,?,?,?)",tenantId,customerId,seller,effectiveFrom,actorId,reason,java.sql.Timestamp.from(now));
+
+    @Override
+    public void replace(UUID tenantId, UUID customerId, Set<UUID> sellerIds, UUID actorId, LocalDate effectiveFrom, String reason, Instant now) {
+        Set<UUID> before = current(tenantId, customerId).stream().map(Assignment::sellerId).collect(java.util.stream.Collectors.toSet());
+        List<UUID> removed = before.stream().filter(id -> !sellerIds.contains(id)).sorted().toList();
+        List<UUID> added = sellerIds.stream().filter(id -> !before.contains(id)).sorted().toList();
+        jdbc.update("delete from customer_portfolio_assignment where tenant_id=? and customer_id=?", tenantId, customerId);
+        int paired = Math.min(removed.size(), added.size());
+        for (int index = 0; index < paired; index++)
+            history(tenantId, customerId, removed.get(index), added.get(index), actorId, effectiveFrom, reason, now);
+        for (int index = paired; index < removed.size(); index++)
+            history(tenantId, customerId, removed.get(index), null, actorId, effectiveFrom, reason, now);
+        for (int index = paired; index < added.size(); index++)
+            history(tenantId, customerId, null, added.get(index), actorId, effectiveFrom, reason, now);
+        for (UUID seller : sellerIds) {
+            jdbc.update("insert into customer_portfolio_assignment(tenant_id,customer_id,seller_id,effective_from,assigned_by,reason,created_at) values(?,?,?,?,?,?,?)", tenantId, customerId, seller, effectiveFrom, actorId, reason, java.sql.Timestamp.from(now));
         }
     }
-    @Override public IdempotencyReservation reserveIdempotency(UUID tenantId, UUID key, String fingerprint, Instant now) {
-        int inserted=jdbc.update("insert into customer_portfolio_assignment_idempotency(tenant_id,idempotency_key,request_fingerprint,results,recorded_at,status) values(?,?,?,ARRAY[]::text[],?, 'PENDING') on conflict (tenant_id,idempotency_key) do nothing",tenantId,key,fingerprint,java.sql.Timestamp.from(now));
-        if(inserted==1) return new IdempotencyReservation(true,null);
-        IdempotencyRecord record=jdbc.query("select request_fingerprint,results from customer_portfolio_assignment_idempotency where tenant_id=? and idempotency_key=? and status='COMPLETED'",rs -> rs.next() ? new IdempotencyRecord(rs.getString(1),List.of((String[])rs.getArray(2).getArray())) : null,tenantId,key);
-        if(record==null) throw new IllegalStateException("idempotency reservation is not complete");
-        return new IdempotencyReservation(false,record);
+
+    @Override
+    public IdempotencyReservation reserveIdempotency(UUID tenantId, UUID key, String fingerprint, Instant now) {
+        int inserted = jdbc.update("insert into customer_portfolio_assignment_idempotency(tenant_id,idempotency_key,request_fingerprint,results,recorded_at,status) values(?,?,?,ARRAY[]::text[],?, 'PENDING') on conflict (tenant_id,idempotency_key) do nothing", tenantId, key, fingerprint, java.sql.Timestamp.from(now));
+        if (inserted == 1) return new IdempotencyReservation(true, null);
+        IdempotencyRecord record = jdbc.query("select request_fingerprint,results from customer_portfolio_assignment_idempotency where tenant_id=? and idempotency_key=? and status='COMPLETED'", rs -> rs.next() ? new IdempotencyRecord(rs.getString(1), List.of((String[]) rs.getArray(2).getArray())) : null, tenantId, key);
+        if (record == null) throw new IllegalStateException("idempotency reservation is not complete");
+        return new IdempotencyReservation(false, record);
     }
-    @Override public void completeIdempotency(UUID tenantId, UUID key, List<String> results) { jdbc.update("update customer_portfolio_assignment_idempotency set results=?, status='COMPLETED' where tenant_id=? and idempotency_key=? and status='PENDING'",results.toArray(new String[0]),tenantId,key); }
-    private void history(UUID tenantId, UUID customerId, UUID previous, UUID next, UUID actorId, LocalDate effectiveFrom, String reason, Instant now) { jdbc.update("insert into customer_portfolio_history(id,tenant_id,customer_id,previous_seller_id,new_seller_id,actor_id,effective_from,reason,recorded_at) values(?,?,?,?,?,?,?,?,?)",UUID.randomUUID(),tenantId,customerId,previous,next,actorId,effectiveFrom,reason,java.sql.Timestamp.from(now)); }
+
+    @Override
+    public void completeIdempotency(UUID tenantId, UUID key, List<String> results) {
+        jdbc.update("update customer_portfolio_assignment_idempotency set results=?, status='COMPLETED' where tenant_id=? and idempotency_key=? and status='PENDING'", results.toArray(new String[0]), tenantId, key);
+    }
+
+    private void history(UUID tenantId, UUID customerId, UUID previous, UUID next, UUID actorId, LocalDate effectiveFrom, String reason, Instant now) {
+        jdbc.update("insert into customer_portfolio_history(id,tenant_id,customer_id,previous_seller_id,new_seller_id,actor_id,effective_from,reason,recorded_at) values(?,?,?,?,?,?,?,?,?)", UUID.randomUUID(), tenantId, customerId, previous, next, actorId, effectiveFrom, reason, java.sql.Timestamp.from(now));
+    }
 
     @Override
     public List<Customer> list(CustomerPortfolioReadUseCase.Query q, CustomerPortfolioReadUseCase.Scope scope) {
@@ -71,8 +85,8 @@ public final class JdbcCustomerPortfolioStore implements CustomerPortfolioStore 
 
     private Sql sql(CustomerPortfolioReadUseCase.Query q, CustomerPortfolioReadUseCase.Scope scope) {
         String portfolio = scope.allCurrentPortfolios() ? "" : " and exists (select 1 from customer_portfolio_assignment p where p.tenant_id=c.tenant_id and p.customer_id=c.id and p.seller_id in (" + placeholders(scope.sellerIds().size()) + "))";
-        String activity = (q.withoutVisitSince() == null ? "" : " and (not exists (select 1 from customer_activity_fact av where av.tenant_id=c.tenant_id and av.customer_id=c.id) or (select av.last_completed_visit_at from customer_activity_fact av where av.tenant_id=c.tenant_id and av.customer_id=c.id) is null or (select av.last_completed_visit_at from customer_activity_fact av where av.tenant_id=c.tenant_id and av.customer_id=c.id) <= ?)")
-                + (q.withoutPurchaseSince() == null ? "" : " and (not exists (select 1 from customer_activity_fact ap where ap.tenant_id=c.tenant_id and ap.customer_id=c.id) or (select ap.last_confirmed_purchase_at from customer_activity_fact ap where ap.tenant_id=c.tenant_id and ap.customer_id=c.id) is null or (select ap.last_confirmed_purchase_at from customer_activity_fact ap where ap.tenant_id=c.tenant_id and ap.customer_id=c.id) <= ?)");
+        String activity = (q.withoutVisitSince() == null ? "" : " and (not exists (select 1 from customer_activity_fact av where av.tenant_id=c.tenant_id and av.customer_id=c.id) or (select av.last_completed_visit_at from customer_activity_fact av where av.tenant_id=c.tenant_id and av.customer_id=c.id) is null or (select av.last_completed_visit_at from customer_activity_fact av where av.tenant_id=c.tenant_id and av.customer_id=c.id) < ?)")
+                + (q.withoutPurchaseSince() == null ? "" : " and (not exists (select 1 from customer_activity_fact ap where ap.tenant_id=c.tenant_id and ap.customer_id=c.id) or (select ap.last_confirmed_purchase_at from customer_activity_fact ap where ap.tenant_id=c.tenant_id and ap.customer_id=c.id) is null or (select ap.last_confirmed_purchase_at from customer_activity_fact ap where ap.tenant_id=c.tenant_id and ap.customer_id=c.id) < ?)");
         return new Sql("from customer c where c.tenant_id=?" + portfolio + " and (?::text is null or lower(c.name) like lower(?) or lower(coalesce(c.document_number,'')) like lower(?) or lower(coalesce(c.phone,'')) like lower(?) or lower(c.address) like lower(?)) and (?::text is null or c.status=?) and (?::uuid is null or c.territory_id=?) and (?::text is null or c.segment=?)" + (q.sellerId() == null ? "" : " and exists (select 1 from customer_portfolio_assignment requested where requested.tenant_id=c.tenant_id and requested.customer_id=c.id and requested.seller_id=?)") + activity);
     }
 
@@ -94,9 +108,9 @@ public final class JdbcCustomerPortfolioStore implements CustomerPortfolioStore 
         p.add(q.segment());
         if (q.sellerId() != null) p.add(q.sellerId());
         if (q.withoutVisitSince() != null)
-            p.add(java.sql.Timestamp.from(q.withoutVisitSince().plusDays(1).atStartOfDay(java.time.ZoneOffset.UTC).toInstant()));
+            p.add(java.sql.Timestamp.from(q.withoutVisitSince().atStartOfDay(java.time.ZoneOffset.UTC).toInstant()));
         if (q.withoutPurchaseSince() != null)
-            p.add(java.sql.Timestamp.from(q.withoutPurchaseSince().plusDays(1).atStartOfDay(java.time.ZoneOffset.UTC).toInstant()));
+            p.add(java.sql.Timestamp.from(q.withoutPurchaseSince().atStartOfDay(java.time.ZoneOffset.UTC).toInstant()));
         if (paged) {
             p.add(q.offset());
             p.add(q.limit());
