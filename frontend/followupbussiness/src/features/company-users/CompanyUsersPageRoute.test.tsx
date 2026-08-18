@@ -1,6 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { CompanyUsersPageRoute } from "./CompanyUsersPageRoute";
+import { CompanyWorkspaceLayout } from "../../app/components/CompanyWorkspaceLayout";
 
 const state = vi.hoisted(() => ({
   identity: { id: "admin", displayName: "Ana", company: "company-a", roles: ["COMPANY_ADMIN"] },
@@ -13,7 +14,7 @@ const invitedUser = { ...user, id: "u2", displayName: "Carla Pérez", email: "ca
 const response = (status: number) => new Response(null, { status });
 beforeEach(() => { vi.useFakeTimers(); state.identity = { id: "admin", displayName: "Ana", company: "company-a", roles: ["COMPANY_ADMIN"] }; state.list.mockResolvedValue({ response: response(200), page: { items: [user], page: { page: 0, pageSize: 20, totalElements: 1, totalPages: 1 } } }); state.get.mockResolvedValue({ response: response(200), user }); state.invite.mockResolvedValue({ response: response(202), user }); state.update.mockResolvedValue({ response: response(200), user }); state.status.mockResolvedValue({ response: response(200), user: { ...user, status: "LOCKED" } }); });
 afterEach(() => { cleanup(); state.listeners.clear(); Object.values(state).forEach((value) => { if (typeof value === "function" && "mockReset" in value) (value as ReturnType<typeof vi.fn>).mockReset(); }); vi.useRealTimers(); });
-async function loaded() { render(<CompanyUsersPageRoute />); await act(async () => { await vi.advanceTimersByTimeAsync(250); }); }
+async function loaded() { render(<CompanyWorkspaceLayout workspace="company" activeSection="administrators-supervisors"><CompanyUsersPageRoute /></CompanyWorkspaceLayout>); await act(async () => { await vi.advanceTimersByTimeAsync(250); }); }
 test("carga la lista real con filtros contractuales", async () => { await loaded(); expect(screen.getByText("Ana Gómez")).toBeTruthy(); fireEvent.click(screen.getByRole("button", { name: "Rol" })); fireEvent.click(screen.getByRole("option", { name: "Administrador" })); await act(async () => { await vi.advanceTimersByTimeAsync(250); }); expect(state.list).toHaveBeenLastCalledWith(expect.objectContaining({ role: "COMPANY_ADMIN" })); });
 test("mantiene Vendedores y Clientes en navegación de usuarios", async () => { await loaded(); const navigation = screen.getByRole("complementary", { name: "Navegación principal" }).querySelector(".dashboard-nav"); const items = Array.from(navigation?.querySelectorAll("button") ?? []).map((item) => item.textContent); expect(items).toEqual(["Resumen", "Administradores y supervisores", "Vendedores", "Clientes", "Auditoría", "Configuración"]); });
 test("invita con rol permitido y no anuncia éxito ante conflicto", async () => { await loaded(); fireEvent.click(screen.getByRole("button", { name: "Invitar administrador o supervisor" })); fireEvent.change(screen.getByLabelText("Nombre completo"), { target: { value: "Luis Pérez" } }); fireEvent.change(screen.getByLabelText("Correo corporativo"), { target: { value: "luis@example.com" } }); fireEvent.click(screen.getByRole("radio", { name: /Administrador/ })); fireEvent.click(screen.getByRole("button", { name: "Enviar invitación" })); await act(async () => {}); expect(state.invite).toHaveBeenCalledWith({ displayName: "Luis Pérez", email: "luis@example.com", role: "COMPANY_ADMIN" }); });
@@ -43,7 +44,7 @@ test("no anuncia éxito si el reenvío entra en conflicto y limpia el diálogo a
   fireEvent.click(screen.getByRole("menuitem", { name: "Corregir y reenviar invitación" }));
   fireEvent.click(screen.getByRole("button", { name: "Corregir y reenviar invitación" }));
   await act(async () => {});
-  expect(screen.getByRole("alert").textContent).toMatch(/cambiaron o entran en conflicto/i);
+  expect(screen.getByText(/cambiaron o entran en conflicto/i).textContent).toMatch(/cambiaron o entran en conflicto/i);
   expect(screen.queryByText("La nueva entrega de invitación fue aceptada.")).toBeNull();
   state.identity = { id: "other", displayName: "Otra", company: "company-b", roles: ["COMPANY_ADMIN"] };
   await act(async () => { state.listeners.forEach((listener) => listener()); });

@@ -1,0 +1,11 @@
+.read-only-notice {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 12px 20px;
+  border-bottom: 1px solid #bfe5ea;
+  color: #31566d;
+  background: #f2fbfc;
+  font-size: 13px;
+  font-weight: 650;
+}

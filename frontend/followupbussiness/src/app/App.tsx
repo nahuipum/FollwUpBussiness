@@ -14,6 +14,8 @@ import { CompanyClientsPage } from "../features/company-clients/CompanyClientsPa
 import { CompanySellersPage } from "../features/company-sellers/CompanySellersPage";
 import { CompanyUsersPageRoute } from "../features/company-users/CompanyUsersPageRoute";
 import { SupervisorDashboardPage } from "../features/supervisor-dashboard/SupervisorDashboardPage";
+import { CompanyWorkspaceLayout } from "./components/CompanyWorkspaceLayout";
+import { PlatformWorkspaceLayout } from "./components/PlatformWorkspaceLayout";
 
 export function App() {
   const { path, sessionState, clearSessionNotice } = useSessionRoute();
@@ -81,21 +83,21 @@ export function App() {
     (getSessionIdentity()?.roles.includes("COMPANY_ADMIN") || getSessionIdentity()?.roles.includes("SUPERVISOR"));
   if (hasSession() && (canAccessPath(path) || canAccessCompanyUsers)) {
     if (path === "/platform/dashboard")
-      return <PlatformDashboardPage />;
+      return <PlatformWorkspaceLayout activeSection="dashboard"><PlatformDashboardPage /></PlatformWorkspaceLayout>;
     if (path === "/platform/companies")
-      return <PlatformCompaniesPage />;
+      return <PlatformWorkspaceLayout activeSection="companies"><PlatformCompaniesPage /></PlatformWorkspaceLayout>;
     if (path === "/company/dashboard")
-      return <CompanyDashboardPage />;
+      return <CompanyWorkspaceLayout workspace="company" activeSection="dashboard"><CompanyDashboardPage /></CompanyWorkspaceLayout>;
     if (path === "/company/clients")
-      return <CompanyClientsPage />;
+      return <CompanyWorkspaceLayout workspace="company" activeSection="clients"><CompanyClientsPage /></CompanyWorkspaceLayout>;
     if (path === "/company/sellers")
-      return <CompanySellersPage />;
+      return <CompanyWorkspaceLayout workspace="company" activeSection="sellers"><CompanySellersPage /></CompanyWorkspaceLayout>;
     if (path === "/supervisor/dashboard")
-      return <SupervisorDashboardPage view="dashboard" />;
+      return <CompanyWorkspaceLayout workspace="supervisor" activeSection="dashboard"><SupervisorDashboardPage view="dashboard" /></CompanyWorkspaceLayout>;
     if (path === "/supervisor/sellers")
-      return <CompanySellersPage />;
+      return <CompanyWorkspaceLayout workspace="supervisor" activeSection="sellers"><CompanySellersPage /></CompanyWorkspaceLayout>;
     if (path === "/company/administrators-supervisors")
-      return <CompanyUsersPageRoute />;
+      return <CompanyWorkspaceLayout workspace="company" activeSection="administrators-supervisors"><CompanyUsersPageRoute /></CompanyWorkspaceLayout>;
     return (
       <>
         {error && <InlineAlert variant={error.status === 409 ? "warning" : "error"} title={error.status === 409 ? "La información cambió" : "Revisa la información ingresada"} message={error.status === 409 ? "Actualiza la información y revisa los cambios antes de continuar." : error.fieldErrors.length > 0 ? "Revisa los campos señalados e inténtalo nuevamente." : "No pudimos validar la información. Revísala e inténtalo nuevamente."} {...(error.correlationId === null ? {} : { correlationId: error.correlationId })} action={error.status === 409 ? { label: "Recargar y revisar", onClick: () => { clearError(); navigate(path, { replace: true }); } } : { label: "Cerrar aviso", onClick: clearError }} />}

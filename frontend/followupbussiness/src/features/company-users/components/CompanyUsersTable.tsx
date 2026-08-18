@@ -259,10 +259,3 @@ function UserActionMenu({
     />
   );
 }
-export function ReadOnlyNotice() {
-  return (
-    <p className="company-users__read-only">
-      Solo lectura: no puedes realizar cambios en esta sección.
-    </p>
-  );
-}

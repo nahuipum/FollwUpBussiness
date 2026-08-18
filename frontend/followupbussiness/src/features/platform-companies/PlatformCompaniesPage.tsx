@@ -1,20 +1,11 @@
-import {
-  Building2,
-  ClipboardList,
-  LayoutDashboard,
-  Plus,
-  Settings,
-} from "lucide-react";
+import { Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { navigate } from "../../app/navigation";
-import { getSessionIdentity, logout, subscribeToSession } from "../auth/auth";
+import { getSessionIdentity, subscribeToSession } from "../auth/auth";
 import {
   ApiRequestObsoleteError,
   normalizeApiError,
   type ApiError,
 } from "../../lib/api";
-import { DashboardLayout } from "../../shared/layout/DashboardLayout";
-import { PasswordRecoveryBrandMark } from "../auth/components/BrandPanel";
 import {
   createCompany,
   changeCompanyStatus,
@@ -234,59 +225,10 @@ export function PlatformCompaniesPage() {
       if (requestId === actionRequestRef.current) setSubmitting(false);
     }
   };
-  const displayName = identity?.displayName ?? "";
   const canManageStatuses = identity?.roles.includes("PLATFORM_SUPERADMIN") ?? false;
 
   return (
-    <DashboardLayout
-      brand={
-        <>
-          <span className="platform-logo">
-            <PasswordRecoveryBrandMark />
-          </span>
-          FollowUpBusiness
-        </>
-      }
-      contextLabel="Plataforma"
-      navigationLabel="Empresas"
-      profile={{
-        initials: displayName.slice(0, 2).toUpperCase(),
-        name: displayName,
-        role: "Superadministrador",
-        scopeLabel: "Acceso de plataforma",
-      }}
-      breadcrumbs={[
-        "Plataforma",
-        view === "provision"
-          ? "Administrador inicial"
-          : view === "success"
-            ? "Confirmación"
-            : "Empresas",
-      ]}
-      topbarContext="Plataforma"
-      onLogout={() => {
-        void logout();
-        navigate("/", { replace: true });
-      }}
-      navigation={[
-        {
-          id: "dashboard",
-          label: "Resumen",
-          icon: <LayoutDashboard />,
-          onSelect: () => navigate("/platform/dashboard"),
-        },
-        {
-          id: "companies",
-          label: "Gestión de empresas",
-          description: "Onboarding y gestión",
-          icon: <Building2 />,
-          active: true,
-          onSelect: goList,
-        },
-        { id: "audit", label: "Auditoría", icon: <ClipboardList /> },
-        { id: "settings", label: "Configuración", icon: <Settings /> },
-      ]}
-    >
+    <>
       {view === "provision" && selectedCompany ? (
         <ProvisionAdminPanel
           company={selectedCompany}
@@ -401,6 +343,6 @@ export function PlatformCompaniesPage() {
         }}
         onSubmit={submitCompanyAction}
       />}
-    </DashboardLayout>
+    </>
   );
 }

@@ -1,19 +1,213 @@
-.seller-list h1, .seller-list h2 { margin: 0; color: #14213d; }.seller-list__heading { display:flex; align-items:flex-start; justify-content:space-between; gap:18px; margin-bottom:18px; }.seller-list__heading p, .seller-list__empty p { margin:7px 0 0; color:#67778a; line-height:1.5; }.seller-list__primary, .seller-list__secondary { min-height:44px; padding:0 17px; border:1px solid transparent; border-radius:12px; font:inherit; font-size:14px; font-weight:700; cursor:pointer; }.seller-list__primary { color:#fff; background:#176d77; }.seller-list__secondary { color:#26384a; border-color:#cfd9e4; background:#fff; }.seller-list__card { overflow:hidden; border:1px solid rgb(20 33 61 / 8%); border-radius:18px; background:#fff; box-shadow:0 4px 12px rgb(16 42 67 / 5%); }.seller-list__toolbar { display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding:18px 20px; border-bottom:1px solid rgb(20 33 61 / 8%); }.seller-list__search { display:flex; flex:2 1 255px; align-items:center; gap:9px; min-height:44px; padding:0 13px; border:1px solid #cfd9e4; border-radius:12px; }.seller-list__search input { width:100%; min-width:0; border:0; outline:0; background:transparent; color:#14213d; }.seller-list__more { display:none; }.seller-list__empty { display:grid; min-height:330px; place-items:center; align-content:center; padding:35px; text-align:center; }.seller-list__dialog header, .seller-list__dialog footer { display:flex; align-items:center; justify-content:space-between; gap:12px; }.seller-list__dialog header { margin-bottom:18px; }.seller-list__dialog header button { border:0; color:#67778a; background:transparent; cursor:pointer; }.seller-list__dialog dl { display:grid; gap:12px; margin:0; }.seller-list__dialog dl div { display:grid; gap:4px; }.seller-list__dialog dt { color:#67778a; font-size:13px; font-weight:700; }.seller-list__dialog dd { margin:0; color:#26384a; overflow-wrap:anywhere; }.seller-list__dialog footer { justify-content:flex-end; margin-top:18px; } @media (max-width:760px) { .seller-list__heading { flex-direction:column; }.seller-list__heading > .seller-list__primary { width:100%; }.seller-list__toolbar { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; padding:12px; }.seller-list__search { grid-column:1/-1; }.seller-list__dialog footer button { width:100%; } }
-.seller-list__actions { position: relative; }
-.seller-list__dialog { width: min(100%, 480px); padding: 24px; border-radius: 18px; background: #fff; box-shadow: 0 20px 40px rgb(16 42 67 / 18%); }
-.seller-list .data-table { min-width: 920px; }
-.seller-list__loading, .seller-list__stale, .seller-list__updated { margin: 0; padding: 16px 20px; color: #67778a; font-size: 14px; }
-.seller-list__stale { border-top: 1px solid rgb(20 33 61 / 8%); }
-.seller-list__updated { padding: 12px 0 0; }
-.seller-list__state { display: grid; gap: 8px; min-height: 220px; place-items: center; align-content: center; padding: 35px; text-align: center; }
-.seller-list__state p { margin: 0; color: #67778a; }
-.seller-list__heading .seller-list__primary { display: inline-flex; align-items: center; gap: 8px; }
-.seller-list__read-only { margin: 0; padding: 12px 20px; color: #52677d; background: #f5f8fb; }
-.seller-list__form-dialog { width: min(100%, 620px); }
-.seller-list__form-dialog form { display: grid; gap: 14px; }
-.seller-list__form-dialog label { display: grid; gap: 6px; color: #26384a; font-size: 14px; font-weight: 700; }
-.seller-list__form-dialog input, .seller-list__form-dialog select { min-height: 44px; box-sizing: border-box; width: 100%; padding: 0 12px; border: 1px solid #cfd9e4; border-radius: 10px; font: inherit; color: #14213d; background: #fff; }
-.seller-list__form-dialog fieldset { display: grid; gap: 8px; margin: 0; border: 1px solid #cfd9e4; border-radius: 10px; padding: 12px; }
-.seller-list__form-dialog legend { padding: 0 4px; color: #26384a; font-weight: 700; }
-.seller-list__form-dialog .seller-list__checkbox { display: flex; align-items: center; gap: 8px; font-weight: 400; }
-.seller-list__form-dialog .seller-list__checkbox input { width: 18px; min-height: 18px; }
+.seller-list h1,
+.seller-list h2 {
+  margin: 0;
+  color: #14213d;
+}
+.seller-list__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+.seller-list__heading p {
+  margin: 7px 0 0;
+  color: #67778a;
+  line-height: 1.5;
+}
+.seller-list__primary,
+.seller-list__secondary {
+  min-height: 44px;
+  padding: 0 17px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.seller-list__primary {
+  color: #fff;
+  background: #176d77;
+}
+.seller-list__secondary {
+  color: #26384a;
+  border-color: #cfd9e4;
+  background: #fff;
+}
+.seller-list__card {
+  overflow: hidden;
+  border: 1px solid rgb(20 33 61 / 8%);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 4px 12px rgb(16 42 67 / 5%);
+}
+.seller-list__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 18px 20px;
+  border-bottom: 1px solid rgb(20 33 61 / 8%);
+}
+.seller-list__search {
+  display: flex;
+  flex: 2 1 255px;
+  align-items: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 0 13px;
+  border: 1px solid #cfd9e4;
+  border-radius: 12px;
+}
+.seller-list__search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #14213d;
+}
+.seller-list__more {
+  display: none;
+}
+.seller-list__dialog header,
+.seller-list__dialog footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.seller-list__dialog header {
+  margin-bottom: 18px;
+}
+.seller-list__dialog header button {
+  border: 0;
+  color: #67778a;
+  background: transparent;
+  cursor: pointer;
+}
+.seller-list__dialog dl {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+.seller-list__dialog dl div {
+  display: grid;
+  gap: 4px;
+}
+.seller-list__dialog dt {
+  color: #67778a;
+  font-size: 13px;
+  font-weight: 700;
+}
+.seller-list__dialog dd {
+  margin: 0;
+  color: #26384a;
+  overflow-wrap: anywhere;
+}
+.seller-list__dialog footer {
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+@media (max-width: 760px) {
+  .seller-list__heading {
+    flex-direction: column;
+  }
+  .seller-list__heading > .seller-list__primary {
+    width: 100%;
+  }
+  .seller-list__toolbar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    padding: 12px;
+  }
+  .seller-list__search {
+    grid-column: 1/-1;
+  }
+  .seller-list__dialog footer button {
+    width: 100%;
+  }
+}
+.seller-list__actions {
+  position: relative;
+}
+.seller-list__dialog {
+  width: min(100%, 480px);
+  padding: 24px;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 20px 40px rgb(16 42 67 / 18%);
+}
+.seller-list .data-table {
+  min-width: 920px;
+}
+.seller-list__loading,
+.seller-list__stale,
+.seller-list__updated {
+  margin: 0;
+  padding: 16px 20px;
+  color: #67778a;
+  font-size: 14px;
+}
+.seller-list__stale {
+  border-top: 1px solid rgb(20 33 61 / 8%);
+}
+.seller-list__updated {
+  padding: 12px 0 0;
+}
+.seller-list__heading .seller-list__primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.seller-list__form-dialog {
+  width: min(100%, 620px);
+}
+.seller-list__form-dialog form {
+  display: grid;
+  gap: 14px;
+}
+.seller-list__form-dialog label {
+  display: grid;
+  gap: 6px;
+  color: #26384a;
+  font-size: 14px;
+  font-weight: 700;
+}
+.seller-list__form-dialog input,
+.seller-list__form-dialog select {
+  min-height: 44px;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0 12px;
+  border: 1px solid #cfd9e4;
+  border-radius: 10px;
+  font: inherit;
+  color: #14213d;
+  background: #fff;
+}
+.seller-list__form-dialog fieldset {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  border: 1px solid #cfd9e4;
+  border-radius: 10px;
+  padding: 12px;
+}
+.seller-list__form-dialog legend {
+  padding: 0 4px;
+  color: #26384a;
+  font-weight: 700;
+}
+.seller-list__form-dialog .seller-list__checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 400;
+}
+.seller-list__form-dialog .seller-list__checkbox input {
+  width: 18px;
+  min-height: 18px;
+}

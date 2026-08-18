@@ -1,9 +1,6 @@
-import { ClipboardList, ContactRound, LayoutDashboard, Plus, Settings, UserRound, Users } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { navigate } from "../../app/navigation";
-import { getSessionCompanyLabel, getSessionIdentity, logout, subscribeToSession } from "../auth/auth";
-import { PasswordRecoveryBrandMark } from "../auth/components/BrandPanel";
-import { DashboardLayout } from "../../shared/layout/DashboardLayout";
+import { getSessionIdentity, subscribeToSession } from "../auth/auth";
 import { SellerDetailDialog } from "./components/SellerDetailDialog";
 import { TableLoadingIndicator } from "../../shared/ui/TableLoadingIndicator";
 import { SellerFilters } from "./components/SellerFilters";
@@ -12,11 +9,11 @@ import { sellerSessionKey, useSellers } from "./hooks/useSellers";
 import { useSellerForm } from "./hooks/useSellerForm";
 import type { Seller } from "./types";
 import { SellerFormDialog } from "./components/SellerFormDialog";
+import { ReadOnlyNotice } from "../../shared/ui/ReadOnlyNotice";
+import { AsyncStateCard } from "../../shared/ui/AsyncStateCard";
 import "./styles/company-sellers.css";
 
 export function CompanySellersPage() {
-  const companyName = getSessionCompanyLabel() ?? "Empresa";
-  const isSupervisor = getSessionIdentity()?.roles.includes("SUPERVISOR") ?? false;
   const canManage = getSessionIdentity()?.roles.includes("COMPANY_ADMIN") ?? false;
   const sellers = useSellers();
   const form = useSellerForm(sellers.retry);
@@ -32,37 +29,16 @@ export function CompanySellersPage() {
   }), []);
 
   return (
-    <DashboardLayout
-      brand={<><span className="platform-logo"><PasswordRecoveryBrandMark /></span>FollowUpBusiness</>}
-      contextLabel={companyName}
-      navigationLabel={isSupervisor ? "Supervisor" : "Empresa"}
-      profile={{ initials: sellers.displayName.slice(0, 2).toUpperCase(), name: sellers.displayName, role: isSupervisor ? "Supervisor" : "Equipo comercial", scopeLabel: companyName }}
-      breadcrumbs={[companyName, "Vendedores"]}
-      topbarContext={companyName}
-      onLogout={() => { void logout(); navigate("/", { replace: true }); }}
-      navigation={isSupervisor ? [
-        { id: "dashboard", label: "Resumen", icon: <LayoutDashboard />, onSelect: () => navigate("/supervisor/dashboard") },
-        { id: "sellers", label: "Vendedores", icon: <UserRound />, active: true },
-      ] : [
-        { id: "dashboard", label: "Resumen", icon: <LayoutDashboard />, onSelect: () => navigate("/company/dashboard") },
-        { id: "administrators-supervisors", label: "Administradores y supervisores", icon: <Users />, onSelect: () => navigate("/company/administrators-supervisors") },
-        { id: "sellers", label: "Vendedores", icon: <UserRound />, active: true },
-        { id: "clients", label: "Clientes", icon: <ContactRound />, onSelect: () => navigate("/company/clients") },
-        { id: "audit", label: "Auditoría", icon: <ClipboardList /> },
-        { id: "settings", label: "Configuración", icon: <Settings /> },
-      ]}
-    >
-      <section className="seller-list" aria-labelledby="seller-list-title">
+    <section className="seller-list" aria-labelledby="seller-list-title">
         <header className="seller-list__heading"><div><h1 id="seller-list-title">Vendedores</h1><p>Consulta y organiza el equipo comercial de la empresa.</p></div>{canManage && <button className="seller-list__primary" type="button" onClick={() => form.open(null)}><Plus aria-hidden="true" />Crear vendedor</button>}</header>
         <section className="seller-list__card" aria-label="Listado de vendedores">
           <SellerFilters query={sellers.search} status={sellers.status} supervisorId={sellers.supervisorId} territoryId={sellers.territoryId} supervisors={sellers.filterOptions.supervisors} territories={sellers.filterOptions.territories} onQueryChange={sellers.changeSearch} onStatusChange={sellers.changeStatus} onSupervisorChange={sellers.changeSupervisor} onTerritoryChange={sellers.changeTerritory} />
-          {!canManage && <p className="seller-list__read-only">Solo lectura: no puedes realizar cambios en esta sección.</p>}
-          {sellers.error && <div className="seller-list__state" role="alert"><h2>{sellers.error.status === 403 ? "No tienes permisos" : "Ocurrió un problema temporal"}</h2><p>{sellers.error.status === 403 ? "No tienes permiso para consultar vendedores." : "No pudimos mostrar los vendedores. Inténtalo más tarde."}</p><button className="seller-list__secondary" type="button" onClick={sellers.retry}>Reintentar</button></div>}
-          {sellers.loading && items.length === 0 ? <TableLoadingIndicator label="Cargando vendedores" /> : !sellers.error && items.length === 0 ? <div className="seller-list__empty"><h2>{sellers.search || sellers.status || sellers.supervisorId || sellers.territoryId ? "No encontramos vendedores" : "Aún no hay vendedores"}</h2><p>{sellers.search || sellers.status || sellers.supervisorId || sellers.territoryId ? "Prueba con otros filtros o términos de búsqueda." : "Cuando existan vendedores aparecerán en este listado."}</p>{(sellers.search || sellers.status || sellers.supervisorId || sellers.territoryId) && <button className="seller-list__secondary" type="button" onClick={sellers.clearFilters}>Limpiar filtros</button>}</div> : !sellers.error && <><SellerTable sellers={items} page={sellers.page} totalPages={sellers.result?.page.totalPages ?? 0} totalElements={sellers.result?.page.totalElements ?? items.length} canManage={canManage} onPageChange={sellers.goToPage} onDetail={setDetail} onEdit={form.open} />{sellers.loading && <div className="seller-list__stale"><TableLoadingIndicator label="Actualizando vendedores" compact /></div>}</>}
+          {!canManage && <ReadOnlyNotice />}
+          {sellers.error && <AsyncStateCard tone="error" title={sellers.error.status === 403 ? "No tienes permisos" : "Ocurrió un problema temporal"} description={sellers.error.status === 403 ? "No tienes permiso para consultar vendedores." : "No pudimos mostrar los vendedores. Inténtalo más tarde."} actionLabel="Reintentar" onAction={sellers.retry} />}
+          {sellers.loading && items.length === 0 ? <TableLoadingIndicator label="Cargando vendedores" /> : !sellers.error && items.length === 0 ? <AsyncStateCard title={sellers.search || sellers.status || sellers.supervisorId || sellers.territoryId ? "No encontramos vendedores" : "Aún no hay vendedores"} description={sellers.search || sellers.status || sellers.supervisorId || sellers.territoryId ? "Prueba con otros filtros o términos de búsqueda." : "Cuando existan vendedores aparecerán en este listado."} {...((sellers.search || sellers.status || sellers.supervisorId || sellers.territoryId) ? { actionLabel: "Limpiar filtros", onAction: sellers.clearFilters } : {})} /> : !sellers.error && <><SellerTable sellers={items} page={sellers.page} totalPages={sellers.result?.page.totalPages ?? 0} totalElements={sellers.result?.page.totalElements ?? items.length} canManage={canManage} onPageChange={sellers.goToPage} onDetail={setDetail} onEdit={form.open} />{sellers.loading && <div className="seller-list__stale"><TableLoadingIndicator label="Actualizando vendedores" compact /></div>}</>}
         </section>
         {detail && <SellerDetailDialog seller={detail} onClose={() => setDetail(null)} />}
         {form.seller !== undefined && <SellerFormDialog seller={form.seller} options={form.options} loadingOptions={form.loadingOptions} busy={form.busy} error={form.error} conflict={form.conflict} onClose={form.close} onRetryOptions={form.loadOptions} onReload={form.reloadAfterConflict} onSubmit={form.submit} />}
-      </section>
-    </DashboardLayout>
+    </section>
   );
 }

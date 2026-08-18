@@ -1,9 +1,4 @@
-import { ClipboardList, ContactRound, LayoutDashboard, Settings, UserRound, Users } from "lucide-react";
 import { useRef } from "react";
-import { navigate } from "../../../app/navigation";
-import { DashboardLayout } from "../../../shared/layout/DashboardLayout";
-import { getSessionCompanyLabel, logout } from "../../auth/auth";
-import { PasswordRecoveryBrandMark } from "../../auth/components/BrandPanel";
 import {
   correctAndResendCompanyUserInvitation,
   inviteCompanyUser,
@@ -18,15 +13,15 @@ import { CompanyUserInviteDialog } from "./CompanyUserInviteDialog";
 import { CompanyUserDetailDialog } from "./CompanyUserDetailDialog";
 import { CompanyUsersFilters } from "./CompanyUsersFilters";
 import { CompanyUsersHeader } from "./CompanyUsersHeader";
-import { CompanyUsersStateCard } from "./CompanyUsersStateCard";
-import { CompanyUsersTable, ReadOnlyNotice } from "./CompanyUsersTable";
+import { CompanyUsersTable } from "./CompanyUsersTable";
 import { ApiRequestObsoleteError, normalizeApiError } from "../../../lib/api";
 import { TableLoadingIndicator } from "../../../shared/ui/TableLoadingIndicator";
+import { ReadOnlyNotice } from "../../../shared/ui/ReadOnlyNotice";
+import { AsyncStateCard } from "../../../shared/ui/AsyncStateCard";
 
 export function CompanyUsersPage() {
   const users = useCompanyUsers();
   const details = useCompanyUserDetail();
-  const companyName = getSessionCompanyLabel() ?? "Empresa";
   const saveUser = async (input: CompanyUserInput) => {
     if (users.submitting) return;
     users.setSubmitting(true);
@@ -99,54 +94,14 @@ export function CompanyUsersPage() {
   };
   const items = users.result?.items ?? [];
   return (
-    <DashboardLayout
-      brand={
-        <>
-          <PasswordRecoveryBrandMark />
-          FollowUpBusiness
-        </>
-      }
-      contextLabel={companyName}
-      navigationLabel="Empresa"
-      profile={{
-        initials: users.displayName.slice(0, 2).toUpperCase(),
-        name: users.displayName,
-        role: users.canManage ? "Administradora de empresa" : "Supervisor",
-        scopeLabel: companyName,
-      }}
-      breadcrumbs={[companyName, "Administradores y supervisores"]}
-      topbarContext={companyName}
-      onLogout={() => {
-        void logout();
-        navigate("/", { replace: true });
-      }}
-      navigation={[
-        {
-          id: "dashboard",
-          label: "Resumen",
-          icon: <LayoutDashboard />,
-          onSelect: () => navigate("/company/dashboard"),
-        },
-        {
-          id: "administrators-supervisors",
-          label: "Administradores y supervisores",
-          icon: <Users />,
-          active: true,
-        },
-        { id: "sellers", label: "Vendedores", icon: <UserRound />, onSelect: () => navigate("/company/sellers") },
-        { id: "clients", label: "Clientes", icon: <ContactRound />, onSelect: () => navigate("/company/clients") },
-        { id: "audit", label: "Auditoría", icon: <ClipboardList /> },
-        { id: "settings", label: "Configuración", icon: <Settings /> },
-      ]}
-    >
-      <section className="company-users" aria-labelledby="company-users-title">
+    <section className="company-users" aria-labelledby="company-users-title">
         <CompanyUsersHeader
           readOnly={!users.canManage}
           inviteButtonRef={users.inviteButtonRef}
           onInvite={() => users.setInviteOpen(true)}
         />
         {users.error && (
-          <CompanyUsersStateCard
+          <AsyncStateCard
             title={
               users.error.status === 403
                 ? "No tienes permisos"
@@ -157,8 +112,9 @@ export function CompanyUsersPage() {
                 ? "No tienes permiso para realizar esta acción."
                 : "No pudimos mostrar los usuarios. Inténtalo más tarde."
             }
-            action="Reintentar"
+            actionLabel="Reintentar"
             onAction={users.retry}
+            tone="error"
           />
         )}
         {users.notice && (
@@ -182,14 +138,14 @@ export function CompanyUsersPage() {
           {users.loading ? (
             <TableLoadingIndicator label="Cargando usuarios" />
           ) : items.length === 0 ? (
-            <CompanyUsersStateCard
+            <AsyncStateCard
               title={
                 users.search || users.role || users.status
                   ? "No encontramos coincidencias"
                   : "Aún no hay usuarios"
               }
               description="Invita a tu equipo para comenzar a colaborar."
-              action={
+              actionLabel={
                 users.search || users.role || users.status
                   ? "Limpiar búsqueda"
                   : "Invitar usuario"
@@ -275,8 +231,7 @@ export function CompanyUsersPage() {
             onClose={details.close}
           />
         )}
-      </section>
-    </DashboardLayout>
+    </section>
   );
 }
 
