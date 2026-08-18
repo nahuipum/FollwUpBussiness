@@ -13,6 +13,9 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
+import com.nahui.followupbussiness.workforce.adapter.out.persistence.JdbcTerritoryStore;
+import com.nahui.followupbussiness.workforce.domain.TerritoryStatus;
+
 class TerritoryUniquenessIntegrationTest {
     static final PostgreSQLContainer DB = new PostgreSQLContainer(DockerImageName.parse("postgis/postgis:17-3.5").asCompatibleSubstituteFor("postgres"));
     DriverManagerDataSource ds;
@@ -52,6 +55,15 @@ class TerritoryUniquenessIntegrationTest {
         } finally {
             pool.shutdownNow();
         }
+    }
+
+    @Test
+    void listsAndCountsActiveTerritoriesWithoutSearch() {
+        insert("Norte", "NORTE", new CyclicBarrier(1));
+        var store = new JdbcTerritoryStore(new JdbcTemplate(ds));
+
+        assertThat(store.list(tenant, TerritoryStatus.ACTIVE, null, 0, 100)).hasSize(1);
+        assertThat(store.count(tenant, TerritoryStatus.ACTIVE, null)).isEqualTo(1);
     }
 
     private boolean insert(String name, String code, CyclicBarrier gate) {

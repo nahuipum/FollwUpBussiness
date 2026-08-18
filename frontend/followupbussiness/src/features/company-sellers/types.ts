@@ -20,3 +20,18 @@ export type SellerFilters = Readonly<{
   page: number; pageSize: number; search: string; status: SellerStatus | null;
   supervisorId: string | null; territoryId: string | null;
 }>;
+
+export type SellerFormInput = Readonly<{
+  displayName: string;
+  email: string;
+  username: string;
+  phone: string;
+  employeeCode: string;
+  supervisorId: string | null;
+  territoryIds: readonly string[];
+}>;
+
+export type SellerFormOptions = Readonly<{
+  supervisors: readonly SellerReference[];
+  territories: readonly TerritoryReference[];
+}>;

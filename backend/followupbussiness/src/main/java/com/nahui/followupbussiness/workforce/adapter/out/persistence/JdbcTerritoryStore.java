@@ -20,12 +20,34 @@ public final class JdbcTerritoryStore implements TerritoryStore {
     }
 
     public List<Territory> list(UUID t, TerritoryStatus s, String q, int o, int n) {
-        return jdbc.query("select * from workforce_territory where tenant_id=? and (? is null or status=?) and (? is null or lower(name) like lower(?)) order by name,id offset ? limit ?", this::map, t, s == null ? null : s.name(), s == null ? null : s.name(), q, q == null ? null : "%" + q + "%", o, n);
+        var sql = new StringBuilder("select * from workforce_territory where tenant_id=?");
+        var args = new ArrayList<Object>();
+        args.add(t);
+        appendFilters(sql, args, s, q);
+        sql.append(" order by name,id offset ? limit ?");
+        args.add(o);
+        args.add(n);
+        return jdbc.query(sql.toString(), this::map, args.toArray());
     }
 
     public long count(UUID t, TerritoryStatus s, String q) {
-        Long x = jdbc.queryForObject("select count(*) from workforce_territory where tenant_id=? and (? is null or status=?) and (? is null or lower(name) like lower(?))", Long.class, t, s == null ? null : s.name(), s == null ? null : s.name(), q, q == null ? null : "%" + q + "%");
+        var sql = new StringBuilder("select count(*) from workforce_territory where tenant_id=?");
+        var args = new ArrayList<Object>();
+        args.add(t);
+        appendFilters(sql, args, s, q);
+        Long x = jdbc.queryForObject(sql.toString(), Long.class, args.toArray());
         return x == null ? 0 : x;
+    }
+
+    private void appendFilters(StringBuilder sql, List<Object> args, TerritoryStatus status, String search) {
+        if (status != null) {
+            sql.append(" and status=?");
+            args.add(status.name());
+        }
+        if (search != null && !search.isBlank()) {
+            sql.append(" and lower(name) like lower(?)");
+            args.add("%" + search + "%");
+        }
     }
 
     public boolean existsName(UUID t, String v, UUID e) {

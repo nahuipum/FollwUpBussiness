@@ -7,3 +7,13 @@
 .seller-list__updated { padding: 12px 0 0; }
 .seller-list__state { display: grid; gap: 8px; min-height: 220px; place-items: center; align-content: center; padding: 35px; text-align: center; }
 .seller-list__state p { margin: 0; color: #67778a; }
+.seller-list__heading .seller-list__primary { display: inline-flex; align-items: center; gap: 8px; }
+.seller-list__read-only { margin: 0; padding: 12px 20px; color: #52677d; background: #f5f8fb; }
+.seller-list__form-dialog { width: min(100%, 620px); }
+.seller-list__form-dialog form { display: grid; gap: 14px; }
+.seller-list__form-dialog label { display: grid; gap: 6px; color: #26384a; font-size: 14px; font-weight: 700; }
+.seller-list__form-dialog input, .seller-list__form-dialog select { min-height: 44px; box-sizing: border-box; width: 100%; padding: 0 12px; border: 1px solid #cfd9e4; border-radius: 10px; font: inherit; color: #14213d; background: #fff; }
+.seller-list__form-dialog fieldset { display: grid; gap: 8px; margin: 0; border: 1px solid #cfd9e4; border-radius: 10px; padding: 12px; }
+.seller-list__form-dialog legend { padding: 0 4px; color: #26384a; font-weight: 700; }
+.seller-list__form-dialog .seller-list__checkbox { display: flex; align-items: center; gap: 8px; font-weight: 400; }
+.seller-list__form-dialog .seller-list__checkbox input { width: 18px; min-height: 18px; }
