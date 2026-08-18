@@ -1032,9 +1032,11 @@ paths:
           schema: { type: string, maxLength: 80 }
         - name: withoutVisitSince
           in: query
+          description: Incluye clientes sin visita completada y aquellos cuya última visita completada inició antes de las 00:00:00Z de la fecha indicada; el límite es inclusivo para la ausencia desde esa fecha.
           schema: { type: string, format: date }
         - name: withoutPurchaseSince
           in: query
+          description: Incluye clientes sin compra confirmada y aquellos cuya última compra confirmada ocurrió antes de las 00:00:00Z de la fecha indicada; el límite es inclusivo para la ausencia desde esa fecha.
           schema: { type: string, format: date }
       responses:
         '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
@@ -3289,7 +3291,11 @@ components:
         accountStatus: { type: string, enum: [INVITED, ACTIVE, INACTIVE, LOCKED] }
         deliveryStatus: { type: string, enum: [PENDING, SENT, FAILED, ACCEPTED] }
         createdAt: { type: string, format: date-time }
-        deliveredAt: { type: string, format: date-time, nullable: true }
+        deliveredAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: 'null'
         deliveryAttempts: { type: integer, minimum: 0 }
     User:
       type: object
@@ -3489,6 +3495,7 @@ components:
         documentNumber: { type: string, maxLength: 40 }
         phone: { type: string, maxLength: 30 }
         email: { type: string, format: email, maxLength: 254 }
+        segment: { type: string, maxLength: 80 }
         address: { type: string, maxLength: 300 }
         location: { $ref: '#/components/schemas/GeoPoint' }
         visitFrequencyDays: { type: integer, minimum: 1, maximum: 365 }
@@ -3524,6 +3531,7 @@ components:
         documentNumber: { type: string, maxLength: 40 }
         phone: { type: string, maxLength: 30 }
         email: { type: string, format: email, maxLength: 254 }
+        segment: { type: string, maxLength: 80 }
         address: { type: string, minLength: 3, maxLength: 300 }
         location: { $ref: '#/components/schemas/GeoPoint' }
         visitFrequencyDays: { type: integer, minimum: 1, maximum: 365 }
@@ -3538,6 +3546,7 @@ components:
         documentNumber: { type: string, maxLength: 40 }
         phone: { type: string, maxLength: 30 }
         email: { type: string, format: email, maxLength: 254 }
+        segment: { type: string, maxLength: 80 }
         address: { type: string, minLength: 3, maxLength: 300 }
         location: { $ref: '#/components/schemas/GeoPoint' }
         visitFrequencyDays: { type: integer, minimum: 1, maximum: 365 }
@@ -3561,7 +3570,7 @@ components:
       required: [customer, score, matchedFields]
       properties:
         customer: { $ref: '#/components/schemas/Customer' }
-        score: { type: number, format: double, minimum: 0, maximum: 1, description: Cantidad de campos coincidentes dividida entre cinco: documento, teléfono, nombre, dirección y ubicación. }
+        score: { type: number, format: double, minimum: 0, maximum: 1, description: 'Cantidad de campos coincidentes dividida entre cinco: documento, teléfono, nombre, dirección y ubicación.' }
         matchedFields:
           type: array
           uniqueItems: true

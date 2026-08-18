@@ -1,0 +1,87 @@
+package com.nahui.followupbussiness.customers.adapter.out.persistence;
+
+import com.nahui.followupbussiness.customers.application.port.in.CustomerPortfolioReadUseCase;
+import com.nahui.followupbussiness.customers.application.port.out.CustomerPortfolioStore;
+import com.nahui.followupbussiness.customers.domain.Customer;
+import com.nahui.followupbussiness.customers.domain.GeoPoint;
+
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.jdbc.core.JdbcTemplate;
+
+/**
+ * PostgreSQL projection of current customer portfolios; it performs no portfolio mutation.
+ */
+public final class JdbcCustomerPortfolioStore implements CustomerPortfolioStore {
+    private final JdbcTemplate jdbc;
+
+    public JdbcCustomerPortfolioStore(JdbcTemplate jdbc) {
+        this.jdbc = jdbc;
+    }
+
+    @Override
+    public List<Assignment> current(UUID tenantId, UUID customerId) {
+        return jdbc.query("select customer_id,seller_id,effective_from,assigned_by,reason,created_at from customer_portfolio_assignment where tenant_id=? and customer_id=? order by seller_id", (rs, row) -> new Assignment(rs.getObject(1, UUID.class), rs.getObject(2, UUID.class), rs.getDate(3).toLocalDate(), rs.getObject(4, UUID.class), rs.getString(5), rs.getTimestamp(6).toInstant()), tenantId, customerId);
+    }
+
+    @Override
+    public List<HistoryEntry> history(UUID tenantId, UUID customerId) {
+        return jdbc.query("select id,customer_id,previous_seller_id,new_seller_id,actor_id,effective_from,reason,recorded_at from customer_portfolio_history where tenant_id=? and customer_id=? order by effective_from desc,recorded_at desc", (rs, row) -> new HistoryEntry(rs.getObject(1, UUID.class), rs.getObject(2, UUID.class), rs.getObject(3, UUID.class), rs.getObject(4, UUID.class), rs.getObject(5, UUID.class), rs.getDate(6).toLocalDate(), rs.getString(7), rs.getTimestamp(8).toInstant()), tenantId, customerId);
+    }
+
+    @Override
+    public List<Customer> list(CustomerPortfolioReadUseCase.Query q, CustomerPortfolioReadUseCase.Scope scope) {
+        Sql sql = sql(q, scope);
+        return jdbc.query("select c.id,c.tenant_id,c.name,c.document_type,c.document_number,c.phone,c.email,c.segment,c.address,ST_Y(c.location),ST_X(c.location),c.visit_frequency_days,c.territory_id,c.status,c.created_at,c.updated_at,c.version " + sql.where + " order by c.name,c.id offset ? limit ?", (rs, row) -> new Customer(rs.getObject(1, UUID.class), rs.getObject(2, UUID.class), rs.getString(3), rs.getString(4), rs.getString(5), rs.getString(6), rs.getString(7), rs.getString(8), rs.getString(9), new GeoPoint(rs.getDouble(10), rs.getDouble(11)), (Integer) rs.getObject(12), rs.getObject(13, UUID.class), rs.getString(14), rs.getTimestamp(15).toInstant(), rs.getTimestamp(16).toInstant(), rs.getLong(17)), parameters(sql, q, scope, true));
+    }
+
+    @Override
+    public long count(CustomerPortfolioReadUseCase.Query q, CustomerPortfolioReadUseCase.Scope scope) {
+        Sql sql = sql(q, scope);
+        Long total = jdbc.queryForObject("select count(*) " + sql.where, Long.class, parameters(sql, q, scope, false));
+        return total == null ? 0 : total;
+    }
+
+    private Sql sql(CustomerPortfolioReadUseCase.Query q, CustomerPortfolioReadUseCase.Scope scope) {
+        String portfolio = scope.allCurrentPortfolios() ? "" : " and exists (select 1 from customer_portfolio_assignment p where p.tenant_id=c.tenant_id and p.customer_id=c.id and p.seller_id in (" + placeholders(scope.sellerIds().size()) + "))";
+        String activity = (q.withoutVisitSince() == null ? "" : " and (not exists (select 1 from customer_activity_fact av where av.tenant_id=c.tenant_id and av.customer_id=c.id) or (select av.last_completed_visit_at from customer_activity_fact av where av.tenant_id=c.tenant_id and av.customer_id=c.id) is null or (select av.last_completed_visit_at from customer_activity_fact av where av.tenant_id=c.tenant_id and av.customer_id=c.id) <= ?)")
+                + (q.withoutPurchaseSince() == null ? "" : " and (not exists (select 1 from customer_activity_fact ap where ap.tenant_id=c.tenant_id and ap.customer_id=c.id) or (select ap.last_confirmed_purchase_at from customer_activity_fact ap where ap.tenant_id=c.tenant_id and ap.customer_id=c.id) is null or (select ap.last_confirmed_purchase_at from customer_activity_fact ap where ap.tenant_id=c.tenant_id and ap.customer_id=c.id) <= ?)");
+        return new Sql("from customer c where c.tenant_id=?" + portfolio + " and (?::text is null or lower(c.name) like lower(?) or lower(coalesce(c.document_number,'')) like lower(?) or lower(coalesce(c.phone,'')) like lower(?) or lower(c.address) like lower(?)) and (?::text is null or c.status=?) and (?::uuid is null or c.territory_id=?) and (?::text is null or c.segment=?)" + (q.sellerId() == null ? "" : " and exists (select 1 from customer_portfolio_assignment requested where requested.tenant_id=c.tenant_id and requested.customer_id=c.id and requested.seller_id=?)") + activity);
+    }
+
+    private Object[] parameters(Sql sql, CustomerPortfolioReadUseCase.Query q, CustomerPortfolioReadUseCase.Scope scope, boolean paged) {
+        java.util.ArrayList<Object> p = new java.util.ArrayList<>();
+        p.add(scope.tenantId());
+        if (!scope.allCurrentPortfolios()) p.addAll(scope.sellerIds());
+        String pattern = q.search() == null || q.search().isBlank() ? null : "%" + q.search().trim() + "%";
+        p.add(pattern);
+        p.add(pattern);
+        p.add(pattern);
+        p.add(pattern);
+        p.add(pattern);
+        p.add(q.status());
+        p.add(q.status());
+        p.add(q.territoryId());
+        p.add(q.territoryId());
+        p.add(q.segment());
+        p.add(q.segment());
+        if (q.sellerId() != null) p.add(q.sellerId());
+        if (q.withoutVisitSince() != null)
+            p.add(java.sql.Timestamp.from(q.withoutVisitSince().plusDays(1).atStartOfDay(java.time.ZoneOffset.UTC).toInstant()));
+        if (q.withoutPurchaseSince() != null)
+            p.add(java.sql.Timestamp.from(q.withoutPurchaseSince().plusDays(1).atStartOfDay(java.time.ZoneOffset.UTC).toInstant()));
+        if (paged) {
+            p.add(q.offset());
+            p.add(q.limit());
+        }
+        return p.toArray();
+    }
+
+    private record Sql(String where) {
+    }
+
+    private static String placeholders(int count) {
+        return String.join(",", java.util.Collections.nCopies(count, "?"));
+    }
+}

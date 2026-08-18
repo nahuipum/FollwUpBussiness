@@ -1112,7 +1112,7 @@ La primera versión estará disponible en español.
 
 **Criterios de aceptación:**
 
-1. Se deberán registrar nombre, dirección y coordenadas.
+1. Se deberán registrar nombre, dirección, coordenadas y segmento conforme a los campos mínimos de RF-CLI-001.
 2. El administrador podrá seleccionar el punto sobre el mapa.
 3. El sistema deberá advertir posibles duplicados.
 4. El cliente deberá quedar disponible para asignación.

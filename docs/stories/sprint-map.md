@@ -81,12 +81,20 @@ historia y sus flechas de dependencia está en
 - BE-062, BE-008, BE-059, BE-009, BE-010, BE-011 y BE-012.
 - FE-005, FE-006, FE-007 y FE-037.
 
-### Ola 2B — Clientes y asignación
+### Ola 2B — Base de clientes
 
-- BE-013, BE-014, BE-015, BE-016 y BE-060.
-- FE-008, FE-009, FE-010 y FE-036.
+- BE-013, BE-014 y BE-015.
+- FE-009.
 
-### Ola 2C — Validación vertical
+### Ola 2C — Contrato, cartera y consulta segura
+
+- EN-021, después de BE-011, BE-013 y BE-059.
+- BE-060, después de EN-021; materializa la cartera vigente e histórica.
+- BE-016, después de BE-060; aplica alcance de supervisor/seller antes de
+  filtros, conteo y paginación.
+- FE-008, FE-010 y FE-036, después de sus productores backend.
+
+### Ola 2D — Validación vertical
 
 - INT-004, INT-005, INT-033 e INT-034.
 

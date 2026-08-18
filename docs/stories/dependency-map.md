@@ -57,13 +57,14 @@ no entra a sprint si sus predecesoras o contratos no están listos.
 | BE-059 | Listar y consultar vendedores | BE-008 | BE-009, BE-011, BE-012, BE-016, BE-021, BE-060, FE-005, INT-004, INT-033, INT-034 |
 | BE-009 | Editar vendedor | BE-008, BE-059 | FE-006 |
 | BE-010 | Activar o inactivar vendedor | BE-005, BE-008 | FE-007, INT-004, INT-031 |
-| BE-011 | Asignar supervisor | BE-058, BE-059 | FE-006, INT-033 |
+| BE-011 | Asignar supervisor | BE-058, BE-059 | EN-021, BE-016, FE-006, INT-033 |
 | BE-012 | Asignar territorios | BE-059, BE-062 | FE-006 |
-| BE-013 | Registrar cliente | BE-062, EN-014 | BE-014, BE-015, BE-016, BE-018, BE-021, BE-027, BE-034, BE-060, FE-009, INT-005 |
+| BE-013 | Registrar cliente | BE-062, EN-014 | BE-014, BE-015, BE-018, BE-021, BE-027, BE-034, BE-060, EN-021, FE-009, INT-005 |
 | BE-014 | Editar cliente y ubicación | BE-013 | FE-009, INT-005, INT-031 |
 | BE-015 | Detectar clientes duplicados | BE-013, EN-014 | BE-019, FE-009, INT-005 |
-| BE-016 | Listar y filtrar clientes | BE-013, BE-059 | FE-008, FE-010, INT-005 |
-| BE-060 | Asignar cartera de clientes | BE-013, BE-059, BE-062 | BE-021, BE-027, FE-008, FE-036, INT-034 |
+| EN-021 | Definir modelo contractual de cartera y actividad de cliente | BE-011, BE-013, BE-059 | BE-060, BE-016, FE-008, FE-010 |
+| BE-060 | Asignar cartera de clientes | BE-013, BE-059, BE-062, EN-021 | BE-016, BE-021, BE-027, FE-008, FE-036, INT-034 |
+| BE-016 | Listar y filtrar clientes | BE-011, BE-013, BE-059, EN-021, BE-060 | FE-008, FE-010, INT-005 |
 | FE-005 | Listado de vendedores | BE-059, FE-003, FE-034 | FE-006, FE-007, FE-036, INT-004 |
 | FE-006 | Formulario de vendedor | BE-008, BE-009, BE-011, BE-012, BE-062, FE-005 | INT-004, INT-033 |
 | FE-007 | Activar o inactivar vendedor | BE-010, FE-005 | INT-004 |

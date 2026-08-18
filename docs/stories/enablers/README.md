@@ -1,6 +1,6 @@
 ﻿# Enablers
 
-Total: **12**
+Total: **13**
 
 | ID | Enabler | Prioridad | Fase |
 |---|---|---|---|
@@ -16,3 +16,4 @@ Total: **12**
 | [EN-018](./EN-018-definir-motor-de-rutas.md) | Definir motor de rutas y límites del MVP | Must Have | MVP |
 | [EN-019](./EN-019-fundacion-empresas-y-estado-acceso.md) | Fundación de empresas y estado de acceso | Must Have | MVP |
 | [EN-020](./EN-020-definir-contrato-y-aislamiento-websocket.md) | Definir contrato y aislamiento multiempresa WebSocket | Must Have | MVP |
+| [EN-021](./EN-021-definir-modelo-contractual-de-cartera-y-actividad-cliente.md) | Definir modelo contractual de cartera y actividad de cliente | Must Have | MVP |

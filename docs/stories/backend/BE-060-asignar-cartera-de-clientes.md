@@ -44,13 +44,13 @@ responsables.
 ## Secuencia de entrega y trazabilidad
 
 - **Sprint objetivo:** Sprint 2 — Equipo, zonas, clientes y cartera.
-- **Predecesoras obligatorias:** `BE-013` — Registrar cliente; `BE-059` — Listar y consultar vendedores; `BE-062` — Gestionar zonas y territorios
+- **Predecesoras obligatorias:** `BE-013` — Registrar cliente; `BE-059` — Listar y consultar vendedores; `BE-062` — Gestionar zonas y territorios; `EN-021` — Definir modelo contractual de cartera y actividad de cliente
 - **Historias consecuentes que habilita:** `BE-021` — Crear ruta manual; `BE-027` — Sugerir clientes por frecuencia; `FE-008` — Listado y filtros de clientes; `FE-036` — Asignar cartera de clientes; `INT-034` — Asignación de cartera E2E
 - **Validación vertical:** `INT-034` — Asignación de cartera E2E
 
 ## Contratos y superficies
 
-- **Debe estar listo antes de desarrollar:** OpenAPI `/customers`; modelo PostGIS, filtros y asignación de cartera.
+- **Debe estar listo antes de desarrollar:** OpenAPI `/customers`; modelo PostGIS y la relación vigente/histórica de cartera definida por `EN-021`.
 - El contrato no puede modificarse silenciosamente para acomodar una
   implementación; Backend, consumidores y QA de contrato deben revisarlo.
 

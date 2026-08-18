@@ -95,6 +95,16 @@ public final class JdbcSellerStore implements SellerStore {
         return sellers.stream().findFirst();
     }
 
+    @Override
+    public Set<UUID> activeSellerIdsForUser(UUID tenant, UUID userId) {
+        return new LinkedHashSet<>(jdbc.queryForList("select id from workforce_seller where tenant_id=? and user_id=? and status='ACTIVE'", UUID.class, tenant, userId));
+    }
+
+    @Override
+    public Set<UUID> activeSellerIdsForSupervisor(UUID tenant, UUID supervisorId) {
+        return new LinkedHashSet<>(jdbc.queryForList("select id from workforce_seller where tenant_id=? and supervisor_id=? and status='ACTIVE'", UUID.class, tenant, supervisorId));
+    }
+
     public List<Seller> list(UUID tenant, UUID teamSupervisor, com.nahui.followupbussiness.workforce.domain.TerritoryStatus status,
                              UUID requestedSupervisor, UUID territory, String search, int offset, int limit) {
         String sql = "select distinct s.* from workforce_seller s left join workforce_seller_territory st on st.seller_id=s.id where s.tenant_id=? and (? is null or s.supervisor_id=?) and (? is null or s.status=?) and (? is null or s.supervisor_id=?) and (? is null or st.territory_id=?) and (? is null or lower(s.display_name) like lower(?) or lower(s.email) like lower(?) or lower(coalesce(s.employee_code,'')) like lower(?)) order by s.display_name,s.id offset ? limit ?";

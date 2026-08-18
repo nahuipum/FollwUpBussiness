@@ -5,6 +5,10 @@ import com.nahui.followupbussiness.workforce.adapter.out.persistence.JdbcTerrito
 import com.nahui.followupbussiness.workforce.adapter.out.persistence.JdbcSellerStore;
 import com.nahui.followupbussiness.workforce.application.SellerService;
 import com.nahui.followupbussiness.workforce.application.TerritoryService;
+import com.nahui.followupbussiness.workforce.application.TerritoryReferenceService;
+import com.nahui.followupbussiness.workforce.application.PortfolioAccessScopeService;
+import com.nahui.followupbussiness.workforce.application.port.in.PortfolioAccessScopeUseCase;
+import com.nahui.followupbussiness.workforce.application.port.in.TerritoryReferenceUseCase;
 import com.nahui.followupbussiness.identityaccess.application.CompanyUserService;
 import org.springframework.context.annotation.*;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -16,6 +20,14 @@ public class WorkforceConfiguration {
     @Bean
     TerritoryService territoryService(JdbcTemplate jdbc, RecordAuditEntryUseCase audit) {
         return new TerritoryService(new JdbcTerritoryStore(jdbc), audit, Clock.systemUTC());
+    }
+    @Bean
+    TerritoryReferenceUseCase territoryReferenceUseCase(JdbcTemplate jdbc) {
+        return new TerritoryReferenceService(new JdbcTerritoryStore(jdbc));
+    }
+    @Bean
+    PortfolioAccessScopeUseCase portfolioAccessScopeUseCase(JdbcTemplate jdbc) {
+        return new PortfolioAccessScopeService(new JdbcSellerStore(jdbc));
     }
     @Bean
     SellerService sellerService(JdbcTemplate jdbc, CompanyUserService users, RecordAuditEntryUseCase audit) {
