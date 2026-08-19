@@ -22,12 +22,17 @@ function isStatus(value: unknown): value is CompanyUserStatus {
 function parseUser(value: unknown): CompanyUser | null {
   if (typeof value !== "object" || value === null) return null;
   const user = value as Record<string, unknown>;
-  return typeof user.id === "string" && typeof user.displayName === "string" &&
+  const displayName = typeof user.displayName === "string"
+    ? user.displayName
+    : typeof user.name === "string"
+      ? user.name
+      : null;
+  return typeof user.id === "string" && displayName !== null &&
       typeof user.email === "string" && isRole(user.role) && isStatus(user.status) &&
       typeof user.createdAt === "string" && typeof user.updatedAt === "string" &&
       typeof user.version === "number" && Number.isInteger(user.version)
     ? {
-        id: user.id, displayName: user.displayName, email: user.email,
+        id: user.id, displayName, email: user.email,
         username: typeof user.username === "string" ? user.username : null,
         role: user.role, status: user.status, createdAt: user.createdAt,
         updatedAt: user.updatedAt, version: user.version,

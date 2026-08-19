@@ -1,9 +1,5 @@
 import { CirclePause, Eye, MoreVertical, Pencil, Send } from "lucide-react";
-import {
-  useRef,
-  type KeyboardEvent,
-  type MutableRefObject,
-} from "react";
+import { useRef, type KeyboardEvent, type MutableRefObject } from "react";
 import {
   DataTable,
   DataTableIdentity,
@@ -144,43 +140,43 @@ function userColumns({
     },
   ];
   columns.push({
-      id: "actions",
-      header: "Acciones",
-      label: "Acciones",
-      width: "12%",
-      align: "center",
-      render: (user) => (
-        <div className="company-users__actions">
-          <button
-            ref={(node) => {
-              menuTriggers.current[user.id] = node;
+    id: "actions",
+    header: "Acciones",
+    label: "Acciones",
+    width: "12%",
+    align: "center",
+    render: (user) => (
+      <div className="company-users__actions">
+        <button
+          ref={(node) => {
+            menuTriggers.current[user.id] = node;
+          }}
+          type="button"
+          className="data-table__icon-button"
+          aria-label={`Más acciones para ${user.displayName}`}
+          aria-expanded={menuUser === user.id}
+          onClick={() => onMenuChange(menuUser === user.id ? null : user.id)}
+        >
+          <MoreVertical aria-hidden="true" />
+        </button>
+        {menuUser === user.id && (
+          <UserActionMenu
+            user={user}
+            anchor={menuTriggers.current[user.id] ?? null}
+            readOnly={readOnly}
+            onDetails={() => onDetails(user)}
+            onEdit={() => onEdit(user)}
+            onResendInvitation={() => onResendInvitation(user)}
+            onStatus={() => onStatus(user)}
+            onClose={() => {
+              onMenuChange(null);
+              menuTriggers.current[user.id]?.focus();
             }}
-            type="button"
-            className="data-table__icon-button"
-            aria-label={`Más acciones para ${user.displayName}`}
-            aria-expanded={menuUser === user.id}
-            onClick={() => onMenuChange(menuUser === user.id ? null : user.id)}
-          >
-            <MoreVertical aria-hidden="true" />
-          </button>
-          {menuUser === user.id && (
-            <UserActionMenu
-              user={user}
-              anchor={menuTriggers.current[user.id] ?? null}
-              readOnly={readOnly}
-              onDetails={() => onDetails(user)}
-              onEdit={() => onEdit(user)}
-              onResendInvitation={() => onResendInvitation(user)}
-              onStatus={() => onStatus(user)}
-              onClose={() => {
-                onMenuChange(null);
-                menuTriggers.current[user.id]?.focus();
-              }}
-            />
-          )}
-        </div>
-      ),
-    });
+          />
+        )}
+      </div>
+    ),
+  });
   return columns;
 }
 function initials(name: string) {
@@ -255,7 +251,40 @@ function UserActionMenu({
       ariaLabel={`Acciones de ${user.displayName}`}
       onKeyDown={onKeyDown}
       onDismiss={onClose}
-      items={[{ label: "Ver detalle", icon: <Eye aria-hidden="true" />, onSelect: onDetails }, ...(!readOnly ? [user.status === "INVITED" ? { label: "Corregir y reenviar invitación", icon: <Send aria-hidden="true" />, onSelect: onResendInvitation } : { label: "Editar usuario", icon: <Pencil aria-hidden="true" />, onSelect: onEdit }, { label: user.status === "LOCKED" || user.status === "INACTIVE" ? "Reactivar usuario" : "Bloquear usuario", icon: <CirclePause aria-hidden="true" />, tone: user.status === "LOCKED" || user.status === "INACTIVE" ? ("default" as const) : ("danger" as const), onSelect: onStatus }] : [])]}
+      items={[
+        {
+          label: "Ver detalle",
+          icon: <Eye aria-hidden="true" />,
+          onSelect: onDetails,
+        },
+        ...(!readOnly
+          ? [
+              user.status === "INVITED"
+                ? {
+                    label: "Corregir y reenviar invitación",
+                    icon: <Send aria-hidden="true" />,
+                    onSelect: onResendInvitation,
+                  }
+                : {
+                    label: "Editar usuario",
+                    icon: <Pencil aria-hidden="true" />,
+                    onSelect: onEdit,
+                  },
+              {
+                label:
+                  user.status === "LOCKED" || user.status === "INACTIVE"
+                    ? "Reactivar usuario"
+                    : "Bloquear usuario",
+                icon: <CirclePause aria-hidden="true" />,
+                tone:
+                  user.status === "LOCKED" || user.status === "INACTIVE"
+                    ? ("default" as const)
+                    : ("danger" as const),
+                onSelect: onStatus,
+              },
+            ]
+          : []),
+      ]}
     />
   );
 }

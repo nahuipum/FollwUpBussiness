@@ -39,7 +39,9 @@ class CompanyUserPostgresIntegrationTest {
 
     @Test void tenantScopedIdentityPagingAndOptimisticVersionAreDurable(){
         UUID a=account(tenant,"same","same@example.test",BaseRole.SUPERVISOR,"ACTIVE"), b=account(other,"same","same@example.test",BaseRole.SUPERVISOR,"ACTIVE");
+        account(tenant,"seller","seller@example.test",BaseRole.SELLER,"ACTIVE");
         assertThat(service(jdbc,jdbcAudit(),jdbcOutbox()).list(0,1,"same",BaseRole.SUPERVISOR,"ACTIVE",admin).items()).extracting(CompanyUserService.User::id).containsExactly(a);
+        assertThat(service(jdbc,jdbcAudit(),jdbcOutbox()).list(0,20,null,null,null,admin).items()).extracting(CompanyUserService.User::role).doesNotContain(BaseRole.SELLER);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM identity_access_account WHERE login_identifier='same'",Integer.class)).isEqualTo(2);
         var s=service(jdbc,jdbcAudit(),jdbcOutbox()); tx.executeWithoutResult(x -> s.update(a,new CompanyUserService.Update("Changed","same","same@example.test",BaseRole.SUPERVISOR,0),admin));
         assertThatThrownBy(()->tx.executeWithoutResult(x -> s.update(a,new CompanyUserService.Update("Again","same","same@example.test",BaseRole.SUPERVISOR,0),admin))).isInstanceOf(CompanyUserService.Conflict.class);
@@ -92,6 +94,15 @@ class CompanyUserPostgresIntegrationTest {
         assertThat(restored.status()).isEqualTo("INVITED");
         assertThat(jdbc.queryForObject("SELECT locked_from_status FROM identity_access_account WHERE id=?",String.class,invited.id())).isNull();
         assertThat(jdbc.queryForObject("SELECT count(*) FROM identity_access_action_token WHERE account_id=? AND purpose='ACTIVATION' AND invalidated_at IS NULL",Integer.class,invited.id())).isEqualTo(1);
+    }
+    @Test void inactivatingAnInvitedAccountRevokesItsPendingActivation(){
+        UUID invited=account(tenant,"invited-seller","seller@example.test",BaseRole.SELLER,"INVITED");
+        actionToken(invited);
+
+        var inactivated=tx.execute(x->service(jdbc,jdbcAudit(),jdbcOutbox()).status(invited,"INACTIVE",admin));
+
+        assertThat(inactivated.status()).isEqualTo("INACTIVE");
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM identity_access_action_token WHERE account_id=? AND purpose='ACTIVATION' AND invalidated_at IS NULL",Integer.class,invited)).isZero();
     }
     @Test void auditOutboxAndRevocationFailureRollbackAllDurableWrites(){
         UUID auditUser=rollbackUser("rollback-audit"), outboxUser=rollbackUser("rollback-outbox"), revocationUser=rollbackUser("rollback-revocation");

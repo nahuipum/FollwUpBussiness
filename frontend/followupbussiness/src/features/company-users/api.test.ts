@@ -11,7 +11,7 @@ vi.mock("../auth/auth", () => ({
   }),
 }));
 
-import { correctAndResendCompanyUserInvitation } from "./api";
+import { correctAndResendCompanyUserInvitation, listCompanyUsers } from "./api";
 
 const invitedUser = {
   id: "user/with space",
@@ -49,4 +49,10 @@ test("corrige y reenvía con el endpoint y versión exigidos por contrato", asyn
   });
   expect(result.response.status).toBe(202);
   expect(result.user).toEqual(invitedUser);
+});
+
+test("acepta el nombre expuesto por la versión anterior del Backend", async () => {
+  request.mockResolvedValueOnce(new Response(JSON.stringify({ items: [{ ...invitedUser, displayName: undefined, name: "Carla Pérez" }], page: { page: 0, pageSize: 20, totalElements: 1, totalPages: 1 } }), { status: 200 }));
+  const result = await listCompanyUsers({ page: 0, pageSize: 20, search: "", role: null, status: null });
+  expect(result.page?.items[0]?.displayName).toBe("Carla Pérez");
 });

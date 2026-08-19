@@ -70,7 +70,7 @@ public class CompanyUserService {
         if (status != null && !Set.of("INVITED", "ACTIVE", "INACTIVE", "LOCKED").contains(status)) throw new Invalid();
         List<Object> args = new ArrayList<>();
         args.add(tenant);
-        StringBuilder where = new StringBuilder(" WHERE company_id=?");
+        StringBuilder where = new StringBuilder(" WHERE company_id=? AND role_code IN ('COMPANY_ADMIN','SUPERVISOR')");
         if (search != null) {
             where.append(" AND (display_name ILIKE ? OR login_identifier ILIKE ? OR email ILIKE ?)");
             String like = "%" + search.strip() + "%";
@@ -208,7 +208,7 @@ public class CompanyUserService {
                 ? lockedFromStatus(id, tenant) : null;
         String afterStatus = restoredStatus == null ? target : restoredStatus;
         boolean valid = ("LOCKED".equals(target) && Set.of("INVITED", "ACTIVE", "INACTIVE").contains(before.status()))
-                || ("INACTIVE".equals(target) && "ACTIVE".equals(before.status()))
+                || ("INACTIVE".equals(target) && Set.of("INVITED", "ACTIVE").contains(before.status()))
                 || ("ACTIVE".equals(target) && "INACTIVE".equals(before.status()))
                 || (restoredStatus != null && Set.of("INVITED", "ACTIVE", "INACTIVE").contains(restoredStatus));
         if (!valid) throw new Conflict();
