@@ -422,7 +422,7 @@ test("ubica Clientes entre usuarios y auditoría en dashboard de empresa", async
 
   await waitFor(() => expect(screen.getByRole("navigation")).toBeTruthy());
   const items = Array.from(screen.getByRole("navigation").querySelectorAll("button")).map((item) => item.textContent);
-  expect(items).toEqual(["Resumen", "Administradores y supervisores", "Vendedores", "Clientes", "Auditoría", "Configuración"]);
+  expect(items).toEqual(["Resumen", "Administradores y supervisores", "Vendedores", "Zonas", "Clientes", "Auditoría", "Configuración"]);
   fireEvent.click(screen.getByRole("button", { name: "Vendedores" }));
   expect(window.location.pathname).toBe("/company/sellers");
   expect(screen.getByRole("button", { name: "Vendedores" }).className).toContain("dashboard-nav__item--active");

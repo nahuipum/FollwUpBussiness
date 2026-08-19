@@ -13,6 +13,7 @@ import { CompanyDashboardPage } from "../features/company-dashboard/CompanyDashb
 import { CompanyClientsPage } from "../features/company-clients/CompanyClientsPage";
 import { CompanySellersPage } from "../features/company-sellers/CompanySellersPage";
 import { CompanyUsersPageRoute } from "../features/company-users/CompanyUsersPageRoute";
+import { CompanyTerritoriesPage } from "../features/company-territories/CompanyTerritoriesPage";
 import { SupervisorDashboardPage } from "../features/supervisor-dashboard/SupervisorDashboardPage";
 import { CompanyWorkspaceLayout } from "./components/CompanyWorkspaceLayout";
 import { PlatformWorkspaceLayout } from "./components/PlatformWorkspaceLayout";
@@ -92,6 +93,10 @@ export function App() {
       return <CompanyWorkspaceLayout workspace="company" activeSection="clients"><CompanyClientsPage /></CompanyWorkspaceLayout>;
     if (path === "/company/sellers")
       return <CompanyWorkspaceLayout workspace="company" activeSection="sellers"><CompanySellersPage /></CompanyWorkspaceLayout>;
+    if (path === "/company/territories")
+      return <CompanyWorkspaceLayout workspace="company" activeSection="territories"><CompanyTerritoriesPage /></CompanyWorkspaceLayout>;
+    if (path === "/supervisor/territories")
+      return <CompanyWorkspaceLayout workspace="supervisor" activeSection="territories"><CompanyTerritoriesPage /></CompanyWorkspaceLayout>;
     if (path === "/supervisor/dashboard")
       return <CompanyWorkspaceLayout workspace="supervisor" activeSection="dashboard"><SupervisorDashboardPage view="dashboard" /></CompanyWorkspaceLayout>;
     if (path === "/supervisor/sellers")

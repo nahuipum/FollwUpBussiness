@@ -7,6 +7,7 @@ import java.sql.Timestamp;
 import java.util.*;
 
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowCallbackHandler;
 
 public final class JdbcTerritoryStore implements TerritoryStore {
     private final JdbcTemplate jdbc;
@@ -39,6 +40,19 @@ public final class JdbcTerritoryStore implements TerritoryStore {
         return x == null ? 0 : x;
     }
 
+    @Override
+    public Map<UUID, Long> assignedSellerCounts(UUID tenantId, List<UUID> territoryIds) {
+        if (territoryIds.isEmpty()) return Map.of();
+        String placeholders = String.join(",", Collections.nCopies(territoryIds.size(), "?"));
+        Map<UUID, Long> counts = new HashMap<>();
+        Object[] args = new Object[territoryIds.size() + 1];
+        args[0] = tenantId;
+        for (int index = 0; index < territoryIds.size(); index++) args[index + 1] = territoryIds.get(index);
+        jdbc.query("select st.territory_id,count(*) as assigned_seller_count from workforce_seller_territory st join workforce_seller s on s.id=st.seller_id and s.tenant_id=? where st.territory_id in (" + placeholders + ") group by st.territory_id",
+                (RowCallbackHandler) row -> counts.put(row.getObject("territory_id", UUID.class), row.getLong("assigned_seller_count")), args);
+        return Map.copyOf(counts);
+    }
+
     private void appendFilters(StringBuilder sql, List<Object> args, TerritoryStatus status, String search) {
         if (status != null) {
             sql.append(" and status=?");
@@ -59,7 +73,10 @@ public final class JdbcTerritoryStore implements TerritoryStore {
     }
 
     private boolean exists(UUID t, String c, String v, UUID e) {
-        Integer x = jdbc.queryForObject("select count(*) from workforce_territory where tenant_id=? and lower(" + c + ")=lower(?) and (? is null or id<>?)", Integer.class, t, v, e, e);
+        String sql = "select count(*) from workforce_territory where tenant_id=? and lower(" + c + ")=lower(?)";
+        Integer x = e == null
+                ? jdbc.queryForObject(sql, Integer.class, t, v)
+                : jdbc.queryForObject(sql + " and id<>?", Integer.class, t, v, e);
         return x != null && x > 0;
     }
 

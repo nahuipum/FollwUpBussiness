@@ -56,6 +56,10 @@ class TerritoryControllerTest {
                         .contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"Norte\",\"code\":\"N\"}"))
                 .andExpect(status().isCreated()).andReturn();
         UUID territoryId = UUID.fromString(created.getResponse().getContentAsString().replaceAll(".*\\\"id\\\":\\\"([^\\\"]+).*", "$1"));
+        store.sellerUsage.put(territoryId, 2L);
+        var listed = mvc.perform(get("/territories").header("Authorization", "Bearer admin"))
+                .andExpect(status().isOk()).andReturn();
+        assertThat(listed.getResponse().getContentAsString()).contains("\"assignedSellerCount\":2");
         mvc.perform(patch("/territories/{id}", territoryId).header("Authorization", "Bearer admin").header("If-Match", "1")
                         .contentType(MediaType.APPLICATION_JSON).content("{\"description\":\"Actualizado\"}"))
                 .andExpect(status().isOk());
@@ -108,6 +112,7 @@ class TerritoryControllerTest {
 
     private static final class MemoryStore implements TerritoryStore {
         private final Map<UUID, Territory> territories = new HashMap<>();
+        private final Map<UUID, Long> sellerUsage = new HashMap<>();
         private int writes;
 
         public Optional<Territory> find(UUID tenantId, UUID id) {
@@ -122,6 +127,12 @@ class TerritoryControllerTest {
 
         public long count(UUID tenantId, TerritoryStatus status, String search) {
             return list(tenantId, status, search, 0, 0).size();
+        }
+
+        public Map<UUID, Long> assignedSellerCounts(UUID tenantId, List<UUID> territoryIds) {
+            Map<UUID, Long> result = new HashMap<>();
+            territoryIds.forEach(id -> result.put(id, sellerUsage.getOrDefault(id, 0L)));
+            return result;
         }
 
         public boolean existsName(UUID tenantId, String name, UUID excludingId) {

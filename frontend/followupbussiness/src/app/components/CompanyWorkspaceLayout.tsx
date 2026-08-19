@@ -1,12 +1,12 @@
-import { ClipboardList, ContactRound, LayoutDashboard, Settings, UserRound, Users } from "lucide-react";
+import { ClipboardList, ContactRound, LayoutDashboard, MapPinned, Settings, UserRound, Users } from "lucide-react";
 import type { ReactNode } from "react";
 import { DashboardLayout, type DashboardNavigationItem } from "../../shared/layout/DashboardLayout";
 import { getSessionCompanyLabel, getSessionIdentity, logout } from "../../features/auth/auth";
 import { PasswordRecoveryBrandMark } from "../../features/auth/components/BrandPanel";
 import { navigate } from "../navigation";
 
-export type CompanySection = "dashboard" | "administrators-supervisors" | "sellers" | "clients";
-export type SupervisorSection = "dashboard" | "sellers";
+export type CompanySection = "dashboard" | "administrators-supervisors" | "sellers" | "territories" | "clients";
+export type SupervisorSection = "dashboard" | "sellers" | "territories";
 
 type Props = {
   activeSection: CompanySection | SupervisorSection;
@@ -18,12 +18,14 @@ const companySections: Record<CompanySection, string> = {
   dashboard: "Resumen",
   "administrators-supervisors": "Administradores y supervisores",
   sellers: "Vendedores",
+  territories: "Zonas",
   clients: "Clientes",
 };
 
 const supervisorSections: Record<SupervisorSection, string> = {
   dashboard: "Resumen",
   sellers: "Vendedores",
+  territories: "Zonas",
 };
 
 export function CompanyWorkspaceLayout({ activeSection, workspace, children }: Props) {
@@ -32,7 +34,7 @@ export function CompanyWorkspaceLayout({ activeSection, workspace, children }: P
   const isSupervisor = workspace === "supervisor";
   const navigation = isSupervisor
     ? supervisorNavigation(activeSection as SupervisorSection)
-    : companyNavigation(activeSection as CompanySection);
+    : companyNavigation(activeSection as CompanySection, identity?.roles.includes("COMPANY_ADMIN") ?? false);
 
   return (
     <DashboardLayout
@@ -55,11 +57,12 @@ export function CompanyWorkspaceLayout({ activeSection, workspace, children }: P
   );
 }
 
-function companyNavigation(activeSection: CompanySection): DashboardNavigationItem[] {
+function companyNavigation(activeSection: CompanySection, canManage: boolean): DashboardNavigationItem[] {
   return [
     item("dashboard", "Resumen", <LayoutDashboard />, activeSection, "/company/dashboard"),
     item("administrators-supervisors", "Administradores y supervisores", <Users />, activeSection, "/company/administrators-supervisors"),
     item("sellers", "Vendedores", <UserRound />, activeSection, "/company/sellers"),
+    ...(canManage ? [item("territories", "Zonas", <MapPinned />, activeSection, "/company/territories")] : []),
     item("clients", "Clientes", <ContactRound />, activeSection, "/company/clients"),
     { id: "audit", label: "Auditoría", icon: <ClipboardList /> },
     { id: "settings", label: "Configuración", icon: <Settings /> },
@@ -70,6 +73,7 @@ function supervisorNavigation(activeSection: SupervisorSection): DashboardNaviga
   return [
     item("dashboard", "Resumen", <LayoutDashboard />, activeSection, "/supervisor/dashboard"),
     item("sellers", "Vendedores", <UserRound />, activeSection, "/supervisor/sellers"),
+    item("territories", "Zonas", <MapPinned />, activeSection, "/supervisor/territories"),
   ];
 }
 

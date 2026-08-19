@@ -38,7 +38,7 @@ public class TerritoryController {
     ResponseEntity<?> create(@AuthenticationPrincipal AuthenticatedActor a, @Valid @RequestBody Create req) {
         try {
             var t = service.create(req.name(), req.code(), req.description(), a);
-            return ResponseEntity.created(URI.create("/territories/" + t.id())).eTag(Long.toString(t.version())).body(Response.from(t));
+            return ResponseEntity.created(URI.create("/territories/" + t.id())).eTag(Long.toString(t.version())).body(Response.from(service.withUsage(t, a)));
         } catch (TerritoryService.AccessDeniedException e) {
             return problem(HttpStatus.FORBIDDEN);
         } catch (TerritoryService.ConflictException | DataIntegrityViolationException e) {
@@ -51,7 +51,7 @@ public class TerritoryController {
     @GetMapping("/{id}")
     ResponseEntity<?> get(@PathVariable UUID id, @AuthenticationPrincipal AuthenticatedActor a) {
         try {
-            return service.get(id, a).<ResponseEntity<?>>map(t -> ResponseEntity.ok().eTag(Long.toString(t.version())).body(Response.from(t))).orElseGet(() -> problem(HttpStatus.NOT_FOUND));
+            return service.getWithUsage(id, a).<ResponseEntity<?>>map(view -> ResponseEntity.ok().eTag(Long.toString(view.territory().version())).body(Response.from(view))).orElseGet(() -> problem(HttpStatus.NOT_FOUND));
         } catch (TerritoryService.AccessDeniedException e) {
             return problem(HttpStatus.FORBIDDEN);
         }
@@ -61,7 +61,7 @@ public class TerritoryController {
     ResponseEntity<?> update(@PathVariable UUID id, @RequestHeader("If-Match") String ifMatch, @AuthenticationPrincipal AuthenticatedActor a, @Valid @RequestBody Update req) {
         try {
             var t = service.update(id, req.name(), req.code(), req.description(), req.status(), Long.parseLong(ifMatch.replace("\"", "")), a);
-            return ResponseEntity.ok().eTag(Long.toString(t.version())).body(Response.from(t));
+            return ResponseEntity.ok().eTag(Long.toString(t.version())).body(Response.from(service.withUsage(t, a)));
         } catch (NumberFormatException e) {
             return problem(HttpStatus.BAD_REQUEST);
         } catch (TerritoryService.AccessDeniedException e) {
@@ -87,10 +87,16 @@ public class TerritoryController {
                   @Size(max = 500) String description, TerritoryStatus status) {
     }
 
-    record Response(UUID id, String name, String code, String description, TerritoryStatus status, Instant createdAt,
+    record Response(UUID id, String name, String code, String description, TerritoryStatus status,
+                    long assignedSellerCount, Instant createdAt,
                     Instant updatedAt, long version) {
         static Response from(Territory t) {
-            return new Response(t.id(), t.name(), t.code(), t.description(), t.status(), t.createdAt(), t.updatedAt(), t.version());
+            return new Response(t.id(), t.name(), t.code(), t.description(), t.status(), 0, t.createdAt(), t.updatedAt(), t.version());
+        }
+
+        static Response from(TerritoryService.View view) {
+            Territory t = view.territory();
+            return new Response(t.id(), t.name(), t.code(), t.description(), t.status(), view.assignedSellerCount(), t.createdAt(), t.updatedAt(), t.version());
         }
     }
 

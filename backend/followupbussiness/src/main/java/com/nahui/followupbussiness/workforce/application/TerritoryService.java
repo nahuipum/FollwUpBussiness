@@ -38,10 +38,21 @@ public class TerritoryService {
         return store.find(viewer(actor), id);
     }
 
+    public Optional<View> getWithUsage(UUID id, AuthenticatedActor actor) {
+        UUID tenant = viewer(actor);
+        return store.find(tenant, id).map(territory -> view(tenant, territory));
+    }
+
+    public View withUsage(Territory territory, AuthenticatedActor actor) {
+        return view(viewer(actor), territory);
+    }
+
     public Page list(TerritoryStatus status, String search, int page, int size, AuthenticatedActor actor) {
         UUID tenant = viewer(actor);
         String s = optional(search);
-        return new Page(store.list(tenant, status, s, page * size, size), store.count(tenant, status, s));
+        List<Territory> territories = store.list(tenant, status, s, page * size, size);
+        Map<UUID, Long> usage = store.assignedSellerCounts(tenant, territories.stream().map(Territory::id).toList());
+        return new Page(territories.stream().map(territory -> new View(territory, usage.getOrDefault(territory.id(), 0L))).toList(), store.count(tenant, status, s));
     }
 
     @Transactional
@@ -69,6 +80,10 @@ public class TerritoryService {
         return a.tenantId();
     }
 
+    private View view(UUID tenant, Territory territory) {
+        return new View(territory, store.assignedSellerCounts(tenant, List.of(territory.id())).getOrDefault(territory.id(), 0L));
+    }
+
     private static UUID admin(AuthenticatedActor a) {
         viewer(a);
         if (a.role() != BaseRole.COMPANY_ADMIN) throw new AccessDeniedException();
@@ -84,7 +99,10 @@ public class TerritoryService {
         return v == null ? null : (v.trim().isEmpty() ? null : v.trim());
     }
 
-    public record Page(List<Territory> items, long total) {
+    public record View(Territory territory, long assignedSellerCount) {
+    }
+
+    public record Page(List<View> items, long total) {
     }
 
     public static final class AccessDeniedException extends RuntimeException {

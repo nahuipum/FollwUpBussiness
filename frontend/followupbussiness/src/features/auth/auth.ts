@@ -354,8 +354,10 @@ export function canAccessPath(path: string): boolean {
     "/company/dashboard": "COMPANY_ADMIN",
     "/company/clients": "COMPANY_ADMIN",
     "/company/sellers": "COMPANY_ADMIN",
+    "/company/territories": "COMPANY_ADMIN",
     "/supervisor/dashboard": "SUPERVISOR",
     "/supervisor/sellers": "SUPERVISOR",
+    "/supervisor/territories": "SUPERVISOR",
     "/seller/dashboard": "SELLER",
   };
   const role = requiredRole[path];
