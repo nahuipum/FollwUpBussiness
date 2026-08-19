@@ -16,10 +16,8 @@ test("envía los datos normalizados y evita doble envío mientras guarda", () =>
       loadingOptions={false}
       busy={false}
       error={null}
-      conflict={false}
       onClose={() => undefined}
       onRetryOptions={() => undefined}
-      onReload={() => undefined}
       onSubmit={submit}
     />,
   );
@@ -47,10 +45,8 @@ test("muestra un estado recuperable cuando las opciones no cargan", () => {
       loadingOptions={false}
       busy={false}
       error={null}
-      conflict={false}
       onClose={() => undefined}
       onRetryOptions={() => undefined}
-      onReload={() => undefined}
       onSubmit={() => undefined}
     />,
   );
@@ -63,32 +59,18 @@ test("muestra un estado recuperable cuando las opciones no cargan", () => {
   ).toBe(false);
 });
 
-test("ofrece recargar un conflicto sin perder los campos escritos", () => {
-  const reload = vi.fn();
+test("muestra el error de carga de opciones sin una acción de recarga de mutación", () => {
   render(
     <SellerFormDialog
       seller={null}
       options={{ supervisors: [], territories: [] }}
       loadingOptions={false}
       busy={false}
-      error="Los datos cambiaron."
-      conflict
+      error="No pudimos cargar las opciones."
       onClose={() => undefined}
       onRetryOptions={() => undefined}
-      onReload={reload}
       onSubmit={() => undefined}
     />,
   );
-  fireEvent.change(screen.getByLabelText("Nombre completo"), {
-    target: { value: "Ana" },
-  });
-  fireEvent.click(
-    screen.getByRole("button", {
-      name: "Recargar listado y conservar formulario",
-    }),
-  );
-  expect(reload).toHaveBeenCalledOnce();
-  expect(
-    (screen.getByLabelText("Nombre completo") as HTMLInputElement).value,
-  ).toBe("Ana");
+  expect(screen.getByRole("alert").textContent).toContain("No pudimos cargar las opciones.");
 });

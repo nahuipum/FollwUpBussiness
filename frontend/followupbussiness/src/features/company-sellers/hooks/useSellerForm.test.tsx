@@ -5,6 +5,7 @@ import { useSellerForm } from "./useSellerForm";
 const state = vi.hoisted(() => ({
   listener: undefined as (() => void) | undefined,
   list: vi.fn(),
+  get: vi.fn(),
   create: vi.fn(),
   update: vi.fn(),
   supervisor: vi.fn(),
@@ -18,6 +19,7 @@ vi.mock("../../auth/auth", () => ({
 }));
 vi.mock("../api", () => ({
   listSellerFormOptions: state.list,
+  getSeller: state.get,
   createSeller: state.create,
   updateSeller: state.update,
   updateSellerSupervisor: state.supervisor,
@@ -60,6 +62,7 @@ beforeEach(() => {
       options: { supervisors: [], territories: [] },
     });
   state.create.mockReset();
+  state.get.mockReset();
   state.update.mockReset();
   state.supervisor.mockReset();
   state.territories.mockReset();
@@ -72,33 +75,32 @@ async function openEditor(result: {
   await waitFor(() => expect(result.current.options).not.toBeNull());
 }
 
-test("409 conserva el diálogo y recarga el listado solo mediante la acción explícita", async () => {
+test("409 actualiza el editor y muestra un mensaje de operación", async () => {
   const saved = vi.fn();
   const { result } = renderHook(() => useSellerForm(saved));
   await openEditor(result);
+  state.get.mockResolvedValue({ response: response(200), seller });
   state.update.mockResolvedValue(response(409));
   await act(async () => {
     await result.current.submit(input);
   });
-  expect(result.current.conflict).toBe(true);
-  expect(result.current.seller).toBe(seller);
-  act(() => result.current.reloadAfterConflict());
-  expect(saved).toHaveBeenCalledOnce();
-  expect(result.current.seller).toBe(seller);
+  expect(result.current.seller).toBeUndefined();
+  expect(result.current.notice?.tone).toBe("error");
+  expect(saved).not.toHaveBeenCalled();
 });
 
-test("fallo parcial refresca el listado y mantiene el formulario para corregir", async () => {
+test("un fallo al editar conserva el formulario para corregir", async () => {
   const saved = vi.fn();
   const { result } = renderHook(() => useSellerForm(saved));
   await openEditor(result);
-  state.update.mockResolvedValue(response(200));
-  state.supervisor.mockResolvedValue(response(500));
+  state.get.mockResolvedValue({ response: response(200), seller });
+  state.update.mockResolvedValue(response(500));
   await act(async () => {
     await result.current.submit(input);
   });
-  expect(result.current.error).toContain("asignación de supervisor");
-  expect(result.current.seller).toBe(seller);
-  expect(saved).toHaveBeenCalledOnce();
+  expect(result.current.notice?.tone).toBe("error");
+  expect(result.current.seller).toBeUndefined();
+  expect(saved).not.toHaveBeenCalled();
 });
 
 test("cambio de sesión cierra el diálogo y revoca las opciones cargadas", async () => {

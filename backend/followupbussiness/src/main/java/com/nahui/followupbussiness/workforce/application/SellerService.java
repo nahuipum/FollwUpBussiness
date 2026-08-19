@@ -61,7 +61,7 @@ public class SellerService {
         String displayName = command.displayName() == null ? before.displayName() : clean(command.displayName());
         String phone = command.phone() == null ? before.phone() : optional(command.phone());
         String employeeCode = command.employeeCode() == null ? before.employeeCode() : optional(command.employeeCode());
-        if (command.employeeCode() != null && employeeCode != null) {
+        if (command.employeeCode() != null && employeeCode != null && !employeeCode.equalsIgnoreCase(before.employeeCode())) {
             store.lockEmployeeCode(tenant, employeeCode);
             if (store.existsEmployeeCode(tenant, employeeCode, sellerId)) throw new Conflict();
         }

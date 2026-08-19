@@ -1,4 +1,4 @@
-import { Eye, MoreVertical, Pencil } from "lucide-react";
+import { Eye, MapPinned, MoreVertical, Pencil, Power, UserRoundCheck } from "lucide-react";
 import { useRef, useState } from "react";
 import {
   DataTable,
@@ -19,6 +19,8 @@ export function SellerTable({
   onPageChange,
   onDetail,
   onEdit,
+  onAssign,
+  onChangeStatus,
 }: {
   sellers: readonly Seller[];
   page: number;
@@ -28,6 +30,8 @@ export function SellerTable({
   onPageChange: (page: number) => void;
   onDetail: (seller: Seller) => void;
   onEdit: (seller: Seller) => void;
+  onAssign: (seller: Seller, kind: "supervisor" | "territories") => void;
+  onChangeStatus: (seller: Seller) => void;
 }) {
   const [menuSeller, setMenuSeller] = useState<Seller | null>(null);
   const triggers = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -124,6 +128,32 @@ export function SellerTable({
                         onSelect: () => {
                           setMenuSeller(null);
                           onEdit(seller);
+                        },
+                      },
+                      {
+                        label: seller.supervisorId ? "Reasignar supervisor" : "Asignar supervisor",
+                        icon: <UserRoundCheck aria-hidden="true" />,
+                        onSelect: () => { setMenuSeller(null); onAssign(seller, "supervisor"); },
+                      },
+                      {
+                        label: "Asignar territorios",
+                        icon: <MapPinned aria-hidden="true" />,
+                        onSelect: () => { setMenuSeller(null); onAssign(seller, "territories"); },
+                      },
+                      {
+                        label:
+                          seller.status === "ACTIVE"
+                            ? "Inactivar"
+                            : "Activar",
+                        icon: <Power aria-hidden="true" />,
+                        tone:
+                          seller.status === "ACTIVE"
+                            ? ("danger" as const)
+                            : ("default" as const),
+                        onSelect: () => {
+                          setMenuSeller(null);
+                          triggers.current[seller.id]?.focus();
+                          onChangeStatus(seller);
                         },
                       },
                     ]

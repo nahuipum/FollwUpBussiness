@@ -7,10 +7,9 @@ import {
 import { subscribeToSession } from "../../auth/auth";
 import {
   createSeller,
+  getSeller,
   listSellerFormOptions,
   updateSeller,
-  updateSellerSupervisor,
-  updateSellerTerritories,
 } from "../api";
 import type { Seller, SellerFormInput, SellerFormOptions } from "../types";
 
@@ -23,6 +22,7 @@ export function useSellerForm(onSaved: () => void) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
   const [failedSection, setFailedSection] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ tone: "success" | "error"; message: string } | null>(null);
   const loadOptions = () => {
     const requestId = ++requestRef.current;
     setLoadingOptions(true);
@@ -49,6 +49,7 @@ export function useSellerForm(onSaved: () => void) {
   const open = (next: Seller | null) => {
     setSeller(next);
     setFailedSection(null);
+    setNotice(null);
     loadOptions();
   };
   const reset = () => {
@@ -61,12 +62,7 @@ export function useSellerForm(onSaved: () => void) {
   const close = () => {
     if (!busy) reset();
   };
-  const reloadAfterConflict = () => {
-    if (busy) return;
-    setError(null);
-    setFailedSection(null);
-    onSaved();
-  };
+  const closeNotice = () => setNotice(null);
   useEffect(
     () =>
       subscribeToSession(() => {
@@ -78,6 +74,7 @@ export function useSellerForm(onSaved: () => void) {
         setBusy(false);
         setError(null);
         setFailedSection(null);
+        setNotice(null);
       }),
     [],
   );
@@ -91,41 +88,37 @@ export function useSellerForm(onSaved: () => void) {
       if (seller === null) {
         const response = await createSeller(input);
         if (response.status !== 202) {
-          setError(await normalizeApiError(response));
+          reset();
+          setNotice({ tone: "error", message: await operationError(response) });
           return;
         }
       } else if (seller) {
-        let response = await updateSeller(seller, input);
-        if (response.status !== 200) {
-          setFailedSection("datos del vendedor");
-          setError(await normalizeApiError(response));
+        const current = await getSeller(seller.id);
+        if (current.response.status !== 200 || !current.seller) {
+          reset();
+          setNotice({ tone: "error", message: await operationError(current.response) });
           return;
         }
-        response = await updateSellerSupervisor(seller.id, input.supervisorId);
+        const response = await updateSeller(current.seller, input);
         if (response.status !== 200) {
-          setFailedSection("asignación de supervisor");
-          setError(await normalizeApiError(response));
-          onSaved();
-          return;
-        }
-        response = await updateSellerTerritories(seller.id, input.territoryIds);
-        if (response.status !== 200) {
-          setFailedSection("asignación de territorios");
-          setError(await normalizeApiError(response));
-          onSaved();
+          reset();
+          setNotice({ tone: "error", message: await operationError(response) });
           return;
         }
       }
       if (mutationId === mutationRef.current) {
         reset();
         onSaved();
+        setNotice({ tone: "success", message: seller === null ? "Vendedor creado correctamente." : "Vendedor actualizado correctamente." });
       }
     } catch (reason) {
       if (
         mutationId === mutationRef.current &&
         !(reason instanceof ApiRequestObsoleteError)
-      )
-        setError({ status: 500, correlationId: null, fieldErrors: [] });
+      ) {
+        reset();
+        setNotice({ tone: "error", message: "No pudimos completar la operación. Inténtalo nuevamente." });
+      }
     } finally {
       if (mutationId === mutationRef.current) setBusy(false);
     }
@@ -136,13 +129,21 @@ export function useSellerForm(onSaved: () => void) {
     loadingOptions,
     busy,
     error: error ? mutationErrorMessage(error.status, failedSection) : null,
-    conflict: error?.status === 409,
+    notice,
     open,
     close,
     loadOptions,
-    reloadAfterConflict,
+    closeNotice,
     submit,
   };
+}
+
+async function operationError(response: Response) {
+  const error = await normalizeApiError(response);
+  if (error?.status === 409) return "No se pudo guardar porque el vendedor fue modificado por otra operación o el código de empleado ya está en uso. Actualiza la tabla e inténtalo nuevamente.";
+  if (error?.status === 403) return "No tienes permiso para realizar esta acción.";
+  if (error?.status === 422) return "Revisa la información ingresada e inténtalo nuevamente.";
+  return "No pudimos completar la operación. Inténtalo nuevamente.";
 }
 
 function mutationErrorMessage(status: number, section: string | null) {

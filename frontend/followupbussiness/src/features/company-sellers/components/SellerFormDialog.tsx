@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { ModalSurface } from "../../../shared/ui/ModalSurface";
+import { VisualSelect } from "../../../shared/ui/VisualSelect";
 import type { Seller, SellerFormInput, SellerFormOptions } from "../types";
 
 export function SellerFormDialog({
@@ -9,22 +10,18 @@ export function SellerFormDialog({
   loadingOptions,
   busy,
   error,
-  conflict,
   onClose,
   onSubmit,
   onRetryOptions,
-  onReload,
 }: {
   seller: Seller | null;
   options: SellerFormOptions | null;
   loadingOptions: boolean;
   busy: boolean;
   error: string | null;
-  conflict: boolean;
   onClose: () => void;
   onSubmit: (input: SellerFormInput) => void;
   onRetryOptions: () => void;
-  onReload: () => void;
 }) {
   const [displayName, setDisplayName] = useState(seller?.displayName ?? "");
   const [email, setEmail] = useState(seller?.email ?? "");
@@ -137,21 +134,16 @@ export function SellerFormDialog({
               onChange={(event) => setEmployeeCode(event.target.value)}
             />
           </label>
-          <label>
+          {!editing && <label>
             Supervisor
-            <select
-              value={supervisorId ?? ""}
-              onChange={(event) => setSupervisorId(event.target.value || null)}
-            >
-              <option value="">Sin asignar</option>
-              {options.supervisors.map((supervisor) => (
-                <option key={supervisor.id} value={supervisor.id}>
-                  {supervisor.displayName}
-                </option>
-              ))}
-            </select>
-          </label>
-          <fieldset>
+            <VisualSelect
+              ariaLabel="Supervisor"
+              value={supervisorId ?? "NONE"}
+              options={[{ value: "NONE", label: "Sin asignar" }, ...options.supervisors.map((supervisor) => ({ value: supervisor.id, label: supervisor.displayName }))]}
+              onChange={(value) => setSupervisorId(value === "NONE" ? null : value)}
+            />
+          </label>}
+          {!editing && <fieldset>
             <legend>Zonas / sedes</legend>
             {options.territories.length === 0 ? (
               <p>No hay territorios activos disponibles.</p>
@@ -173,20 +165,10 @@ export function SellerFormDialog({
                 </label>
               ))
             )}
-          </fieldset>
+          </fieldset>}
           {error && (
             <div role="alert">
               <p>{error}</p>
-              {conflict && (
-                <button
-                  className="seller-list__secondary"
-                  type="button"
-                  onClick={onReload}
-                  disabled={busy}
-                >
-                  Recargar listado y conservar formulario
-                </button>
-              )}
             </div>
           )}
           <footer>

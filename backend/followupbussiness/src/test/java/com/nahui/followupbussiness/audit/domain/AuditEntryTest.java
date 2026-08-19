@@ -27,6 +27,19 @@ class AuditEntryTest {
     }
 
     @Test
+    void acceptsApprovedSellerOperationAndSupervisorReference() {
+        UUID supervisor = UUID.randomUUID();
+        entry(Map.of("supervisorId", supervisor.toString()),
+                Map.of("supervisorId", "NONE", "operation", "SUPERVISOR_ASSIGNED"));
+        entry(Map.of(), Map.of("operation", "PROFILE_UPDATED"));
+        entry(Map.of("status", "ACTIVE"), Map.of("status", "INACTIVE", "reason", "PROVIDED"));
+        assertThatThrownBy(() -> entry(Map.of(), Map.of("operation", "profile updated")))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> entry(Map.of(), Map.of("reason", "provided")))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void rejectsUnknownScopesWithAndWithoutTenantAndAcceptsClosedScopeMatrix() {
         assertThatThrownBy(() -> entry(UUID.randomUUID(), "UNRECOGNIZED_SCOPE"))
                 .isInstanceOf(IllegalArgumentException.class);

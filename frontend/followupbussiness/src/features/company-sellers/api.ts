@@ -11,6 +11,7 @@ import type {
   SellerPage,
   SellerReference,
   SellerStatus,
+  SellerStatusChangeInput,
   TerritoryReference,
 } from "./types";
 
@@ -284,6 +285,17 @@ export function createSeller(input: SellerFormInput) {
   });
 }
 
+export async function getSeller(sellerId: string): Promise<{ response: Response; seller: Seller | null }> {
+  const response = await apiRequest(`/sellers/${encodeURIComponent(sellerId)}`, {
+    method: "GET",
+    headers: getSessionAuthorization(),
+  });
+  return {
+    response,
+    seller: response.status === 200 ? parseSeller(await response.json().catch(() => null)) : null,
+  };
+}
+
 export function updateSeller(seller: Seller, input: SellerFormInput) {
   return apiRequest(`/sellers/${encodeURIComponent(seller.id)}`, {
     method: "PATCH",
@@ -316,4 +328,25 @@ export function updateSellerTerritories(
     headers: mutationHeaders(),
     body: JSON.stringify({ territoryIds: [...new Set(territoryIds)] }),
   });
+}
+
+export async function changeSellerStatus(
+  sellerId: string,
+  input: SellerStatusChangeInput,
+): Promise<{ response: Response; seller: Seller | null }> {
+  const response = await apiRequest(
+    `/sellers/${encodeURIComponent(sellerId)}/status`,
+    {
+      method: "PATCH",
+      headers: mutationHeaders(),
+      body: JSON.stringify({ status: input.status, reason: input.reason }),
+    },
+  );
+  return {
+    response,
+    seller:
+      response.status === 200
+        ? parseSeller(await response.json().catch(() => null))
+        : null,
+  };
 }

@@ -10,7 +10,7 @@ import {
   subscribeToSession,
 } from "../../auth/auth";
 import { listSellers } from "../api";
-import type { SellerPage, SellerStatus } from "../types";
+import type { Seller, SellerPage, SellerStatus } from "../types";
 
 const pageSize = 20;
 
@@ -144,6 +144,17 @@ export function useSellers() {
     changeTerritory: resetPage(setTerritoryId),
     goToPage: setPage,
     retry: () => setReloadKey((value) => value + 1),
+    replaceSeller: (updatedSeller: Seller) =>
+      setResult((current) =>
+        current
+          ? {
+              ...current,
+              items: current.items.map((seller) =>
+                seller.id === updatedSeller.id ? updatedSeller : seller,
+              ),
+            }
+          : current,
+      ),
     clearFilters: () => {
       setSearch("");
       setStatus(null);

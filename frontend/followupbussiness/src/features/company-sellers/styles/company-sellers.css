@@ -82,6 +82,7 @@
   margin-bottom: 18px;
 }
 .seller-list__dialog header button {
+  display: grid;
   border: 0;
   color: #67778a;
   background: transparent;
@@ -129,6 +130,9 @@
   .seller-list__dialog footer button {
     width: 100%;
   }
+  .seller-list__dialog footer {
+    flex-direction: column-reverse;
+  }
 }
 .seller-list__actions {
   position: relative;
@@ -140,6 +144,8 @@
   background: #fff;
   box-shadow: 0 20px 40px rgb(16 42 67 / 18%);
 }
+.seller-list__assignment-dialog--supervisor { overflow: visible; }
+.seller-list__operation-dialog { width: min(100%, 400px); padding: 20px 24px 24px; }.seller-list__operation-close { justify-content: flex-end !important; margin: 0 !important; }.seller-list__operation-content { display: grid; justify-items: center; gap: 12px; padding: 0 12px 8px; text-align: center; }.seller-list__operation-icon { display: grid; width: 60px; height: 60px; place-items: center; border-radius: 50%; }.seller-list__operation-icon svg { width: 30px; height: 30px; }.seller-list__operation-icon--success { color: #267a52; background: #effaf2; }.seller-list__operation-icon--error { color: #d83b57; background: #fff3f5; }.seller-list__operation-content h2 { font-size: 21px; }.seller-list__operation-content p { margin: 0; color: #52677c; line-height: 1.5; }.seller-list__operation-dialog footer { justify-content: center; margin-top: 16px; }.seller-list__operation-dialog footer .seller-list__primary { min-width: 128px; }
 .seller-list .data-table {
   min-width: 920px;
 }
@@ -163,35 +169,72 @@
   gap: 8px;
 }
 .seller-list__form-dialog {
-  width: min(100%, 620px);
+  width: min(100%, 480px);
 }
 .seller-list__form-dialog form {
   display: grid;
+  gap: 0;
+}
+.seller-list__status-dialog form {
+  display: grid;
   gap: 14px;
 }
-.seller-list__form-dialog label {
+.seller-list__status-dialog p {
+  margin: 0;
+  color: #26384a;
+  line-height: 1.5;
+}
+.seller-list__status-dialog label {
   display: grid;
   gap: 6px;
   color: #26384a;
   font-size: 14px;
   font-weight: 700;
 }
-.seller-list__form-dialog input,
-.seller-list__form-dialog select {
-  min-height: 44px;
+.seller-list__status-dialog textarea {
   box-sizing: border-box;
   width: 100%;
-  padding: 0 12px;
+  min-height: 104px;
+  resize: vertical;
+  padding: 10px 12px;
   border: 1px solid #cfd9e4;
   border-radius: 10px;
   font: inherit;
+  font-weight: 400;
   color: #14213d;
+}
+.seller-list__status-dialog textarea[aria-invalid="true"] {
+  border-color: #ba2525;
+}
+.seller-list__status-dialog .seller-list__hint {
+  color: #67778a;
+  font-size: 13px;
+}
+.seller-list__form-dialog label {
+  display: grid;
+  gap: 7px;
+  margin-top: 13px;
+  color: #26384a;
+  font-size: 13px;
+  font-weight: 700;
+}
+.seller-list__form-dialog input,
+.seller-list__form-dialog select {
+  min-height: 42px;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0 11px;
+  border: 1px solid #cfd9e4;
+  border-radius: 10px;
+  font: inherit;
+  color: #26384a;
   background: #fff;
+  font-weight: 400;
 }
 .seller-list__form-dialog fieldset {
   display: grid;
   gap: 8px;
-  margin: 0;
+  margin: 13px 0 0;
   border: 1px solid #cfd9e4;
   border-radius: 10px;
   padding: 12px;
@@ -199,13 +242,16 @@
 .seller-list__form-dialog legend {
   padding: 0 4px;
   color: #26384a;
+  font-size: 13px;
   font-weight: 700;
 }
 .seller-list__form-dialog .seller-list__checkbox {
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-top: 0;
   font-weight: 400;
+  user-select: none;
 }
 .seller-list__form-dialog .seller-list__checkbox input {
   width: 18px;

@@ -157,7 +157,8 @@ public final class JdbcSellerStore implements SellerStore {
         return new Filter(where.toString(), List.copyOf(parameters));
     }
 
-    private record Filter(String where, List<Object> parameters) {}
+    private record Filter(String where, List<Object> parameters) {
+    }
 
     @Override
     public Map<UUID, SellerReferences> references(UUID tenant, List<Seller> sellers) {
@@ -177,8 +178,10 @@ public final class JdbcSellerStore implements SellerStore {
                     (RowCallbackHandler) row -> territories.get(row.getObject("seller_id", UUID.class)).add(new Territory(row.getObject("id", UUID.class), row.getString("code"), row.getString("name"))),
                     join(tenant, territories.keySet()));
         }
-        for (Seller seller : sellers)
-            references.put(seller.id(), new SellerReferences(supervisors.get(seller.supervisorId()), territories.get(seller.id())));
+        for (Seller seller : sellers) {
+            Supervisor supervisor = seller.supervisorId() == null ? null : supervisors.get(seller.supervisorId());
+            references.put(seller.id(), new SellerReferences(supervisor, territories.get(seller.id())));
+        }
         return Map.copyOf(references);
     }
 

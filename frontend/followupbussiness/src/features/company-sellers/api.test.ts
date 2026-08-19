@@ -1,6 +1,8 @@
 import { beforeEach, expect, test, vi } from "vitest";
 import {
   createSeller,
+  changeSellerStatus,
+  getSeller,
   listSellerFormOptions,
   listSellers,
   updateSeller,
@@ -88,6 +90,16 @@ test("rechaza una respuesta exitosa sin relaciones enriquecidas", async () => {
       territoryId: null,
     }),
   ).resolves.toMatchObject({ page: null });
+});
+
+test("consulta el vendedor actual con la autorización de sesión", async () => {
+  state.request.mockResolvedValue(new Response(JSON.stringify(seller), { status: 200 }));
+  const result = await getSeller(seller.id);
+  expect(state.request).toHaveBeenCalledWith(
+    "/sellers/seller-1",
+    expect.objectContaining({ method: "GET", headers: { Authorization: "Bearer session" } }),
+  );
+  expect(result.seller?.version).toBe(1);
 });
 
 test("carga referencias activas paginadas sin solicitudes por opción", async () => {
@@ -183,4 +195,27 @@ test("envía creación y edición con precondición y asignaciones sin duplicado
       body: JSON.stringify({ territoryIds: ["territory-1"] }),
     }),
   );
+});
+
+test("cambia el estado mediante PATCH con el motivo requerido", async () => {
+  state.request.mockResolvedValue(
+    new Response(JSON.stringify({ ...seller, status: "INACTIVE" }), {
+      status: 200,
+    }),
+  );
+  const result = await changeSellerStatus(seller.id, {
+    status: "INACTIVE",
+    reason: "Fin de relación comercial",
+  });
+  expect(state.request).toHaveBeenCalledWith(
+    "/sellers/seller-1/status",
+    expect.objectContaining({
+      method: "PATCH",
+      body: JSON.stringify({
+        status: "INACTIVE",
+        reason: "Fin de relación comercial",
+      }),
+    }),
+  );
+  expect(result.seller?.status).toBe("INACTIVE");
 });

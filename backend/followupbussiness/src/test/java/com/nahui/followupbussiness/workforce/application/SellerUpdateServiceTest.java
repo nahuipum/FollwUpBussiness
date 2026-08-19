@@ -42,6 +42,18 @@ class SellerUpdateServiceTest {
     }
 
     @Test
+    void doesNotCheckDuplicateCodeWhenTheSubmittedCodeIsUnchanged() {
+        Store store = new Store(seller(tenant, 1));
+        store.duplicate = true;
+        SellerService service = service(store, command -> true);
+
+        Seller updated = service.update(store.value.id(), new SellerService.Update("Renamed", null, "EMP-1"), 1, admin, UUID.randomUUID());
+
+        assertEquals("Renamed", updated.displayName());
+        assertEquals(0, store.employeeCodeLocks);
+    }
+
+    @Test
     void rejectsCrossTenantNonAdminStaleAndDuplicateWithoutWritesOrAudits() {
         Store store = new Store(seller(tenant, 1));
         int[] audits = new int[1];

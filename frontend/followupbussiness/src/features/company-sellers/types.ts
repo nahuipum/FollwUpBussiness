@@ -57,3 +57,8 @@ export type SellerFormOptions = Readonly<{
   supervisors: readonly SellerReference[];
   territories: readonly TerritoryReference[];
 }>;
+
+export type SellerStatusChangeInput = Readonly<{
+  status: SellerStatus;
+  reason: string;
+}>;

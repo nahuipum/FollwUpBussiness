@@ -7,10 +7,15 @@ import { SellerFilters } from "./components/SellerFilters";
 import { SellerTable } from "./components/SellerTable";
 import { sellerSessionKey, useSellers } from "./hooks/useSellers";
 import { useSellerForm } from "./hooks/useSellerForm";
+import { useSellerStatus } from "./hooks/useSellerStatus";
+import { useSellerAssignment } from "./hooks/useSellerAssignment";
 import type { Seller } from "./types";
 import { SellerFormDialog } from "./components/SellerFormDialog";
 import { ReadOnlyNotice } from "../../shared/ui/ReadOnlyNotice";
 import { AsyncStateCard } from "../../shared/ui/AsyncStateCard";
+import { SellerStatusDialog } from "./components/SellerStatusDialog";
+import { SellerAssignmentDialog } from "./components/SellerAssignmentDialog";
+import { SellerOperationDialog } from "./components/SellerOperationDialog";
 import "./styles/company-sellers.css";
 
 export function CompanySellersPage() {
@@ -18,6 +23,8 @@ export function CompanySellersPage() {
     getSessionIdentity()?.roles.includes("COMPANY_ADMIN") ?? false;
   const sellers = useSellers();
   const form = useSellerForm(sellers.retry);
+  const statusChange = useSellerStatus(sellers.sessionKey, sellers.replaceSeller);
+  const assignment = useSellerAssignment(sellers.sessionKey, sellers.retry);
   const items = sellers.result?.items ?? [];
   const [detail, setDetail] = useState<Seller | null>(null);
   const sessionKeyRef = useRef(sellers.sessionKey);
@@ -126,6 +133,8 @@ export function CompanySellersPage() {
                 onPageChange={sellers.goToPage}
                 onDetail={setDetail}
                 onEdit={form.open}
+                onAssign={assignment.open}
+                onChangeStatus={statusChange.open}
               />
               {sellers.loading && (
                 <div className="seller-list__stale">
@@ -149,11 +158,40 @@ export function CompanySellersPage() {
           loadingOptions={form.loadingOptions}
           busy={form.busy}
           error={form.error}
-          conflict={form.conflict}
           onClose={form.close}
           onRetryOptions={form.loadOptions}
-          onReload={form.reloadAfterConflict}
           onSubmit={form.submit}
+        />
+      )}
+      {canManage && statusChange.seller && (
+        <SellerStatusDialog
+          seller={statusChange.seller}
+          reason={statusChange.reason}
+          busy={statusChange.busy}
+          error={statusChange.error}
+          onReasonChange={statusChange.setReason}
+          onClose={statusChange.close}
+          onConfirm={statusChange.submit}
+        />
+      )}
+      {canManage && assignment.seller && assignment.kind && (
+        <SellerAssignmentDialog
+          seller={assignment.seller}
+          kind={assignment.kind}
+          options={assignment.options}
+          loading={assignment.loading}
+          busy={assignment.busy}
+          error={assignment.error ? "No pudimos guardar la asignación. Inténtalo nuevamente." : null}
+          onClose={assignment.close}
+          onRetry={assignment.load}
+          onSubmit={assignment.submit}
+        />
+      )}
+      {form.notice && (
+        <SellerOperationDialog
+          tone={form.notice.tone}
+          message={form.notice.message}
+          onClose={form.closeNotice}
         />
       )}
     </section>

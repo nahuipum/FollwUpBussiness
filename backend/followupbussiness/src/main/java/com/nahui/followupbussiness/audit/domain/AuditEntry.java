@@ -24,7 +24,7 @@ public record AuditEntry(
         String reason,
         Instant occurredAt) {
 
-    private static final Set<String> ALLOWED_CHANGE_FIELDS = Set.of("status", "territoryIds");
+    private static final Set<String> ALLOWED_CHANGE_FIELDS = Set.of("status", "territoryIds", "supervisorId", "operation", "reason");
     private static final Set<String> ALLOWED_SCOPES = Set.of(
             AuditScope.AUTHORIZED_RESOURCE.name(),
             AuditScope.PLATFORM.name(),
@@ -85,7 +85,8 @@ public record AuditEntry(
 
     private static boolean validChange(String field, String value) {
         if (value == null) return false;
-        if ("status".equals(field)) return value.matches("[A-Z_]{1,64}");
+        if ("status".equals(field) || "operation".equals(field) || "reason".equals(field)) return value.matches("[A-Z_]{1,64}");
+        if ("supervisorId".equals(field)) return "NONE".equals(value) || uuid(value);
         if (!"territoryIds".equals(field)) return false;
         if ("NONE".equals(value)) return true;
         String[] ids = value.split(",", -1);

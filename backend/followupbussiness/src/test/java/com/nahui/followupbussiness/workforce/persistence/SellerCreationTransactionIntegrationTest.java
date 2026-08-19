@@ -128,6 +128,19 @@ class SellerCreationTransactionIntegrationTest {
         assertThat(jdbc.queryForObject("SELECT version FROM workforce_seller WHERE id=?", Long.class, seller)).isEqualTo(1L);
     }
 
+    @Test
+    void returnsNullSupervisorReferenceForAnUnassignedSeller() {
+        UUID sellerAccount = account("seller@example.test", "SELLER");
+        UUID sellerId = UUID.randomUUID();
+        jdbc.update("INSERT INTO workforce_seller(id,tenant_id,user_id,display_name,email,status,created_at,updated_at,version) VALUES (?,?,?,?,?,'ACTIVE',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,1)",
+                sellerId, tenant, sellerAccount, "Seller", "seller@example.test");
+
+        JdbcSellerStore store = new JdbcSellerStore(jdbc);
+        var seller = store.find(tenant, sellerId).orElseThrow();
+
+        assertThat(store.references(tenant, List.of(seller)).get(sellerId).supervisor()).isNull();
+    }
+
     private CompanyUserService invitationWritingUsers(JdbcTemplate jdbc) {
         byte[] hmac = "01234567890123456789012345678901".getBytes(java.nio.charset.StandardCharsets.UTF_8);
         return new CompanyUserService(jdbc, Clock.systemUTC(), new JdbcPasswordRecoveryAdapter(jdbc),
