@@ -5,6 +5,7 @@ import {
   getSeller,
   listSellerFormOptions,
   listSellers,
+  resendSellerInvitation,
   updateSeller,
   updateSellerSupervisor,
   updateSellerTerritories,
@@ -90,6 +91,22 @@ test("rechaza una respuesta exitosa sin relaciones enriquecidas", async () => {
       territoryId: null,
     }),
   ).resolves.toMatchObject({ page: null });
+});
+
+test("conserva vendedores invitados devueltos al crear la cuenta", async () => {
+  state.request.mockResolvedValue(
+    new Response(
+      JSON.stringify({
+        items: [{ ...seller, status: "INVITED" }],
+        page: { page: 0, pageSize: 20, totalElements: 1, totalPages: 1 },
+      }),
+      { status: 200 },
+    ),
+  );
+  const result = await listSellers({
+    page: 0, pageSize: 20, search: "", status: null, supervisorId: null, territoryId: null,
+  });
+  expect(result.page?.items[0]?.status).toBe("INVITED");
 });
 
 test("consulta el vendedor actual con la autorización de sesión", async () => {
@@ -218,4 +235,20 @@ test("cambia el estado mediante PATCH con el motivo requerido", async () => {
     }),
   );
   expect(result.seller?.status).toBe("INACTIVE");
+});
+
+test("reenvía la invitación con precondición y acepta el vendedor invitado", async () => {
+  const invited = { ...seller, status: "INVITED" as const, version: 4 };
+  state.request.mockResolvedValue(
+    new Response(JSON.stringify({ ...invited, version: 5 }), { status: 202 }),
+  );
+  const result = await resendSellerInvitation(invited);
+  expect(state.request).toHaveBeenCalledWith(
+    "/sellers/seller-1/invitation",
+    expect.objectContaining({
+      method: "POST",
+      headers: expect.objectContaining({ "If-Match": "4" }),
+    }),
+  );
+  expect(result.seller?.status).toBe("INVITED");
 });

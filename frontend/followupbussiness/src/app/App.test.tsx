@@ -44,6 +44,11 @@ const sellerPageResponse = () => new Response(JSON.stringify({
   items: [{ id: "seller-1", userId: "user-1", displayName: "Ana Vendedora", email: "ana@example.com", phone: null, employeeCode: "VEN-001", status: "ACTIVE", supervisorId: "supervisor-1", territoryIds: ["territory-1"], supervisor: { id: "supervisor-1", displayName: "Sofía Supervisora" }, territories: [{ id: "territory-1", code: "LIM", name: "Lima Centro" }], createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z", version: 1 }],
   page: { page: 0, pageSize: 20, totalElements: 1, totalPages: 1 },
 }), { status: 200 });
+const customerPageResponse = () => new Response(JSON.stringify({
+  items: [{ id: "customer-1", name: "Comercial Norte", segment: "Mayorista", territoryId: null, assignedSellerIds: ["seller-1"], status: "ACTIVE", location: { latitude: -12.04, longitude: -77.03 }, createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z", version: 1 }],
+  page: { page: 0, pageSize: 5, totalElements: 1, totalPages: 1 },
+}), { status: 200 });
+const clientReferencePageResponse = () => new Response(JSON.stringify({ items: [], page: { page: 0, pageSize: 100, totalElements: 0, totalPages: 0 } }), { status: 200 });
 
 const tenantSellerPageResponse = (tenant: "a" | "b") => new Response(JSON.stringify({
   items: [{ id: `seller-${tenant}`, userId: `user-${tenant}`, displayName: `Vendedor tenant ${tenant}`, email: `tenant-${tenant}@example.test`, phone: "+51 900 000 000", employeeCode: `VEN-${tenant.toUpperCase()}`, status: "ACTIVE", supervisorId: null, territoryIds: [], supervisor: null, territories: [], createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z", version: 1 }],
@@ -412,6 +417,10 @@ test("ubica Clientes entre usuarios y auditoría en dashboard de empresa", async
       ? currentUserResponse("COMPANY_ADMIN")
       : url.includes("/sellers?")
         ? sellerPageResponse()
+      : url.includes("/customers?")
+        ? customerPageResponse()
+      : url.includes("/territories?")
+        ? clientReferencePageResponse()
       : new Response(JSON.stringify(webResponse("COMPANY_ADMIN")), { status: 200 }),
   ));
   vi.stubGlobal("fetch", fetchMock);
@@ -434,7 +443,9 @@ test("ubica Clientes entre usuarios y auditoría en dashboard de empresa", async
   fireEvent.click(screen.getByRole("button", { name: "Clientes" }));
   expect(window.location.pathname).toBe("/company/clients");
   expect(screen.getByRole("button", { name: "Clientes" }).className).toContain("dashboard-nav__item--active");
-  expect(screen.getByLabelText("Contenido de clientes de empresa").childElementCount).toBe(0);
+  expect(screen.getByRole("heading", { name: "Clientes" })).toBeTruthy();
+  await screen.findByText("Comercial Norte");
+  expect(screen.getByRole("table", { name: "Clientes" })).toBeTruthy();
 });
 
 test("muestra el listado contractual al supervisor sin abrir navegación administrativa", async () => {
@@ -443,6 +454,10 @@ test("muestra el listado contractual al supervisor sin abrir navegación adminis
       ? currentUserResponse("SUPERVISOR")
       : url.includes("/sellers?")
         ? sellerPageResponse()
+      : url.includes("/customers?")
+        ? customerPageResponse()
+      : url.includes("/territories?")
+        ? clientReferencePageResponse()
       : new Response(JSON.stringify(webResponse("SUPERVISOR")), { status: 200 }),
   ));
   vi.stubGlobal("fetch", fetchMock);
@@ -460,7 +475,10 @@ test("muestra el listado contractual al supervisor sin abrir navegación adminis
   await screen.findByText("Ana Vendedora");
   expect(screen.getByRole("table", { name: "Vendedores" })).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Administradores y supervisores" })).toBeNull();
-  expect(fetchMock.mock.calls.some(([url]) => String(url).includes("/sellers?page=0&pageSize=20"))).toBe(true);
+  expect(fetchMock.mock.calls.some(([url]) => String(url).includes("/sellers?page=0&pageSize=5"))).toBe(true);
+  fireEvent.click(screen.getByRole("button", { name: "Clientes" }));
+  await screen.findByText("Comercial Norte");
+  expect(window.location.pathname).toBe("/supervisor/clients");
 });
 
 test("revoca el detalle del tenant anterior al reemplazar la sesión", async () => {

@@ -1,4 +1,4 @@
-export type SellerStatus = "ACTIVE" | "INACTIVE";
+export type SellerStatus = "INVITED" | "ACTIVE" | "INACTIVE";
 
 export type SellerReference = Readonly<{ id: string; displayName: string }>;
 export type TerritoryReference = Readonly<{

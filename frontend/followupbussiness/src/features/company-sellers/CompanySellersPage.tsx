@@ -16,6 +16,8 @@ import { AsyncStateCard } from "../../shared/ui/AsyncStateCard";
 import { SellerStatusDialog } from "./components/SellerStatusDialog";
 import { SellerAssignmentDialog } from "./components/SellerAssignmentDialog";
 import { SellerOperationDialog } from "./components/SellerOperationDialog";
+import { SellerInvitationDialog } from "./components/SellerInvitationDialog";
+import { useSellerInvitation } from "./hooks/useSellerInvitation";
 import "./styles/company-sellers.css";
 
 export function CompanySellersPage() {
@@ -25,6 +27,10 @@ export function CompanySellersPage() {
   const form = useSellerForm(sellers.retry);
   const statusChange = useSellerStatus(sellers.sessionKey, sellers.replaceSeller);
   const assignment = useSellerAssignment(sellers.sessionKey, sellers.retry);
+  const invitation = useSellerInvitation(
+    sellers.sessionKey,
+    sellers.replaceSeller,
+  );
   const items = sellers.result?.items ?? [];
   const [detail, setDetail] = useState<Seller | null>(null);
   const sessionKeyRef = useRef(sellers.sessionKey);
@@ -125,16 +131,19 @@ export function CompanySellersPage() {
               <SellerTable
                 sellers={items}
                 page={sellers.page}
+                pageSize={sellers.pageSize}
                 totalPages={sellers.result?.page.totalPages ?? 0}
                 totalElements={
                   sellers.result?.page.totalElements ?? items.length
                 }
                 canManage={canManage}
                 onPageChange={sellers.goToPage}
+                onPageSizeChange={sellers.changePageSize}
                 onDetail={setDetail}
                 onEdit={form.open}
                 onAssign={assignment.open}
                 onChangeStatus={statusChange.open}
+                onResendInvitation={invitation.open}
               />
               {sellers.loading && (
                 <div className="seller-list__stale">
@@ -185,6 +194,16 @@ export function CompanySellersPage() {
           onClose={assignment.close}
           onRetry={assignment.load}
           onSubmit={assignment.submit}
+        />
+      )}
+      {canManage && invitation.seller && (
+        <SellerInvitationDialog
+          seller={invitation.seller}
+          busy={invitation.busy}
+          success={invitation.success}
+          error={invitation.error}
+          onClose={invitation.close}
+          onConfirm={invitation.submit}
         />
       )}
       {form.notice && (

@@ -8,7 +8,7 @@ type PasswordRecoveryDialogProps = {
   description: string;
   icon: ReactNode;
   primaryAction: { label: string; onClick: () => void };
-  secondaryAction: { label: string; onClick: () => void };
+  secondaryAction?: { label: string; onClick: () => void };
   onDismiss: () => void;
 };
 
@@ -68,13 +68,13 @@ export function PasswordRecoveryDialog({
         >
           {primaryAction.label}
         </button>
-        <button
-          className="recovery-link recovery-modal-secondary"
+        {secondaryAction && <button
+          className="text-link recovery-modal-secondary"
           type="button"
           onClick={secondaryAction.onClick}
         >
           {secondaryAction.label}
-        </button>
+        </button>}
       </section>
     </div>
   );

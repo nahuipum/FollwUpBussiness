@@ -73,9 +73,9 @@ test("shows an invalid-link state before the reset form when the token is absent
   window.history.replaceState({}, "", "/password-reset?token=abc");
   render(<App />);
 
-  await screen.findByRole("heading", { name: "Enlace no válido" });
+  await screen.findByRole("heading", { name: "Enlace vencido o no disponible" });
   expect(document.activeElement).toBe(
-    screen.getByRole("button", { name: "Solicitar nuevo enlace" }),
+    screen.getByRole("button", { name: "Volver al inicio de sesión" }),
   );
   expect(
     screen.queryByRole("heading", { name: "Crea una nueva contraseña" }),
@@ -111,11 +111,11 @@ test("replaces reset exits so neither cancellation nor invalid links retain a to
 
   window.history.replaceState({}, "", `/password-reset?token=${"bad"}`);
   window.dispatchEvent(new PopStateEvent("popstate"));
-  await screen.findByRole("heading", { name: "Enlace no válido" });
+  await screen.findByRole("heading", { name: "Enlace vencido o no disponible" });
   fireEvent.click(
-    screen.getByRole("button", { name: "Solicitar nuevo enlace" }),
+    screen.getByRole("button", { name: "Volver al inicio de sesión" }),
   );
-  expect(window.location.pathname).toBe("/password-recovery");
+  expect(window.location.pathname).toBe("/");
   expect(window.location.search).toBe("");
 });
 
@@ -274,14 +274,14 @@ test("renders token expiration and the shared invalid-or-used modal with keyboar
     screen.getByRole("button", { name: "Restablecer contraseña" }),
   );
   const expiredDialog = await screen.findByRole("dialog", {
-    name: "Enlace vencido o no válido",
+    name: "Enlace vencido o no disponible",
   });
   expect(expiredDialog).toBeTruthy();
   expect(document.activeElement).toBe(
-    screen.getByRole("button", { name: "Solicitar nuevo enlace" }),
+    screen.getByRole("button", { name: "Volver al inicio de sesión" }),
   );
   fireEvent.keyDown(document, { key: "Escape" });
-  await screen.findByRole("heading", { name: "¿Olvidaste tu contraseña?" });
+  await screen.findByRole("heading", { name: "Inicia sesión" });
   view.unmount();
 
   window.history.replaceState(
@@ -300,9 +300,9 @@ test("renders token expiration and the shared invalid-or-used modal with keyboar
     screen.getByRole("button", { name: "Restablecer contraseña" }),
   );
   const invalidDialog = await screen.findByRole("dialog", {
-    name: "Enlace no válido",
+    name: "Enlace vencido o no disponible",
   });
-  expect(invalidDialog.textContent).toContain("No pudimos validar este enlace");
+  expect(invalidDialog.textContent).toContain("Ponte en contacto con tu supervisor o administrador");
   screen.getByRole("button", { name: "Volver al inicio de sesión" }).focus();
   fireEvent.keyDown(document, { key: "Tab" });
   expect(document.activeElement).toBe(
@@ -319,12 +319,12 @@ test("keeps the token dialog open for interior clicks and dismisses only its ove
   render(<App />);
 
   const dialog = await screen.findByRole("dialog", {
-    name: "Enlace no válido",
+    name: "Enlace vencido o no disponible",
   });
   fireEvent.click(dialog);
-  expect(screen.getByRole("dialog", { name: "Enlace no válido" })).toBeTruthy();
+  expect(screen.getByRole("dialog", { name: "Enlace vencido o no disponible" })).toBeTruthy();
   fireEvent.click(document.querySelector(".recovery-modal-layer")!);
-  await screen.findByRole("heading", { name: "¿Olvidaste tu contraseña?" });
+  await screen.findByRole("heading", { name: "Inicia sesión" });
   expect(screen.queryByRole("dialog")).toBeNull();
 });
 
@@ -358,11 +358,11 @@ test("shows an expired token state and clears the URL token after reset success"
   fireEvent.click(
     screen.getByRole("button", { name: "Restablecer contraseña" }),
   );
-  await screen.findByRole("heading", { name: "Enlace vencido o no válido" });
+  await screen.findByRole("heading", { name: "Enlace vencido o no disponible" });
   fireEvent.click(
-    screen.getByRole("button", { name: "Solicitar nuevo enlace" }),
+    screen.getByRole("button", { name: "Volver al inicio de sesión" }),
   );
-  expect(window.location.pathname).toBe("/password-recovery");
+  expect(window.location.pathname).toBe("/");
   window.history.replaceState(
     {},
     "",

@@ -18,6 +18,7 @@ import {
 import { TableActionMenu } from "../../../shared/ui/TableActionMenu";
 import { VisualSelect } from "../../../shared/ui/VisualSelect";
 import { TableLoadingIndicator } from "../../../shared/ui/TableLoadingIndicator";
+import type { DataTablePageSize } from "../../../shared/ui/data-table-pagination";
 import type { Company, CompanyPage, CompanyStatus } from "../types";
 
 type Props = {
@@ -30,6 +31,8 @@ type Props = {
   onSearchChange: (value: string) => void;
   onStatusChange: (value: CompanyStatus | null) => void;
   onPageChange: (page: number) => void;
+  pageSize: DataTablePageSize;
+  onPageSizeChange: (pageSize: DataTablePageSize) => void;
   onProvision: (company: Company) => void;
   onAction: (
     company: Company,
@@ -49,6 +52,8 @@ export function CompanyTable({
   onSearchChange,
   onStatusChange,
   onPageChange,
+  pageSize,
+  onPageSizeChange,
   onProvision,
   onAction,
 }: Props) {
@@ -119,6 +124,8 @@ export function CompanyTable({
               page={page.page}
               totalPages={page.totalPages}
               onPageChange={onPageChange}
+              pageSize={pageSize}
+              onPageSizeChange={onPageSizeChange}
               ariaLabel="Paginación de empresas"
               summary={<>Mostrando {companies.length} de {page.totalElements} empresas</>}
             />

@@ -16,7 +16,7 @@ public final class JdbcPasswordRecoveryAdapter implements PasswordRecoveryPort {
     }
 
     public Account findEligibleByIdentifier(String identifier) {
-        return jdbc.query("SELECT id,company_id,status FROM identity_access_account WHERE login_identifier=? AND status IN ('ACTIVE','INVITED') ORDER BY created_at,id LIMIT 2", (rs, n) -> new Account(rs.getObject(1, UUID.class), rs.getObject(2, UUID.class), rs.getString(3)), identifier).stream().reduce((a, b) -> null).orElse(null);
+        return jdbc.query("SELECT id,company_id,status FROM identity_access_account WHERE (login_identifier=? OR email=?) AND status IN ('ACTIVE','INVITED') ORDER BY created_at,id LIMIT 2", (rs, n) -> new Account(rs.getObject(1, UUID.class), rs.getObject(2, UUID.class), rs.getString(3)), identifier, identifier).stream().reduce((a, b) -> null).orElse(null);
     }
 
     public void replaceToken(Token token) {
@@ -34,6 +34,8 @@ public final class JdbcPasswordRecoveryAdapter implements PasswordRecoveryPort {
     public void resetAccount(UUID account, UUID tenant, String hash, boolean activation, Instant now) {
         int updated = jdbc.update("UPDATE identity_access_account SET password_hash=?, status=CASE WHEN ? THEN 'ACTIVE' ELSE status END, credential_version=credential_version+1, updated_at=? WHERE id=? AND company_id IS NOT DISTINCT FROM ? AND (NOT ? OR status='INVITED')", hash, activation, Timestamp.from(now), account, tenant, activation);
         if (updated != 1) throw new IllegalStateException("Action token account state changed");
+        if (activation)
+            jdbc.update("UPDATE workforce_seller SET status='ACTIVE',updated_at=?,version=version+1 WHERE user_id=? AND tenant_id IS NOT DISTINCT FROM ? AND status='INVITED'", Timestamp.from(now), account, tenant);
     }
 
     public void invalidateAccountTokens(UUID account, Instant now) {

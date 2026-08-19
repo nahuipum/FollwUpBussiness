@@ -1,5 +1,6 @@
-import { LogOut, Menu, X } from "lucide-react";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { LogOut, Menu, Moon, Sun, X } from "lucide-react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { applyTheme, getStoredTheme, persistTheme, type AppTheme } from "../theme/theme";
 import "./dashboard-layout.css";
 
 export type DashboardNavigationItem = {
@@ -33,7 +34,14 @@ type DashboardLayoutProps = {
 export function DashboardLayout({ brand, contextLabel, navigationLabel, navigation, profile, breadcrumbs, topbarContext, onLogout, children }: DashboardLayoutProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [theme, setTheme] = useState<AppTheme>(getStoredTheme);
   const profileMenuRef = useRef<HTMLDivElement>(null);
+  const profileButtonRef = useRef<HTMLButtonElement>(null);
+  const profileMenuId = useId();
+
+  useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
 
   useEffect(() => {
     const closeWhenOutside = (event: MouseEvent) => {
@@ -42,6 +50,17 @@ export function DashboardLayout({ brand, contextLabel, navigationLabel, navigati
     document.addEventListener("mousedown", closeWhenOutside);
     return () => document.removeEventListener("mousedown", closeWhenOutside);
   }, []);
+
+  const toggleTheme = () => {
+    const nextTheme = theme === "dark" ? "light" : "dark";
+    setTheme(nextTheme);
+    persistTheme(nextTheme);
+  };
+
+  const closeProfileMenu = () => {
+    setIsProfileMenuOpen(false);
+    profileButtonRef.current?.focus();
+  };
 
   return (
     <div className="dashboard-shell">
@@ -69,7 +88,41 @@ export function DashboardLayout({ brand, contextLabel, navigationLabel, navigati
         <header className="dashboard-topbar">
           <button className="dashboard-menu-button" type="button" aria-label={isMenuOpen ? "Cerrar menú" : "Abrir menú"} onClick={() => setIsMenuOpen((value) => !value)}>{isMenuOpen ? <X /> : <Menu />}</button>
           <div className="dashboard-breadcrumbs">{breadcrumbs.map((breadcrumb, index) => <span key={breadcrumb} className={index === breadcrumbs.length - 1 ? "dashboard-breadcrumbs__current" : ""}>{breadcrumb}</span>)}</div>
-          <div className="dashboard-top-actions">{topbarContext && <span className="dashboard-context-chip">{topbarContext}</span>}<div ref={profileMenuRef} className="dashboard-top-profile-menu"><button className="dashboard-top-profile" type="button" aria-haspopup="menu" aria-expanded={isProfileMenuOpen} onClick={() => setIsProfileMenuOpen((value) => !value)}><span className="dashboard-avatar">{profile.initials}</span><span><strong>{profile.name}</strong><small>{profile.role}</small></span></button>{onLogout && isProfileMenuOpen && <div className="dashboard-profile-menu" role="menu"><button type="button" role="menuitem" onClick={onLogout}><LogOut aria-hidden="true" />Cerrar sesión</button></div>}</div></div>
+          <div className="dashboard-top-actions">
+            {topbarContext && <span className="dashboard-context-chip">{topbarContext}</span>}
+            <div ref={profileMenuRef} className="dashboard-top-profile-menu">
+              <button
+                ref={profileButtonRef}
+                className="dashboard-top-profile"
+                type="button"
+                aria-label={`Abrir opciones del perfil de ${profile.name}`}
+                aria-haspopup="menu"
+                aria-controls={profileMenuId}
+                aria-expanded={isProfileMenuOpen}
+                onClick={() => setIsProfileMenuOpen((value) => !value)}
+              >
+                <span className="dashboard-avatar">{profile.initials}</span>
+                <span><strong>{profile.name}</strong><small>{profile.role}</small></span>
+              </button>
+              {isProfileMenuOpen && (
+                <div
+                  id={profileMenuId}
+                  className="dashboard-profile-menu"
+                  role="menu"
+                  onKeyDown={(event) => {
+                    if (event.key === "Escape") closeProfileMenu();
+                  }}
+                >
+                  <button type="button" role="menuitemcheckbox" aria-checked={theme === "dark"} onClick={toggleTheme}>
+                    {theme === "dark" ? <Sun aria-hidden="true" /> : <Moon aria-hidden="true" />}
+                    <span>Modo oscuro<small>{theme === "dark" ? "Activado" : "Desactivado"}</small></span>
+                    <span className="dashboard-theme-switch" aria-hidden="true"><span /></span>
+                  </button>
+                  {onLogout && <button type="button" role="menuitem" onClick={onLogout}><LogOut aria-hidden="true" />Cerrar sesión</button>}
+                </div>
+              )}
+            </div>
+          </div>
         </header>
         <main className="dashboard-content">{children}</main>
       </section>

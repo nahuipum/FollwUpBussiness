@@ -7,6 +7,7 @@ import {
   DataTableStatus,
   type DataTableColumn,
 } from "../../../shared/ui/DataTable";
+import type { DataTablePageSize } from "../../../shared/ui/data-table-pagination";
 import { TableActionMenu } from "../../../shared/ui/TableActionMenu";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 import type { CompanyUser, CompanyUserStatus } from "../types";
@@ -27,6 +28,7 @@ export function CompanyUsersTable({
   page,
   totalPages,
   totalElements,
+  pageSize,
   readOnly,
   menuUser,
   menuTriggers,
@@ -36,11 +38,13 @@ export function CompanyUsersTable({
   onResendInvitation,
   onStatus,
   onPageChange,
+  onPageSizeChange,
 }: {
   users: readonly CompanyUser[];
   page: number;
   totalPages: number;
   totalElements: number;
+  pageSize: DataTablePageSize;
   readOnly: boolean;
   menuUser: string | null;
   menuTriggers: MutableRefObject<Record<string, HTMLButtonElement | null>>;
@@ -50,6 +54,7 @@ export function CompanyUsersTable({
   onResendInvitation: (user: CompanyUser) => void;
   onStatus: (user: CompanyUser) => void;
   onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: DataTablePageSize) => void;
 }) {
   return (
     <>
@@ -71,7 +76,9 @@ export function CompanyUsersTable({
       <DataTablePagination
         page={page}
         totalPages={totalPages}
+        pageSize={pageSize}
         onPageChange={onPageChange}
+        onPageSizeChange={onPageSizeChange}
         ariaLabel="Paginación de administradores y supervisores"
         summary={
           <>

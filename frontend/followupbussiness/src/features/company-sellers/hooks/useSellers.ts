@@ -11,8 +11,7 @@ import {
 } from "../../auth/auth";
 import { listSellers } from "../api";
 import type { Seller, SellerPage, SellerStatus } from "../types";
-
-const pageSize = 20;
+import type { DataTablePageSize } from "../../../shared/ui/data-table-pagination";
 
 function companyScopeKey(company: unknown): string {
   if (typeof company === "string") return `id:${company}`;
@@ -46,6 +45,7 @@ export function useSellers() {
   const [supervisorId, setSupervisorId] = useState<string | null>(null);
   const [territoryId, setTerritoryId] = useState<string | null>(null);
   const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState<DataTablePageSize>(5);
   const [result, setResult] = useState<SellerPage | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ApiError | null>(null);
@@ -83,7 +83,7 @@ export function useSellers() {
         });
     }, 250);
     return () => window.clearTimeout(timer);
-  }, [page, reloadKey, search, status, supervisorId, territoryId]);
+  }, [page, pageSize, reloadKey, search, status, supervisorId, territoryId]);
   useEffect(
     () =>
       subscribeToSession(() => {
@@ -133,6 +133,7 @@ export function useSellers() {
     supervisorId,
     territoryId,
     page,
+    pageSize,
     result,
     loading,
     error,
@@ -143,6 +144,10 @@ export function useSellers() {
     changeSupervisor: resetPage(setSupervisorId),
     changeTerritory: resetPage(setTerritoryId),
     goToPage: setPage,
+    changePageSize: (value: DataTablePageSize) => {
+      setPageSize(value);
+      setPage(0);
+    },
     retry: () => setReloadKey((value) => value + 1),
     replaceSeller: (updatedSeller: Seller) =>
       setResult((current) =>

@@ -16,7 +16,7 @@ import type {
 } from "./types";
 
 function isStatus(value: unknown): value is SellerStatus {
-  return value === "ACTIVE" || value === "INACTIVE";
+  return value === "INVITED" || value === "ACTIVE" || value === "INACTIVE";
 }
 function isNonNegativeInteger(value: unknown): value is number {
   return typeof value === "number" && Number.isInteger(value) && value >= 0;
@@ -346,6 +346,25 @@ export async function changeSellerStatus(
     response,
     seller:
       response.status === 200
+        ? parseSeller(await response.json().catch(() => null))
+        : null,
+  };
+}
+
+export async function resendSellerInvitation(
+  seller: Seller,
+): Promise<{ response: Response; seller: Seller | null }> {
+  const response = await apiRequest(
+    `/sellers/${encodeURIComponent(seller.id)}/invitation`,
+    {
+      method: "POST",
+      headers: mutationHeaders(seller.version),
+    },
+  );
+  return {
+    response,
+    seller:
+      response.status === 202
         ? parseSeller(await response.json().catch(() => null))
         : null,
   };

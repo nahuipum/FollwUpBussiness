@@ -1,5 +1,6 @@
 import { Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import type { DataTablePageSize } from "../../shared/ui/data-table-pagination";
 import { getSessionIdentity, subscribeToSession } from "../auth/auth";
 import {
   ApiRequestObsoleteError,
@@ -33,8 +34,6 @@ import "./platform-companies.css";
 type View = "list" | "create" | "provision" | "success";
 type CompanyAction = "detail" | "suspend" | "reactivate";
 type CompanyActionState = Readonly<{ company: Company; action: CompanyAction; success: boolean }>;
-const pageSize = 20;
-
 export function PlatformCompaniesPage() {
   const identity = getSessionIdentity();
   const identityKey =
@@ -45,6 +44,7 @@ export function PlatformCompaniesPage() {
   const [view, setView] = useState<View>("list");
   const [companies, setCompanies] = useState<readonly Company[]>([]);
   const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState<DataTablePageSize>(5);
   const [pageInfo, setPageInfo] = useState<CompanyPage["page"] | null>(null);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<CompanyStatus | null>(null);
@@ -93,7 +93,7 @@ export function PlatformCompaniesPage() {
       })();
     }, 250);
     return () => window.clearTimeout(timer);
-  }, [page, reloadKey, search, status]);
+  }, [page, pageSize, reloadKey, search, status]);
   const loadCurrencies = () => {
     setCurrenciesLoading(true);
     setCurrenciesUnavailable(false);
@@ -303,6 +303,11 @@ export function PlatformCompaniesPage() {
                 setStatus(value);
               }}
               onPageChange={setPage}
+              pageSize={pageSize}
+              onPageSizeChange={(value) => {
+                setPageSize(value);
+                setPage(0);
+              }}
               onProvision={(company) => {
                 setSelectedCompany(company);
                 setInvitations([]);

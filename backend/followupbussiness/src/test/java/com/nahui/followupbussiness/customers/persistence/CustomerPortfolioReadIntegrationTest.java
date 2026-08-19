@@ -14,6 +14,7 @@ import com.nahui.followupbussiness.workforce.application.PortfolioAccessScopeSer
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Set;
 import java.util.UUID;
 
 import org.flywaydb.core.Flyway;
@@ -83,6 +84,20 @@ class CustomerPortfolioReadIntegrationTest {
         assertThat(supervisor.items()).extracting(c -> c.id()).containsExactly(customerA);
         assertThat(seller.items()).extracting(c -> c.id()).containsExactly(customerA);
         assertThat(writes()).isEqualTo(before);
+    }
+
+    @Test
+    void searchesByNameOrSegmentInsideTheResolvedTenantScope() {
+        jdbc.update("update customer set segment='MAYORISTA' where id=?", customerOther);
+        CustomerPortfolioReadService read = read();
+        var adminScope = new CustomerPortfolioReadUseCase.Scope(tenantA, true, Set.of());
+
+        var byName = read.read(new CustomerPortfolioReadUseCase.Query("alp", null, null, null, null, null, null, 0, 20), adminScope);
+        var bySegment = read.read(new CustomerPortfolioReadUseCase.Query("mayor", null, null, null, null, null, null, 0, 20), adminScope);
+
+        assertThat(byName.items()).extracting(c -> c.id()).containsExactly(customerA);
+        assertThat(bySegment.items()).extracting(c -> c.id()).containsExactly(customerOther);
+        assertThat(bySegment.items()).extracting(c -> c.id()).doesNotContain(customerB);
     }
 
     @Test

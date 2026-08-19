@@ -1,4 +1,18 @@
 :root {
+  --theme-background: #f7f9fc;
+  --theme-surface: #fff;
+  --theme-surface-raised: #fff;
+  --theme-surface-muted: #fbfcfe;
+  --theme-surface-hover: #f2fbfc;
+  --theme-text: #14213d;
+  --theme-text-strong: #102a43;
+  --theme-text-form: #26384a;
+  --theme-text-muted: #67778a;
+  --theme-border: #cfd9e4;
+  --theme-border-soft: rgb(20 33 61 / 8%);
+  --theme-shadow: rgb(16 42 67 / 15%);
+  --theme-accent: #176d77;
+  --theme-accent-soft: #f2fbfc;
   color: #14213d;
   background: #f7f9fc;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;

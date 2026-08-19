@@ -1,0 +1,25 @@
+.filter-field {
+  display: grid;
+  min-width: 0;
+  gap: 7px;
+  flex: 1 1 0;
+  color: var(--theme-text-form, #26384a);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.filter-field > span {
+  line-height: 1;
+}
+
+.filter-field--inline {
+  grid-template-columns: auto 170px;
+  align-items: center;
+  flex: 0 1 auto;
+}
+
+@media (max-width: 760px) {
+  .filter-field--inline {
+    grid-template-columns: auto minmax(0, 170px);
+  }
+}

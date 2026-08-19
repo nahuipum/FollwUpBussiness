@@ -952,6 +952,30 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
 
+  /sellers/{sellerId}/invitation:
+    parameters:
+      - $ref: '#/components/parameters/SellerId'
+    post:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/IfMatch'
+      tags: [Sellers]
+      operationId: resendSellerInvitation
+      summary: Reenviar invitación de vendedor pendiente
+      description: Invalida el enlace de activación anterior y encola uno nuevo para el vendedor INVITED del tenant autenticado.
+      x-required-roles: [COMPANY_ADMIN]
+      responses:
+        '202':
+          description: Nueva invitación aceptada para entrega
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Seller' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
+
   /sellers/{sellerId}/supervisor:
     parameters:
       - $ref: '#/components/parameters/SellerId'
@@ -1017,7 +1041,10 @@ paths:
         - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/PageSize'
-        - $ref: '#/components/parameters/Search'
+        - name: search
+          in: query
+          description: Búsqueda parcial, sin distinguir mayúsculas, por nombre, segmento, documento, teléfono o dirección del cliente.
+          schema: { type: string, minLength: 1, maxLength: 120 }
         - name: status
           in: query
           schema: { $ref: '#/components/schemas/EntityStatus' }
@@ -3364,7 +3391,7 @@ components:
         name: { type: string, maxLength: 160 }
         code: { type: string, maxLength: 40 }
         description: { type: string, maxLength: 500 }
-        status: { $ref: '#/components/schemas/EntityStatus' }
+        status: { $ref: '#/components/schemas/SellerStatus' }
         assignedSellerCount:
           type: integer
           format: int64
@@ -3407,6 +3434,9 @@ components:
         status: { $ref: '#/components/schemas/EntityStatus' }
         boundary: { type: object, additionalProperties: true }
 
+    SellerStatus:
+      type: string
+      enum: [INVITED, ACTIVE, INACTIVE]
     Seller:
       type: object
       additionalProperties: false

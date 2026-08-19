@@ -12,8 +12,7 @@ import type {
   CompanyUserRole,
   CompanyUserStatus,
 } from "../types";
-
-const pageSize = 20;
+import type { DataTablePageSize } from "../../../shared/ui/data-table-pagination";
 
 export const companyUserRoles = ["COMPANY_ADMIN", "SUPERVISOR"] as const;
 export const companyUserStatuses = [
@@ -34,6 +33,7 @@ export function useCompanyUsers() {
   const [role, setRole] = useState<CompanyUserRole | null>(null);
   const [status, setStatus] = useState<CompanyUserStatus | null>(null);
   const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState<DataTablePageSize>(5);
   const [result, setResult] = useState<CompanyUserPage | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ApiError | null>(null);
@@ -75,7 +75,7 @@ export function useCompanyUsers() {
         });
     }, 250);
     return () => window.clearTimeout(timer);
-  }, [page, reloadKey, role, search, status]);
+  }, [page, pageSize, reloadKey, role, search, status]);
 
   useEffect(
     () =>
@@ -137,6 +137,7 @@ export function useCompanyUsers() {
     role,
     status,
     page,
+    pageSize,
     result,
     loading,
     error,
@@ -173,5 +174,9 @@ export function useCompanyUsers() {
       setPage(0);
     },
     goToPage: setPage,
+    changePageSize: (value: DataTablePageSize) => {
+      setPageSize(value);
+      setPage(0);
+    },
   };
 }

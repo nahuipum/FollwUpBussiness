@@ -99,6 +99,8 @@ export function App() {
       return <CompanyWorkspaceLayout workspace="supervisor" activeSection="territories"><CompanyTerritoriesPage /></CompanyWorkspaceLayout>;
     if (path === "/supervisor/dashboard")
       return <CompanyWorkspaceLayout workspace="supervisor" activeSection="dashboard"><SupervisorDashboardPage view="dashboard" /></CompanyWorkspaceLayout>;
+    if (path === "/supervisor/clients")
+      return <CompanyWorkspaceLayout workspace="supervisor" activeSection="clients"><CompanyClientsPage /></CompanyWorkspaceLayout>;
     if (path === "/supervisor/sellers")
       return <CompanyWorkspaceLayout workspace="supervisor" activeSection="sellers"><CompanySellersPage /></CompanyWorkspaceLayout>;
     if (path === "/company/administrators-supervisors")

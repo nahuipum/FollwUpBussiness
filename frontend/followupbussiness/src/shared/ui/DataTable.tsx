@@ -1,5 +1,7 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { ReactNode } from "react";
+import { dataTablePageSizes, type DataTablePageSize } from "./data-table-pagination";
+import { VisualSelect } from "./VisualSelect";
 import "./data-table.css";
 
 export type DataTableColumn<T> = Readonly<{
@@ -62,13 +64,17 @@ export function DataTable<T>({
 export function DataTablePagination({
   page,
   totalPages,
+  pageSize,
   onPageChange,
+  onPageSizeChange,
   ariaLabel,
   summary,
 }: {
   page: number;
   totalPages: number;
+  pageSize: DataTablePageSize;
   onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: DataTablePageSize) => void;
   ariaLabel: string;
   summary?: ReactNode;
 }) {
@@ -76,6 +82,15 @@ export function DataTablePagination({
   return (
     <footer className="data-table__pagination">
       {summary && <span>{summary}</span>}
+      <label className="data-table__page-size">
+        <span>Registros por página</span>
+        <VisualSelect
+          ariaLabel="Registros por página"
+          value={String(pageSize)}
+          options={dataTablePageSizes.map((size) => ({ value: String(size), label: String(size) }))}
+          onChange={(value) => onPageSizeChange(Number(value) as DataTablePageSize)}
+        />
+      </label>
       <nav aria-label={ariaLabel}>
         <button
           type="button"

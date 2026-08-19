@@ -18,6 +18,7 @@ function isProtectedPath(path: string): boolean {
     path === "/company/territories" ||
     path === "/company/administrators-supervisors" ||
     path === "/supervisor/dashboard" ||
+    path === "/supervisor/clients" ||
     path === "/supervisor/sellers" ||
     path === "/supervisor/territories" ||
     path === "/seller/dashboard"

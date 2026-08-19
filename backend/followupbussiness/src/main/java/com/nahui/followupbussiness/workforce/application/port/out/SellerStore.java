@@ -1,7 +1,7 @@
 package com.nahui.followupbussiness.workforce.application.port.out;
 
 import com.nahui.followupbussiness.workforce.domain.Seller;
-import com.nahui.followupbussiness.workforce.domain.TerritoryStatus;
+import com.nahui.followupbussiness.workforce.domain.SellerStatus;
 
 import java.util.List;
 import java.util.Optional;
@@ -31,7 +31,7 @@ public interface SellerStore {
         return Optional.empty();
     }
 
-    default Optional<Seller> updateStatus(Seller seller, TerritoryStatus expectedStatus) {
+    default Optional<Seller> updateStatus(Seller seller, SellerStatus expectedStatus) {
         return Optional.empty();
     }
 
@@ -45,10 +45,10 @@ public interface SellerStore {
 
     Optional<Seller> find(UUID tenantId, UUID sellerId);
 
-    List<Seller> list(UUID tenantId, UUID supervisorId, com.nahui.followupbussiness.workforce.domain.TerritoryStatus status,
+    List<Seller> list(UUID tenantId, UUID supervisorId, SellerStatus status,
                       UUID requestedSupervisorId, UUID territoryId, String search, int offset, int limit);
 
-    long count(UUID tenantId, UUID supervisorId, com.nahui.followupbussiness.workforce.domain.TerritoryStatus status,
+    long count(UUID tenantId, UUID supervisorId, SellerStatus status,
                UUID requestedSupervisorId, UUID territoryId, String search);
 
     /** Batch-only display references for a page of sellers already scoped to the tenant. */

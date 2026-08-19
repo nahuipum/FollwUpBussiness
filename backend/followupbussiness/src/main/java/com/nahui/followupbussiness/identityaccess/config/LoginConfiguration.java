@@ -120,6 +120,16 @@ public class LoginConfiguration {
             }
 
             @Override
+            public CompanyUserService.User resendSellerInvitation(java.util.UUID id, com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor a, java.util.UUID correlation) {
+                try {
+                    return java.util.Objects.requireNonNull(transaction.execute(s -> delegate.resendSellerInvitation(id, a, correlation)));
+                } catch (CompanyUserService.Forbidden | CompanyUserService.NotFound denied) {
+                    denial(a, id, correlation);
+                    throw denied;
+                }
+            }
+
+            @Override
             public CompanyUserService.User update(java.util.UUID id, CompanyUserService.Update c, com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor a) {
                 return update(id, c, a, new java.util.UUID(0L, 0L));
             }

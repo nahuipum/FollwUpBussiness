@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.nahui.followupbussiness.workforce.application.SellerService;
 import com.nahui.followupbussiness.workforce.application.port.out.SellerStore;
 import com.nahui.followupbussiness.workforce.domain.Seller;
-import com.nahui.followupbussiness.workforce.domain.TerritoryStatus;
+import com.nahui.followupbussiness.workforce.domain.SellerStatus;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
@@ -31,7 +31,7 @@ public final class SellerController {
     public ResponseEntity<?> list(@AuthenticationPrincipal AuthenticatedActor actor, HttpServletRequest http,
                                   @RequestParam(defaultValue = "0") @Min(0) int page,
                                   @RequestParam(name = "pageSize", defaultValue = "20") @Min(1) @Max(200) int pageSize,
-                                  @RequestParam(required = false) TerritoryStatus status,
+                                  @RequestParam(required = false) SellerStatus status,
                                   @RequestParam(required = false) UUID supervisorId,
                                   @RequestParam(required = false) UUID territoryId,
                                   @RequestParam(required = false) @Size(max = 160) String search) {
@@ -107,6 +107,26 @@ public final class SellerController {
             return problem(HttpStatus.CONFLICT, correlation);
         } catch (SellerService.Invalid | IllegalArgumentException exception) {
             return problem(HttpStatus.BAD_REQUEST, correlation);
+        }
+    }
+
+    @PostMapping("/{sellerId}/invitation")
+    public ResponseEntity<?> resendInvitation(@PathVariable UUID sellerId, @RequestHeader("If-Match") String ifMatch,
+                                               @AuthenticationPrincipal AuthenticatedActor actor, HttpServletRequest http) {
+        UUID correlation = correlationId(http);
+        try {
+            Seller seller = service.resendInvitation(sellerId, Long.parseLong(ifMatch.replace("\"", "")), actor, correlation);
+            return ResponseEntity.accepted().eTag(Long.toString(seller.version())).header("X-Correlation-Id", correlation.toString()).body(Response.from(seller));
+        } catch (SellerService.Forbidden exception) {
+            return problem(HttpStatus.FORBIDDEN, correlation);
+        } catch (SellerService.NotFound exception) {
+            return problem(HttpStatus.NOT_FOUND, correlation);
+        } catch (SellerService.Conflict exception) {
+            return problem(HttpStatus.CONFLICT, correlation);
+        } catch (IllegalArgumentException exception) {
+            return problem(HttpStatus.BAD_REQUEST, correlation);
+        } catch (RuntimeException exception) {
+            return problem(HttpStatus.SERVICE_UNAVAILABLE, correlation);
         }
     }
 
@@ -215,14 +235,14 @@ public final class SellerController {
 
     static final class StatusRequest {
         @NotNull
-        private TerritoryStatus status;
+        private SellerStatus status;
         @NotBlank
         @Size(min = 5, max = 500)
         private String reason;
 
-        public TerritoryStatus status() { return status; }
+        public SellerStatus status() { return status; }
         public String reason() { return reason; }
-        public void setStatus(TerritoryStatus status) { this.status = status; }
+        public void setStatus(SellerStatus status) { this.status = status; }
         public void setReason(String reason) { this.reason = reason; }
 
         @JsonAnySetter

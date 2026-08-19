@@ -146,8 +146,20 @@
 }
 .seller-list__assignment-dialog--supervisor { overflow: visible; }
 .seller-list__operation-dialog { width: min(100%, 400px); padding: 20px 24px 24px; }.seller-list__operation-close { justify-content: flex-end !important; margin: 0 !important; }.seller-list__operation-content { display: grid; justify-items: center; gap: 12px; padding: 0 12px 8px; text-align: center; }.seller-list__operation-icon { display: grid; width: 60px; height: 60px; place-items: center; border-radius: 50%; }.seller-list__operation-icon svg { width: 30px; height: 30px; }.seller-list__operation-icon--success { color: #267a52; background: #effaf2; }.seller-list__operation-icon--error { color: #d83b57; background: #fff3f5; }.seller-list__operation-content h2 { font-size: 21px; }.seller-list__operation-content p { margin: 0; color: #52677c; line-height: 1.5; }.seller-list__operation-dialog footer { justify-content: center; margin-top: 16px; }.seller-list__operation-dialog footer .seller-list__primary { min-width: 128px; }
+.seller-list__invitation-dialog { width: min(100%, 420px); padding: 28px; }
+.seller-list__invitation-header { position: relative; justify-content: center !important; margin-bottom: 18px !important; text-align: center; }
+.seller-list__invitation-header h2 { font-size: 22px; }
+.seller-list__invitation-header button { position: absolute; top: -7px; right: -7px; display: grid; width: 36px; height: 36px; place-items: center; padding: 0; border: 0; border-radius: 50%; color: #67778a; background: transparent; cursor: pointer; }
+.seller-list__invitation-header button:hover:not(:disabled) { background: #f2f6f8; }
+.seller-list__invitation-content { display: grid; justify-items: center; gap: 13px; text-align: center; }
+.seller-list__invitation-icon { display: grid; width: 56px; height: 56px; place-items: center; border-radius: 50%; color: #176d77; background: #eef9fa; }
+.seller-list__invitation-icon svg { width: 27px; height: 27px; }
+.seller-list__invitation-content p { margin: 0; color: #52677c; line-height: 1.5; }
+.seller-list__invitation-dialog .form-alert { margin-top: 18px; }
+.seller-list__invitation-dialog footer { justify-content: center; margin-top: 22px; }
 .seller-list .data-table {
   min-width: 920px;
+  table-layout: auto;
 }
 .seller-list__loading,
 .seller-list__stale,

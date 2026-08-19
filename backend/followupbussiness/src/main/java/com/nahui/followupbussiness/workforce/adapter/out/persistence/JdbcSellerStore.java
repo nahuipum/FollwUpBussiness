@@ -65,7 +65,7 @@ public final class JdbcSellerStore implements SellerStore {
     }
 
     @Override
-    public Optional<Seller> updateStatus(Seller seller, com.nahui.followupbussiness.workforce.domain.TerritoryStatus expectedStatus) {
+    public Optional<Seller> updateStatus(Seller seller, com.nahui.followupbussiness.workforce.domain.SellerStatus expectedStatus) {
         int updated = jdbc.update("update workforce_seller set status=?,updated_at=?,version=? where tenant_id=? and id=? and status=? and version=?",
                 seller.status().name(), Timestamp.from(seller.updatedAt()), seller.version(), seller.tenantId(), seller.id(), expectedStatus.name(), seller.version() - 1);
         return updated == 1 ? Optional.of(seller) : Optional.empty();
@@ -105,7 +105,7 @@ public final class JdbcSellerStore implements SellerStore {
         return new LinkedHashSet<>(jdbc.queryForList("select id from workforce_seller where tenant_id=? and supervisor_id=? and status='ACTIVE'", UUID.class, tenant, supervisorId));
     }
 
-    public List<Seller> list(UUID tenant, UUID teamSupervisor, com.nahui.followupbussiness.workforce.domain.TerritoryStatus status,
+    public List<Seller> list(UUID tenant, UUID teamSupervisor, com.nahui.followupbussiness.workforce.domain.SellerStatus status,
                              UUID requestedSupervisor, UUID territory, String search, int offset, int limit) {
         Filter filter = filter(tenant, teamSupervisor, status, requestedSupervisor, territory, search);
         List<Object> parameters = new ArrayList<>(filter.parameters());
@@ -118,7 +118,7 @@ public final class JdbcSellerStore implements SellerStore {
         return sellers;
     }
 
-    public long count(UUID tenant, UUID teamSupervisor, com.nahui.followupbussiness.workforce.domain.TerritoryStatus status,
+    public long count(UUID tenant, UUID teamSupervisor, com.nahui.followupbussiness.workforce.domain.SellerStatus status,
                       UUID requestedSupervisor, UUID territory, String search) {
         Filter filter = filter(tenant, teamSupervisor, status, requestedSupervisor, territory, search);
         String sql = "select count(distinct s.id) from workforce_seller s left join workforce_seller_territory st on st.seller_id=s.id" + filter.where();
@@ -126,7 +126,7 @@ public final class JdbcSellerStore implements SellerStore {
         return total == null ? 0 : total;
     }
 
-    private static Filter filter(UUID tenant, UUID teamSupervisor, com.nahui.followupbussiness.workforce.domain.TerritoryStatus status,
+    private static Filter filter(UUID tenant, UUID teamSupervisor, com.nahui.followupbussiness.workforce.domain.SellerStatus status,
                                  UUID requestedSupervisor, UUID territory, String search) {
         StringBuilder where = new StringBuilder(" where s.tenant_id=?");
         List<Object> parameters = new ArrayList<>();
@@ -219,6 +219,6 @@ public final class JdbcSellerStore implements SellerStore {
     }
 
     private Seller map(java.sql.ResultSet row, int index) throws java.sql.SQLException {
-        return new Seller(row.getObject("id", UUID.class), row.getObject("tenant_id", UUID.class), row.getObject("user_id", UUID.class), row.getString("display_name"), row.getString("email"), row.getString("phone"), row.getString("employee_code"), row.getObject("supervisor_id", UUID.class), List.of(), com.nahui.followupbussiness.workforce.domain.TerritoryStatus.valueOf(row.getString("status")), row.getTimestamp("created_at").toInstant(), row.getTimestamp("updated_at").toInstant(), row.getLong("version"));
+        return new Seller(row.getObject("id", UUID.class), row.getObject("tenant_id", UUID.class), row.getObject("user_id", UUID.class), row.getString("display_name"), row.getString("email"), row.getString("phone"), row.getString("employee_code"), row.getObject("supervisor_id", UUID.class), List.of(), com.nahui.followupbussiness.workforce.domain.SellerStatus.valueOf(row.getString("status")), row.getTimestamp("created_at").toInstant(), row.getTimestamp("updated_at").toInstant(), row.getLong("version"));
     }
 }

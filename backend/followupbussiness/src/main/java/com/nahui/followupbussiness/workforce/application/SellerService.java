@@ -37,7 +37,7 @@ public class SellerService {
             throw new Conflict();
         }
         var now = clock.instant();
-        Seller seller = store.insert(new Seller(UUID.randomUUID(), tenant, user.id(), clean(c.displayName()), user.email(), optional(c.phone()), optional(c.employeeCode()), c.supervisorId(), List.copyOf(c.territoryIds() == null ? List.of() : c.territoryIds()), TerritoryStatus.ACTIVE, now, now, 1));
+        Seller seller = store.insert(new Seller(UUID.randomUUID(), tenant, user.id(), clean(c.displayName()), user.email(), optional(c.phone()), optional(c.employeeCode()), c.supervisorId(), List.copyOf(c.territoryIds() == null ? List.of() : c.territoryIds()), SellerStatus.INVITED, now, now, 1));
         if (!audit.record(new RecordAuditEntryCommand(AuditAction.CRITICAL_MUTATION, AuditResourceType.SELLER, seller.id(), AuditResult.SUCCESS, Map.of(), Map.of("status", "ACTIVE"))))
             throw new IllegalStateException("Seller audit was not persisted");
         return seller;
@@ -75,24 +75,41 @@ public class SellerService {
     }
 
     @Transactional
-    public Seller status(UUID sellerId, TerritoryStatus target, String reason, AuthenticatedActor actor, UUID correlationId) {
+    public Seller status(UUID sellerId, SellerStatus target, String reason, AuthenticatedActor actor, UUID correlationId) {
         UUID tenant = admin(actor);
         if (sellerId == null || target == null || reason == null || reason.trim().length() < 5 || reason.trim().length() > 500)
             throw new Invalid();
         Seller before = store.find(tenant, sellerId).orElseThrow(NotFound::new);
         if (before.status() == target) throw new Conflict();
+        SellerStatus effectiveTarget = target == SellerStatus.ACTIVE && before.status() == SellerStatus.INVITED
+                ? SellerStatus.INVITED : target;
         try {
-            users.status(before.userId(), target.name(), actor, correlationId);
+            effectiveTarget = SellerStatus.valueOf(users.status(before.userId(), effectiveTarget.name(), actor, correlationId).status());
         } catch (CompanyUserService.Conflict | CompanyUserService.NotFound exception) {
             throw new Conflict();
         }
         Seller after = new Seller(before.id(), tenant, before.userId(), before.displayName(), before.email(), before.phone(), before.employeeCode(),
-                before.supervisorId(), before.territoryIds(), target, before.createdAt(), clock.instant(), before.version() + 1);
+                before.supervisorId(), before.territoryIds(), effectiveTarget, before.createdAt(), clock.instant(), before.version() + 1);
         Seller saved = store.updateStatus(after, before.status()).orElseThrow(Conflict::new);
         if (!audit.record(new RecordAuditEntryCommand(AuditAction.CRITICAL_MUTATION, AuditResourceType.SELLER, sellerId, AuditResult.SUCCESS,
-                Map.of("status", before.status().name()), Map.of("status", target.name(), "reason", "PROVIDED"))))
+                Map.of("status", before.status().name()), Map.of("status", effectiveTarget.name(), "reason", "PROVIDED"))))
             throw new IllegalStateException("Seller status audit was not persisted");
         return saved;
+    }
+
+    @Transactional
+    public Seller resendInvitation(UUID sellerId, long version, AuthenticatedActor actor, UUID correlationId) {
+        UUID tenant = admin(actor);
+        Seller before = store.find(tenant, sellerId).orElseThrow(NotFound::new);
+        if (before.status() != SellerStatus.INVITED || before.version() != version) throw new Conflict();
+        try {
+            users.resendSellerInvitation(before.userId(), actor, correlationId);
+        } catch (CompanyUserService.Conflict | CompanyUserService.NotFound exception) {
+            throw new Conflict();
+        }
+        Seller after = new Seller(before.id(), tenant, before.userId(), before.displayName(), before.email(), before.phone(), before.employeeCode(),
+                before.supervisorId(), before.territoryIds(), before.status(), before.createdAt(), clock.instant(), before.version() + 1);
+        return store.updateStatus(after, before.status()).orElseThrow(Conflict::new);
     }
 
     @Transactional
@@ -134,7 +151,7 @@ public class SellerService {
         return saved;
     }
 
-    public Page list(TerritoryStatus status, UUID requestedSupervisorId, UUID territoryId, String search, int page, int size, AuthenticatedActor actor) {
+    public Page list(SellerStatus status, UUID requestedSupervisorId, UUID territoryId, String search, int page, int size, AuthenticatedActor actor) {
         UUID tenant = listViewer(actor);
         UUID teamSupervisor = actor.role() == BaseRole.SUPERVISOR ? actor.accountId() : null;
         if (teamSupervisor != null && requestedSupervisorId != null && !teamSupervisor.equals(requestedSupervisorId))

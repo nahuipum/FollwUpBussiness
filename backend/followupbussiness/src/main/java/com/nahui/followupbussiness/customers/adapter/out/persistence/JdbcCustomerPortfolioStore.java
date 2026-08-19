@@ -87,7 +87,7 @@ public final class JdbcCustomerPortfolioStore implements CustomerPortfolioStore 
         String portfolio = scope.allCurrentPortfolios() ? "" : " and exists (select 1 from customer_portfolio_assignment p where p.tenant_id=c.tenant_id and p.customer_id=c.id and p.seller_id in (" + placeholders(scope.sellerIds().size()) + "))";
         String activity = (q.withoutVisitSince() == null ? "" : " and (not exists (select 1 from customer_activity_fact av where av.tenant_id=c.tenant_id and av.customer_id=c.id) or (select av.last_completed_visit_at from customer_activity_fact av where av.tenant_id=c.tenant_id and av.customer_id=c.id) is null or (select av.last_completed_visit_at from customer_activity_fact av where av.tenant_id=c.tenant_id and av.customer_id=c.id) < ?)")
                 + (q.withoutPurchaseSince() == null ? "" : " and (not exists (select 1 from customer_activity_fact ap where ap.tenant_id=c.tenant_id and ap.customer_id=c.id) or (select ap.last_confirmed_purchase_at from customer_activity_fact ap where ap.tenant_id=c.tenant_id and ap.customer_id=c.id) is null or (select ap.last_confirmed_purchase_at from customer_activity_fact ap where ap.tenant_id=c.tenant_id and ap.customer_id=c.id) < ?)");
-        return new Sql("from customer c where c.tenant_id=?" + portfolio + " and (?::text is null or lower(c.name) like lower(?) or lower(coalesce(c.document_number,'')) like lower(?) or lower(coalesce(c.phone,'')) like lower(?) or lower(c.address) like lower(?)) and (?::text is null or c.status=?) and (?::uuid is null or c.territory_id=?) and (?::text is null or c.segment=?)" + (q.sellerId() == null ? "" : " and exists (select 1 from customer_portfolio_assignment requested where requested.tenant_id=c.tenant_id and requested.customer_id=c.id and requested.seller_id=?)") + activity);
+        return new Sql("from customer c where c.tenant_id=?" + portfolio + " and (?::text is null or lower(c.name) like lower(?) or lower(coalesce(c.segment,'')) like lower(?) or lower(coalesce(c.document_number,'')) like lower(?) or lower(coalesce(c.phone,'')) like lower(?) or lower(c.address) like lower(?)) and (?::text is null or c.status=?) and (?::uuid is null or c.territory_id=?) and (?::text is null or c.segment=?)" + (q.sellerId() == null ? "" : " and exists (select 1 from customer_portfolio_assignment requested where requested.tenant_id=c.tenant_id and requested.customer_id=c.id and requested.seller_id=?)") + activity);
     }
 
     private Object[] parameters(Sql sql, CustomerPortfolioReadUseCase.Query q, CustomerPortfolioReadUseCase.Scope scope, boolean paged) {
@@ -95,6 +95,7 @@ public final class JdbcCustomerPortfolioStore implements CustomerPortfolioStore 
         p.add(scope.tenantId());
         if (!scope.allCurrentPortfolios()) p.addAll(scope.sellerIds());
         String pattern = q.search() == null || q.search().isBlank() ? null : "%" + q.search().trim() + "%";
+        p.add(pattern);
         p.add(pattern);
         p.add(pattern);
         p.add(pattern);

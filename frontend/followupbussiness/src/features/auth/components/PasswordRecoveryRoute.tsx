@@ -43,12 +43,12 @@ function RouteHeading({ id, children }: { id: string; children: ReactNode }) {
 }
 
 function TokenProblemDialog({ reason }: { reason: TokenProblemReason }) {
-  const expired = reason === "expired";
-  return <PasswordRecoveryDialog titleId="token-problem-title" title={expired ? "Enlace vencido o no válido" : reason === "used" ? "Enlace ya utilizado" : "Enlace no válido"} description={expired ? "Por seguridad, el enlace de restablecimiento ya no está disponible. Solicita uno nuevo para continuar." : "No pudimos validar este enlace de restablecimiento. Solicita uno nuevo para continuar de forma segura."} icon={<KeyRound />} primaryAction={{ label: "Solicitar nuevo enlace", onClick: () => navigate("/password-recovery", { replace: true }) }} secondaryAction={{ label: "Volver al inicio de sesión", onClick: () => navigate("/", { replace: true }) }} onDismiss={() => navigate("/password-recovery", { replace: true })} />;
+  void reason;
+  return <PasswordRecoveryDialog titleId="token-problem-title" title="Enlace vencido o no disponible" description="Este enlace ya expiró, fue reemplazado o no está disponible. Ponte en contacto con tu supervisor o administrador para que te reenvíe una nueva invitación." icon={<KeyRound />} primaryAction={{ label: "Volver al inicio de sesión", onClick: () => navigate("/", { replace: true }) }} onDismiss={() => navigate("/", { replace: true })} />;
 }
 
 function TokenProblemFallback({ reason }: { reason: TokenProblemReason }) {
-  return <PasswordRecoveryLayout status hiddenFromAssistiveTechnology overlay={<TokenProblemDialog reason={reason} />}><KeyRound className="recovery-status-icon" aria-hidden="true" /><RouteHeading id="token-fallback-title">{reason === "expired" ? "Enlace vencido" : "Enlace no válido"}</RouteHeading></PasswordRecoveryLayout>;
+  return <PasswordRecoveryLayout status hiddenFromAssistiveTechnology overlay={<TokenProblemDialog reason={reason} />}><KeyRound className="recovery-status-icon" aria-hidden="true" /><RouteHeading id="token-fallback-title">Enlace no disponible</RouteHeading></PasswordRecoveryLayout>;
 }
 
 function InlineAlert({ children, warning = false }: { children: ReactNode; warning?: boolean }) {

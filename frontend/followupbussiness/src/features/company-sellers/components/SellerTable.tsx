@@ -1,4 +1,4 @@
-import { Eye, MapPinned, MoreVertical, Pencil, Power, UserRoundCheck } from "lucide-react";
+import { Eye, MapPinned, MoreVertical, Pencil, Power, Send, UserRoundCheck } from "lucide-react";
 import { useRef, useState } from "react";
 import {
   DataTable,
@@ -7,6 +7,7 @@ import {
   DataTableStatus,
   type DataTableColumn,
 } from "../../../shared/ui/DataTable";
+import type { DataTablePageSize } from "../../../shared/ui/data-table-pagination";
 import { TableActionMenu } from "../../../shared/ui/TableActionMenu";
 import type { Seller } from "../types";
 
@@ -15,23 +16,29 @@ export function SellerTable({
   page,
   totalPages,
   totalElements,
+  pageSize,
   canManage,
   onPageChange,
+  onPageSizeChange,
   onDetail,
   onEdit,
   onAssign,
   onChangeStatus,
+  onResendInvitation,
 }: {
   sellers: readonly Seller[];
   page: number;
   totalPages: number;
   totalElements: number;
+  pageSize: DataTablePageSize;
   canManage: boolean;
   onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: DataTablePageSize) => void;
   onDetail: (seller: Seller) => void;
   onEdit: (seller: Seller) => void;
   onAssign: (seller: Seller, kind: "supervisor" | "territories") => void;
   onChangeStatus: (seller: Seller) => void;
+  onResendInvitation: (seller: Seller) => void;
 }) {
   const [menuSeller, setMenuSeller] = useState<Seller | null>(null);
   const triggers = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -40,7 +47,7 @@ export function SellerTable({
       id: "seller",
       header: "Vendedor",
       label: "Vendedor",
-      width: "25%",
+      width: "24%",
       render: (seller) => (
         <DataTableIdentity
           mark={initials(seller.displayName)}
@@ -53,7 +60,7 @@ export function SellerTable({
       id: "contact",
       header: "Teléfono",
       label: "Teléfono",
-      width: "14%",
+      width: "13%",
       render: (seller) => seller.phone ?? "—",
     },
     {
@@ -76,7 +83,7 @@ export function SellerTable({
       id: "status",
       header: "Estado",
       label: "Estado",
-      width: "13%",
+      width: "1%",
       render: (seller) => (
         <DataTableStatus
           label={statusLabel[seller.status]}
@@ -88,7 +95,7 @@ export function SellerTable({
       id: "actions",
       header: "Acciones",
       label: "Acciones",
-      width: "10%",
+      width: "1%",
       align: "center",
       render: (seller) => (
         <div className="seller-list__actions">
@@ -122,6 +129,18 @@ export function SellerTable({
                 },
                 ...(canManage
                   ? [
+                      ...(seller.status === "INVITED"
+                        ? [
+                            {
+                              label: "Reenviar invitación",
+                              icon: <Send aria-hidden="true" />,
+                              onSelect: () => {
+                                setMenuSeller(null);
+                                onResendInvitation(seller);
+                              },
+                            },
+                          ]
+                        : []),
                       {
                         label: "Editar",
                         icon: <Pencil aria-hidden="true" />,
@@ -140,22 +159,26 @@ export function SellerTable({
                         icon: <MapPinned aria-hidden="true" />,
                         onSelect: () => { setMenuSeller(null); onAssign(seller, "territories"); },
                       },
-                      {
-                        label:
-                          seller.status === "ACTIVE"
-                            ? "Inactivar"
-                            : "Activar",
-                        icon: <Power aria-hidden="true" />,
-                        tone:
-                          seller.status === "ACTIVE"
-                            ? ("danger" as const)
-                            : ("default" as const),
-                        onSelect: () => {
-                          setMenuSeller(null);
-                          triggers.current[seller.id]?.focus();
-                          onChangeStatus(seller);
-                        },
-                      },
+                      ...(seller.status !== "INVITED"
+                        ? [
+                            {
+                              label:
+                                seller.status === "ACTIVE"
+                                  ? "Inactivar"
+                                  : "Activar",
+                              icon: <Power aria-hidden="true" />,
+                              tone:
+                                seller.status === "ACTIVE"
+                                  ? ("danger" as const)
+                                  : ("default" as const),
+                              onSelect: () => {
+                                setMenuSeller(null);
+                                triggers.current[seller.id]?.focus();
+                                onChangeStatus(seller);
+                              },
+                            },
+                          ]
+                        : []),
                     ]
                   : []),
               ]}
@@ -176,7 +199,9 @@ export function SellerTable({
       <DataTablePagination
         page={page}
         totalPages={totalPages}
+        pageSize={pageSize}
         onPageChange={onPageChange}
+        onPageSizeChange={onPageSizeChange}
         ariaLabel="Paginación de vendedores"
         summary={
           <>
@@ -187,7 +212,11 @@ export function SellerTable({
     </>
   );
 }
-const statusLabel = { ACTIVE: "Activo", INACTIVE: "Inactivo" } as const;
+const statusLabel = {
+  INVITED: "Pendiente de invitación",
+  ACTIVE: "Activo",
+  INACTIVE: "Inactivo",
+} as const;
 const initials = (name: string) =>
   name
     .split(/\s+/)

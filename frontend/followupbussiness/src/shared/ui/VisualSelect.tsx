@@ -1,5 +1,7 @@
 import { ChevronDown } from "lucide-react";
-import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import "./filter-field.css";
 import "./visual-select.css";
 
 export type VisualSelectOption<T extends string> = Readonly<{
@@ -27,7 +29,10 @@ export function VisualSelect<T extends string>({
 }: Props<T>) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const listboxId = useId();
+  const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
   const selected =
     options.find((option) => option.value === value) ?? options[0];
 
@@ -35,13 +40,35 @@ export function VisualSelect<T extends string>({
     const close = (event: PointerEvent) => {
       if (
         event.target instanceof Node &&
-        !rootRef.current?.contains(event.target)
+        !rootRef.current?.contains(event.target) &&
+        !menuRef.current?.contains(event.target)
       )
         setOpen(false);
     };
     document.addEventListener("pointerdown", close);
     return () => document.removeEventListener("pointerdown", close);
   }, []);
+
+  useLayoutEffect(() => {
+    if (!open || !triggerRef.current) return;
+    const update = () => {
+      const bounds = triggerRef.current?.getBoundingClientRect();
+      if (!bounds) return;
+      const width = Math.max(bounds.width, 112);
+      setPosition({
+        top: bounds.bottom + 6,
+        left: Math.max(12, Math.min(bounds.left, window.innerWidth - width - 12)),
+        width,
+      });
+    };
+    update();
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, true);
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update, true);
+    };
+  }, [open]);
 
   const choose = (option: VisualSelectOption<T>) => {
     if (option.disabled) return;
@@ -52,6 +79,7 @@ export function VisualSelect<T extends string>({
   return (
     <div ref={rootRef} className="visual-select">
       <button
+        ref={triggerRef}
         type="button"
         className="visual-select__trigger"
         aria-label={ariaLabel}
@@ -72,12 +100,14 @@ export function VisualSelect<T extends string>({
         <span>{selected?.label}</span>
         <ChevronDown aria-hidden="true" />
       </button>
-      {open && (
+      {open && createPortal(
         <div
+          ref={menuRef}
           id={listboxId}
           className="visual-select__menu"
           role="listbox"
           aria-label={ariaLabel}
+          style={position}
         >
           {options.map((option) => (
             <button
@@ -92,7 +122,7 @@ export function VisualSelect<T extends string>({
             </button>
           ))}
         </div>
-      )}
+      , document.body)}
     </div>
   );
 }

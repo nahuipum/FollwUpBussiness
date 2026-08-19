@@ -1,0 +1,15 @@
+.client-list h1 { margin: 0; color: #14213d; }
+.client-list__heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 18px; }
+.client-list__heading p { margin: 7px 0 0; color: #67778a; line-height: 1.5; }
+.client-list__card { overflow: hidden; border: 1px solid rgb(20 33 61 / 8%); border-radius: 18px; background: #fff; box-shadow: 0 4px 12px rgb(16 42 67 / 5%); }
+.client-list__toolbar { display: grid; grid-template-columns: minmax(300px, 2.2fr) repeat(3, minmax(105px, .85fr)) repeat(2, minmax(145px, 1fr)); align-items: end; gap: 14px; padding: 18px 20px; border-bottom: 1px solid rgb(20 33 61 / 8%); }
+.client-list__search { display: flex; align-items: center; gap: 9px; min-height: 43px; padding: 0 13px; border: 1px solid var(--theme-border, #cfd9e4); border-radius: 10px; color: var(--theme-text-muted, #67778a); background: var(--theme-surface-raised, #fff); transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+.client-list__search:focus-within { border-color: #2b7e88; box-shadow: 0 0 0 3px rgb(56 178 172 / 16%); }
+.client-list__search svg { width: 18px; flex: 0 0 auto; }
+.client-list__search input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: #14213d; }
+.client-list__updated { margin: 0; padding: 10px 20px; border-bottom: 1px solid rgb(20 33 61 / 8%); color: #67778a; font-size: 13px; }
+.client-list__stale { border-top: 1px solid rgb(20 33 61 / 8%); }
+.client-list .data-table { min-width: 820px; table-layout: auto; }
+@media (max-width: 1050px) { .client-list__toolbar { grid-template-columns: repeat(3, minmax(0, 1fr)); } .client-list__search { grid-column: 1 / -1; } }
+@media (max-width: 760px) { .client-list__heading { flex-direction: column; } .client-list__heading > .client-list__primary { width: 100%; justify-content: center; } .client-list__toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 14px; } .client-list__search { grid-column: 1 / -1; } }
+@media (max-width: 520px) { .client-list__toolbar { grid-template-columns: minmax(0, 1fr); } .client-list__search { grid-column: auto; } }

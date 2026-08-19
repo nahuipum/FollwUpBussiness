@@ -114,6 +114,20 @@ public class CompanyUserService {
         return invite(command, actor, correlationId, true);
     }
 
+    public User resendSellerInvitation(UUID id, AuthenticatedActor actor, UUID correlationId) {
+        UUID tenant = admin(actor);
+        User seller = find(id, tenant);
+        if (seller.role() != BaseRole.SELLER || !"INVITED".equals(seller.status())) throw new Conflict();
+        if (recovery == null || notifications == null) throw new IllegalStateException();
+        Instant now = clock.instant();
+        String token = secret();
+        Instant expires = now.plus(Duration.ofHours(24));
+        recovery.replaceToken(new PasswordRecoveryPort.Token(id, tenant, PasswordRecoveryPort.Purpose.ACTIVATION, digest(token), expires));
+        notifications.enqueue(id, tenant, PasswordRecoveryPort.Purpose.ACTIVATION, seller.email(), token, expires);
+        durableSuccess(actor, seller, seller.status(), now, correlationId);
+        return seller;
+    }
+
     private User invite(Invite command, AuthenticatedActor actor, UUID correlationId, boolean seller) {
         UUID tenant = admin(actor);
         validInvite(command);
@@ -204,19 +218,20 @@ public class CompanyUserService {
         UUID tenant = admin(actor);
         User before = find(id, tenant);
         if (before.status().equals(target)) return before;
-        String restoredStatus = "LOCKED".equals(before.status()) && "ACTIVE".equals(target)
+        String restoredStatus = (("LOCKED".equals(before.status()) || ("INACTIVE".equals(before.status()) && before.role() == BaseRole.SELLER)) && "ACTIVE".equals(target))
                 ? lockedFromStatus(id, tenant) : null;
         String afterStatus = restoredStatus == null ? target : restoredStatus;
         boolean valid = ("LOCKED".equals(target) && Set.of("INVITED", "ACTIVE", "INACTIVE").contains(before.status()))
                 || ("INACTIVE".equals(target) && Set.of("INVITED", "ACTIVE").contains(before.status()))
                 || ("ACTIVE".equals(target) && "INACTIVE".equals(before.status()))
+                || ("INVITED".equals(target) && "INACTIVE".equals(before.status()) && before.role() == BaseRole.SELLER)
                 || (restoredStatus != null && Set.of("INVITED", "ACTIVE", "INACTIVE").contains(restoredStatus));
         if (!valid) throw new Conflict();
         if (("LOCKED".equals(target) || "INACTIVE".equals(target)) && before.role() == BaseRole.COMPANY_ADMIN)
             guardLastAdmin(tenant, id);
         Instant now = clock.instant();
         int changed = jdbc.update("UPDATE identity_access_account SET status=?,locked_from_status=?,credential_version=credential_version+1,updated_at=? WHERE id=? AND company_id=? AND status=?",
-                afterStatus, "LOCKED".equals(afterStatus) ? before.status() : null, Timestamp.from(now), id, tenant, before.status());
+                afterStatus, ("LOCKED".equals(afterStatus) || "INACTIVE".equals(afterStatus)) ? before.status() : null, Timestamp.from(now), id, tenant, before.status());
         if (changed != 1) throw new Conflict();
         if (!"ACTIVE".equals(afterStatus)) {
             jdbc.update("UPDATE identity_access_session_family SET revoked_at=COALESCE(revoked_at,?) WHERE account_id=? AND company_id=?", Timestamp.from(now), id, tenant);

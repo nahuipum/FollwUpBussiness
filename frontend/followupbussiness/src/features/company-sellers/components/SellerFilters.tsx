@@ -74,6 +74,7 @@ export function SellerFilters({
           value={status ?? "ALL"}
           options={[
             { value: "ALL", label: "Todos" },
+            { value: "INVITED", label: "Pendiente de invitación" },
             { value: "ACTIVE", label: "Activo" },
             { value: "INACTIVE", label: "Inactivo" },
           ]}

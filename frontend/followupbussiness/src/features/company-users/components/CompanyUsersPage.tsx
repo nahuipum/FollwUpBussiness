@@ -160,6 +160,7 @@ export function CompanyUsersPage() {
             <CompanyUsersTable
               users={items}
               page={users.page}
+              pageSize={users.pageSize}
               totalPages={users.result?.page.totalPages ?? 0}
               totalElements={users.result?.page.totalElements ?? items.length}
               readOnly={!users.canManage}
@@ -183,6 +184,7 @@ export function CompanyUsersPage() {
                 users.setStatusUser(user);
               }}
               onPageChange={users.goToPage}
+              onPageSizeChange={users.changePageSize}
             />
           )}
         </section>

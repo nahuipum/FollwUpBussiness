@@ -6,7 +6,7 @@ import { PasswordRecoveryBrandMark } from "../../features/auth/components/BrandP
 import { navigate } from "../navigation";
 
 export type CompanySection = "dashboard" | "administrators-supervisors" | "sellers" | "territories" | "clients";
-export type SupervisorSection = "dashboard" | "sellers" | "territories";
+export type SupervisorSection = "dashboard" | "sellers" | "territories" | "clients";
 
 type Props = {
   activeSection: CompanySection | SupervisorSection;
@@ -26,6 +26,7 @@ const supervisorSections: Record<SupervisorSection, string> = {
   dashboard: "Resumen",
   sellers: "Vendedores",
   territories: "Zonas",
+  clients: "Clientes",
 };
 
 export function CompanyWorkspaceLayout({ activeSection, workspace, children }: Props) {
@@ -74,6 +75,7 @@ function supervisorNavigation(activeSection: SupervisorSection): DashboardNaviga
     item("dashboard", "Resumen", <LayoutDashboard />, activeSection, "/supervisor/dashboard"),
     item("sellers", "Vendedores", <UserRound />, activeSection, "/supervisor/sellers"),
     item("territories", "Zonas", <MapPinned />, activeSection, "/supervisor/territories"),
+    item("clients", "Clientes", <ContactRound />, activeSection, "/supervisor/clients"),
   ];
 }
 
