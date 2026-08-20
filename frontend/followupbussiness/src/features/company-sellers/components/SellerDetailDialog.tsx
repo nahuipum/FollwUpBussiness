@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { ModalHeader } from "../../../shared/ui/ModalHeader";
 import { ModalSurface } from "../../../shared/ui/ModalSurface";
 import type { Seller } from "../types";
 
@@ -15,12 +15,7 @@ export function SellerDetailDialog({
       onDismiss={onClose}
       className="seller-list__dialog"
     >
-      <header>
-        <h2 id="seller-detail-title">Detalle de vendedor</h2>
-        <button type="button" aria-label="Cerrar detalle" onClick={onClose}>
-          <X aria-hidden="true" />
-        </button>
-      </header>
+      <ModalHeader module="Vendedores" title="Detalle de vendedor" titleId="seller-detail-title" onClose={onClose} closeLabel="Cerrar detalle" />
       <dl>
         <div>
           <dt>Nombre completo</dt>

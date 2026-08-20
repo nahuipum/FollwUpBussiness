@@ -78,6 +78,19 @@ public final class CustomerController {
         }
     }
 
+    @GetMapping("/{customerId}")
+    public ResponseEntity<?> get(@PathVariable UUID customerId, @AuthenticationPrincipal AuthenticatedActor actor, HttpServletRequest http) {
+        UUID correlation = correlationId(http);
+        try {
+            var scope = scopes.resolve(actor);
+            var customer = portfolio.get(customerId, new CustomerPortfolioReadUseCase.Scope(scope.tenantId(), scope.allCurrentPortfolios(), scope.sellerIds()));
+            return customer.<ResponseEntity<?>>map(detail -> ResponseEntity.ok().header("X-Correlation-Id", correlation.toString()).body(Response.from(detail)))
+                    .orElseGet(() -> problem(HttpStatus.NOT_FOUND, correlation));
+        } catch (PortfolioAccessScopeUseCase.Forbidden | CustomerPortfolioReadUseCase.Forbidden e) {
+            return problem(HttpStatus.FORBIDDEN, correlation);
+        }
+    }
+
     @PatchMapping("/{customerId}")
     public ResponseEntity<?> update(@PathVariable UUID customerId, @RequestHeader("If-Match") String ifMatch, @Valid @RequestBody Update request, @AuthenticationPrincipal AuthenticatedActor actor, HttpServletRequest http) {
         UUID correlation = correlationId(http);
@@ -366,6 +379,11 @@ public final class CustomerController {
                     List<UUID> assignedSellerIds, String status, Instant createdAt, Instant updatedAt, long version) {
         static Response from(Customer c) {
             return new Response(c.id(), c.name(), c.documentType(), c.documentNumber(), c.phone(), c.email(), c.segment(), c.address(), c.location(), c.visitFrequencyDays(), c.territoryId(), List.of(), c.status(), c.createdAt(), c.updatedAt(), c.version());
+        }
+
+        static Response from(CustomerPortfolioReadUseCase.Detail detail) {
+            Customer c = detail.customer();
+            return new Response(c.id(), c.name(), c.documentType(), c.documentNumber(), c.phone(), c.email(), c.segment(), c.address(), c.location(), c.visitFrequencyDays(), c.territoryId(), detail.assignedSellerIds(), c.status(), c.createdAt(), c.updatedAt(), c.version());
         }
     }
 

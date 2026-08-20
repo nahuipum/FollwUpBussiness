@@ -1,0 +1,13 @@
+:is(.modal-surface, .modal, .modal-surface-layer, .modal-layer) {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+:is(.modal-surface, .modal, .modal-surface-layer, .modal-layer)::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  appearance: none;
+  background: transparent;
+  -webkit-appearance: none;
+}

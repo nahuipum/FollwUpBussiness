@@ -47,6 +47,8 @@
   position: fixed;
   z-index: 60;
   display: grid;
+  max-height: min(320px, calc(100dvh - 24px));
+  overflow-y: auto;
   padding: 6px;
   border: 1px solid #dce5ed;
   border-radius: 12px;
@@ -66,6 +68,7 @@
   cursor: pointer;
 }
 .visual-select__menu button:hover,
+.visual-select__menu button[data-active="true"],
 .visual-select__menu button[aria-selected="true"] {
   color: #176d77;
   background: #f2fbfc;

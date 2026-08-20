@@ -1,8 +1,9 @@
 import { useState, type FormEvent } from "react";
-import { X } from "lucide-react";
+import { ModalHeader } from "../../../shared/ui/ModalHeader";
 import { ModalSurface } from "../../../shared/ui/ModalSurface";
 import { FormAlert } from "../../../shared/ui/FormAlert";
 import { VisualSelect } from "../../../shared/ui/VisualSelect";
+import { ModalAsyncState } from "../../../shared/ui/ModalAsyncState";
 import type { Seller, SellerFormOptions } from "../types";
 import type { SellerAssignmentKind } from "../hooks/useSellerAssignment";
 
@@ -25,9 +26,9 @@ export function SellerAssignmentDialog({ seller, kind, options, loading, busy, e
     onSubmit(supervisor ? supervisorId : [...new Set(territoryIds)]);
   };
   return <ModalSurface titleId="seller-assignment-title" onDismiss={onClose} className={`seller-list__dialog seller-list__form-dialog seller-list__assignment-dialog${supervisor ? " seller-list__assignment-dialog--supervisor" : ""}`}>
-    <header><h2 id="seller-assignment-title">{title}</h2><button type="button" aria-label="Cerrar asignación" onClick={onClose} disabled={busy}><X aria-hidden="true" /></button></header>
+    <ModalHeader module="Vendedores" title={title} titleId="seller-assignment-title" onClose={onClose} closeLabel="Cerrar asignación" closeDisabled={busy} />
     <p>Vendedor: <strong>{seller.displayName}</strong></p>
-    {loading ? <p role="status">Cargando opciones…</p> : !options ? <div role="alert"><p>No pudimos cargar las opciones.</p><button className="seller-list__secondary" type="button" onClick={onRetry}>Reintentar</button></div> : <form onSubmit={submit}>
+    {loading ? <ModalAsyncState state="loading" title="Cargando opciones" message="Estamos preparando las asignaciones disponibles." /> : !options ? <ModalAsyncState state="error" title="No pudimos cargar las opciones" message="No logramos obtener las asignaciones disponibles. Reintenta en unos segundos." primaryAction={{ label: "Reintentar", onClick: onRetry }} secondaryAction={{ label: "Cancelar", onClick: onClose }} /> : <form onSubmit={submit}>
       {supervisor ? <label>Supervisor<VisualSelect ariaLabel="Supervisor" value={supervisorId ?? "NONE"} options={[{ value: "NONE", label: "Sin asignar" }, ...options.supervisors.map((item) => ({ value: item.id, label: item.displayName }))]} onChange={(value) => setSupervisorId(value === "NONE" ? null : value)} /></label> : <fieldset><legend>Territorios</legend>{options.territories.map((territory) => <label key={territory.id} className="seller-list__checkbox"><input type="checkbox" checked={territoryIds.includes(territory.id)} onChange={(event) => { setSelectionError(null); setTerritoryIds((current) => event.target.checked ? [...current, territory.id] : current.filter((id) => id !== territory.id)); }} />{territory.code} — {territory.name}</label>)}</fieldset>}
       {(selectionError || error) && <FormAlert>{selectionError ?? error}</FormAlert>}
       <footer><button className="seller-list__secondary" type="button" onClick={onClose} disabled={busy}>Cancelar</button><button className="seller-list__primary" type="submit" disabled={busy}>{busy ? "Guardando…" : title}</button></footer>

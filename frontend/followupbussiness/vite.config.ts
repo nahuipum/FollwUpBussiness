@@ -49,7 +49,11 @@ export function developmentServer(env: Record<string, string | undefined>) {
 }
 
 export function viteConfiguration(mode: string, env: Record<string, string | undefined>) {
-  return { plugins: [react()], ...(mode === 'development' ? { server: developmentServer(env) } : {}) }
+  return {
+    plugins: [react()],
+    optimizeDeps: { exclude: ['maplibre-gl'] },
+    ...(mode === 'development' ? { server: developmentServer(env) } : {}),
+  }
 }
 
 export default defineConfig(({ mode }) => {

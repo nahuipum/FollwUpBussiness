@@ -1,28 +1,34 @@
-import { useEffect, useEffectEvent, useRef } from 'react'
+import { useEffect, useEffectEvent, useRef, type RefObject } from 'react'
 
-const focusableSelector = 'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
+const focusableSelector = 'button, [href], input, select, textarea, [tabindex]'
 
-export function useDialogFocus(onDismiss: () => void) {
+function focusableElements(dialog: HTMLElement | null) {
+  return dialog ? [...dialog.querySelectorAll<HTMLElement>(focusableSelector)].filter((element) => !element.hasAttribute('disabled') && element.tabIndex >= 0) : []
+}
+
+export function useDialogFocus(onDismiss: () => void, initialFocusRef?: RefObject<HTMLElement | null>, dismissOnEscape = true) {
   const dialogRef = useRef<HTMLElement>(null)
-  const initialFocusRef = useRef<HTMLButtonElement>(null)
+  const fallbackInitialFocusRef = useRef<HTMLButtonElement>(null)
   const dismiss = useEffectEvent(onDismiss)
 
   useEffect(() => {
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    initialFocusRef.current?.focus()
+    const focusable = focusableElements(dialogRef.current)
+    ;(initialFocusRef?.current ?? fallbackInitialFocusRef.current ?? focusable[0] ?? dialogRef.current)?.focus()
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
+        if (!dismissOnEscape) return
         event.preventDefault()
         dismiss()
         return
       }
       if (event.key !== 'Tab') return
 
-      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(focusableSelector)
-      if (!focusable || focusable.length === 0) return
+      const focusable = focusableElements(dialogRef.current)
+      if (focusable.length === 0) return
       const first = focusable[0]
       const last = focusable[focusable.length - 1]
       if (!first || !last) return
@@ -42,7 +48,7 @@ export function useDialogFocus(onDismiss: () => void) {
       document.body.style.overflow = previousOverflow
       previousFocus?.focus()
     }
-  }, [])
+  }, [dismissOnEscape, initialFocusRef])
 
-  return { dialogRef, initialFocusRef }
+  return { dialogRef, initialFocusRef: fallbackInitialFocusRef }
 }

@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { X } from "lucide-react";
 import type { ApiError } from "../../../lib/api";
 import { InlineAlert } from "../../../shared/ui/error-ui/components";
+import { ModalHeader } from "../../../shared/ui/ModalHeader";
 import { ModalSurface } from "../../../shared/ui/ModalSurface";
 import { VisualSelect } from "../../../shared/ui/VisualSelect";
 import type { CompanyCurrency, CreateCompanyInput } from "../types";
@@ -56,24 +56,15 @@ export function CreateCompanyModal({
       onDismiss={busy ? () => undefined : onClose}
     >
       <form onSubmit={submit}>
-        <div className="company-modal__header">
-          <div>
-            <h2 id="create-company-title">Crear empresa</h2>
-            <p>
-              Registra los datos iniciales para crear una nueva empresa en
-              plataforma.
-            </p>
-          </div>
-          <button
-            type="button"
-            className="company-icon-button"
-            aria-label="Cerrar modal"
-            onClick={onClose}
-            disabled={busy}
-          >
-            <X />
-          </button>
-        </div>
+        <ModalHeader
+          module="Empresas"
+          title="Crear empresa"
+          titleId="create-company-title"
+          description="Registra los datos iniciales para crear una nueva empresa en plataforma."
+          onClose={onClose}
+          closeDisabled={busy}
+          className="company-modal__header"
+        />
         <div className="company-modal__body">
           {error?.status === 422 && (
             <InlineAlert

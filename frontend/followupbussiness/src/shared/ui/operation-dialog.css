@@ -1,0 +1,71 @@
+.operation-dialog,
+.confirmation-dialog {
+  box-sizing: border-box;
+  width: min(100%, 420px);
+  padding: 20px 24px 24px;
+  border-radius: 18px;
+  background: var(--theme-surface-raised, #fff);
+  box-shadow: 0 20px 40px rgb(16 42 67 / 18%);
+}
+.operation-dialog__close { display: flex; justify-content: flex-end; }
+.operation-dialog__close button {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: var(--theme-text-muted, #67778a);
+  background: transparent;
+  cursor: pointer;
+}
+.operation-dialog__close button:hover { background: var(--theme-surface-hover, #f2f6f8); }
+.operation-dialog__content,
+.confirmation-dialog__content {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: 0 12px 8px;
+  text-align: center;
+}
+.operation-dialog__icon {
+  display: grid;
+  width: 60px;
+  height: 60px;
+  place-items: center;
+  border-radius: 50%;
+}
+.operation-dialog__icon svg { width: 30px; height: 30px; }
+.operation-dialog__icon--success { color: #267a52; background: #effaf2; }
+.operation-dialog__icon--error { color: #d83b57; background: #fff3f5; }
+.operation-dialog__icon--warning { color: #9a6700; background: #fff8e6; }
+.operation-dialog__icon--info { color: #176d77; background: #eef9fa; }
+.operation-dialog h2,
+.confirmation-dialog h2 { margin: 0; color: var(--theme-text, #14213d); font-size: 21px; }
+.operation-dialog p,
+.confirmation-dialog p { margin: 0; color: #52677c; line-height: 1.5; }
+.operation-dialog footer,
+.confirmation-dialog footer { display: flex; justify-content: center; gap: 10px; margin-top: 18px; }
+.operation-dialog__primary,
+.operation-dialog__secondary {
+  min-width: 128px;
+  min-height: 44px;
+  padding: 0 17px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.operation-dialog__primary { color: #fff; background: #176d77; }
+.operation-dialog__secondary { color: #26384a; border-color: #cfd9e4; background: #fff; }
+.operation-dialog button:focus-visible,
+.confirmation-dialog button:focus-visible { outline: 3px solid rgb(56 178 172 / 35%); outline-offset: 2px; }
+@media (max-width: 520px) {
+  .operation-dialog footer,
+  .confirmation-dialog footer { flex-direction: column-reverse; }
+  .operation-dialog footer button,
+  .confirmation-dialog footer button { width: 100%; }
+}

@@ -19,6 +19,10 @@ type Props<T extends string> = {
   invalid?: boolean;
 };
 
+function getOptionId(listboxId: string, index: number) {
+  return `${listboxId}-option-${index}`;
+}
+
 export function VisualSelect<T extends string>({
   value,
   options,
@@ -32,9 +36,42 @@ export function VisualSelect<T extends string>({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const listboxId = useId();
+  const [activeIndex, setActiveIndex] = useState(-1);
   const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
   const selected =
     options.find((option) => option.value === value) ?? options[0];
+
+  const selectedEnabledIndex = options.findIndex(
+    (option) => option.value === value && !option.disabled,
+  );
+  const firstEnabledIndex = options.findIndex((option) => !option.disabled);
+  const lastEnabledIndex = options.findLastIndex((option) => !option.disabled);
+
+  const initialIndex = (direction: "first" | "last" = "first") => {
+    if (selectedEnabledIndex >= 0) return selectedEnabledIndex;
+    return direction === "last" ? lastEnabledIndex : firstEnabledIndex;
+  };
+
+  const openMenu = (direction: "first" | "last" = "first") => {
+    setActiveIndex(initialIndex(direction));
+    setOpen(true);
+  };
+
+  const moveActive = (step: 1 | -1) => {
+    const enabledIndexes = options.flatMap((option, index) =>
+      option.disabled ? [] : [index],
+    );
+    if (enabledIndexes.length === 0) return;
+    const currentPosition = enabledIndexes.indexOf(activeIndex);
+    const nextPosition =
+      currentPosition < 0
+        ? step === 1
+          ? 0
+          : enabledIndexes.length - 1
+        : (currentPosition + step + enabledIndexes.length) %
+          enabledIndexes.length;
+    setActiveIndex(enabledIndexes[nextPosition] ?? -1);
+  };
 
   useEffect(() => {
     const close = (event: PointerEvent) => {
@@ -70,10 +107,18 @@ export function VisualSelect<T extends string>({
     };
   }, [open]);
 
+  useEffect(() => {
+    if (!open || activeIndex < 0) return;
+    document
+      .getElementById(getOptionId(listboxId, activeIndex))
+      ?.scrollIntoView?.({ block: "nearest" });
+  }, [activeIndex, listboxId, open]);
+
   const choose = (option: VisualSelectOption<T>) => {
     if (option.disabled) return;
     onChange(option.value);
     setOpen(false);
+    triggerRef.current?.focus();
   };
 
   return (
@@ -88,12 +133,46 @@ export function VisualSelect<T extends string>({
         aria-expanded={open}
         aria-invalid={invalid || undefined}
         disabled={disabled}
-        onClick={() => setOpen((current) => !current)}
+        aria-activedescendant={
+          open && activeIndex >= 0
+            ? getOptionId(listboxId, activeIndex)
+            : undefined
+        }
+        onClick={() => {
+          if (open) setOpen(false);
+          else openMenu();
+        }}
         onKeyDown={(event) => {
-          if (event.key === "Escape") setOpen(false);
+          if (event.key === "Escape" && open) {
+            event.preventDefault();
+            setOpen(false);
+            return;
+          }
+          if (event.key === "Tab") {
+            setOpen(false);
+            return;
+          }
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            if (!open) openMenu();
+            else if (activeIndex >= 0) {
+              const option = options[activeIndex];
+              if (option) choose(option);
+            }
+            return;
+          }
           if (event.key === "ArrowDown" || event.key === "ArrowUp") {
             event.preventDefault();
-            setOpen(true);
+            if (!open)
+              openMenu(event.key === "ArrowUp" ? "last" : "first");
+            else moveActive(event.key === "ArrowDown" ? 1 : -1);
+            return;
+          }
+          if (open && (event.key === "Home" || event.key === "End")) {
+            event.preventDefault();
+            setActiveIndex(
+              event.key === "Home" ? firstEnabledIndex : lastEnabledIndex,
+            );
           }
         }}
       >
@@ -109,13 +188,19 @@ export function VisualSelect<T extends string>({
           aria-label={ariaLabel}
           style={position}
         >
-          {options.map((option) => (
+          {options.map((option, index) => (
             <button
               key={option.value}
+              id={getOptionId(listboxId, index)}
               type="button"
               role="option"
               aria-selected={option.value === value}
+              data-active={index === activeIndex || undefined}
               disabled={option.disabled}
+              tabIndex={-1}
+              onPointerMove={() => {
+                if (!option.disabled) setActiveIndex(index);
+              }}
               onClick={() => choose(option)}
             >
               {option.label}

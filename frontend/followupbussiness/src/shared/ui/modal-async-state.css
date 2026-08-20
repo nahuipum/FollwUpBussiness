@@ -1,0 +1,49 @@
+.modal-async-state {
+  display: grid;
+  min-height: 168px;
+  justify-items: center;
+  align-content: center;
+  gap: 16px;
+  padding: 28px 20px 12px;
+  text-align: center;
+}
+.modal-async-state__icon {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  place-items: center;
+  border-radius: 18px;
+}
+.modal-async-state__icon svg { width: 28px; height: 28px; }
+.modal-async-state--error .modal-async-state__icon { color: #c83a52; background: #fff3f5; box-shadow: inset 0 0 0 1px #f4c3cb; }
+.modal-async-state--loading .modal-async-state__icon { color: #176d77; background: #eef9fa; box-shadow: inset 0 0 0 1px #c8e6e9; }
+.modal-async-state--loading .modal-async-state__icon svg { animation: modal-async-state-spin .9s linear infinite; }
+.modal-async-state__copy { display: grid; max-width: 440px; gap: 7px; }
+.modal-async-state__copy h3 { margin: 0; color: var(--theme-text, #14213d); font-size: 18px; line-height: 1.3; }
+.modal-async-state__copy p { margin: 0; color: var(--theme-text-secondary, #52677c); line-height: 1.55; }
+.modal-async-state__copy small { color: var(--theme-text-muted, #67778a); font-size: 11px; overflow-wrap: anywhere; }
+.modal-async-state__actions { display: flex; justify-content: center; gap: 10px; margin-top: 2px; }
+.modal-async-state__primary,
+.modal-async-state__secondary {
+  min-width: 128px;
+  min-height: 44px;
+  padding: 0 17px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.modal-async-state__primary { color: #fff; background: #176d77; box-shadow: 0 8px 18px rgb(23 109 119 / 16%); }
+.modal-async-state__primary:hover { background: #125c65; }
+.modal-async-state__secondary { color: #26384a; border-color: #cfd9e4; background: #fff; }
+.modal-async-state__secondary:hover { border-color: #a8bac9; background: #f8fafc; }
+.modal-async-state button:focus-visible { outline: 3px solid rgb(56 178 172 / 35%); outline-offset: 2px; }
+@keyframes modal-async-state-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .modal-async-state--loading .modal-async-state__icon svg { animation: none; } }
+@media (max-width: 520px) {
+  .modal-async-state { padding-inline: 0; }
+  .modal-async-state__actions { width: 100%; flex-direction: column-reverse; }
+  .modal-async-state__actions button { width: 100%; }
+}

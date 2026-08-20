@@ -73,6 +73,28 @@ class CustomerControllerTest {
     }
 
     @Test
+    void getsSelectedCustomerWithResolvedScopeAndMapsHiddenResourceToNotFound() throws Exception {
+        UUID tenant = UUID.randomUUID(), seller = UUID.randomUUID(), customerId = UUID.randomUUID();
+        authenticate(tenant, BaseRole.SUPERVISOR);
+        when(scopes.resolve(any())).thenReturn(new PortfolioAccessScopeUseCase.Scope(tenant, false, Set.of(seller)));
+        Customer customer = new Customer(customerId, tenant, "Customer", "DNI", "12345678", "999999999", "customer@test.local", "STANDARD", "Address", new GeoPoint(-12.1, -77.1), 30, null, "ACTIVE", Instant.EPOCH, Instant.EPOCH, 1);
+        when(portfolio.get(eq(customerId), any())).thenReturn(Optional.of(new CustomerPortfolioReadUseCase.Detail(customer, List.of(seller))));
+
+        mvc.perform(get("/customers/{id}", customerId))
+                .andExpect(status().isOk()).andExpect(header().exists("X-Correlation-Id"))
+                .andExpect(jsonPath("$.id").value(customerId.toString()))
+                .andExpect(jsonPath("$.address").value("Address"))
+                .andExpect(jsonPath("$.assignedSellerIds[0]").value(seller.toString()));
+
+        UUID hidden = UUID.randomUUID();
+        when(portfolio.get(eq(hidden), any())).thenReturn(Optional.empty());
+        mvc.perform(get("/customers/{id}", hidden)).andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.detail").value("Request cannot be processed"))
+                .andExpect(jsonPath("$.email").doesNotExist());
+        verify(scopes, times(2)).resolve(any());
+    }
+
+    @Test
     void createsOnlyForSessionAdminAndRejectsUnknownProperties() throws Exception {
         UUID tenant = UUID.randomUUID();
         authenticate(tenant, BaseRole.COMPANY_ADMIN);

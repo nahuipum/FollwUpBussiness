@@ -1,8 +1,9 @@
-import { Send, X } from "lucide-react";
+import { Send } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useEffect } from "react";
 import { useDialogFocus } from "../../../shared/hooks/useDialogFocus";
 import { FormAlert } from "../../../shared/ui/FormAlert";
+import { ModalHeader } from "../../../shared/ui/ModalHeader";
 import { SellerOperationDialog } from "./SellerOperationDialog";
 import type { ApiError } from "../../../lib/api";
 import type { Seller } from "../types";
@@ -62,7 +63,7 @@ function SellerInvitationConfirmationDialog({
         aria-labelledby="seller-invitation-title"
         aria-describedby="seller-invitation-description"
       >
-        <header className="seller-list__invitation-header"><h2 id="seller-invitation-title">Reenviar invitación</h2><button type="button" aria-label="Cerrar reenvío de invitación" onClick={onClose} disabled={busy}><X aria-hidden="true" /></button></header>
+        <ModalHeader module="Vendedores" title="Reenviar invitación" titleId="seller-invitation-title" onClose={onClose} closeLabel="Cerrar reenvío de invitación" closeDisabled={busy} className="seller-list__invitation-header" />
         <section className="seller-list__invitation-content">
             <span className="seller-list__invitation-icon" aria-hidden="true"><Send /></span>
             <p id="seller-invitation-description">

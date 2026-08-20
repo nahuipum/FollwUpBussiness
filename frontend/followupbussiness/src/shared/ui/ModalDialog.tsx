@@ -2,6 +2,7 @@ import { createPortal } from 'react-dom'
 import type { ReactNode } from 'react'
 import { useDialogFocus } from '../hooks/useDialogFocus'
 import './modal-dialog.css'
+import './modal-scrollbar.css'
 
 type DialogAction = {
   label: string

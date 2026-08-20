@@ -2,6 +2,7 @@ import { createPortal } from "react-dom";
 import { useEffect, useRef } from "react";
 import { useDialogFocus } from "../../../shared/hooks/useDialogFocus";
 import { FormAlert } from "../../../shared/ui/FormAlert";
+import { ModalHeader } from "../../../shared/ui/ModalHeader";
 import type { ApiError } from "../../../lib/api";
 import type { Seller } from "../types";
 
@@ -64,9 +65,7 @@ export function SellerStatusDialog({
         aria-describedby="seller-status-description"
       >
         <form onSubmit={submit}>
-          <header>
-            <h2 id="seller-status-title">{action} vendedor</h2>
-          </header>
+          <ModalHeader module="Vendedores" title={`${action} vendedor`} titleId="seller-status-title" />
           <p id="seller-status-description">
             {inactive
               ? `Inactivarás a ${seller.displayName}. Se revocará su acceso y no tendrá nuevas rutas.`

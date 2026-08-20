@@ -1,9 +1,10 @@
-import { ShieldCheck, UserRound, X } from "lucide-react";
+import { ShieldCheck, UserRound } from "lucide-react";
 import {
   useState,
   type FormEvent,
   type ReactNode,
 } from "react";
+import { ModalHeader } from "../../../shared/ui/ModalHeader";
 import { ModalSurface } from "../../../shared/ui/ModalSurface";
 import type { CompanyUser, CompanyUserInput, CompanyUserRole } from "../types";
 
@@ -53,19 +54,14 @@ export function CompanyUserInviteDialog({
       : "Enviar invitación";
   return (
     <ModalSurface titleId="invite-title" onDismiss={close} className="company-users__dialog">
-        <header>
-          <h2 id="invite-title">
-            {title}
-          </h2>
-          <button
-            type="button"
-            aria-label="Cerrar invitación"
-            onClick={close}
-            disabled={busy}
-          >
-            <X aria-hidden="true" />
-          </button>
-        </header>
+        <ModalHeader
+          module="Usuarios"
+          title={title}
+          titleId="invite-title"
+          onClose={close}
+          closeLabel="Cerrar invitación"
+          closeDisabled={busy}
+        />
         <form onSubmit={submit}>
           <label>
             Nombre completo

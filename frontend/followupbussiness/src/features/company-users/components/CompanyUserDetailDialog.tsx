@@ -1,5 +1,7 @@
-import { X } from "lucide-react";
+import { ModalHeader } from "../../../shared/ui/ModalHeader";
 import { ModalSurface } from "../../../shared/ui/ModalSurface";
+import { ModalAsyncState } from "../../../shared/ui/ModalAsyncState";
+import type { ApiError } from "../../../lib/api";
 import type { CompanyUser } from "../types";
 
 const roleLabel = { COMPANY_ADMIN: "Administrador", SUPERVISOR: "Supervisor" } as const;
@@ -9,21 +11,20 @@ export function CompanyUserDetailDialog({
   user,
   loading,
   error,
+  onRetry,
   onClose,
 }: {
   user: CompanyUser | null;
   loading: boolean;
-  error: boolean;
+  error: ApiError | null;
+  onRetry: () => void;
   onClose: () => void;
 }) {
   return (
     <ModalSurface titleId="user-detail-title" onDismiss={onClose} className="company-users__dialog">
-        <header>
-          <h2 id="user-detail-title">Detalle de usuario</h2>
-          <button type="button" aria-label="Cerrar detalle" onClick={onClose}><X aria-hidden="true" /></button>
-        </header>
-        {loading && <p role="status">Cargando detalle…</p>}
-        {error && <p role="alert">No pudimos mostrar el detalle del usuario.</p>}
+        <ModalHeader module="Usuarios" title="Detalle de usuario" titleId="user-detail-title" onClose={onClose} closeLabel="Cerrar detalle" />
+        {loading && <ModalAsyncState state="loading" title="Cargando usuario" message="Estamos obteniendo la información más reciente." />}
+        {error && <ModalAsyncState state="error" title="No pudimos cargar el usuario" message="No logramos obtener la información actual. Reintenta en unos segundos." correlationId={error.correlationId} primaryAction={{ label: "Reintentar", onClick: onRetry }} secondaryAction={{ label: "Cerrar", onClick: onClose }} />}
         {user && (
           <dl className="company-users__detail-list">
             <div><dt>Nombre completo</dt><dd>{user.displayName}</dd></div>
@@ -33,7 +34,7 @@ export function CompanyUserDetailDialog({
             <div><dt>Estado</dt><dd>{statusLabel[user.status]}</dd></div>
           </dl>
         )}
-        <footer><button className="company-users__secondary" type="button" onClick={onClose}>Cerrar</button></footer>
+        {user && <footer><button className="company-users__secondary" type="button" onClick={onClose}>Cerrar</button></footer>}
     </ModalSurface>
   );
 }

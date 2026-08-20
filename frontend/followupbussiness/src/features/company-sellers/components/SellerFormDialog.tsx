@@ -1,7 +1,8 @@
-import { X } from "lucide-react";
 import { useState, type FormEvent } from "react";
+import { ModalHeader } from "../../../shared/ui/ModalHeader";
 import { ModalSurface } from "../../../shared/ui/ModalSurface";
 import { VisualSelect } from "../../../shared/ui/VisualSelect";
+import { ModalAsyncState } from "../../../shared/ui/ModalAsyncState";
 import type { Seller, SellerFormInput, SellerFormOptions } from "../types";
 
 export function SellerFormDialog({
@@ -57,32 +58,18 @@ export function SellerFormDialog({
       onDismiss={close}
       className="seller-list__dialog seller-list__form-dialog"
     >
-      <header>
-        <h2 id="seller-form-title">
-          {editing ? "Editar vendedor" : "Crear vendedor"}
-        </h2>
-        <button
-          type="button"
-          aria-label="Cerrar formulario"
-          onClick={close}
-          disabled={busy}
-        >
-          <X aria-hidden="true" />
-        </button>
-      </header>
+      <ModalHeader
+        module="Vendedores"
+        title={editing ? "Editar vendedor" : "Crear vendedor"}
+        titleId="seller-form-title"
+        onClose={close}
+        closeLabel="Cerrar formulario"
+        closeDisabled={busy}
+      />
       {loadingOptions ? (
-        <p role="status">Cargando opciones de asignación…</p>
+        <ModalAsyncState state="loading" title="Cargando opciones" message="Estamos preparando los datos necesarios para el formulario." />
       ) : !options ? (
-        <div role="alert">
-          <p>No pudimos cargar las opciones de asignación.</p>
-          <button
-            className="seller-list__secondary"
-            type="button"
-            onClick={onRetryOptions}
-          >
-            Reintentar
-          </button>
-        </div>
+        <ModalAsyncState state="error" title="No pudimos cargar las opciones de asignación." message="No logramos obtener los datos necesarios para el formulario. Reintenta en unos segundos." primaryAction={{ label: "Reintentar", onClick: onRetryOptions }} secondaryAction={{ label: "Cerrar", onClick: close }} />
       ) : (
         <form onSubmit={submit}>
           <label>

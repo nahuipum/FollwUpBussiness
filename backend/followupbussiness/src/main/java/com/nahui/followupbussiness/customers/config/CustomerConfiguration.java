@@ -43,7 +43,7 @@ public class CustomerConfiguration {
 
     @Bean
     CustomerPortfolioReadUseCase customerPortfolioReadUseCase(JdbcTemplate jdbc) {
-        return new CustomerPortfolioReadService(new JdbcCustomerPortfolioStore(jdbc), new JdbcCustomerActivityStore(jdbc));
+        return new CustomerPortfolioReadService(new JdbcCustomerPortfolioStore(jdbc), new JdbcCustomerActivityStore(jdbc), new JdbcCustomerStore(jdbc));
     }
     @Bean
     CustomerPortfolioAssignmentUseCase customerPortfolioAssignmentUseCase(JdbcTemplate jdbc, SellerReferenceUseCase sellers, @Qualifier("transactionalAuditEntryUseCase") RecordAuditEntryUseCase audit) {

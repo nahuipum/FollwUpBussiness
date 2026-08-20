@@ -4,11 +4,11 @@ import {
   LoaderCircle,
   PauseCircle,
   PlayCircle,
-  X,
 } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import type { ApiError } from "../../../lib/api";
 import { InlineAlert } from "../../../shared/ui/error-ui/components";
+import { ModalHeader } from "../../../shared/ui/ModalHeader";
 import { ModalSurface } from "../../../shared/ui/ModalSurface";
 import type { Company } from "../types";
 
@@ -102,25 +102,18 @@ export function CompanyActionDialog({
       onDismiss={busy ? () => undefined : onClose}
     >
       <form className="company-action-dialog" onSubmit={submit}>
-        <header className="company-modal__header">
-          <div>
-            <h2 id="company-action-title">{actionLabel}</h2>
-            <p>
-              {isSuspend
-                ? "Confirma la suspensión de acceso para esta empresa."
-                : "Confirma la reactivación de acceso para esta empresa."}
-            </p>
-          </div>
-          <button
-            className="company-icon-button"
-            type="button"
-            aria-label="Cerrar"
-            onClick={onClose}
-            disabled={busy}
-          >
-            <X aria-hidden="true" />
-          </button>
-        </header>
+        <ModalHeader
+          module="Empresas"
+          title={actionLabel}
+          titleId="company-action-title"
+          description={isSuspend
+            ? "Confirma la suspensión de acceso para esta empresa."
+            : "Confirma la reactivación de acceso para esta empresa."}
+          onClose={onClose}
+          closeLabel="Cerrar"
+          closeDisabled={busy}
+          className="company-modal__header"
+        />
         <div className="company-modal__body">
           <div className="company-action-dialog__company">
             <Building2 aria-hidden="true" />
@@ -227,20 +220,15 @@ function DetailDialog({
   return (
     <ModalSurface titleId="company-detail-title" onDismiss={onClose}>
       <section className="company-action-dialog">
-        <header className="company-modal__header">
-          <div>
-            <h2 id="company-detail-title">Detalle de empresa</h2>
-            <p>Información disponible desde el listado de plataforma.</p>
-          </div>
-          <button
-            className="company-icon-button"
-            type="button"
-            aria-label="Cerrar"
-            onClick={onClose}
-          >
-            <X aria-hidden="true" />
-          </button>
-        </header>
+        <ModalHeader
+          module="Empresas"
+          title="Detalle de empresa"
+          titleId="company-detail-title"
+          description="Información disponible desde el listado de plataforma."
+          onClose={onClose}
+          closeLabel="Cerrar"
+          className="company-modal__header"
+        />
         <div className="company-modal__body">
           <dl className="company-action-dialog__details">
             <div>

@@ -9,11 +9,13 @@ import type { CompanyUser } from "../types";
 
 export function useCompanyUserDetail() {
   const requestRef = useRef(0);
+  const targetIdRef = useRef<string | null>(null);
   const [user, setUser] = useState<CompanyUser | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
 
   const open = async (id: string) => {
+    targetIdRef.current = id;
     const requestId = ++requestRef.current;
     setUser(null);
     setError(null);
@@ -33,10 +35,11 @@ export function useCompanyUserDetail() {
 
   const close = () => {
     requestRef.current += 1;
+    targetIdRef.current = null;
     setUser(null);
     setError(null);
     setLoading(false);
   };
 
-  return { user, loading, error, open, close };
+  return { user, loading, error, open, retry: () => targetIdRef.current && open(targetIdRef.current), close };
 }

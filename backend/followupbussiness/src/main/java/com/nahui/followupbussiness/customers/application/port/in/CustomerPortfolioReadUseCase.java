@@ -4,6 +4,7 @@ import com.nahui.followupbussiness.customers.domain.Customer;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -12,6 +13,8 @@ import java.util.UUID;
  */
 public interface CustomerPortfolioReadUseCase {
     Page read(Query query, Scope scope);
+
+    Optional<Detail> get(UUID customerId, Scope scope);
 
     /**
      * Resolved from the authenticated actor by workforce before this port is called.
@@ -24,6 +27,9 @@ public interface CustomerPortfolioReadUseCase {
     }
 
     record Page(List<Customer> items, long total) {
+    }
+
+    record Detail(Customer customer, List<UUID> assignedSellerIds) {
     }
 
     final class Forbidden extends RuntimeException {

@@ -38,5 +38,7 @@ test("disables certificate verification only for loopback targets", () => {
 });
 
 test("does not include the development proxy in production configuration", () => {
-  expect(viteConfiguration("production", {})).not.toHaveProperty("server");
+  const configuration = viteConfiguration("production", {});
+  expect(configuration).not.toHaveProperty("server");
+  expect(configuration.optimizeDeps.exclude).toContain("maplibre-gl");
 });

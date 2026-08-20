@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.nahui.followupbussiness.customers.adapter.out.persistence.JdbcCustomerActivityStore;
 import com.nahui.followupbussiness.customers.adapter.out.persistence.JdbcCustomerPortfolioStore;
+import com.nahui.followupbussiness.customers.adapter.out.persistence.JdbcCustomerStore;
 import com.nahui.followupbussiness.customers.application.CustomerPortfolioReadService;
 import com.nahui.followupbussiness.customers.application.port.in.CustomerPortfolioReadUseCase;
 import com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor;
@@ -101,6 +102,21 @@ class CustomerPortfolioReadIntegrationTest {
     }
 
     @Test
+    void getsOnlyTheSelectedCustomerReachableByTenantAndPortfolio() {
+        CustomerPortfolioReadService read = read();
+        PortfolioAccessScopeService scopes = scopes();
+        var supervisor = scope(scopes.resolve(actor(supervisorA, tenantA, BaseRole.SUPERVISOR)));
+        var admin = scope(scopes.resolve(actor(adminA, tenantA, BaseRole.COMPANY_ADMIN)));
+
+        assertThat(read.get(customerA, supervisor)).hasValueSatisfying(detail -> {
+            assertThat(detail.customer().id()).isEqualTo(customerA);
+            assertThat(detail.assignedSellerIds()).containsExactly(sellerA);
+        });
+        assertThat(read.get(customerOther, supervisor)).isEmpty();
+        assertThat(read.get(customerB, admin)).isEmpty();
+    }
+
+    @Test
     void rejectsCrossTenantAndInactiveOrUnknownSellerFiltersAndUsesUtcActivityBoundary() {
         CustomerPortfolioReadService read = read();
         PortfolioAccessScopeService scopes = scopes();
@@ -132,7 +148,7 @@ class CustomerPortfolioReadIntegrationTest {
     }
 
     private CustomerPortfolioReadService read() {
-        return new CustomerPortfolioReadService(new JdbcCustomerPortfolioStore(jdbc), new JdbcCustomerActivityStore(jdbc));
+        return new CustomerPortfolioReadService(new JdbcCustomerPortfolioStore(jdbc), new JdbcCustomerActivityStore(jdbc), new JdbcCustomerStore(jdbc));
     }
 
     private PortfolioAccessScopeService scopes() {

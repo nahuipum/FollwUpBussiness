@@ -18,6 +18,7 @@ import { ApiRequestObsoleteError, normalizeApiError } from "../../../lib/api";
 import { TableLoadingIndicator } from "../../../shared/ui/TableLoadingIndicator";
 import { ReadOnlyNotice } from "../../../shared/ui/ReadOnlyNotice";
 import { AsyncStateCard } from "../../../shared/ui/AsyncStateCard";
+import { ModalHeader } from "../../../shared/ui/ModalHeader";
 
 export function CompanyUsersPage() {
   const users = useCompanyUsers();
@@ -229,7 +230,8 @@ export function CompanyUsersPage() {
           <CompanyUserDetailDialog
             user={details.user}
             loading={details.loading}
-            error={details.error !== null}
+            error={details.error}
+            onRetry={details.retry}
             onClose={details.close}
           />
         )}
@@ -278,11 +280,11 @@ function StatusConfirmation({
   return (
     <div className="company-users__dialog-backdrop">
       <section ref={dialogRef} className="company-users__dialog" role="dialog" aria-modal="true" aria-labelledby="status-title">
-        <header>
-          <h2 id="status-title">
-            {reactivate ? "Reactivar usuario" : "Bloquear usuario"}
-          </h2>
-        </header>
+        <ModalHeader
+          module="Usuarios"
+          title={reactivate ? "Reactivar usuario" : "Bloquear usuario"}
+          titleId="status-title"
+        />
         <p>
           {reactivate
             ? "¿Deseas reactivar este usuario?"
