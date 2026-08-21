@@ -41,6 +41,9 @@
 .operation-dialog__icon--error { color: #d83b57; background: #fff3f5; }
 .operation-dialog__icon--warning { color: #9a6700; background: #fff8e6; }
 .operation-dialog__icon--info { color: #176d77; background: #eef9fa; }
+.confirmation-dialog--with-header .shared-modal-header { margin-bottom: 6px; }
+.confirmation-dialog--with-header .confirmation-dialog__content { padding-top: 6px; }
+.confirmation-dialog .form-alert { margin: 4px 0 0; }
 .operation-dialog h2,
 .confirmation-dialog h2 { margin: 0; color: var(--theme-text, #14213d); font-size: 21px; }
 .operation-dialog p,
@@ -61,6 +64,8 @@
 }
 .operation-dialog__primary { color: #fff; background: #176d77; }
 .operation-dialog__secondary { color: #26384a; border-color: #cfd9e4; background: #fff; }
+.operation-dialog__primary:disabled,
+.operation-dialog__secondary:disabled { cursor: not-allowed; opacity: .58; }
 .operation-dialog button:focus-visible,
 .confirmation-dialog button:focus-visible { outline: 3px solid rgb(56 178 172 / 35%); outline-offset: 2px; }
 @media (max-width: 520px) {

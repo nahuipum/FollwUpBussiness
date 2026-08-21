@@ -26,7 +26,7 @@ public interface CustomerPortfolioReadUseCase {
                  LocalDate withoutVisitSince, LocalDate withoutPurchaseSince, int offset, int limit) {
     }
 
-    record Page(List<Customer> items, long total) {
+    record Page(List<Detail> items, long total) {
     }
 
     record Detail(Customer customer, List<UUID> assignedSellerIds) {

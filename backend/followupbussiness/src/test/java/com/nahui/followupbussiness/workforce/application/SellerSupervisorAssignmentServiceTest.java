@@ -8,7 +8,7 @@ import com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActo
 import com.nahui.followupbussiness.identityaccess.domain.model.BaseRole;
 import com.nahui.followupbussiness.workforce.application.port.out.SellerStore;
 import com.nahui.followupbussiness.workforce.domain.Seller;
-import com.nahui.followupbussiness.workforce.domain.TerritoryStatus;
+import com.nahui.followupbussiness.workforce.domain.SellerStatus;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -78,7 +78,7 @@ class SellerSupervisorAssignmentServiceTest {
 
     private Seller seller(UUID supervisorId, long version) {
         return new Seller(UUID.randomUUID(), tenant, UUID.randomUUID(), "Seller", "seller@example.test", null, null, supervisorId,
-                List.of(UUID.randomUUID()), TerritoryStatus.ACTIVE, Instant.EPOCH, Instant.EPOCH, version);
+                List.of(UUID.randomUUID()), SellerStatus.ACTIVE, Instant.EPOCH, Instant.EPOCH, version);
     }
 
     private final class Store implements SellerStore {
@@ -95,7 +95,7 @@ class SellerSupervisorAssignmentServiceTest {
             if (!acceptUpdate || value.version() != expectedVersion || !Objects.equals(value.supervisorId(), expectedSupervisorId)) return Optional.empty();
             writes++; value = seller; return Optional.of(seller);
         }
-        @Override public List<Seller> list(UUID tenantId, UUID supervisorId, TerritoryStatus status, UUID requestedSupervisorId, UUID territoryId, String search, int offset, int limit) { return List.of(); }
-        @Override public long count(UUID tenantId, UUID supervisorId, TerritoryStatus status, UUID requestedSupervisorId, UUID territoryId, String search) { return 0; }
+        @Override public List<Seller> list(UUID tenantId, UUID supervisorId, SellerStatus status, UUID requestedSupervisorId, UUID territoryId, String search, int offset, int limit) { return List.of(); }
+        @Override public long count(UUID tenantId, UUID supervisorId, SellerStatus status, UUID requestedSupervisorId, UUID territoryId, String search) { return 0; }
     }
 }

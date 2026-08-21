@@ -24,7 +24,7 @@ import com.nahui.followupbussiness.identityaccess.domain.model.BaseRole;
 import com.nahui.followupbussiness.workforce.application.SellerService;
 import com.nahui.followupbussiness.workforce.application.port.out.SellerStore;
 import com.nahui.followupbussiness.workforce.domain.Seller;
-import com.nahui.followupbussiness.workforce.domain.TerritoryStatus;
+import com.nahui.followupbussiness.workforce.domain.SellerStatus;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -50,7 +50,7 @@ class SellerTerritoryAssignmentControllerTest {
         UUID territoryId = UUID.randomUUID();
         SellerService service = mock(SellerService.class);
         Seller seller = new Seller(sellerId, tenant, UUID.randomUUID(), "Seller", "seller@example.test", null, null, supervisorId,
-                List.of(territoryId), TerritoryStatus.ACTIVE, Instant.EPOCH, Instant.EPOCH, 1);
+                List.of(territoryId), SellerStatus.ACTIVE, Instant.EPOCH, Instant.EPOCH, 1);
         when(service.list(isNull(), isNull(), isNull(), isNull(), eq(0), eq(20), any()))
                 .thenReturn(new SellerService.Page(List.of(seller), 1));
         when(service.references(anyList(), any())).thenReturn(Map.of(sellerId,
@@ -161,7 +161,7 @@ class SellerTerritoryAssignmentControllerTest {
 
     private static Seller seller(UUID id, UUID tenant, UUID territoryId) {
         return new Seller(id, tenant, UUID.randomUUID(), "Seller", "seller@example.test", null, null, null, List.of(territoryId),
-                TerritoryStatus.ACTIVE, Instant.EPOCH, Instant.EPOCH, 1);
+                SellerStatus.ACTIVE, Instant.EPOCH, Instant.EPOCH, 1);
     }
 
     private static String body(UUID territoryId) {
@@ -189,11 +189,11 @@ class SellerTerritoryAssignmentControllerTest {
             value = seller;
             return Optional.of(seller);
         }
-        @Override public List<Seller> list(UUID tenantId, UUID supervisorId, TerritoryStatus status, UUID requestedSupervisorId, UUID territoryId, String search, int offset, int limit) {
+        @Override public List<Seller> list(UUID tenantId, UUID supervisorId, SellerStatus status, UUID requestedSupervisorId, UUID territoryId, String search, int offset, int limit) {
             filterReads++;
             return List.of();
         }
-        @Override public long count(UUID tenantId, UUID supervisorId, TerritoryStatus status, UUID requestedSupervisorId, UUID territoryId, String search) {
+        @Override public long count(UUID tenantId, UUID supervisorId, SellerStatus status, UUID requestedSupervisorId, UUID territoryId, String search) {
             filterReads++;
             return 0;
         }

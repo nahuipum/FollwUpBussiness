@@ -49,6 +49,7 @@ export function PlatformCompaniesPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<CompanyStatus | null>(null);
   const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -80,6 +81,7 @@ export function PlatformCompaniesPage() {
             setCompanies(result.page.items);
             setPageInfo(result.page.page);
             setError(null);
+            setLastUpdated(new Date());
           } else setError(await normalizeApiError(result.response));
         } catch (reason) {
           if (
@@ -290,6 +292,7 @@ export function PlatformCompaniesPage() {
             <CompanyTable
               companies={companies}
               page={pageInfo}
+              lastUpdated={lastUpdated}
               search={search}
               status={status}
               loading={loading}

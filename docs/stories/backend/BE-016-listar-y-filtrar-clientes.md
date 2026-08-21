@@ -20,7 +20,9 @@
 
     1. Filtros funcionales.
 2. Paginación.
-3. Supervisor restringido.
+3. El supervisor solo consulta clientes de las carteras vigentes de sus
+   vendedores asignados; el alcance se aplica antes de filtros, conteo y
+   paginación.
 4. Respuesta consistente.
 
     ## Referencias
@@ -29,7 +31,8 @@
 
     ## Seguridad y privacidad
 
-    - Validar tenant y autorización por recurso.
+    - Derivar tenant, identidad, rol y equipo desde la sesión y validar la
+      autorización por recurso antes de filtros, conteo y paginación.
 - No registrar secretos ni datos personales completos.
 
     ## Observabilidad

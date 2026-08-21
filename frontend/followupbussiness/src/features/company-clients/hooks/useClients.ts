@@ -6,7 +6,7 @@ import type { ClientFilterOptions, ClientFilters, ClientPage, ClientStatus } fro
 import type { DataTablePageSize } from "../../../shared/ui/data-table-pagination";
 
 const emptyOptions: ClientFilterOptions = { territories: [], sellers: [] };
-function sessionKey() {
+export function clientSessionKey() {
   const identity = getSessionIdentity();
   const company = identity?.company;
   const companyId = typeof company === "object" && company !== null && typeof (company as Record<string, unknown>).id === "string" ? (company as Record<string, unknown>).id : String(company);
@@ -15,7 +15,7 @@ function sessionKey() {
 function canListClients() { const roles = getSessionIdentity()?.roles ?? []; return roles.includes("COMPANY_ADMIN") || roles.includes("SUPERVISOR"); }
 
 export function useClients() {
-  const key = sessionKey(); const keyRef = useRef(key); const requestRef = useRef(0);
+  const key = clientSessionKey(); const keyRef = useRef(key); const requestRef = useRef(0);
   const [search, setSearch] = useState(""); const [status, setStatus] = useState<ClientStatus | null>(null);
   const [territoryId, setTerritoryId] = useState<string | null>(null); const [sellerId, setSellerId] = useState<string | null>(null);
   const [withoutVisitSince, setWithoutVisitSince] = useState(""); const [withoutPurchaseSince, setWithoutPurchaseSince] = useState("");
@@ -38,7 +38,7 @@ export function useClients() {
       else if (clients.page && nextOptions.options) { setResult(clients.page); setOptions(nextOptions.options); setError(null); setLastUpdated(new Date()); }
     }).catch((reason) => { if (requestId === requestRef.current && !(reason instanceof ApiRequestObsoleteError)) setError({ status: 500, correlationId: null, fieldErrors: [] }); }).finally(() => { if (requestId === requestRef.current) setLoading(false); });
   }, [forbidden, key, page, pageSize, reloadKey, search, sellerId, status, territoryId, withoutPurchaseSince, withoutVisitSince]);
-  useEffect(() => subscribeToSession(() => { const next = sessionKey(); if (keyRef.current === next) return; requestRef.current += 1; keyRef.current = next; clear(); setResult(null); setOptions(emptyOptions); setError(null); setLastUpdated(null); setForbidden(false); setLoading(false); setReloadKey((value) => value + 1); }), []);
+  useEffect(() => subscribeToSession(() => { const next = clientSessionKey(); if (keyRef.current === next) return; requestRef.current += 1; keyRef.current = next; clear(); setResult(null); setOptions(emptyOptions); setError(null); setLastUpdated(null); setForbidden(false); setLoading(false); setReloadKey((value) => value + 1); }), []);
   const change = <T,>(setter: (value: T) => void) => (value: T) => { setter(value); setPage(0); };
   return { search, status, territoryId, sellerId, withoutVisitSince, withoutPurchaseSince, page, pageSize, result, options, loading, error, lastUpdated, forbidden,
     changeSearch: change(setSearch), changeStatus: change(setStatus), changeTerritory: change(setTerritoryId), changeSeller: change(setSellerId), changeWithoutVisitSince: change(setWithoutVisitSince), changeWithoutPurchaseSince: change(setWithoutPurchaseSince),

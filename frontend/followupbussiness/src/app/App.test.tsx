@@ -367,6 +367,47 @@ test("restores the protected route after a reload before rendering its panel", a
   expect(screen.queryByRole("dialog", { name: "Tu sesión terminó" })).toBeNull();
 });
 
+test("restaura sesión al recargar directamente el mapa general de clientes", async () => {
+  window.history.replaceState({}, "", "/company/clients/map");
+  window.sessionStorage.setItem("followupbusiness.csrf-token", "c".repeat(43));
+  const fetchMock = vi.fn((url: string) => Promise.resolve(
+    url.endsWith("/me") ? currentUserResponse("COMPANY_ADMIN")
+      : url.includes("/customers?") ? customerPageResponse()
+        : new Response(JSON.stringify(webResponse("COMPANY_ADMIN")), { status: 200 }),
+  ));
+  vi.stubGlobal("fetch", fetchMock);
+
+  render(<App />);
+
+  await screen.findByRole("heading", { name: "Mapa general de clientes" });
+  expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/auth/refresh");
+  expect(screen.queryByText("Inicia sesión para continuar")).toBeNull();
+});
+
+test("restaura la ruta directa de Asignar cartera sólo para administrador", async () => {
+  window.history.replaceState({}, "", "/company/customer-assignments");
+  window.sessionStorage.setItem("followupbusiness.csrf-token", "c".repeat(43));
+  const fetchMock = vi.fn((url: string) => Promise.resolve(
+    url.endsWith("/me") ? currentUserResponse("COMPANY_ADMIN")
+      : url.includes("/customers?") ? customerPageResponse()
+        : url.includes("/sellers?") || url.includes("/territories?") ? new Response(JSON.stringify({ items: [], page: { page: 0, pageSize: 200, totalElements: 0, totalPages: 1 } }), { status: 200 })
+          : new Response(JSON.stringify(webResponse("COMPANY_ADMIN")), { status: 200 }),
+  ));
+  vi.stubGlobal("fetch", fetchMock);
+  render(<App />);
+  await screen.findByRole("heading", { name: "Asignar cartera" });
+  expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/auth/refresh");
+});
+
+test.each(["SUPERVISOR", "SELLER"] as const)("deniega Asignar cartera a %s", async (role) => {
+  vi.stubGlobal("fetch", vi.fn((url: string) => Promise.resolve(url.endsWith("/me") ? currentUserResponse(role) : new Response(JSON.stringify(webResponse(role)), { status: 200 }))));
+  await login({ identifier: `${role.toLowerCase()}@example.com`, password: "correct-password" });
+  window.history.replaceState({}, "", "/company/customer-assignments");
+  render(<App />);
+  expect(await screen.findByText("Inicia sesión para continuar")).toBeTruthy();
+  cleanup();
+});
+
 test("does not show a session-restoration screen or load companies during a protected reload", async () => {
   window.history.replaceState({}, "", "/platform/companies");
   window.sessionStorage.setItem("followupbusiness.csrf-token", "c".repeat(43));
@@ -431,7 +472,7 @@ test("ubica Clientes entre usuarios y auditoría en dashboard de empresa", async
 
   await waitFor(() => expect(screen.getByRole("navigation")).toBeTruthy());
   const items = Array.from(screen.getByRole("navigation").querySelectorAll("button")).map((item) => item.textContent);
-  expect(items).toEqual(["Resumen", "Administradores y supervisores", "Vendedores", "Zonas", "Clientes", "Auditoría", "Configuración"]);
+  expect(items).toEqual(["Resumen", "Administradores y supervisores", "Vendedores", "Zonas", "Clientes", "Asignar cartera", "Auditoría", "Configuración"]);
   fireEvent.click(screen.getByRole("button", { name: "Vendedores" }));
   expect(window.location.pathname).toBe("/company/sellers");
   expect(screen.getByRole("button", { name: "Vendedores" }).className).toContain("dashboard-nav__item--active");
@@ -441,6 +482,7 @@ test("ubica Clientes entre usuarios y auditoría en dashboard de empresa", async
   fireEvent.click(screen.getByRole("menuitem", { name: "Ver detalle" }));
   expect(screen.getByRole("dialog", { name: "Detalle de vendedor" })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Clientes" }));
+  fireEvent.click(screen.getByRole("button", { name: "Gestión de clientes" }));
   expect(window.location.pathname).toBe("/company/clients");
   expect(screen.getByRole("button", { name: "Clientes" }).className).toContain("dashboard-nav__item--active");
   expect(screen.getByRole("heading", { name: "Clientes" })).toBeTruthy();
@@ -449,6 +491,7 @@ test("ubica Clientes entre usuarios y auditoría en dashboard de empresa", async
 });
 
 test("muestra el listado contractual al supervisor sin abrir navegación administrativa", async () => {
+  vi.stubEnv("VITE_GEOAPIFY_TILE_KEY", "");
   const fetchMock = vi.fn((url: string) => Promise.resolve(
     url.endsWith("/me")
       ? currentUserResponse("SUPERVISOR")
@@ -477,8 +520,89 @@ test("muestra el listado contractual al supervisor sin abrir navegación adminis
   expect(screen.queryByRole("button", { name: "Administradores y supervisores" })).toBeNull();
   expect(fetchMock.mock.calls.some(([url]) => String(url).includes("/sellers?page=0&pageSize=5"))).toBe(true);
   fireEvent.click(screen.getByRole("button", { name: "Clientes" }));
+  fireEvent.click(screen.getByRole("button", { name: "Gestión de clientes" }));
   await screen.findByText("Comercial Norte");
   expect(window.location.pathname).toBe("/supervisor/clients");
+  fireEvent.click(screen.getByRole("button", { name: "Mapa general" }));
+  await screen.findByRole("heading", { name: "Mapa general de clientes" });
+  expect(window.location.pathname).toBe("/supervisor/clients/map");
+  expect(fetchMock.mock.calls.some(([url]) => String(url).includes("/customers?"))).toBe(true);
+});
+
+test("restringe el mapa general a administración y consulta sólo clientes", async () => {
+  vi.stubEnv("VITE_GEOAPIFY_TILE_KEY", "");
+  const fetchMock = vi.fn((url: string) => Promise.resolve(
+    url.endsWith("/me") ? currentUserResponse("COMPANY_ADMIN")
+      : url.includes("/customers?") ? customerPageResponse()
+        : new Response(JSON.stringify(webResponse("COMPANY_ADMIN")), { status: 200 }),
+  ));
+  vi.stubGlobal("fetch", fetchMock);
+  await login({ identifier: "admin@example.com", password: "correct-password" });
+  window.history.replaceState({}, "", "/company/clients/map");
+  render(<App />);
+
+  await screen.findByText("Comercial Norte");
+  expect(screen.getByRole("heading", { name: "Mapa general de clientes" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Gestión de clientes" })).toBeTruthy();
+  expect(fetchMock.mock.calls.some(([url]) => String(url).includes("/territories?"))).toBe(false);
+  expect(fetchMock.mock.calls.some(([url]) => String(url).includes("/sellers?"))).toBe(false);
+});
+
+test("muestra un vacío claro al supervisor en su mapa sin consultar opciones ajenas", async () => {
+  const emptyCustomers = new Response(JSON.stringify({ items: [], page: { page: 0, pageSize: 200, totalElements: 0, totalPages: 0 } }), { status: 200 });
+  const fetchMock = vi.fn((url: string) => Promise.resolve(
+    url.endsWith("/me") ? currentUserResponse("SUPERVISOR")
+      : url.includes("/customers?") ? emptyCustomers.clone()
+        : new Response(JSON.stringify(webResponse("SUPERVISOR")), { status: 200 }),
+  ));
+  vi.stubGlobal("fetch", fetchMock);
+  await login({ identifier: "supervisor@example.com", password: "correct-password" });
+  window.history.replaceState({}, "", "/supervisor/clients/map");
+  render(<App />);
+  expect(await screen.findByText("No hay clientes disponibles para tu equipo en este momento.")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Mapa general" })).toBeTruthy();
+  expect(fetchMock.mock.calls.some(([url]) => String(url).includes("/territories?"))).toBe(false);
+  expect(fetchMock.mock.calls.some(([url]) => String(url).includes("/sellers?"))).toBe(false);
+});
+
+test("descarta los clientes del contexto anterior al reemplazar la sesión en el mapa", async () => {
+  vi.stubEnv("VITE_GEOAPIFY_TILE_KEY", "");
+  let tenant: "a" | "b" = "a";
+  const sessionFor = (value: "a" | "b") => ({
+    ...webResponse("COMPANY_ADMIN"),
+    user: { ...webResponse("COMPANY_ADMIN").user, id: `admin-${value}`, company: { id: `tenant-${value}`, legalName: `Empresa ${value}` } },
+  });
+  const customersFor = (value: "a" | "b") => new Response(JSON.stringify({
+    items: [{ id: `customer-${value}`, name: `Cliente ${value}`, segment: null, territoryId: null, assignedSellerIds: [], status: "ACTIVE", location: { latitude: -12.04, longitude: -77.03 }, createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z", version: 1 }],
+    page: { page: 0, pageSize: 200, totalElements: 1, totalPages: 1 },
+  }), { status: 200 });
+  vi.stubGlobal("fetch", vi.fn((url: string) => Promise.resolve(
+    url.endsWith("/me") ? new Response(JSON.stringify(sessionFor(tenant).user), { status: 200 })
+      : url.includes("/customers?") ? customersFor(tenant)
+        : new Response(JSON.stringify(sessionFor(tenant)), { status: 200 }),
+  )));
+  await login({ identifier: "admin-a@example.com", password: "correct-password" });
+  window.history.replaceState({}, "", "/company/clients/map");
+  render(<App />);
+
+  await screen.findByText("Cliente a");
+  tenant = "b";
+  await login({ identifier: "admin-b@example.com", password: "correct-password" });
+
+  await screen.findByText("Cliente b");
+  expect(screen.queryByText("Cliente a")).toBeNull();
+});
+
+test("no habilita mapas de clientes a vendedor ni plataforma", async () => {
+  for (const role of ["SELLER", "PLATFORM_SUPERADMIN"] as const) {
+    const fetchMock = vi.fn((url: string) => Promise.resolve(url.endsWith("/me") ? currentUserResponse(role) : new Response(JSON.stringify(webResponse(role)), { status: 200 })));
+    vi.stubGlobal("fetch", fetchMock);
+    await login({ identifier: `${role.toLowerCase()}@example.com`, password: "correct-password" });
+    window.history.replaceState({}, "", role === "SELLER" ? "/supervisor/clients/map" : "/company/clients/map");
+    render(<App />);
+    expect(await screen.findByText("Inicia sesión para continuar")).toBeTruthy();
+    cleanup();
+  }
 });
 
 test("revoca el detalle del tenant anterior al reemplazar la sesión", async () => {

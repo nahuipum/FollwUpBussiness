@@ -164,6 +164,7 @@ export function CompanyUsersPage() {
               pageSize={users.pageSize}
               totalPages={users.result?.page.totalPages ?? 0}
               totalElements={users.result?.page.totalElements ?? items.length}
+              lastUpdated={users.lastUpdated}
               readOnly={!users.canManage}
               menuUser={users.menuUser}
               menuTriggers={users.menuTriggers}

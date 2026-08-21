@@ -488,7 +488,16 @@ El administrador deberá poder corregir las coordenadas.
 
 ### RF-CLI-006. Visualización en mapa
 
-El administrador deberá poder visualizar clientes en un mapa.
+El administrador y el supervisor deberán poder visualizar clientes en un mapa
+dentro de su alcance autorizado. El administrador podrá visualizar los clientes
+de su empresa. El supervisor solo podrá visualizar los clientes de las carteras
+vigentes de los vendedores bajo su responsabilidad.
+
+El sistema deberá derivar tenant, identidad, rol y equipo desde la sesión y
+aplicar el alcance en el servidor antes de cualquier filtro, conteo o
+paginación. Un supervisor sin vendedores o carteras autorizadas obtendrá un
+resultado vacío. No se revelarán clientes, marcadores, identificadores ni
+totales fuera del alcance autorizado.
 
 ### RF-CLI-007. Filtros
 

@@ -7,7 +7,7 @@ import com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActo
 import com.nahui.followupbussiness.identityaccess.domain.model.BaseRole;
 import com.nahui.followupbussiness.workforce.application.port.out.SellerStore;
 import com.nahui.followupbussiness.workforce.domain.Seller;
-import com.nahui.followupbussiness.workforce.domain.TerritoryStatus;
+import com.nahui.followupbussiness.workforce.domain.SellerStatus;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -47,7 +47,7 @@ class SellerQueryServiceTest {
     }
 
     private Seller seller(UUID sellerTenant, UUID sellerSupervisor) {
-        return new Seller(UUID.randomUUID(), sellerTenant, UUID.randomUUID(), "Seller", "seller@example.test", null, null, sellerSupervisor, List.of(), TerritoryStatus.ACTIVE, Instant.EPOCH, Instant.EPOCH, 1);
+        return new Seller(UUID.randomUUID(), sellerTenant, UUID.randomUUID(), "Seller", "seller@example.test", null, null, sellerSupervisor, List.of(), SellerStatus.ACTIVE, Instant.EPOCH, Instant.EPOCH, 1);
     }
 
     private static final class Store implements SellerStore {
@@ -71,12 +71,12 @@ class SellerQueryServiceTest {
             return sellers.stream().filter(s -> s.tenantId().equals(tenant) && s.id().equals(id)).findFirst();
         }
 
-        public List<Seller> list(UUID tenant, UUID team, TerritoryStatus status, UUID requested, UUID territory, String search, int offset, int limit) {
+        public List<Seller> list(UUID tenant, UUID team, SellerStatus status, UUID requested, UUID territory, String search, int offset, int limit) {
             reads++;
             return sellers.stream().filter(s -> s.tenantId().equals(tenant)).filter(s -> team == null || team.equals(s.supervisorId())).filter(s -> status == null || status == s.status()).filter(s -> requested == null || requested.equals(s.supervisorId())).toList();
         }
 
-        public long count(UUID tenant, UUID team, TerritoryStatus status, UUID requested, UUID territory, String search) {
+        public long count(UUID tenant, UUID team, SellerStatus status, UUID requested, UUID territory, String search) {
             reads++;
             return list(tenant, team, status, requested, territory, search, 0, 0).size();
         }

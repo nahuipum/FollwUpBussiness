@@ -18,6 +18,7 @@ type Props = {
   onSellerChange: (value: string | null) => void;
   onWithoutVisitSinceChange: (value: string) => void;
   onWithoutPurchaseSinceChange: (value: string) => void;
+  showAssignmentFilters?: boolean;
 };
 
 export function ClientFilters({
@@ -34,6 +35,7 @@ export function ClientFilters({
   onSellerChange,
   onWithoutVisitSinceChange,
   onWithoutPurchaseSinceChange,
+  showAssignmentFilters = true,
 }: Props) {
   return (
     <div className="client-list__toolbar">
@@ -48,7 +50,7 @@ export function ClientFilters({
           placeholder="Buscar por nombre o segmento"
         />
       </label>
-      <FilterField label="Zona">
+      {showAssignmentFilters && <FilterField label="Zona">
         <VisualSelect
           ariaLabel="Zona"
           value={territoryId ?? "ALL"}
@@ -63,8 +65,8 @@ export function ClientFilters({
             onTerritoryChange(value === "ALL" ? null : value)
           }
         />
-      </FilterField>
-      <FilterField label="Vendedor">
+      </FilterField>}
+      {showAssignmentFilters && <FilterField label="Vendedor">
         <VisualSelect
           ariaLabel="Vendedor"
           value={sellerId ?? "ALL"}
@@ -79,7 +81,7 @@ export function ClientFilters({
             onSellerChange(value === "ALL" ? null : value)
           }
         />
-      </FilterField>
+      </FilterField>}
       <FilterField label="Estado">
         <VisualSelect
           ariaLabel="Estado"

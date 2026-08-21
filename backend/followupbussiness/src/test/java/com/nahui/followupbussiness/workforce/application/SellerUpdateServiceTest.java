@@ -7,7 +7,7 @@ import com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActo
 import com.nahui.followupbussiness.identityaccess.domain.model.BaseRole;
 import com.nahui.followupbussiness.workforce.application.port.out.SellerStore;
 import com.nahui.followupbussiness.workforce.domain.Seller;
-import com.nahui.followupbussiness.workforce.domain.TerritoryStatus;
+import com.nahui.followupbussiness.workforce.domain.SellerStatus;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -77,7 +77,7 @@ class SellerUpdateServiceTest {
     }
 
     private static Seller seller(UUID tenant, long version) {
-        return new Seller(UUID.randomUUID(), tenant, UUID.randomUUID(), "Seller", "seller@example.test", null, "EMP-1", UUID.randomUUID(), List.of(UUID.randomUUID()), TerritoryStatus.ACTIVE, Instant.EPOCH, Instant.EPOCH, version);
+        return new Seller(UUID.randomUUID(), tenant, UUID.randomUUID(), "Seller", "seller@example.test", null, "EMP-1", UUID.randomUUID(), List.of(UUID.randomUUID()), SellerStatus.ACTIVE, Instant.EPOCH, Instant.EPOCH, version);
     }
 
     private static final class Store implements SellerStore {
@@ -123,11 +123,11 @@ class SellerUpdateServiceTest {
             return Optional.of(seller);
         }
 
-        public List<Seller> list(UUID tenantId, UUID supervisorId, TerritoryStatus status, UUID requestedSupervisorId, UUID territoryId, String search, int offset, int limit) {
+        public List<Seller> list(UUID tenantId, UUID supervisorId, SellerStatus status, UUID requestedSupervisorId, UUID territoryId, String search, int offset, int limit) {
             return List.of();
         }
 
-        public long count(UUID tenantId, UUID supervisorId, TerritoryStatus status, UUID requestedSupervisorId, UUID territoryId, String search) {
+        public long count(UUID tenantId, UUID supervisorId, SellerStatus status, UUID requestedSupervisorId, UUID territoryId, String search) {
             return 0;
         }
     }

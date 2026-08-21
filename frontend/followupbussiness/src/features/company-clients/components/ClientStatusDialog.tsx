@@ -1,6 +1,5 @@
-import { FormAlert } from "../../../shared/ui/FormAlert";
-import { ModalHeader } from "../../../shared/ui/ModalHeader";
-import { ModalSurface } from "../../../shared/ui/ModalSurface";
+import { Power } from "lucide-react";
+import { ConfirmationDialog } from "../../../shared/ui/ConfirmationDialog";
 import type { ApiError } from "../../../lib/api";
 import type { Client } from "../types";
 
@@ -13,17 +12,22 @@ export function ClientStatusDialog({ client, busy, error, onClose, onConfirm }: 
 }) {
   const inactivate = client.status === "ACTIVE";
   const action = inactivate ? "Inactivar" : "Activar";
-  return (
-    <ModalSurface titleId="client-status-title" onDismiss={onClose} className="client-status" dismissOnEscape={!busy}>
-      <ModalHeader module="Clientes" title={`${action} cliente`} titleId="client-status-title" onClose={onClose} closeLabel="Cerrar confirmación" closeDisabled={busy} />
-      <p>{`¿Deseas ${inactivate ? "inactivar" : "activar"} a ${client.name}? Su estado cambiará a ${inactivate ? "Inactivo" : "Activo"}.`}</p>
-      {error && <FormAlert>{statusErrorMessage(error)}</FormAlert>}
-      <footer>
-        <button className="client-form__secondary" type="button" onClick={onClose} disabled={busy}>Cancelar</button>
-        <button className="client-form__primary" type="button" onClick={onConfirm} disabled={busy}>{busy ? "Guardando…" : `${action} cliente`}</button>
-      </footer>
-    </ModalSurface>
-  );
+  return <ConfirmationDialog
+    module="Clientes"
+    className="client-status"
+    titleId="client-status-title"
+    title={`${action} cliente`}
+    message={`¿Deseas ${inactivate ? "inactivar" : "activar"} a ${client.name}? Su estado cambiará a ${inactivate ? "Inactivo" : "Activo"}.`}
+    icon={<Power aria-hidden="true" />}
+    tone={inactivate ? "warning" : "info"}
+    busy={busy}
+    busyLabel="Guardando…"
+    error={error ? statusErrorMessage(error) : null}
+    cancelLabel="Cancelar"
+    confirmLabel={`${action} cliente`}
+    onCancel={onClose}
+    onConfirm={onConfirm}
+  />;
 }
 
 function statusErrorMessage(error: ApiError) {

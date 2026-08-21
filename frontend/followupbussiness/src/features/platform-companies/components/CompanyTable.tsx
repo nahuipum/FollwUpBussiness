@@ -24,6 +24,7 @@ import type { Company, CompanyPage, CompanyStatus } from "../types";
 type Props = {
   companies: readonly Company[];
   page: CompanyPage["page"] | null;
+  lastUpdated: Date | null;
   search: string;
   status: CompanyStatus | null;
   loading: boolean;
@@ -45,6 +46,7 @@ type CompanyStatusFilter = "ALL" | CompanyStatus;
 export function CompanyTable({
   companies,
   page,
+  lastUpdated,
   search,
   status,
   loading,
@@ -128,6 +130,7 @@ export function CompanyTable({
               onPageSizeChange={onPageSizeChange}
               ariaLabel="Paginación de empresas"
               summary={<>Mostrando {companies.length} de {page.totalElements} empresas</>}
+              lastUpdated={lastUpdated}
             />
           )}
         </>

@@ -1,4 +1,4 @@
-import { LogOut, Menu, Moon, Sun, X } from "lucide-react";
+import { ChevronDown, LogOut, Menu, Moon, Sun, X } from "lucide-react";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { applyTheme, getStoredTheme, persistTheme, type AppTheme } from "../theme/theme";
 import "./dashboard-layout.css";
@@ -9,6 +9,17 @@ export type DashboardNavigationItem = {
   description?: string;
   icon: ReactNode;
   active?: boolean;
+  onSelect?: () => void;
+  children?: readonly DashboardNavigationChild[];
+};
+
+export type DashboardNavigationChild = {
+  id: string;
+  label: string;
+  icon: ReactNode;
+  description?: string;
+  active?: boolean;
+  disabled?: boolean;
   onSelect?: () => void;
 };
 
@@ -38,6 +49,7 @@ export function DashboardLayout({ brand, contextLabel, navigationLabel, navigati
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const profileButtonRef = useRef<HTMLButtonElement>(null);
   const profileMenuId = useId();
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     applyTheme(theme);
@@ -69,12 +81,28 @@ export function DashboardLayout({ brand, contextLabel, navigationLabel, navigati
         <span className="dashboard-sidebar__context">{contextLabel}</span>
         <p className="dashboard-sidebar__label">{navigationLabel}</p>
         <nav className="dashboard-nav">
-          {navigation.map((item) => (
-            <button key={item.id} className={`dashboard-nav__item${item.active ? " dashboard-nav__item--active" : ""}`} type="button" onClick={() => { item.onSelect?.(); setIsMenuOpen(false); }}>
+          {navigation.map((item) => {
+            const hasChildren = Boolean(item.children?.length);
+            const expanded = expandedGroups[item.id] ?? Boolean(item.active);
+            const groupId = `dashboard-nav-group-${item.id}`;
+            if (!hasChildren) return <button key={item.id} className={`dashboard-nav__item${item.active ? " dashboard-nav__item--active" : ""}`} type="button" onClick={() => { item.onSelect?.(); setIsMenuOpen(false); }}>
               <span aria-hidden="true">{item.icon}</span>
               <span><strong>{item.label}</strong>{item.description && <small>{item.description}</small>}</span>
-            </button>
-          ))}
+            </button>;
+            return <section key={item.id} className={`dashboard-nav__group${item.active ? " dashboard-nav__group--active" : ""}`}>
+              <button className={`dashboard-nav__item dashboard-nav__item--group${item.active ? " dashboard-nav__item--active" : ""}`} type="button" aria-expanded={expanded} aria-controls={groupId} onClick={() => setExpandedGroups((current) => ({ ...current, [item.id]: !expanded }))}>
+                <span aria-hidden="true">{item.icon}</span>
+                <span><strong>{item.label}</strong>{item.description && <small>{item.description}</small>}</span>
+                <ChevronDown className="dashboard-nav__chevron" aria-hidden="true" />
+              </button>
+              {expanded && <div id={groupId} className="dashboard-nav__children" role="group" aria-label={`Opciones de ${item.label}`}>
+                {item.children?.map((child) => <button key={child.id} className={`dashboard-nav__child${child.active ? " dashboard-nav__child--active" : ""}`} type="button" disabled={child.disabled} aria-current={child.active ? "page" : undefined} onClick={() => { child.onSelect?.(); setIsMenuOpen(false); }}>
+                  <span aria-hidden="true">{child.icon}</span>
+                  <span><strong>{child.label}</strong>{child.description && <small>{child.description}</small>}</span>
+                </button>)}
+              </div>}
+            </section>;
+          })}
         </nav>
         <section className="dashboard-profile" aria-label="Contexto de usuario">
           <span className="dashboard-avatar">{profile.initials}</span>

@@ -136,6 +136,7 @@ export function CompanySellersPage() {
                 totalElements={
                   sellers.result?.page.totalElements ?? items.length
                 }
+                lastUpdated={sellers.lastUpdated}
                 canManage={canManage}
                 onPageChange={sellers.goToPage}
                 onPageSizeChange={sellers.changePageSize}

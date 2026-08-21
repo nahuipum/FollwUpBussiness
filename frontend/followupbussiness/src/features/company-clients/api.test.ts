@@ -1,5 +1,5 @@
 import { beforeEach, expect, test, vi } from "vitest";
-import { changeClientStatus, checkClientDuplicate, createClient, getClient, listActiveTerritories, listClientFilterOptions, listClients, updateClient } from "./api";
+import { changeClientStatus, checkClientDuplicate, createClient, getClient, listActiveTerritories, listAllClients, listClientFilterOptions, listClients, updateClient } from "./api";
 import type { Client } from "./types";
 
 const state = vi.hoisted(() => ({ request: vi.fn() }));
@@ -25,6 +25,16 @@ test("rechaza CustomerPage exitosa sin ubicación contractual", async () => {
   await expect(listClients({ page: 0, pageSize: 5, search: "", status: null, territoryId: null, sellerId: null, withoutVisitSince: "", withoutPurchaseSince: "" })).resolves.toMatchObject({ page: null });
 });
 
+test("carga todas las páginas para el mapa general sin exponer un paginador", async () => {
+  state.request
+    .mockResolvedValueOnce(new Response(JSON.stringify({ items: [client], page: { page: 0, pageSize: 200, totalElements: 2, totalPages: 2 } }), { status: 200 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ items: [{ ...client, id: "customer-2" }], page: { page: 1, pageSize: 200, totalElements: 2, totalPages: 2 } }), { status: 200 }));
+
+  await expect(listAllClients({ search: "", status: null, territoryId: null, sellerId: null, withoutVisitSince: "", withoutPurchaseSince: "" })).resolves.toMatchObject({ page: { items: [{ id: "customer-1" }, { id: "customer-2" }], page: { totalElements: 2, totalPages: 1 } } });
+  expect(state.request).toHaveBeenNthCalledWith(1, "/customers?page=0&pageSize=200", expect.anything(), { publishErrors: false });
+  expect(state.request).toHaveBeenNthCalledWith(2, "/customers?page=1&pageSize=200", expect.anything(), { publishErrors: false });
+});
+
 test("acepta opcionales nulos o ausentes en el cliente recién creado", async () => {
   state.request.mockResolvedValue(new Response(JSON.stringify({ items: [
     { ...client, segment: null, territoryId: null },
@@ -45,7 +55,7 @@ test("crea y actualiza con cuerpo contractual y valida el Customer devuelto", as
 
   state.request.mockResolvedValueOnce(new Response(JSON.stringify({ id: client.id }), { status: 200 }));
   await expect(updateClient(client, input)).resolves.toMatchObject({ client: null });
-  expect(state.request).toHaveBeenLastCalledWith(`/customers/${client.id}`, expect.objectContaining({ method: "PATCH", headers: expect.objectContaining({ "If-Match": "1" }) }), { publishErrors: false });
+  expect(state.request).toHaveBeenLastCalledWith(`/customers/${client.id}`, expect.objectContaining({ method: "PATCH", headers: expect.objectContaining({ "If-Match": '"1"' }) }), { publishErrors: false });
 });
 
 test("cambia solo el estado con control de versión", async () => {
@@ -55,7 +65,7 @@ test("cambia solo el estado con control de versión", async () => {
   await expect(changeClientStatus(client, "INACTIVE")).resolves.toMatchObject({ client: { status: "INACTIVE", version: 2 } });
   expect(state.request).toHaveBeenCalledWith(`/customers/${client.id}`, {
     method: "PATCH",
-    headers: expect.objectContaining({ "If-Match": "1", "X-CSRF-Token": "csrf" }),
+    headers: expect.objectContaining({ "If-Match": '"1"', "X-CSRF-Token": "csrf" }),
     body: JSON.stringify({ status: "INACTIVE" }),
   }, { publishErrors: false });
 });

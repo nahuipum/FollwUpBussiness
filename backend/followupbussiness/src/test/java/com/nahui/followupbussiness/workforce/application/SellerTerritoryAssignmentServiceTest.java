@@ -8,7 +8,7 @@ import com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActo
 import com.nahui.followupbussiness.identityaccess.domain.model.BaseRole;
 import com.nahui.followupbussiness.workforce.application.port.out.SellerStore;
 import com.nahui.followupbussiness.workforce.domain.Seller;
-import com.nahui.followupbussiness.workforce.domain.TerritoryStatus;
+import com.nahui.followupbussiness.workforce.domain.SellerStatus;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -24,7 +24,7 @@ class SellerTerritoryAssignmentServiceTest {
         UUID oldTerritory = UUID.randomUUID();
         UUID firstRequested = UUID.randomUUID();
         UUID secondRequested = UUID.randomUUID();
-        Store store = new Store(seller(List.of(oldTerritory), TerritoryStatus.ACTIVE, 4), Set.of(firstRequested, secondRequested));
+        Store store = new Store(seller(List.of(oldTerritory), SellerStatus.ACTIVE, 4), Set.of(firstRequested, secondRequested));
         List<RecordAuditEntryCommand> audits = new ArrayList<>();
 
         Seller result = service(store, command -> { audits.add(command); return true; })
@@ -42,7 +42,7 @@ class SellerTerritoryAssignmentServiceTest {
     void rejectsUnauthorizedCrossTenantDuplicateInactiveAndConcurrentRequestsWithoutEffects() {
         UUID oldTerritory = UUID.randomUUID();
         UUID requested = UUID.randomUUID();
-        Store store = new Store(seller(List.of(oldTerritory), TerritoryStatus.ACTIVE, 1), Set.of(requested));
+        Store store = new Store(seller(List.of(oldTerritory), SellerStatus.ACTIVE, 1), Set.of(requested));
         UUID foreignTerritory = UUID.randomUUID();
         store.tenantTerritories = Set.of(requested);
         int[] audits = new int[1];
@@ -67,12 +67,12 @@ class SellerTerritoryAssignmentServiceTest {
     @Test
     void doesNotWriteOrAuditWhenTheSameTerritorySetIsRepeatedOrSellerIsInactive() {
         UUID territory = UUID.randomUUID();
-        Store store = new Store(seller(List.of(territory), TerritoryStatus.ACTIVE, 1), Set.of(territory));
+        Store store = new Store(seller(List.of(territory), SellerStatus.ACTIVE, 1), Set.of(territory));
         int[] audits = new int[1];
         SellerService service = service(store, command -> { audits[0]++; return true; });
 
         assertSame(store.value, service.assignTerritories(store.value.id(), List.of(territory), admin, UUID.randomUUID()));
-        store.value = seller(List.of(territory), TerritoryStatus.INACTIVE, 1);
+        store.value = seller(List.of(territory), SellerStatus.INACTIVE, 1);
         assertThrows(Seller.InactiveForAssignment.class, () -> service.assignTerritories(store.value.id(), List.of(UUID.randomUUID()), admin, UUID.randomUUID()));
 
         assertEquals(0, store.writes);
@@ -83,7 +83,7 @@ class SellerTerritoryAssignmentServiceTest {
         return new SellerService(store, null, audit, Clock.fixed(Instant.EPOCH, ZoneOffset.UTC));
     }
 
-    private Seller seller(List<UUID> territories, TerritoryStatus status, long version) {
+    private Seller seller(List<UUID> territories, SellerStatus status, long version) {
         return new Seller(UUID.randomUUID(), tenant, UUID.randomUUID(), "Seller", "seller@example.test", null, null, null,
                 territories, status, Instant.EPOCH, Instant.EPOCH, version);
     }
@@ -104,7 +104,7 @@ class SellerTerritoryAssignmentServiceTest {
             if (!acceptReplace || value.version() != expectedVersion) return Optional.empty();
             writes++; value = seller; return Optional.of(seller);
         }
-        @Override public List<Seller> list(UUID tenantId, UUID supervisorId, TerritoryStatus status, UUID requestedSupervisorId, UUID territoryId, String search, int offset, int limit) { return List.of(); }
-        @Override public long count(UUID tenantId, UUID supervisorId, TerritoryStatus status, UUID requestedSupervisorId, UUID territoryId, String search) { return 0; }
+        @Override public List<Seller> list(UUID tenantId, UUID supervisorId, SellerStatus status, UUID requestedSupervisorId, UUID territoryId, String search, int offset, int limit) { return List.of(); }
+        @Override public long count(UUID tenantId, UUID supervisorId, SellerStatus status, UUID requestedSupervisorId, UUID territoryId, String search) { return 0; }
     }
 }

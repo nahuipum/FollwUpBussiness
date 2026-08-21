@@ -5,12 +5,13 @@ import { Eye, MoreVertical, Pencil, Power } from "lucide-react";
 import { useRef, useState } from "react";
 import { TableActionMenu } from "../../../shared/ui/TableActionMenu";
 
-export function ClientTable({ clients, page, pageSize, totalPages, totalElements, canManage, onDetail, onEdit, onChangeStatus, onPageChange, onPageSizeChange }: {
+export function ClientTable({ clients, page, pageSize, totalPages, totalElements, lastUpdated, canManage, onDetail, onEdit, onChangeStatus, onPageChange, onPageSizeChange }: {
   clients: readonly Client[];
   page: number;
   pageSize: DataTablePageSize;
   totalPages: number;
   totalElements: number;
+  lastUpdated?: Date | null;
   canManage: boolean;
   onDetail: (client: Client) => void;
   onEdit: (client: Client) => void;
@@ -88,6 +89,7 @@ export function ClientTable({ clients, page, pageSize, totalPages, totalElements
       onPageSizeChange={onPageSizeChange}
       ariaLabel="Paginación de clientes"
       summary={<>Mostrando {clients.length} de {totalElements} clientes</>}
+      lastUpdated={lastUpdated}
     />
   </>;
 }

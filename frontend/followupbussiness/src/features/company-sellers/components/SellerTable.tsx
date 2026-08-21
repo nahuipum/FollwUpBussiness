@@ -16,6 +16,7 @@ export function SellerTable({
   page,
   totalPages,
   totalElements,
+  lastUpdated,
   pageSize,
   canManage,
   onPageChange,
@@ -30,6 +31,7 @@ export function SellerTable({
   page: number;
   totalPages: number;
   totalElements: number;
+  lastUpdated?: Date | null;
   pageSize: DataTablePageSize;
   canManage: boolean;
   onPageChange: (page: number) => void;
@@ -208,6 +210,7 @@ export function SellerTable({
             Mostrando {sellers.length} de {totalElements} vendedores
           </>
         }
+        lastUpdated={lastUpdated}
       />
     </>
   );

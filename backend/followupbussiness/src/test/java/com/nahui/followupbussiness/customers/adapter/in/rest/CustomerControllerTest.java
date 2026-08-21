@@ -56,8 +56,8 @@ class CustomerControllerTest {
         UUID tenant = UUID.randomUUID(), seller = UUID.randomUUID(), customer = UUID.randomUUID();
         authenticate(tenant, BaseRole.SELLER);
         when(scopes.resolve(any())).thenReturn(new PortfolioAccessScopeUseCase.Scope(tenant, false, Set.of(seller)));
-        when(portfolio.read(any(), any())).thenReturn(new CustomerPortfolioReadUseCase.Page(List.of(new Customer(customer, tenant, "Customer", null, null, null, null, "STANDARD", "Address", new GeoPoint(-12.1, -77.1), null, null, "ACTIVE", Instant.EPOCH, Instant.EPOCH, 1)), 1));
-        mvc.perform(get("/customers").param("page", "1").param("pageSize", "20").param("sellerId", seller.toString()).param("withoutVisitSince", "2026-01-01")).andExpect(status().isOk()).andExpect(jsonPath("$.items[0].id").value(customer.toString())).andExpect(jsonPath("$.page.page").value(1)).andExpect(jsonPath("$.page.totalElements").value(1));
+        when(portfolio.read(any(), any())).thenReturn(new CustomerPortfolioReadUseCase.Page(List.of(new CustomerPortfolioReadUseCase.Detail(new Customer(customer, tenant, "Customer", null, null, null, null, "STANDARD", "Address", new GeoPoint(-12.1, -77.1), null, null, "ACTIVE", Instant.EPOCH, Instant.EPOCH, 1), List.of(seller))), 1));
+        mvc.perform(get("/customers").param("page", "1").param("pageSize", "20").param("sellerId", seller.toString()).param("withoutVisitSince", "2026-01-01")).andExpect(status().isOk()).andExpect(jsonPath("$.items[0].id").value(customer.toString())).andExpect(jsonPath("$.items[0].assignedSellerIds[0]").value(seller.toString())).andExpect(jsonPath("$.page.page").value(1)).andExpect(jsonPath("$.page.totalElements").value(1));
         verify(scopes).resolve(any());
         verify(portfolio).read(argThat(q -> q.offset() == 20 && q.sellerId().equals(seller)), any());
     }

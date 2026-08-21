@@ -59,3 +59,15 @@ test("restaura la preferencia guardada y cierra el menú con Escape", () => {
   expect(screen.queryByRole("menu")).toBeNull();
   expect(document.activeElement).toBe(profileButton);
 });
+
+test("admite grupos desplegables sin confundir la acción del grupo con sus rutas", () => {
+  const selectManagement = vi.fn();
+  render(<DashboardLayout brand={<span>FollowUpBussiness</span>} contextLabel="Empresa" navigationLabel="Navegación" navigation={[{ id: "clients", label: "Clientes", icon: <span>Icono</span>, children: [{ id: "management", label: "Gestión de clientes", icon: <span>Lista</span>, onSelect: selectManagement }, { id: "map", label: "Mapa general", icon: <span>Mapa</span>, disabled: true }]}]} profile={{ initials: "LP", name: "Luis Pérez", role: "Administrador" }} breadcrumbs={["Inicio"]}>Contenido</DashboardLayout>);
+  const group = screen.getByRole("button", { name: "Clientes" });
+  expect(group.getAttribute("aria-expanded")).toBe("false");
+  fireEvent.click(group);
+  expect(group.getAttribute("aria-expanded")).toBe("true");
+  fireEvent.click(screen.getByRole("button", { name: "Gestión de clientes" }));
+  expect(selectManagement).toHaveBeenCalledOnce();
+  expect(screen.getByRole("button", { name: /Mapa general/ })).toHaveProperty("disabled", true);
+});

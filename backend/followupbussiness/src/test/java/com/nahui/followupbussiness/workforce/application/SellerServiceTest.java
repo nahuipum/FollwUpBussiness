@@ -8,7 +8,7 @@ import com.nahui.followupbussiness.identityaccess.application.CompanyUserService
 import com.nahui.followupbussiness.identityaccess.domain.model.*;
 import com.nahui.followupbussiness.workforce.application.port.out.SellerStore;
 import com.nahui.followupbussiness.workforce.domain.Seller;
-import com.nahui.followupbussiness.workforce.domain.TerritoryStatus;
+import com.nahui.followupbussiness.workforce.domain.SellerStatus;
 
 import java.time.*;
 import java.util.*;
@@ -87,11 +87,11 @@ class SellerServiceTest {
             return Optional.empty();
         }
 
-        public List<Seller> list(UUID t, UUID team, TerritoryStatus status, UUID requested, UUID territory, String search, int offset, int limit) {
+        public List<Seller> list(UUID t, UUID team, SellerStatus status, UUID requested, UUID territory, String search, int offset, int limit) {
             return List.of();
         }
 
-        public long count(UUID t, UUID team, TerritoryStatus status, UUID requested, UUID territory, String search) {
+        public long count(UUID t, UUID team, SellerStatus status, UUID requested, UUID territory, String search) {
             return 0;
         }
     }

@@ -11,9 +11,11 @@ import { PlatformCompaniesPage } from "../features/platform-companies/PlatformCo
 import { PlatformDashboardPage } from "../features/platform-dashboard/PlatformDashboardPage";
 import { CompanyDashboardPage } from "../features/company-dashboard/CompanyDashboardPage";
 import { CompanyClientsPage } from "../features/company-clients/CompanyClientsPage";
+import { CompanyClientsMapPage } from "../features/company-clients/CompanyClientsMapPage";
 import { CompanySellersPage } from "../features/company-sellers/CompanySellersPage";
 import { CompanyUsersPageRoute } from "../features/company-users/CompanyUsersPageRoute";
 import { CompanyTerritoriesPage } from "../features/company-territories/CompanyTerritoriesPage";
+import { CustomerAssignmentPage } from "../features/company-customer-assignments/components/CustomerAssignmentPage";
 import { SupervisorDashboardPage } from "../features/supervisor-dashboard/SupervisorDashboardPage";
 import { CompanyWorkspaceLayout } from "./components/CompanyWorkspaceLayout";
 import { PlatformWorkspaceLayout } from "./components/PlatformWorkspaceLayout";
@@ -91,6 +93,10 @@ export function App() {
       return <CompanyWorkspaceLayout workspace="company" activeSection="dashboard"><CompanyDashboardPage /></CompanyWorkspaceLayout>;
     if (path === "/company/clients")
       return <CompanyWorkspaceLayout workspace="company" activeSection="clients"><CompanyClientsPage /></CompanyWorkspaceLayout>;
+    if (path === "/company/clients/map")
+      return <CompanyWorkspaceLayout workspace="company" activeSection="clients"><CompanyClientsMapPage /></CompanyWorkspaceLayout>;
+    if (path === "/company/customer-assignments")
+      return <CompanyWorkspaceLayout workspace="company" activeSection="customer-assignments"><CustomerAssignmentPage /></CompanyWorkspaceLayout>;
     if (path === "/company/sellers")
       return <CompanyWorkspaceLayout workspace="company" activeSection="sellers"><CompanySellersPage /></CompanyWorkspaceLayout>;
     if (path === "/company/territories")
@@ -101,6 +107,8 @@ export function App() {
       return <CompanyWorkspaceLayout workspace="supervisor" activeSection="dashboard"><SupervisorDashboardPage view="dashboard" /></CompanyWorkspaceLayout>;
     if (path === "/supervisor/clients")
       return <CompanyWorkspaceLayout workspace="supervisor" activeSection="clients"><CompanyClientsPage /></CompanyWorkspaceLayout>;
+    if (path === "/supervisor/clients/map")
+      return <CompanyWorkspaceLayout workspace="supervisor" activeSection="clients"><CompanyClientsMapPage /></CompanyWorkspaceLayout>;
     if (path === "/supervisor/sellers")
       return <CompanyWorkspaceLayout workspace="supervisor" activeSection="sellers"><CompanySellersPage /></CompanyWorkspaceLayout>;
     if (path === "/company/administrators-supervisors")

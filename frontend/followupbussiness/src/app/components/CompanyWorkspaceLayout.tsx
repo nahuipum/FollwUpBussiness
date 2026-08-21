@@ -1,11 +1,11 @@
-import { ClipboardList, ContactRound, LayoutDashboard, MapPinned, Settings, UserRound, Users } from "lucide-react";
+import { ClipboardList, ContactRound, LayoutDashboard, ListFilter, Map, MapPinned, Settings, UserRound, Users } from "lucide-react";
 import type { ReactNode } from "react";
 import { DashboardLayout, type DashboardNavigationItem } from "../../shared/layout/DashboardLayout";
 import { getSessionCompanyLabel, getSessionIdentity, logout } from "../../features/auth/auth";
 import { PasswordRecoveryBrandMark } from "../../features/auth/components/BrandPanel";
 import { navigate } from "../navigation";
 
-export type CompanySection = "dashboard" | "administrators-supervisors" | "sellers" | "territories" | "clients";
+export type CompanySection = "dashboard" | "administrators-supervisors" | "sellers" | "territories" | "clients" | "customer-assignments";
 export type SupervisorSection = "dashboard" | "sellers" | "territories" | "clients";
 
 type Props = {
@@ -20,6 +20,7 @@ const companySections: Record<CompanySection, string> = {
   sellers: "Vendedores",
   territories: "Zonas",
   clients: "Clientes",
+  "customer-assignments": "Asignar cartera",
 };
 
 const supervisorSections: Record<SupervisorSection, string> = {
@@ -64,7 +65,8 @@ function companyNavigation(activeSection: CompanySection, canManage: boolean): D
     item("administrators-supervisors", "Administradores y supervisores", <Users />, activeSection, "/company/administrators-supervisors"),
     item("sellers", "Vendedores", <UserRound />, activeSection, "/company/sellers"),
     ...(canManage ? [item("territories", "Zonas", <MapPinned />, activeSection, "/company/territories")] : []),
-    item("clients", "Clientes", <ContactRound />, activeSection, "/company/clients"),
+    clientGroup(activeSection, "/company/clients", "/company/clients/map"),
+    ...(canManage ? [item("customer-assignments", "Asignar cartera", <ContactRound />, activeSection, "/company/customer-assignments")] : []),
     { id: "audit", label: "Auditoría", icon: <ClipboardList /> },
     { id: "settings", label: "Configuración", icon: <Settings /> },
   ];
@@ -75,10 +77,24 @@ function supervisorNavigation(activeSection: SupervisorSection): DashboardNaviga
     item("dashboard", "Resumen", <LayoutDashboard />, activeSection, "/supervisor/dashboard"),
     item("sellers", "Vendedores", <UserRound />, activeSection, "/supervisor/sellers"),
     item("territories", "Zonas", <MapPinned />, activeSection, "/supervisor/territories"),
-    item("clients", "Clientes", <ContactRound />, activeSection, "/supervisor/clients"),
+    clientGroup(activeSection, "/supervisor/clients", "/supervisor/clients/map"),
   ];
 }
 
 function item(id: string, label: string, icon: ReactNode, activeSection: string, path: string): DashboardNavigationItem {
   return { id, label, icon, active: id === activeSection, onSelect: () => navigate(path) };
+}
+
+function clientGroup(activeSection: string, managementPath: string, mapPath?: string): DashboardNavigationItem {
+  const active = activeSection === "clients";
+  return {
+    id: "clients",
+    label: "Clientes",
+    icon: <ContactRound />,
+    active,
+    children: [
+      { id: "clients-management", label: "Gestión de clientes", icon: <ListFilter />, active: window.location.pathname === managementPath, onSelect: () => navigate(managementPath) },
+      ...(mapPath ? [{ id: "clients-map", label: "Mapa general", icon: <Map />, active: window.location.pathname === mapPath, onSelect: () => navigate(mapPath) }] : []),
+    ],
+  };
 }

@@ -8,20 +8,29 @@
 
     ## Historia
 
-    **Como** administrador  
-    **Quiero** ver clientes en mapa  
-    **Para** analizar cobertura
+    **Como** administrador o supervisor
+    **Quiero** ver en un mapa los clientes dentro de mi alcance autorizado
+    **Para** analizar la cobertura de la empresa o de mi equipo
 
     ## Alcance
 
-    Mapa y lista alternativa.
+    Mapa y lista alternativa. El administrador accede a los clientes de su
+    empresa; el supervisor, únicamente a los clientes de las carteras vigentes
+    de los vendedores que tiene asignados.
 
     ## Criterios de aceptación
 
     1. Marcadores diferenciados.
-2. Filtros sincronizados.
-3. Lista accesible.
-4. Fallo proveedor manejado.
+2. Filtros sincronizados entre mapa y lista, siempre dentro del alcance autorizado.
+3. Lista accesible con el mismo alcance y resultados que el mapa.
+4. Fallo del proveedor manejado sin perder la lista alternativa.
+5. El administrador solo visualiza clientes de su tenant; el supervisor solo
+   visualiza clientes de las carteras vigentes de sus vendedores asignados.
+6. El alcance se aplica en Backend antes de filtros, conteo y paginación. Un
+   supervisor sin vendedores o carteras autorizadas recibe un resultado vacío,
+   sin ampliar su acceso.
+7. Clientes, marcadores, identificadores y totales fuera del alcance no se
+   revelan mediante la interfaz, la API, errores ni consultas directas.
 
     ## Referencias
 
@@ -29,8 +38,12 @@
 
     ## Seguridad y privacidad
 
-    - No usar ocultamiento visual como único control.
-- Limpiar cache y estado al cerrar sesión.
+    - Derivar tenant, identidad, rol y equipo desde la sesión; no aceptarlos
+      como autoridad desde filtros o parámetros del cliente.
+- Aplicar autorización por tenant, equipo y cartera vigente en Backend antes de
+  filtros, conteo y paginación.
+- No usar ocultamiento visual como único control.
+- Limpiar cache y estado al cerrar sesión o cambiar de empresa/usuario.
 
     ## Observabilidad
 

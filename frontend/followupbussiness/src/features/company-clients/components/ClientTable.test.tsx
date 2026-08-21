@@ -14,6 +14,12 @@ test("muestra únicamente datos minimizados y delega la paginación real", () =>
   expect(onPageChange).toHaveBeenCalledWith(1);
 });
 
+test("muestra última actualización dentro del pie compartido de tabla", () => {
+  render(<ClientTable clients={[client]} page={0} pageSize={5} totalPages={1} totalElements={1} lastUpdated={new Date("2026-08-20T12:47:26Z")} canManage={false} onDetail={() => undefined} onEdit={() => undefined} onChangeStatus={() => undefined} onPageChange={() => undefined} onPageSizeChange={() => undefined} />);
+  expect(screen.getByRole("status").textContent).toMatch(/^Actualizado /);
+  expect(screen.getByText("Mostrando 1 de 1 clientes").closest(".data-table__metadata")).not.toBeNull();
+});
+
 test("centra las acciones y muestra el menú permitido según el rol", () => {
   const onDetail = vi.fn();
   const onEdit = vi.fn();

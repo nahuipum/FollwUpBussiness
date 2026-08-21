@@ -81,9 +81,9 @@ class CustomerPortfolioReadIntegrationTest {
         var supervisor = read.read(query(null, 0, 20), scope(scopes.resolve(actor(supervisorA, tenantA, BaseRole.SUPERVISOR))));
         var seller = read.read(query(null, 0, 20), scope(scopes.resolve(actor(accountForSeller(sellerA), tenantA, BaseRole.SELLER))));
         assertThat(admin.total()).isEqualTo(2);
-        assertThat(admin.items()).extracting(c -> c.id()).containsExactly(customerA);
-        assertThat(supervisor.items()).extracting(c -> c.id()).containsExactly(customerA);
-        assertThat(seller.items()).extracting(c -> c.id()).containsExactly(customerA);
+        assertThat(admin.items()).extracting(c -> c.customer().id()).containsExactly(customerA);
+        assertThat(supervisor.items()).extracting(c -> c.customer().id()).containsExactly(customerA);
+        assertThat(seller.items()).extracting(c -> c.customer().id()).containsExactly(customerA);
         assertThat(writes()).isEqualTo(before);
     }
 
@@ -96,9 +96,9 @@ class CustomerPortfolioReadIntegrationTest {
         var byName = read.read(new CustomerPortfolioReadUseCase.Query("alp", null, null, null, null, null, null, 0, 20), adminScope);
         var bySegment = read.read(new CustomerPortfolioReadUseCase.Query("mayor", null, null, null, null, null, null, 0, 20), adminScope);
 
-        assertThat(byName.items()).extracting(c -> c.id()).containsExactly(customerA);
-        assertThat(bySegment.items()).extracting(c -> c.id()).containsExactly(customerOther);
-        assertThat(bySegment.items()).extracting(c -> c.id()).doesNotContain(customerB);
+        assertThat(byName.items()).extracting(c -> c.customer().id()).containsExactly(customerA);
+        assertThat(bySegment.items()).extracting(c -> c.customer().id()).containsExactly(customerOther);
+        assertThat(bySegment.items()).extracting(c -> c.customer().id()).doesNotContain(customerB);
     }
 
     @Test
@@ -145,6 +145,40 @@ class CustomerPortfolioReadIntegrationTest {
             assertThat(entry.recordedAt()).isEqualTo(recordedAt);
         });
         assertThat(history).noneMatch(entry -> entry.previousSellerId() == null || entry.newSellerId() == null);
+    }
+
+    @Test
+    void scopesSupervisorToActiveTeamPortfoliosBeforeCountAndPagination() {
+        CustomerPortfolioReadService read = read();
+        PortfolioAccessScopeService scopes = scopes();
+        var supervisor = actor(supervisorA, tenantA, BaseRole.SUPERVISOR);
+        UUID sellerTeam = seller(tenantA, account(tenantA, "SELLER"), supervisorA, "ACTIVE");
+        UUID customerTeam = customer(tenantA, "Bravo team");
+        UUID customerInactive = customer(tenantA, "Inactive portfolio");
+        UUID customerUnassigned = customer(tenantA, "Unassigned");
+        assign(tenantA, customerTeam, sellerTeam);
+        assign(tenantA, customerInactive, inactiveSeller);
+        var resolvedScope = scope(scopes.resolve(supervisor));
+
+        var firstPage = read.read(query(null, 0, 1), resolvedScope);
+        var secondPage = read.read(query(null, 1, 1), resolvedScope);
+        var fullPage = read.read(query(null, 0, 20), resolvedScope);
+
+        assertThat(fullPage.total()).isEqualTo(2);
+        assertThat(fullPage.items()).extracting(customer -> customer.customer().id())
+                .containsExactly(customerA, customerTeam)
+                .doesNotContain(customerOther, customerInactive, customerUnassigned, customerB);
+        assertThat(firstPage.total()).isEqualTo(2);
+        assertThat(firstPage.items()).extracting(customer -> customer.customer().id()).containsExactly(customerA);
+        assertThat(secondPage.total()).isEqualTo(2);
+        assertThat(secondPage.items()).extracting(customer -> customer.customer().id()).containsExactly(customerTeam);
+
+        UUID supervisorWithoutTeam = account(tenantA, "SUPERVISOR");
+        var emptyPage = read.read(query(null, 0, 20), scope(scopes.resolve(actor(supervisorWithoutTeam, tenantA, BaseRole.SUPERVISOR))));
+        assertThat(emptyPage.items()).isEmpty();
+        assertThat(emptyPage.total()).isZero();
+        assertThatThrownBy(() -> scopes.resolve(actor(UUID.randomUUID(), tenantA, BaseRole.PLATFORM_SUPERADMIN)))
+                .isInstanceOf(com.nahui.followupbussiness.workforce.application.port.in.PortfolioAccessScopeUseCase.Forbidden.class);
     }
 
     private CustomerPortfolioReadService read() {

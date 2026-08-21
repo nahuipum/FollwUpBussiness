@@ -28,6 +28,7 @@ export function CompanyUsersTable({
   page,
   totalPages,
   totalElements,
+  lastUpdated,
   pageSize,
   readOnly,
   menuUser,
@@ -44,6 +45,7 @@ export function CompanyUsersTable({
   page: number;
   totalPages: number;
   totalElements: number;
+  lastUpdated?: Date | null;
   pageSize: DataTablePageSize;
   readOnly: boolean;
   menuUser: string | null;
@@ -86,6 +88,7 @@ export function CompanyUsersTable({
             supervisores
           </>
         }
+        lastUpdated={lastUpdated}
       />
     </>
   );

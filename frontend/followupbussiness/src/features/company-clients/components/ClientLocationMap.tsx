@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { FormAlert } from "../../../shared/ui/FormAlert";
+import { handleMissingStyleImages } from "./map-style";
 
 type MapState = "LOADING" | "ACTIVE" | "LIMITED" | "DISABLED";
 const DEFAULT_LIMA_POINT = { latitude: -12.0464, longitude: -77.0428 } as const;
@@ -54,6 +55,7 @@ export function ClientLocationMap({
           style: `https://maps.geoapify.com/v1/styles/osm-bright/style.json?apiKey=${encodeURIComponent(key)}`,
         });
         map.current = instance;
+        handleMissingStyleImages(instance);
         const markerElement = document.createElement("span");
         markerElement.className = "client-location-map__marker";
         markerElement.setAttribute("aria-hidden", "true");

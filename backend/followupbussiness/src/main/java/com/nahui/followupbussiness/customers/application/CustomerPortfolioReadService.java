@@ -32,7 +32,10 @@ public final class CustomerPortfolioReadService implements CustomerPortfolioRead
             throw new CustomerPortfolioReadUseCase.Forbidden();
         if (!scope.allCurrentPortfolios() && scope.sellerIds().isEmpty()) return new Page(List.of(), 0);
         long total = store.count(query, scope);
-        return new Page(store.list(query, scope), total);
+        return new Page(store.list(query, scope).stream()
+                .map(customer -> new Detail(customer, store.current(scope.tenantId(), customer.id()).stream()
+                        .map(CustomerPortfolioStore.Assignment::sellerId).toList()))
+                .toList(), total);
     }
 
     @Override

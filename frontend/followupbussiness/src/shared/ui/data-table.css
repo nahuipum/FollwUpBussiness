@@ -139,6 +139,20 @@
   color: #67778a;
   font-size: 12px;
 }
+.data-table__metadata {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.data-table__summary { color: #67778a; }
+.data-table__last-updated {
+  padding-left: 12px;
+  border-left: 1px solid rgb(20 33 61 / 12%);
+  color: #8090a0;
+  font-size: 11.5px;
+  white-space: nowrap;
+}
 .data-table__pagination nav {
   display: flex;
   gap: 8px;
@@ -196,7 +210,7 @@
     align-items: center;
     justify-content: end;
   }
-  .data-table__pagination > span { grid-column: 1 / -1; }
+  .data-table__metadata { grid-column: 1 / -1; flex-wrap: wrap; }
   .data-table__page-size { margin-left: 0; }
   .data-table__pagination nav { grid-column: 2; grid-row: 2; }
   .data-table__pagination nav {

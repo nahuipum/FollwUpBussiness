@@ -69,6 +69,7 @@ export function DataTablePagination({
   onPageSizeChange,
   ariaLabel,
   summary,
+  lastUpdated,
 }: {
   page: number;
   totalPages: number;
@@ -77,11 +78,21 @@ export function DataTablePagination({
   onPageSizeChange: (pageSize: DataTablePageSize) => void;
   ariaLabel: string;
   summary?: ReactNode;
+  lastUpdated?: Date | null | undefined;
 }) {
   if (totalPages < 1) return null;
   return (
     <footer className="data-table__pagination">
-      {summary && <span>{summary}</span>}
+      {(summary || lastUpdated) && (
+        <div className="data-table__metadata">
+          {summary && <span className="data-table__summary">{summary}</span>}
+          {lastUpdated && (
+            <time className="data-table__last-updated" dateTime={lastUpdated.toISOString()} role="status">
+              Actualizado {lastUpdated.toLocaleTimeString()}
+            </time>
+          )}
+        </div>
+      )}
       <label className="data-table__page-size">
         <span>Registros por página</span>
         <VisualSelect

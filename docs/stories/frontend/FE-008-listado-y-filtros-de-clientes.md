@@ -20,7 +20,9 @@
 
     1. Filtros requeridos.
 2. Paginación.
-3. Permisos supervisor.
+3. El supervisor solo consulta clientes de las carteras vigentes de sus
+   vendedores asignados; el alcance se aplica antes de filtros, conteo y
+   paginación.
 4. Estados completos.
 
     ## Referencias

@@ -22,6 +22,7 @@ vi.mock("maplibre-gl", () => ({
     readonly zoom: number;
     constructor(options: { center: [number, number]; zoom: number }) { this.center = options.center; this.zoom = options.zoom; maps.push(this); }
     on(event: string, listener: Listener) { this.listeners[event] = listener; }
+    setMissingStyleImageResolver() {}
   },
   Marker: class {
     readonly listeners: Record<string, () => void> = {};

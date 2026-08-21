@@ -55,6 +55,26 @@ export async function listClients(filters: ClientFilters): Promise<{ response: R
   return { response, page: response.status === 200 ? parsePage(await response.json().catch(() => null), parseClient) : null };
 }
 
+export async function listAllClients(filters: Omit<ClientFilters, "page" | "pageSize">): Promise<{ response: Response; page: ClientPage | null }> {
+  const first = await listClients({ ...filters, page: 0, pageSize: 200 });
+  if (!first.page || first.page.page.totalPages <= 1) return first;
+  const rest = await Promise.all(
+    [...Array(first.page.page.totalPages - 1)].map((_, index) =>
+      listClients({ ...filters, page: index + 1, pageSize: 200 }),
+    ),
+  );
+  const failed = rest.find((entry) => entry.response.status !== 200 || entry.page === null);
+  if (failed) return { response: failed.response, page: null };
+  const items = [...first.page.items, ...rest.flatMap((entry) => entry.page?.items ?? [])];
+  return {
+    response: first.response,
+    page: {
+      items,
+      page: { ...first.page.page, page: 0, pageSize: 200, totalPages: 1 },
+    },
+  };
+}
+
 type Reference = Readonly<{ id: string; label: string }>;
 type TerritoryReference = Reference & Readonly<{ code: string }>;
 function parseTerritory(value: unknown): TerritoryReference | null {
@@ -89,7 +109,7 @@ export async function listClientFilterOptions(): Promise<{ response: Response; o
   return territories.items && sellers.items ? { response: territories.response, options: { territories: territories.items, sellers: sellers.items } } : { response: territories.response, options: null };
 }
 
-function mutationHeaders(version?: number): HeadersInit { return { "Content-Type": "application/json", ...getSessionMutationAuthorization(), ...(version === undefined ? {} : { "If-Match": String(version) }) }; }
+function mutationHeaders(version?: number): HeadersInit { return { "Content-Type": "application/json", ...getSessionMutationAuthorization(), ...(version === undefined ? {} : { "If-Match": `"${version}"` }) }; }
 const optionalString = (value: string) => value.trim() || undefined;
 function formBody(input: ClientFormInput) {
   return {
