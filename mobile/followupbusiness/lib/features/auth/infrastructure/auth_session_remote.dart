@@ -66,6 +66,7 @@ class AuthSessionRemote implements SessionRemote {
           request!.headers
               .set(HttpHeaders.authorizationHeader, 'Bearer $accessToken');
         }
+        request!.write(jsonEncode(const {'allSessions': false}));
         final response = await request!.close();
         await _drain(response, (subscription) => bodySubscription = subscription);
         return response.statusCode == 204;

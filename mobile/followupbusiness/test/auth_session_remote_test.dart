@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -8,6 +9,41 @@ import 'package:followupbusiness/features/auth/infrastructure/auth_session_remot
 import 'package:followupbusiness/features/auth/infrastructure/client_instance_id.dart';
 
 void main() {
+  test('logout revoca la sesión y el refresh posterior es rechazado', () async {
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    final serverSubscription = server.listen((request) async {
+      final body = await utf8.decoder.bind(request).join();
+      if (request.uri.path == '/auth/logout') {
+        expect(jsonDecode(body), const {'allSessions': false});
+        request.response.statusCode = HttpStatus.noContent;
+      } else if (request.uri.path == '/auth/refresh') {
+        expect(jsonDecode(body), const {'refreshToken': 'revoked-refresh'});
+        request.response.statusCode = HttpStatus.unauthorized;
+        request.response.headers.contentType = ContentType.json;
+        request.response.write('{"code":"REFRESH_TOKEN_INVALID"}');
+      } else {
+        request.response.statusCode = HttpStatus.notFound;
+      }
+      await request.response.close();
+    });
+    final remote = AuthSessionRemote(
+      baseUri: Uri.parse('http://${server.address.address}:${server.port}'),
+      clientInstanceId: const _ClientInstanceId(),
+    );
+
+    try {
+      expect(
+        await remote.logout(accessToken: 'access-token', ticket: 'unused'),
+        isTrue,
+      );
+      final refresh = await remote.refresh(refreshToken: 'revoked-refresh');
+      expect(refresh.failure, RefreshFailure.invalid);
+    } finally {
+      await serverSubscription.cancel();
+      await server.close(force: true);
+    }
+  });
+
   test(
       'timeout del cuerpo libera el scheduler y el siguiente intento 204 borra el ticket',
       () async {
