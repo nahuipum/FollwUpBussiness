@@ -104,12 +104,11 @@ export function ClientLocationMap({
       {state === "ACTIVE" && <p role="status">{readOnly ? "Mapa disponible en modo consulta." : "Mapa activo. Incluye atribución del proveedor."}</p>}
       {configured && state === "LIMITED" && (
         <FormAlert>
-          <p>{readOnly ? "No pudimos cargar el mapa. La ubicación guardada permanece disponible en las coordenadas." : "No pudimos cargar los mosaicos del mapa. Conserva o ingresa las coordenadas manualmente."}</p>
+          <p>{readOnly ? "No pudimos cargar el mapa. Intenta nuevamente para consultar la ubicación registrada." : "No pudimos cargar los mosaicos del mapa. Conserva o ingresa las coordenadas manualmente."}</p>
           <button className="client-form__secondary" type="button" onClick={() => setRetry((value) => value + 1)}>Reintentar mapa</button>
         </FormAlert>
       )}
       {!configured && <p role="status">{readOnly ? "Mapa no disponible: faltan los mosaicos configurados." : "Mapa deshabilitado: falta configurar los mosaicos. Usa las coordenadas manuales."}</p>}
-      {readOnly && selected && <p className="client-location-map__coordinates">Coordenadas: {latitude}, {longitude}</p>}
     </section>
   );
 }

@@ -6,6 +6,7 @@ import com.nahui.followupbussiness.customers.domain.Customer;
 import com.nahui.followupbussiness.customers.domain.GeoPoint;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -27,6 +28,17 @@ public final class JdbcCustomerPortfolioStore implements CustomerPortfolioStore 
     @Override
     public List<Assignment> current(UUID tenantId, UUID customerId) {
         return jdbc.query("select customer_id,seller_id,effective_from,assigned_by,reason,created_at from customer_portfolio_assignment where tenant_id=? and customer_id=? order by seller_id", (rs, row) -> new Assignment(rs.getObject(1, UUID.class), rs.getObject(2, UUID.class), rs.getDate(3).toLocalDate(), rs.getObject(4, UUID.class), rs.getString(5), rs.getTimestamp(6).toInstant()), tenantId, customerId);
+    }
+
+    @Override
+    public Map<UUID, List<Assignment>> current(UUID tenantId, List<UUID> customerIds) {
+        if (customerIds.isEmpty()) return Map.of();
+        List<Assignment> assignments = jdbc.query(
+                "select customer_id,seller_id,effective_from,assigned_by,reason,created_at from customer_portfolio_assignment where tenant_id=? and customer_id in ("
+                        + placeholders(customerIds.size()) + ") order by customer_id,seller_id",
+                (rs, row) -> new Assignment(rs.getObject(1, UUID.class), rs.getObject(2, UUID.class), rs.getDate(3).toLocalDate(), rs.getObject(4, UUID.class), rs.getString(5), rs.getTimestamp(6).toInstant()),
+                parameters(tenantId, customerIds));
+        return assignments.stream().collect(java.util.stream.Collectors.groupingBy(Assignment::customerId));
     }
 
     @Override
@@ -124,5 +136,12 @@ public final class JdbcCustomerPortfolioStore implements CustomerPortfolioStore 
 
     private static String placeholders(int count) {
         return String.join(",", java.util.Collections.nCopies(count, "?"));
+    }
+
+    private static Object[] parameters(UUID tenantId, List<UUID> customerIds) {
+        java.util.ArrayList<Object> parameters = new java.util.ArrayList<>();
+        parameters.add(tenantId);
+        parameters.addAll(customerIds);
+        return parameters.toArray();
     }
 }

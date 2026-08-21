@@ -114,6 +114,6 @@ test("permite explorar el mapa de detalle sin modificar el punto guardado", asyn
   expect(markers[0]?.listeners.dragend).toBeUndefined();
   expect(maps[0]?.listeners.click).toBeUndefined();
   expect(screen.getByText(/Mueve o acerca el mapa/)).toBeTruthy();
-  expect(screen.getByText("Coordenadas: -12.0686, -77.1082")).toBeTruthy();
+  expect(screen.queryByText(/Coordenadas:/)).toBeNull();
   expect(screen.getByLabelText("Mapa de ubicación del cliente")).toBeTruthy();
 });

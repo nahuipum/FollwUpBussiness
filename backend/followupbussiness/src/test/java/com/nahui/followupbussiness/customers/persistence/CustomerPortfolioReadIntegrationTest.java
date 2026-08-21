@@ -117,6 +117,15 @@ class CustomerPortfolioReadIntegrationTest {
     }
 
     @Test
+    void bulkReadsCurrentAssignmentsOnlyWithinTheRequestedTenant() {
+        var assignments = new JdbcCustomerPortfolioStore(jdbc).current(tenantA, java.util.List.of(customerA, customerOther, customerB));
+
+        assertThat(assignments).containsOnlyKeys(customerA, customerOther);
+        assertThat(assignments.get(customerA)).extracting(entry -> entry.sellerId()).containsExactly(sellerA);
+        assertThat(assignments.get(customerOther)).extracting(entry -> entry.sellerId()).containsExactly(sellerOther);
+    }
+
+    @Test
     void rejectsCrossTenantAndInactiveOrUnknownSellerFiltersAndUsesUtcActivityBoundary() {
         CustomerPortfolioReadService read = read();
         PortfolioAccessScopeService scopes = scopes();

@@ -8,6 +8,7 @@ import com.nahui.followupbussiness.customers.domain.Customer;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -32,8 +33,11 @@ public final class CustomerPortfolioReadService implements CustomerPortfolioRead
             throw new CustomerPortfolioReadUseCase.Forbidden();
         if (!scope.allCurrentPortfolios() && scope.sellerIds().isEmpty()) return new Page(List.of(), 0);
         long total = store.count(query, scope);
-        return new Page(store.list(query, scope).stream()
-                .map(customer -> new Detail(customer, store.current(scope.tenantId(), customer.id()).stream()
+        List<Customer> listedCustomers = store.list(query, scope);
+        Map<UUID, List<CustomerPortfolioStore.Assignment>> assignments = store.current(
+                scope.tenantId(), listedCustomers.stream().map(Customer::id).toList());
+        return new Page(listedCustomers.stream()
+                .map(customer -> new Detail(customer, assignments.getOrDefault(customer.id(), List.of()).stream()
                         .map(CustomerPortfolioStore.Assignment::sellerId).toList()))
                 .toList(), total);
     }

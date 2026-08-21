@@ -3,6 +3,7 @@ package com.nahui.followupbussiness.customers.application.port.out;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -15,6 +16,8 @@ import com.nahui.followupbussiness.customers.domain.Customer;
  */
 public interface CustomerPortfolioStore {
     List<Assignment> current(UUID tenantId, UUID customerId);
+
+    Map<UUID, List<Assignment>> current(UUID tenantId, List<UUID> customerIds);
 
     List<HistoryEntry> history(UUID tenantId, UUID customerId);
 
