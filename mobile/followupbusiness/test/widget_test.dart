@@ -18,7 +18,10 @@ class _DelayedAuthRepository implements AuthRepository {
           () => const AuthResult.success(null));
 }
 
-const _app = FollowUpBusinessApp(authRepository: _DelayedAuthRepository());
+const _app = FollowUpBusinessApp(
+  authRepository: _DelayedAuthRepository(),
+  startupDuration: Duration.zero,
+);
 
 void main() {
   testWidgets('muestra la composición visual de acceso',
@@ -41,6 +44,15 @@ void main() {
     expect(find.byType(SingleChildScrollView), findsNothing);
     expect(header.dy, greaterThan(150));
     expect(card.dy, greaterThan(header.dy));
+  });
+
+  testWidgets('mantiene fija la composición al abrir el teclado',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(_app);
+
+    expect(
+        tester.widget<Scaffold>(find.byType(Scaffold)).resizeToAvoidBottomInset,
+        isFalse);
   });
 
   testWidgets('alterna Recordarme solo en la UI local',
@@ -72,6 +84,18 @@ void main() {
 
     await tester.tap(find.text('Volver al inicio'));
     await tester.pumpAndSettle();
+    expect(find.text('Iniciar sesión'), findsOneWidget);
+  });
+
+  testWidgets('el regreso del sistema vuelve de recuperación al login',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(_app);
+
+    await tester.tap(find.text('¿Olvidaste tu contraseña?'));
+    await tester.pumpAndSettle();
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+
     expect(find.text('Iniciar sesión'), findsOneWidget);
   });
 

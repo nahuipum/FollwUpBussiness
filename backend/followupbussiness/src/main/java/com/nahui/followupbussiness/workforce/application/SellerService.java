@@ -38,7 +38,7 @@ public class SellerService {
         }
         var now = clock.instant();
         Seller seller = store.insert(new Seller(UUID.randomUUID(), tenant, user.id(), clean(c.displayName()), user.email(), optional(c.phone()), optional(c.employeeCode()), c.supervisorId(), List.copyOf(c.territoryIds() == null ? List.of() : c.territoryIds()), SellerStatus.INVITED, now, now, 1));
-        if (!audit.record(new RecordAuditEntryCommand(AuditAction.CRITICAL_MUTATION, AuditResourceType.SELLER, seller.id(), AuditResult.SUCCESS, Map.of(), Map.of("status", "ACTIVE"))))
+        if (!audit.record(new RecordAuditEntryCommand(AuditAction.CRITICAL_MUTATION, AuditResourceType.SELLER, seller.id(), AuditResult.SUCCESS, Map.of(), Map.of("status", SellerStatus.INVITED.name()))))
             throw new IllegalStateException("Seller audit was not persisted");
         return seller;
     }

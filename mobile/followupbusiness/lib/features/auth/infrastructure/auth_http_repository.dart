@@ -129,7 +129,9 @@ class AuthHttpRepository implements AuthRepository {
     if (company is! Map<String, dynamic> ||
         roles is! List ||
         roles.length != 1 ||
-        roles.single != 'SELLER') {
+        roles.single != 'SELLER' ||
+        user['status'] != 'ACTIVE' ||
+        company['status'] != 'ACTIVE') {
       return null;
     }
     if (credentials['tokenType'] != 'Bearer' ||

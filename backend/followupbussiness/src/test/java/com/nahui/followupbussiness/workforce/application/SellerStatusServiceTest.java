@@ -100,7 +100,11 @@ class SellerStatusServiceTest {
         int calls;
         String target;
         Users() { super(null, Clock.systemUTC()); }
-        @Override public User status(UUID id, String target, AuthenticatedActor actor, UUID correlationId) { calls++; this.target = target; return null; }
+        @Override public User status(UUID id, String target, AuthenticatedActor actor, UUID correlationId) {
+            calls++;
+            this.target = target;
+            return new User(id, "Seller", "seller", "seller@example.test", BaseRole.SELLER, target, Instant.EPOCH, Instant.EPOCH, 1);
+        }
     }
 
     private static final class Store implements SellerStore {

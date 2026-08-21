@@ -11,10 +11,16 @@ import 'package:followupbusiness/features/auth/infrastructure/client_instance_id
 import 'package:followupbusiness/features/auth/infrastructure/pending_logout_connectivity_listener.dart';
 import 'package:followupbusiness/features/auth/infrastructure/unavailable_auth_repository.dart';
 import 'package:followupbusiness/features/auth/presentation/auth_login_screen.dart';
+import 'package:followupbusiness/app/startup_splash_screen.dart';
 
 class FollowUpBusinessApp extends StatefulWidget {
-  const FollowUpBusinessApp({super.key, this.authRepository});
+  const FollowUpBusinessApp({
+    super.key,
+    this.authRepository,
+    this.startupDuration = const Duration(milliseconds: 1100),
+  });
   final AuthRepository? authRepository;
+  final Duration startupDuration;
 
   @override
   State<FollowUpBusinessApp> createState() => _FollowUpBusinessAppState();
@@ -40,11 +46,20 @@ class _FollowUpBusinessAppState extends State<FollowUpBusinessApp> {
     return MaterialApp(
       title: 'FollowUpBusiness',
       theme: buildAppTheme(),
-      home: AuthLoginScreen(
+      home: _authScreen(),
+    );
+  }
+
+  Widget _authScreen() {
+    final authScreen = AuthLoginScreen(
         repository: widget.authRepository ??
             _runtime?.repository ??
             const UnavailableAuthRepository(),
-      ),
+    );
+    if (widget.startupDuration == Duration.zero) return authScreen;
+    return StartupSplashScreen(
+      duration: widget.startupDuration,
+      child: authScreen,
     );
   }
 }

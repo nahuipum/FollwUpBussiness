@@ -5,15 +5,28 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.nahui.followupbussiness.audit.application.port.in.RecordAuditEntryUseCase;
 import com.nahui.followupbussiness.identityaccess.adapter.out.persistence.JdbcIdentityNotificationAdapter;
+import com.nahui.followupbussiness.identityaccess.adapter.out.persistence.JdbcLoginAccountQuery;
 import com.nahui.followupbussiness.identityaccess.adapter.out.persistence.JdbcPasswordRecoveryAdapter;
+import com.nahui.followupbussiness.identityaccess.adapter.out.persistence.JdbcPasswordRecoveryRequestAdapter;
+import com.nahui.followupbussiness.identityaccess.adapter.out.persistence.JdbcRefreshSessionAdapter;
+import com.nahui.followupbussiness.identityaccess.adapter.out.persistence.JdbcSessionFamilyAdapter;
+import com.nahui.followupbussiness.identityaccess.adapter.out.security.BCryptPasswordHashingAdapter;
 import com.nahui.followupbussiness.identityaccess.application.CompanyUserService;
+import com.nahui.followupbussiness.identityaccess.application.LoginService;
+import com.nahui.followupbussiness.identityaccess.application.PasswordRecoveryService;
 import com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor;
 import com.nahui.followupbussiness.identityaccess.domain.model.BaseRole;
 import com.nahui.followupbussiness.workforce.adapter.out.persistence.JdbcSellerStore;
 import com.nahui.followupbussiness.workforce.application.SellerService;
+import com.nahui.followupbussiness.workforce.domain.SellerStatus;
+import com.nahui.followupbussiness.workforce.domain.Seller;
 import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -139,6 +152,62 @@ class SellerCreationTransactionIntegrationTest {
         var seller = store.find(tenant, sellerId).orElseThrow();
 
         assertThat(store.references(tenant, List.of(seller)).get(sellerId).supervisor()).isNull();
+    }
+
+    @Test
+    void sellerCreationActivationAndMobileLoginKeepTenantRoleStatusAndAuditConsistent() throws Exception {
+        byte[] hmac = "01234567890123456789012345678901".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        AtomicReference<com.nahui.followupbussiness.audit.application.RecordAuditEntryCommand> recordedAudit = new AtomicReference<>();
+        Seller seller;
+        try (var context = new AnnotationConfigApplicationContext()) {
+            context.registerBean(JdbcTemplate.class, () -> jdbc);
+            context.registerBean(PlatformTransactionManager.class, () -> new DataSourceTransactionManager(dataSource));
+            context.registerBean(CompanyUserService.class, () -> invitationWritingUsers(jdbc));
+            context.registerBean(RecordAuditEntryUseCase.class, () -> command -> {
+                recordedAudit.set(command);
+                return true;
+            });
+            context.register(TransactionalSellerConfiguration.class);
+            context.refresh();
+            seller = context.getBean(SellerService.class).create(command(), admin(), UUID.randomUUID());
+        }
+
+        assertThat(jdbc.queryForObject("SELECT status FROM workforce_seller WHERE id=?", String.class, seller.id())).isEqualTo("INVITED");
+        assertThat(jdbc.queryForObject("SELECT role_code FROM identity_access_account WHERE id=?", String.class, seller.userId())).isEqualTo("SELLER");
+        assertThat(jdbc.queryForObject("SELECT company_id FROM identity_access_account WHERE id=?", UUID.class, seller.userId())).isEqualTo(tenant);
+        assertThat(recordedAudit.get().after()).containsEntry("status", "INVITED");
+
+        String activationToken = "A".repeat(43);
+        var mac = Mac.getInstance("HmacSHA256");
+        mac.init(new SecretKeySpec(hmac, "HmacSHA256"));
+        byte[] tokenDigest = mac.doFinal(activationToken.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        jdbc.update("UPDATE identity_access_action_token SET invalidated_at=CURRENT_TIMESTAMP WHERE account_id=? AND purpose='ACTIVATION'", seller.userId());
+        jdbc.update("INSERT INTO identity_access_action_token(id,account_id,company_id,purpose,token_digest,expires_at,created_at) VALUES (?,?,?,?,?,?,?)",
+                UUID.randomUUID(), seller.userId(), tenant, "ACTIVATION", tokenDigest, java.sql.Timestamp.from(Instant.now().plusSeconds(60)), java.sql.Timestamp.from(Instant.now()));
+        var recovery = new JdbcPasswordRecoveryAdapter(jdbc);
+        var sessions = new JdbcSessionFamilyAdapter(jdbc);
+        var passwords = new BCryptPasswordHashingAdapter();
+        new PasswordRecoveryService(recovery, new JdbcPasswordRecoveryRequestAdapter(jdbc, hmac), (accountId, tenantId, purpose, recipient, token, expiresAt) -> { },
+                new JdbcRefreshSessionAdapter(jdbc), passwords, Clock.systemUTC(), hmac).reset(activationToken, "Valid123".toCharArray());
+
+        assertThat(jdbc.queryForObject("SELECT status FROM workforce_seller WHERE id=?", String.class, seller.id())).isEqualTo("ACTIVE");
+        assertThat(jdbc.queryForObject("SELECT status FROM identity_access_account WHERE id=?", String.class, seller.userId())).isEqualTo("ACTIVE");
+        var login = new LoginService(new JdbcLoginAccountQuery(jdbc), passwords, companyId -> tenant.equals(companyId), sessions,
+                (accountId, sessionId, companyId, role) -> "token", Clock.systemUTC(), hmac);
+        var result = login.login("seller@example.test", "Valid123".toCharArray(), "MOBILE", UUID.randomUUID());
+
+        assertThat(result.account().role()).isEqualTo(BaseRole.SELLER);
+        assertThat(result.account().companyId()).isEqualTo(tenant);
+        assertThat(jdbc.queryForObject("SELECT company_id FROM identity_access_session_family WHERE account_id=?", UUID.class, seller.userId())).isEqualTo(tenant);
+
+        Seller inactivated = new SellerService(new JdbcSellerStore(jdbc), invitationWritingUsers(jdbc), command -> true, Clock.systemUTC())
+                .status(seller.id(), SellerStatus.INACTIVE, "offboarding approved", admin(), UUID.randomUUID());
+
+        assertThat(inactivated.status()).isEqualTo(SellerStatus.INACTIVE);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM identity_access_session_family WHERE account_id=? AND revoked_at IS NOT NULL", Integer.class, seller.userId())).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM identity_access_action_token WHERE account_id=? AND invalidated_at IS NOT NULL", Integer.class, seller.userId())).isGreaterThan(0);
+        assertThatThrownBy(() -> login.login("seller@example.test", "Valid123".toCharArray(), "MOBILE", UUID.randomUUID()))
+                .isInstanceOf(LoginService.LoginFailedException.class);
     }
 
     private CompanyUserService invitationWritingUsers(JdbcTemplate jdbc) {

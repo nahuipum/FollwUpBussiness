@@ -9,14 +9,24 @@ class AuthScreenLayout extends StatelessWidget {
     required this.subtitle,
     required this.view,
     required this.child,
+    this.onBack,
   });
 
   final String subtitle;
   final Object view;
   final Widget child;
+  final VoidCallback? onBack;
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => PopScope(
+        canPop: onBack == null,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) onBack?.call();
+        },
+        child: Scaffold(
+        // El teclado no debe recalcular ni recentrar la composición de acceso.
+        // Se superpone a la vista, como en un formulario móvil convencional.
+        resizeToAvoidBottomInset: false,
         body: Stack(children: [
           const Positioned.fill(child: AuthBackground()),
           SafeArea(
@@ -39,7 +49,26 @@ class AuthScreenLayout extends StatelessWidget {
                             Column(mainAxisSize: MainAxisSize.min, children: [
                           AuthBrandHeader(subtitle: subtitle),
                           const SizedBox(height: 22),
-                          child,
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 260),
+                            switchInCurve: Curves.easeOutCubic,
+                            switchOutCurve: Curves.easeInCubic,
+                            transitionBuilder: (currentChild, animation) =>
+                                FadeTransition(
+                              opacity: animation,
+                              child: SlideTransition(
+                                position: Tween<Offset>(
+                                  begin: const Offset(.08, 0),
+                                  end: Offset.zero,
+                                ).animate(animation),
+                                child: currentChild,
+                              ),
+                            ),
+                            child: KeyedSubtree(
+                              key: ValueKey(view),
+                              child: child,
+                            ),
+                          ),
                         ]),
                       ),
                     ),
@@ -49,5 +78,6 @@ class AuthScreenLayout extends StatelessWidget {
             ),
           ),
         ]),
+        ),
       );
 }

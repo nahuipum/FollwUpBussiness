@@ -22,6 +22,21 @@ void main() {
       }
     });
 
+    test('rechaza usuario o empresa inactivos sin persistir sesión', () async {
+      for (final body in [
+        _response(userStatus: 'INVITED'),
+        _response(userStatus: 'INACTIVE'),
+        _response(companyStatus: 'INACTIVE'),
+      ]) {
+        final store = _Store();
+        final result = await _repository(body: body, store: store)
+            .login(identifier: 'seller', password: 'password');
+
+        expect(result.failure, AuthFailure.neutral);
+        expect(store.replaced, isFalse);
+      }
+    });
+
     test('persiste solo credenciales de seller tras respuesta MOBILE completa',
         () async {
       final store = _Store();
@@ -75,6 +90,8 @@ AuthHttpRepository _repository(
 String _response(
     {String channel = 'MOBILE',
     List<String> roles = const ['SELLER'],
+    String userStatus = 'ACTIVE',
+    String companyStatus = 'ACTIVE',
     String? remove}) {
   final json = <String, dynamic>{
     'channel': channel,
@@ -90,13 +107,13 @@ String _response(
       'id': 'user',
       'displayName': 'Seller',
       'email': 'seller@example.test',
-      'status': 'ACTIVE',
+      'status': userStatus,
       'roles': roles,
       'company': {
         'id': 'company',
         'legalName': 'Company',
         'code': 'CMP',
-        'status': 'ACTIVE'
+        'status': companyStatus
       }
     }
   };

@@ -63,8 +63,25 @@ class _AuthLoginScreenState extends State<AuthLoginScreen> {
         identifier: _identifier.text, password: _password.text);
     if (!mounted) return;
     if (result.isSuccess) {
-      await Navigator.of(context).pushReplacement(
-          MaterialPageRoute<void>(builder: (_) => const SellerHomePage()));
+      await Navigator.of(context).pushAndRemoveUntil(
+          PageRouteBuilder<void>(
+            pageBuilder: (_, animation, __) => FadeTransition(
+              opacity: animation,
+              child: const SellerHomePage(),
+            ),
+            transitionsBuilder: (_, animation, __, child) => SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(.08, 0),
+                end: Offset.zero,
+              ).animate(CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeOutCubic,
+              )),
+              child: child,
+            ),
+            transitionDuration: const Duration(milliseconds: 280),
+          ),
+          (_) => false);
       return;
     }
     _show(AuthView.loginError);
@@ -100,7 +117,33 @@ class _AuthLoginScreenState extends State<AuthLoginScreen> {
         subtitle: _subtitle,
         view: _view,
         child: _content(),
+        onBack: _isLoginView ? null : _backOneStep,
       );
+
+  bool get _isLoginView =>
+      _view == AuthView.login ||
+      _view == AuthView.loginLoading ||
+      _view == AuthView.loginError;
+
+  void _backOneStep() {
+    switch (_view) {
+      case AuthView.recover:
+      case AuthView.recoverLoading:
+      case AuthView.recoverError:
+      case AuthView.recoverConfirmation:
+      case AuthView.reset:
+      case AuthView.resetError:
+      case AuthView.resetLoading:
+      case AuthView.resetSuccess:
+      case AuthView.tokenExpired:
+        _show(AuthView.login);
+        return;
+      case AuthView.login:
+      case AuthView.loginLoading:
+      case AuthView.loginError:
+        return;
+    }
+  }
 
   Widget _content() => switch (_view) {
         AuthView.login => AuthLoginPage(
