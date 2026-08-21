@@ -97,6 +97,23 @@ function notifySessionChange() {
   sessionListeners.forEach((listener) => listener());
 }
 
+function companyScopeId(company: unknown): string | null {
+  if (typeof company === "string" && company.length > 0) return company;
+  if (typeof company !== "object" || company === null) return null;
+  const id = (company as Record<string, unknown>).id;
+  return typeof id === "string" && id.length > 0 ? id : null;
+}
+
+function revokeForCompanyChange(nextUser: CurrentUser) {
+  if (
+    session === null ||
+    companyScopeId(session.user.company) === companyScopeId(nextUser.company)
+  )
+    return;
+  sessionGeneration += 1;
+  setApiSessionGeneration(sessionGeneration);
+}
+
 function createSession(response: LoginResponse, user: CurrentUser): Session {
   persistCsrfToken(response.csrfToken);
   return {
@@ -420,6 +437,7 @@ export function refreshSession(): Promise<RefreshResult> {
         clearSession();
         return "expired";
       }
+      revokeForCompanyChange(user);
       session = createSession(body, user);
       notifySessionChange();
       return "refreshed";
@@ -479,6 +497,7 @@ export function restoreSession(): Promise<RefreshResult> {
         clearSession();
         return "expired";
       }
+      revokeForCompanyChange(user);
       session = createSession(body, user);
       notifySessionChange();
       return "refreshed";

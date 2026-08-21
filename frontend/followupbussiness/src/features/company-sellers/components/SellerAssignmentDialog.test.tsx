@@ -38,3 +38,22 @@ test("envía los territorios seleccionados al pulsar Asignar territorios", () =>
 
   expect(submit).toHaveBeenCalledWith(["territory-1"]);
 });
+
+test("inhabilita el guardado cuando no hay territorios activos", () => {
+  const submit = vi.fn();
+  render(<SellerAssignmentDialog seller={seller} kind="territories" options={{ supervisors: [], territories: [] }} loading={false} busy={false} error={null} onClose={() => undefined} onRetry={() => undefined} onSubmit={submit} />);
+
+  expect(screen.getByText("No hay territorios activos")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Asignar territorios" })).toBeNull();
+  expect(submit).not.toHaveBeenCalled();
+});
+
+test.each([
+  [403, "No tienes permiso"],
+  [409, "cambió mientras la editabas"],
+  [422, "no es válida"],
+])("explica el rechazo HTTP %i de la asignación", (status, message) => {
+  render(<SellerAssignmentDialog seller={seller} kind="supervisor" options={{ supervisors: [], territories: [] }} loading={false} busy={false} error={{ status: status as 403 | 409 | 422, correlationId: null, fieldErrors: [] }} onClose={() => undefined} onRetry={() => undefined} onSubmit={() => undefined} />);
+
+  expect(screen.getByRole("alert").textContent).toContain(message);
+});

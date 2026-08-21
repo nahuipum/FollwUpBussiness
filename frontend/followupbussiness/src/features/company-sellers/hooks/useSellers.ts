@@ -18,13 +18,8 @@ function companyScopeKey(company: unknown): string {
   if (typeof company === "object" && company !== null) {
     const id = (company as Record<string, unknown>).id;
     if (typeof id === "string") return `id:${id}`;
-    try {
-      return `object:${JSON.stringify(company)}`;
-    } catch {
-      return "object:unavailable";
-    }
   }
-  return String(company);
+  return "id:unavailable";
 }
 
 /** Scope used to revoke in-memory seller data when auth identity changes. */

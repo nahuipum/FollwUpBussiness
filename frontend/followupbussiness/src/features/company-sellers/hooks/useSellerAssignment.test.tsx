@@ -48,3 +48,18 @@ test("conserva el diálogo y muestra error cuando guardar territorios falla", as
   expect(result.current.seller).toBe(seller);
   expect(result.current.error?.status).toBe(422);
 });
+
+test("cierra la asignación y descarta sus opciones al cambiar de empresa", async () => {
+  const { result, rerender } = renderHook(
+    ({ sessionKey }) => useSellerAssignment(sessionKey, () => undefined),
+    { initialProps: { sessionKey: "tenant-a" } },
+  );
+
+  act(() => result.current.open(seller, "territories"));
+  await waitFor(() => expect(result.current.options).not.toBeNull());
+  rerender({ sessionKey: "tenant-b" });
+
+  await waitFor(() => expect(result.current.seller).toBeNull());
+  expect(result.current.kind).toBeNull();
+  expect(result.current.options).toBeNull();
+});

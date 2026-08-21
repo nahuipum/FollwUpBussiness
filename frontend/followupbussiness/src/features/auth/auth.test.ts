@@ -4,6 +4,7 @@ import {
   clearSession,
   getSessionCompanyLabel,
   getSessionCompanyName,
+  getSessionGeneration,
   getSessionIdentity,
   login,
   logout,
@@ -176,6 +177,23 @@ test("renews WEB credentials once with the in-memory CSRF token", async () => {
       }),
     }),
   ]);
+});
+
+test("revoca las solicitudes pendientes cuando la renovación cambia de empresa por id", async () => {
+  const companyA = { ...webResponse.user, company: { id: "company-a", legalName: "Empresa A" } };
+  const companyB = { ...webResponse.user, company: { id: "company-b", legalName: "Empresa B" } };
+  vi.stubGlobal("fetch", vi.fn()
+    .mockResolvedValueOnce(new Response(JSON.stringify(webResponse), { status: 200 }))
+    .mockResolvedValueOnce(currentUserResponse(companyA))
+    .mockResolvedValueOnce(new Response(JSON.stringify(webResponse), { status: 200 }))
+    .mockResolvedValueOnce(currentUserResponse(companyB)));
+
+  await login({ identifier: "seller@example.com", password: "correct-password" });
+  const beforeRefresh = getSessionGeneration();
+  await expect(refreshSession()).resolves.toBe("refreshed");
+
+  expect(getSessionGeneration()).toBeGreaterThan(beforeRefresh);
+  expect(getSessionIdentity()?.company).toMatchObject({ id: "company-b" });
 });
 
 test("restores a WEB session after reload using only the per-tab CSRF value", async () => {

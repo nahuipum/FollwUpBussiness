@@ -2,11 +2,20 @@ package com.nahui.followupbussiness.customers.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.nahui.followupbussiness.customers.adapter.in.rest.CustomerController;
+import com.nahui.followupbussiness.customers.adapter.in.rest.CustomerValidationErrorHandler;
 import com.nahui.followupbussiness.customers.adapter.out.persistence.JdbcCustomerActivityStore;
 import com.nahui.followupbussiness.customers.adapter.out.persistence.JdbcCustomerPortfolioStore;
 import com.nahui.followupbussiness.customers.adapter.out.persistence.JdbcCustomerStore;
 import com.nahui.followupbussiness.customers.application.CustomerPortfolioReadService;
+import com.nahui.followupbussiness.customers.application.CheckCustomerDuplicatesService;
+import com.nahui.followupbussiness.customers.application.CreateCustomerService;
+import com.nahui.followupbussiness.customers.application.UpdateCustomerService;
 import com.nahui.followupbussiness.customers.application.port.in.CustomerPortfolioReadUseCase;
 import com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor;
 import com.nahui.followupbussiness.identityaccess.domain.model.BaseRole;
@@ -25,6 +34,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
@@ -114,6 +128,34 @@ class CustomerPortfolioReadIntegrationTest {
         });
         assertThat(read.get(customerOther, supervisor)).isEmpty();
         assertThat(read.get(customerB, admin)).isEmpty();
+    }
+
+    @Test
+    void httpEndpointsExposeOnlyTheSupervisorsCurrentTeamAndHideUnassignedOrForeignCustomers() throws Exception {
+        UUID unassigned = customer(tenantA, "Unassigned HTTP");
+        MockMvc mvc = MockMvcBuilders.standaloneSetup(new CustomerController(
+                        mock(CreateCustomerService.class), mock(UpdateCustomerService.class), mock(CheckCustomerDuplicatesService.class),
+                        read(), scopes()))
+                .setControllerAdvice(new CustomerValidationErrorHandler())
+                .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
+                .build();
+        SecurityContextHolder.getContext().setAuthentication(UsernamePasswordAuthenticationToken.authenticated(
+                actor(supervisorA, tenantA, BaseRole.SUPERVISOR), "test", java.util.List.of()));
+        try {
+            mvc.perform(get("/customers"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.page.totalElements").value(1))
+                    .andExpect(jsonPath("$.items[0].id").value(customerA.toString()));
+            mvc.perform(get("/customers/{customerId}", customerA))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(customerA.toString()));
+            mvc.perform(get("/customers/{customerId}", unassigned))
+                    .andExpect(status().isNotFound());
+            mvc.perform(get("/customers/{customerId}", customerB))
+                    .andExpect(status().isNotFound());
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
     }
 
     @Test

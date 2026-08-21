@@ -161,7 +161,7 @@ export function CompanySellersPage() {
       {detail && (
         <SellerDetailDialog seller={detail} onClose={() => setDetail(null)} />
       )}
-      {form.seller !== undefined && (
+      {canManage && form.seller !== undefined && (
         <SellerFormDialog
           seller={form.seller}
           options={form.options}
@@ -191,7 +191,7 @@ export function CompanySellersPage() {
           options={assignment.options}
           loading={assignment.loading}
           busy={assignment.busy}
-          error={assignment.error ? "No pudimos guardar la asignación. Inténtalo nuevamente." : null}
+          error={assignment.error}
           onClose={assignment.close}
           onRetry={assignment.load}
           onSubmit={assignment.submit}
