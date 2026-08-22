@@ -4,6 +4,8 @@
 .customer-assignment h1 { font-size: clamp(26px, 2.5vw, 32px); }
 .customer-assignment h2 { font-size: 21px; }
 .customer-assignment > header p { margin: 7px 0 0; color: #67778a; line-height: 1.5; }
+.customer-assignment__metadata { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; min-height: 20px; color: #67778a; font-size: 13px; }
+.customer-assignment__metadata time { color: #526579; }
 .customer-assignment__panels { display: grid; grid-template-columns: minmax(0, 1.85fr) minmax(330px, .92fr); gap: 16px; align-items: stretch; }
 .customer-assignment__panel, .customer-assignment__results { box-sizing: border-box; border: 1px solid rgb(20 33 61 / 8%); border-radius: 18px; background: #fff; box-shadow: 0 4px 12px rgb(16 42 67 / 5%); }
 .customer-assignment__panel { padding: 20px; }
@@ -21,6 +23,7 @@
 .customer-assignment__form textarea { min-height: 86px; padding-block: 10px; resize: vertical; }
 .customer-assignment__form small { margin-top: -2px; color: #67778a; font-size: 12px; font-weight: 400; line-height: 1.45; }
 .customer-assignment__warning { margin: 0; padding: 12px 14px; border: 1px solid #f6d08e; border-radius: 10px; color: #a96312; background: #fff7ec; font-size: 13px; line-height: 1.45; }
+.customer-assignment__limit { margin: 0; padding: 10px 12px; border: 1px solid #d83b57; border-radius: 10px; color: #a0223c; background: #fff4f6; font-size: 13px; line-height: 1.45; }
 .customer-assignment__submit { min-height: 44px; padding: 0 17px; border: 1px solid transparent; border-radius: 12px; color: #fff; background: #176d77; cursor: pointer; font: inherit; font-size: 14px; font-weight: 700; }
 .customer-assignment__submit:hover:not(:disabled) { background: #125f68; }.customer-assignment__submit:focus-visible { outline: 3px solid rgb(56 178 172 / 35%); outline-offset: 2px; }.customer-assignment__submit:disabled { cursor: not-allowed; opacity: .58; }
 .customer-assignment__results { display: grid; gap: 10px; padding: 20px; }.customer-assignment__results p { display: flex; align-items: center; gap: 8px; margin: 0; color: #67778a; font-size: 13px; }

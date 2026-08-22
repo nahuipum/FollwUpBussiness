@@ -27,14 +27,14 @@ public final class JdbcCustomerPortfolioStore implements CustomerPortfolioStore 
 
     @Override
     public List<Assignment> current(UUID tenantId, UUID customerId) {
-        return jdbc.query("select customer_id,seller_id,effective_from,assigned_by,reason,created_at from customer_portfolio_assignment where tenant_id=? and customer_id=? order by seller_id", (rs, row) -> new Assignment(rs.getObject(1, UUID.class), rs.getObject(2, UUID.class), rs.getDate(3).toLocalDate(), rs.getObject(4, UUID.class), rs.getString(5), rs.getTimestamp(6).toInstant()), tenantId, customerId);
+        return jdbc.query("select customer_id,seller_id,effective_from,assigned_by,reason,created_at from customer_portfolio_assignment where tenant_id=? and customer_id=? and effective_from<=current_date and (effective_to is null or effective_to>current_date) order by seller_id", (rs, row) -> new Assignment(rs.getObject(1, UUID.class), rs.getObject(2, UUID.class), rs.getDate(3).toLocalDate(), rs.getObject(4, UUID.class), rs.getString(5), rs.getTimestamp(6).toInstant()), tenantId, customerId);
     }
 
     @Override
     public Map<UUID, List<Assignment>> current(UUID tenantId, List<UUID> customerIds) {
         if (customerIds.isEmpty()) return Map.of();
         List<Assignment> assignments = jdbc.query(
-                "select customer_id,seller_id,effective_from,assigned_by,reason,created_at from customer_portfolio_assignment where tenant_id=? and customer_id in ("
+                "select customer_id,seller_id,effective_from,assigned_by,reason,created_at from customer_portfolio_assignment where tenant_id=? and effective_from<=current_date and (effective_to is null or effective_to>current_date) and customer_id in ("
                         + placeholders(customerIds.size()) + ") order by customer_id,seller_id",
                 (rs, row) -> new Assignment(rs.getObject(1, UUID.class), rs.getObject(2, UUID.class), rs.getDate(3).toLocalDate(), rs.getObject(4, UUID.class), rs.getString(5), rs.getTimestamp(6).toInstant()),
                 parameters(tenantId, customerIds));
@@ -47,11 +47,26 @@ public final class JdbcCustomerPortfolioStore implements CustomerPortfolioStore 
     }
 
     @Override
+    public void lock(UUID tenantId, UUID customerId) {
+        jdbc.queryForObject("select id from customer where tenant_id=? and id=? for update", UUID.class, tenantId, customerId);
+    }
+
+    @Override
+    public boolean hasFutureAssignment(UUID tenantId, UUID customerId) {
+        Boolean exists = jdbc.queryForObject("select exists(select 1 from customer_portfolio_assignment where tenant_id=? and customer_id=? and effective_from>current_date)", Boolean.class, tenantId, customerId);
+        return Boolean.TRUE.equals(exists);
+    }
+
+    @Override
     public void replace(UUID tenantId, UUID customerId, Set<UUID> sellerIds, UUID actorId, LocalDate effectiveFrom, String reason, Instant now) {
         Set<UUID> before = current(tenantId, customerId).stream().map(Assignment::sellerId).collect(java.util.stream.Collectors.toSet());
         List<UUID> removed = before.stream().filter(id -> !sellerIds.contains(id)).sorted().toList();
         List<UUID> added = sellerIds.stream().filter(id -> !before.contains(id)).sorted().toList();
-        jdbc.update("delete from customer_portfolio_assignment where tenant_id=? and customer_id=?", tenantId, customerId);
+        if (effectiveFrom.isAfter(LocalDate.now(java.time.ZoneOffset.UTC))) {
+            jdbc.update("update customer_portfolio_assignment set effective_to=? where tenant_id=? and customer_id=? and effective_from<? and (effective_to is null or effective_to>?)", effectiveFrom, tenantId, customerId, effectiveFrom, effectiveFrom);
+        } else {
+            jdbc.update("delete from customer_portfolio_assignment where tenant_id=? and customer_id=?", tenantId, customerId);
+        }
         int paired = Math.min(removed.size(), added.size());
         for (int index = 0; index < paired; index++)
             history(tenantId, customerId, removed.get(index), added.get(index), actorId, effectiveFrom, reason, now);
@@ -96,10 +111,10 @@ public final class JdbcCustomerPortfolioStore implements CustomerPortfolioStore 
     }
 
     private Sql sql(CustomerPortfolioReadUseCase.Query q, CustomerPortfolioReadUseCase.Scope scope) {
-        String portfolio = scope.allCurrentPortfolios() ? "" : " and exists (select 1 from customer_portfolio_assignment p where p.tenant_id=c.tenant_id and p.customer_id=c.id and p.seller_id in (" + placeholders(scope.sellerIds().size()) + "))";
+        String portfolio = scope.allCurrentPortfolios() ? "" : " and exists (select 1 from customer_portfolio_assignment p where p.tenant_id=c.tenant_id and p.customer_id=c.id and p.effective_from<=current_date and (p.effective_to is null or p.effective_to>current_date) and p.seller_id in (" + placeholders(scope.sellerIds().size()) + "))";
         String activity = (q.withoutVisitSince() == null ? "" : " and (not exists (select 1 from customer_activity_fact av where av.tenant_id=c.tenant_id and av.customer_id=c.id) or (select av.last_completed_visit_at from customer_activity_fact av where av.tenant_id=c.tenant_id and av.customer_id=c.id) is null or (select av.last_completed_visit_at from customer_activity_fact av where av.tenant_id=c.tenant_id and av.customer_id=c.id) < ?)")
                 + (q.withoutPurchaseSince() == null ? "" : " and (not exists (select 1 from customer_activity_fact ap where ap.tenant_id=c.tenant_id and ap.customer_id=c.id) or (select ap.last_confirmed_purchase_at from customer_activity_fact ap where ap.tenant_id=c.tenant_id and ap.customer_id=c.id) is null or (select ap.last_confirmed_purchase_at from customer_activity_fact ap where ap.tenant_id=c.tenant_id and ap.customer_id=c.id) < ?)");
-        return new Sql("from customer c where c.tenant_id=?" + portfolio + " and (?::text is null or lower(c.name) like lower(?) or lower(coalesce(c.segment,'')) like lower(?) or lower(coalesce(c.document_number,'')) like lower(?) or lower(coalesce(c.phone,'')) like lower(?) or lower(c.address) like lower(?)) and (?::text is null or c.status=?) and (?::uuid is null or c.territory_id=?) and (?::text is null or c.segment=?)" + (q.sellerId() == null ? "" : " and exists (select 1 from customer_portfolio_assignment requested where requested.tenant_id=c.tenant_id and requested.customer_id=c.id and requested.seller_id=?)") + activity);
+        return new Sql("from customer c where c.tenant_id=?" + portfolio + " and (?::text is null or lower(c.name) like lower(?) or lower(coalesce(c.segment,'')) like lower(?) or lower(coalesce(c.document_number,'')) like lower(?) or lower(coalesce(c.phone,'')) like lower(?) or lower(c.address) like lower(?)) and (?::text is null or c.status=?) and (?::uuid is null or c.territory_id=?) and (?::text is null or c.segment=?)" + (q.sellerId() == null ? "" : " and exists (select 1 from customer_portfolio_assignment requested where requested.tenant_id=c.tenant_id and requested.customer_id=c.id and requested.effective_from<=current_date and (requested.effective_to is null or requested.effective_to>current_date) and requested.seller_id=?)") + activity);
     }
 
     private Object[] parameters(Sql sql, CustomerPortfolioReadUseCase.Query q, CustomerPortfolioReadUseCase.Scope scope, boolean paged) {

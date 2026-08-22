@@ -20,8 +20,8 @@ asignación individual y masiva.
 ## Criterios de aceptación
 
 1. La asignación individual y masiva se refleja en filtros y detalle.
-2. El vendedor solo recibe en su ruta clientes permitidos para la política
-   vigente.
+2. La cartera vigente queda disponible, con tenant y vigencia verificables,
+   para su consumidor de planificación de rutas.
 3. La reasignación conserva visitas, ventas y rutas históricas.
 4. Un cliente o vendedor de otro tenant siempre es rechazado.
 5. La operación queda auditada y los conflictos son visibles.
@@ -29,18 +29,20 @@ asignación individual y masiva.
 ## Dependencias
 
 - BE-059, BE-060, BE-062, FE-036 y FE-037.
+- El consumo E2E por rutas se valida en `INT-041` durante Sprint 4; rutas no
+  es productor disponible en este sprint.
 
 <!-- delivery-traceability:start -->
 ## Secuencia de entrega y trazabilidad
 
 - **Sprint objetivo:** Sprint 2 — Equipo, zonas, clientes y cartera.
 - **Predecesoras obligatorias:** `BE-059` — Listar y consultar vendedores; `BE-060` — Asignar cartera de clientes; `BE-062` — Gestionar zonas y territorios; `FE-036` — Asignar cartera de clientes; `FE-037` — Gestionar zonas y territorios
-- **Historias consecuentes que habilita:** No tiene sucesora directa; su cierre alimenta la regresión y el DoF del MVP.
+- **Historias consecuentes que habilita:** `INT-041` — Cartera vigente consumida en planificación de rutas E2E.
 - **Validación vertical:** Esta historia es la validación vertical E2E y constituye la puerta de salida de su capacidad.
 
 ## Contratos y superficies
 
-- **Debe estar listo antes de desarrollar:** OpenAPI `/customers`; modelo PostGIS, filtros y asignación de cartera.
+- **Debe estar listo antes de desarrollar:** OpenAPI `/customers`; modelo PostGIS, filtros y asignación de cartera. Las rutas son una dependencia posterior y no bloquean este cierre.
 - El contrato no puede modificarse silenciosamente para acomodar una
   implementación; Backend, consumidores y QA de contrato deben revisarlo.
 

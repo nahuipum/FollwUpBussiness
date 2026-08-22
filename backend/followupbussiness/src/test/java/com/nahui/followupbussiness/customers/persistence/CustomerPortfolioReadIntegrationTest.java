@@ -12,11 +12,13 @@ import com.nahui.followupbussiness.customers.adapter.in.rest.CustomerValidationE
 import com.nahui.followupbussiness.customers.adapter.out.persistence.JdbcCustomerActivityStore;
 import com.nahui.followupbussiness.customers.adapter.out.persistence.JdbcCustomerPortfolioStore;
 import com.nahui.followupbussiness.customers.adapter.out.persistence.JdbcCustomerStore;
+import com.nahui.followupbussiness.customers.application.CustomerPortfolioAssignmentService;
 import com.nahui.followupbussiness.customers.application.CustomerPortfolioReadService;
 import com.nahui.followupbussiness.customers.application.CheckCustomerDuplicatesService;
 import com.nahui.followupbussiness.customers.application.CreateCustomerService;
 import com.nahui.followupbussiness.customers.application.UpdateCustomerService;
 import com.nahui.followupbussiness.customers.application.port.in.CustomerPortfolioReadUseCase;
+import com.nahui.followupbussiness.customers.application.port.in.CustomerPortfolioAssignmentUseCase;
 import com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor;
 import com.nahui.followupbussiness.identityaccess.domain.model.BaseRole;
 import com.nahui.followupbussiness.workforce.adapter.out.persistence.JdbcSellerStore;
@@ -168,6 +170,19 @@ class CustomerPortfolioReadIntegrationTest {
     }
 
     @Test
+    void excludesFutureAssignmentsFromPortfolioScopeFiltersAndDetail() {
+        UUID scheduled = customer(tenantA, "Scheduled");
+        jdbc.update("insert into customer_portfolio_assignment(tenant_id,customer_id,seller_id,effective_from,assigned_by,created_at) values(?,?,?,current_date + 1,?,current_timestamp)", tenantA, scheduled, sellerA, accountForSeller(sellerA));
+        CustomerPortfolioReadService read = read();
+        var sellerScope = new CustomerPortfolioReadUseCase.Scope(tenantA, false, Set.of(sellerA));
+
+        assertThat(read.read(query(null, 0, 20), sellerScope).items()).extracting(detail -> detail.customer().id())
+                .doesNotContain(scheduled);
+        assertThat(read.get(scheduled, sellerScope)).isEmpty();
+        assertThat(new JdbcCustomerPortfolioStore(jdbc).current(tenantA, scheduled)).isEmpty();
+    }
+
+    @Test
     void rejectsCrossTenantAndInactiveOrUnknownSellerFiltersAndUsesUtcActivityBoundary() {
         CustomerPortfolioReadService read = read();
         PortfolioAccessScopeService scopes = scopes();
@@ -196,6 +211,37 @@ class CustomerPortfolioReadIntegrationTest {
             assertThat(entry.recordedAt()).isEqualTo(recordedAt);
         });
         assertThat(history).noneMatch(entry -> entry.previousSellerId() == null || entry.newSellerId() == null);
+    }
+
+    @Test
+    void schedulesReplacementWithoutRemovingCurrentPortfolioBeforeItsEffectiveDate() {
+        LocalDate effectiveFrom = LocalDate.now().plusDays(1);
+        new JdbcCustomerPortfolioStore(jdbc).replace(tenantA, customerA, Set.of(sellerOther), adminA, effectiveFrom, "programada", Instant.parse("2026-02-01T10:15:30Z"));
+
+        assertThat(new JdbcCustomerPortfolioStore(jdbc).current(tenantA, customerA)).extracting(entry -> entry.sellerId()).containsExactly(sellerA);
+        assertThat(jdbc.queryForObject("select effective_to from customer_portfolio_assignment where tenant_id=? and customer_id=? and seller_id=?", LocalDate.class, tenantA, customerA, sellerA)).isEqualTo(effectiveFrom);
+        assertThat(jdbc.queryForObject("select effective_from from customer_portfolio_assignment where tenant_id=? and customer_id=? and seller_id=?", LocalDate.class, tenantA, customerA, sellerOther)).isEqualTo(effectiveFrom);
+        assertThat(jdbc.queryForObject("select count(*) from customer_portfolio_assignment where tenant_id=? and customer_id=? and effective_from<=? and (effective_to is null or effective_to>?)", Integer.class, tenantA, customerA, effectiveFrom, effectiveFrom)).isEqualTo(1);
+    }
+
+    @Test
+    void permitsInitialSchedulingAndRejectsFurtherFutureSchedulesWithoutWritesOrSuccessfulAudit() {
+        int[] successfulAudits = {0};
+        var service = new CustomerPortfolioAssignmentService(new JdbcCustomerStore(jdbc), new JdbcCustomerPortfolioStore(jdbc),
+                (tenantId, sellerIds) -> true, command -> { successfulAudits[0]++; return true; }, java.time.Clock.systemUTC());
+        LocalDate firstDate = LocalDate.now().plusDays(1);
+        service.assign(new CustomerPortfolioAssignmentUseCase.Command(customerA, Set.of(sellerOther), firstDate, "primera"), actor(adminA, tenantA, BaseRole.COMPANY_ADMIN));
+        long assignments = jdbc.queryForObject("select count(*) from customer_portfolio_assignment where tenant_id=? and customer_id=?", Long.class, tenantA, customerA);
+        long history = jdbc.queryForObject("select count(*) from customer_portfolio_history where tenant_id=? and customer_id=?", Long.class, tenantA, customerA);
+
+        assertThatThrownBy(() -> service.assign(new CustomerPortfolioAssignmentUseCase.Command(customerA, Set.of(sellerOther), firstDate, "misma fecha"), actor(adminA, tenantA, BaseRole.COMPANY_ADMIN)))
+                .isInstanceOf(CustomerPortfolioAssignmentUseCase.Conflict.class);
+        assertThatThrownBy(() -> service.assign(new CustomerPortfolioAssignmentUseCase.Command(customerA, Set.of(sellerA), firstDate.plusDays(1), "fecha distinta"), actor(adminA, tenantA, BaseRole.COMPANY_ADMIN)))
+                .isInstanceOf(CustomerPortfolioAssignmentUseCase.Conflict.class);
+
+        assertThat(jdbc.queryForObject("select count(*) from customer_portfolio_assignment where tenant_id=? and customer_id=?", Long.class, tenantA, customerA)).isEqualTo(assignments);
+        assertThat(jdbc.queryForObject("select count(*) from customer_portfolio_history where tenant_id=? and customer_id=?", Long.class, tenantA, customerA)).isEqualTo(history);
+        assertThat(successfulAudits[0]).isEqualTo(1);
     }
 
     @Test

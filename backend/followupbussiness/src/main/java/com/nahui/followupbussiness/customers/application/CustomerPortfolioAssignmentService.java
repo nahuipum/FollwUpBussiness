@@ -8,15 +8,18 @@ import com.nahui.followupbussiness.audit.domain.AuditResult;
 import com.nahui.followupbussiness.customers.application.port.in.CustomerPortfolioAssignmentUseCase;
 import com.nahui.followupbussiness.customers.application.port.out.CustomerPortfolioStore;
 import com.nahui.followupbussiness.customers.application.port.out.CustomerStore;
+import com.nahui.followupbussiness.customers.domain.Customer;
 import com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor;
 import com.nahui.followupbussiness.identityaccess.domain.model.BaseRole;
 import com.nahui.followupbussiness.workforce.application.port.in.SellerReferenceUseCase;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.util.*;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -38,18 +41,22 @@ public class CustomerPortfolioAssignmentService implements CustomerPortfolioAssi
     }
 
     @Override
-    @Transactional
+    @Transactional(isolation = Isolation.SERIALIZABLE)
     public Result assign(Command c, AuthenticatedActor actor) {
         valid(c.customerId(), c.sellerIds(), c.effectiveFrom(), actor);
         var customer = customers.find(actor.tenantId(), c.customerId()).orElseThrow(NotFound::new);
         if (!"ACTIVE".equals(customer.status())) throw new InvalidSeller();
         if (!sellers.allActive(actor.tenantId(), c.sellerIds())) throw new InvalidSeller();
+        portfolios.lock(actor.tenantId(), c.customerId());
+        if (portfolios.hasFutureAssignment(actor.tenantId(), c.customerId())) throw new Conflict();
         if (!samePortfolio(actor.tenantId(), c.customerId(), c.sellerIds())) {
             portfolios.replace(actor.tenantId(), c.customerId(), c.sellerIds(), actor.accountId(), c.effectiveFrom(), c.reason(), clock.instant());
             if (!audit.record(new RecordAuditEntryCommand(AuditAction.CRITICAL_MUTATION, AuditResourceType.CUSTOMER, c.customerId(), AuditResult.SUCCESS, Map.of(), Map.of())))
                 throw new IllegalStateException("audit persistence failed");
+            customer = touch(customer);
+            if (!customers.update(customer, customer.version() - 1)) throw new Conflict();
         }
-        return new Result(c.customerId(), Set.copyOf(c.sellerIds()), c.effectiveFrom());
+        return new Result(c.customerId(), Set.copyOf(c.sellerIds()), c.effectiveFrom(), customer.updatedAt(), customer.version());
     }
 
     @Override
@@ -62,7 +69,7 @@ public class CustomerPortfolioAssignmentService implements CustomerPortfolioAssi
         var reservation = portfolios.reserveIdempotency(actor.tenantId(), c.idempotencyKey(), fingerprint, clock.instant());
         if (!reservation.owner()) {
             if (!reservation.record().fingerprint().equals(fingerprint)) throw new Conflict();
-            return new BatchResult(reservation.record().results().stream().map(CustomerPortfolioAssignmentService::item).toList(), true);
+            return new BatchResult(reservation.record().results().stream().map(CustomerPortfolioAssignmentService::item).toList());
         }
         List<Item> items = new ArrayList<>();
         for (UUID id : c.customerIds()) {
@@ -80,7 +87,7 @@ public class CustomerPortfolioAssignmentService implements CustomerPortfolioAssi
             }
         }
         portfolios.completeIdempotency(actor.tenantId(), c.idempotencyKey(), items.stream().map(CustomerPortfolioAssignmentService::encode).toList());
-        return new BatchResult(List.copyOf(items), false);
+        return new BatchResult(List.copyOf(items));
     }
 
     private boolean samePortfolio(UUID tenantId, UUID customerId, Set<UUID> sellerIds) {
@@ -108,11 +115,18 @@ public class CustomerPortfolioAssignmentService implements CustomerPortfolioAssi
     }
 
     private static String encode(Item item) {
-        return item.customerId() + "|" + item.status() + "|" + (item.code() == null ? "" : item.code());
+        return item.customerId() + "|" + item.status() + "|" + (item.errorCode() == null ? "" : item.errorCode());
     }
 
     private static Item item(String value) {
         String[] fields = value.split("\\|", -1);
         return new Item(UUID.fromString(fields[0]), fields[1], fields[2].isEmpty() ? null : fields[2]);
+    }
+
+    private Customer touch(Customer value) {
+        Instant now = clock.instant();
+        return new Customer(value.id(), value.tenantId(), value.name(), value.documentType(), value.documentNumber(),
+                value.phone(), value.email(), value.segment(), value.address(), value.location(), value.visitFrequencyDays(),
+                value.territoryId(), value.status(), value.createdAt(), now, value.version() + 1);
     }
 }

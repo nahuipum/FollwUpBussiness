@@ -8,6 +8,7 @@ import java.time.LocalDate;
 import java.util.*;
 
 import org.springframework.http.*;
+import org.springframework.dao.ConcurrencyFailureException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,12 +25,14 @@ public final class CustomerPortfolioAssignmentController {
         UUID c = CustomerController.correlationId(http);
         try {
             var x = useCase.assign(new CustomerPortfolioAssignmentUseCase.Command(customerId, r.sellerIds(), r.effectiveFrom(), r.reason()), actor);
-            return ResponseEntity.ok().header("X-Correlation-Id", c.toString()).body(x);
+            return ResponseEntity.ok().header("X-Correlation-Id", c.toString()).body(new AssignmentResponse(x.customerId(), x.sellerIds(), x.effectiveFrom(), x.updatedAt(), x.version()));
         } catch (CustomerPortfolioAssignmentUseCase.Forbidden e) {
             return CustomerController.problem(HttpStatus.FORBIDDEN, c);
         } catch (CustomerPortfolioAssignmentUseCase.NotFound e) {
             return CustomerController.problem(HttpStatus.NOT_FOUND, c);
         } catch (CustomerPortfolioAssignmentUseCase.Conflict e) {
+            return CustomerController.problem(HttpStatus.CONFLICT, c);
+        } catch (ConcurrencyFailureException e) {
             return CustomerController.problem(HttpStatus.CONFLICT, c);
         } catch (RuntimeException e) {
             return CustomerController.problem(HttpStatus.UNPROCESSABLE_CONTENT, c);
@@ -41,10 +44,12 @@ public final class CustomerPortfolioAssignmentController {
         UUID c = CustomerController.correlationId(http);
         try {
             var x = useCase.assignBatch(new CustomerPortfolioAssignmentUseCase.BatchCommand(r.customerIds(), r.sellerIds(), r.effectiveFrom(), r.reason(), key), actor);
-            return ResponseEntity.ok().header("X-Correlation-Id", c.toString()).body(x);
+            return ResponseEntity.ok().header("X-Correlation-Id", c.toString()).body(new BatchResponse(x.results().stream().map(item -> new BatchItemResponse(item.customerId(), item.status(), item.errorCode())).toList()));
         } catch (CustomerPortfolioAssignmentUseCase.Forbidden e) {
             return CustomerController.problem(HttpStatus.FORBIDDEN, c);
         } catch (CustomerPortfolioAssignmentUseCase.Conflict e) {
+            return CustomerController.problem(HttpStatus.CONFLICT, c);
+        } catch (ConcurrencyFailureException e) {
             return CustomerController.problem(HttpStatus.CONFLICT, c);
         } catch (RuntimeException e) {
             return CustomerController.problem(HttpStatus.UNPROCESSABLE_CONTENT, c);
@@ -56,4 +61,9 @@ public final class CustomerPortfolioAssignmentController {
 
     public record Batch(List<UUID> customerIds, Set<UUID> sellerIds, LocalDate effectiveFrom, String reason) {
     }
+
+    record AssignmentResponse(UUID customerId, Set<UUID> sellerIds, LocalDate effectiveFrom, java.time.Instant updatedAt,
+                              long version) { }
+    record BatchResponse(List<BatchItemResponse> results) { }
+    record BatchItemResponse(UUID customerId, String status, String errorCode) { }
 }

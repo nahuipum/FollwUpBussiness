@@ -152,7 +152,7 @@ historia y sus flechas de dependencia está en
 
 ### Ola 4D — Validación vertical
 
-- INT-007, INT-008 e INT-009.
+- INT-007, INT-008, INT-009 e INT-041.
 
 ### Ola 4E — Ready de tracking en vivo
 

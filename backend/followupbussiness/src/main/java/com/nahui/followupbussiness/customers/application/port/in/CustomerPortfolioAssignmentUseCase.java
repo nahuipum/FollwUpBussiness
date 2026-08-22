@@ -19,13 +19,14 @@ public interface CustomerPortfolioAssignmentUseCase {
                         UUID idempotencyKey) {
     }
 
-    record Result(UUID customerId, Set<UUID> sellerIds, LocalDate effectiveFrom) {
+    record Result(UUID customerId, Set<UUID> sellerIds, LocalDate effectiveFrom, java.time.Instant updatedAt,
+                  long version) {
     }
 
-    record BatchResult(List<Item> items, boolean replayed) {
+    record BatchResult(List<Item> results) {
     }
 
-    record Item(UUID customerId, String status, String code) {
+    record Item(UUID customerId, String status, String errorCode) {
     }
 
     final class Forbidden extends RuntimeException {

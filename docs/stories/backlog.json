@@ -3971,5 +3971,30 @@
         "priority":  "Must Have",
         "phase":  "MVP",
         "type":  "Historia de integración E2E"
+    },
+    {
+        "area":  "Integración",
+        "id":  "INT-041",
+        "epic":  "Rutas",
+        "title":  "Cartera vigente consumida en planificación de rutas E2E",
+        "actor":  "vendedor autorizado",
+        "want":  "recibir en su ruta solo clientes de su cartera vigente",
+        "value":  "planificar y ejecutar recorridos sin mezclar clientes ni empresas",
+        "scope":  "Cartera vigente + creación, sugerencia y consulta de rutas + panel y mobile.",
+        "acceptance":  [
+                           "Rutas usan cartera vigente en la fecha operativa.",
+                           "Roles, equipo y tenant se restringen en todos los consumidores.",
+                           "La reasignación no altera rutas históricas.",
+                           "BOLA, replay y conflictos no dejan escrituras parciales.",
+                           "Los clientes limpian estado al logout o cambio de empresa."
+                       ],
+        "refs":  [
+                     "INT-034",
+                     "HU-020",
+                     "HU-021"
+                 ],
+        "priority":  "Must Have",
+        "phase":  "MVP",
+        "type":  "Historia de integración E2E"
     }
 ]

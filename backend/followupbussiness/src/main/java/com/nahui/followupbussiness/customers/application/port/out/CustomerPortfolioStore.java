@@ -21,6 +21,12 @@ public interface CustomerPortfolioStore {
 
     List<HistoryEntry> history(UUID tenantId, UUID customerId);
 
+    /** Serializes a portfolio transition after tenant-scoped resource resolution. */
+    void lock(UUID tenantId, UUID customerId);
+
+    /** Whether the customer already has a portfolio transition scheduled after today. */
+    boolean hasFutureAssignment(UUID tenantId, UUID customerId);
+
     void replace(UUID tenantId, UUID customerId, Set<UUID> sellerIds, UUID actorId, LocalDate effectiveFrom, String reason, Instant recordedAt);
 
     IdempotencyReservation reserveIdempotency(UUID tenantId, UUID key, String fingerprint, Instant recordedAt);
