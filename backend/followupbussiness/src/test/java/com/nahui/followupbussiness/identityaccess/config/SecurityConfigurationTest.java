@@ -62,6 +62,12 @@ class SecurityConfigurationTest {
     private com.nahui.followupbussiness.outbox.application.ReprocessOutboxEvent reprocessOutboxEvent;
 
     @MockitoBean
+    private com.nahui.followupbussiness.outbox.application.port.out.OutboxStore outboxStore;
+
+    @MockitoBean
+    private org.springframework.amqp.core.TopicExchange outboxExchange;
+
+    @MockitoBean
     private DlqReprocessRateLimiter dlqReprocessRateLimiter;
 
     @MockitoBean
@@ -171,6 +177,14 @@ class SecurityConfigurationTest {
         when(inboundJwtAuthenticator.authenticate("seller-token")).thenReturn(
                 new org.springframework.security.authentication.UsernamePasswordAuthenticationToken("seller", "token", createAuthorityList("SELLER")));
         mockMvc.perform(get("/platform/companies").header("Authorization", "Bearer seller-token"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void customerImportPostRequiresCompanyAdminAtTheSecurityFilter() throws Exception {
+        when(inboundJwtAuthenticator.authenticate("seller-token")).thenReturn(
+                new org.springframework.security.authentication.UsernamePasswordAuthenticationToken("seller", "token", createAuthorityList("SELLER")));
+        mockMvc.perform(post("/customer-imports").header("Authorization", "Bearer seller-token"))
                 .andExpect(status().isForbidden());
     }
 

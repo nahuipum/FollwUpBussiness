@@ -59,7 +59,7 @@
 
 ## Contratos y superficies
 
-- **Debe estar listo antes de desarrollar:** OpenAPI `/customers/imports`; eventos de importación y archivo de errores.
+- **Debe estar listo antes de desarrollar:** OpenAPI `/customer-imports`; eventos de importación y archivo de errores.
 - El contrato no puede modificarse silenciosamente para acomodar una
   implementación; Backend, consumidores y QA de contrato deben revisarlo.
 

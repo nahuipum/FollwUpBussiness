@@ -1283,6 +1283,14 @@ paths:
       tags: [Customer imports]
       operationId: createCustomerImport
       summary: Iniciar importación asíncrona de clientes
+      description: >-
+        Acepta exclusivamente CSV UTF-8 o XLSX sin macros, de hasta 10 MiB, una hoja y
+        10 000 filas de datos. El XLSX admite como máximo una razón de compresión 20:1 y
+        cada celda un máximo de 512 caracteres. El CSV debe contener la línea de versión
+        antes del encabezado; XLSX declara la versión en `TemplateVersion`. El evento
+        interno `customer-import.requested.v1` contiene solo importId, tenantId y
+        correlationId. El archivo se conserva hasta 24 horas después de un estado terminal;
+        los resultados por fila y el futuro archivo de errores expiran 30 días después.
       x-required-roles: [COMPANY_ADMIN]
       x-story-ids: [BE-019, FE-012, INT-006]
       parameters:
@@ -1300,6 +1308,10 @@ paths:
                 partialAcceptance:
                   type: boolean
                   default: true
+                  description: >-
+                    Si es true, persiste solo filas válidas y registra los rechazos. Si es
+                    false, cualquier rechazo deja el trabajo COMPLETED_WITH_ERRORS sin crear
+                    clientes.
                 file:
                   type: string
                   format: binary

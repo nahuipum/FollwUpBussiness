@@ -4,6 +4,10 @@ spring:
   jackson:
     deserialization:
       fail-on-unknown-properties: true
+  servlet:
+    multipart:
+      max-file-size: ${CUSTOMER_IMPORT_MAX_FILE_SIZE:10MB}
+      max-request-size: ${CUSTOMER_IMPORT_MAX_REQUEST_SIZE:11MB}
   application:
     name: followupbussiness
   data:
@@ -26,6 +30,9 @@ spring:
     password: ${RABBITMQ_PASSWORD}
     publisher-confirm-type: correlated
     publisher-returns: true
+    listener:
+      simple:
+        default-requeue-rejected: false
   rabbitmq.template:
     mandatory: true
   mail:

@@ -1,0 +1,1764 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light" />
+  <title>MOB-034 — Navegación y plantillas operativas mobile</title>
+
+  <!--
+    MOB-034 — DEFINIR NAVEGACIÓN Y PLANTILLAS OPERATIVAS MOBILE
+    =====================================================================
+    Mockup HTML autocontenido para handoff visual de FollowUpBusiness.
+
+    FUENTES VISUALES OBLIGATORIAS:
+    - MOB-001: el símbolo #brand-route se reutiliza literalmente, sin rediseño.
+    - MOB-033: se conservan literalmente sus tokens, tipografía, colores,
+      radios, sombras y patrones de componentes reutilizables.
+
+    ALCANCE:
+    - Referencia visual, no código productivo.
+    - No implementa APIs, backend, autenticación real, permisos del sistema,
+      tracking real, sincronización, reglas de negocio ni datos operativos.
+    - Los botones solo permiten recorrer el handoff o muestran avisos locales.
+    - No se incluyen clientes, direcciones, ventas ni recorridos ficticios.
+
+    PANTALLAS DISPONIBLES:
+      ?screen=inicio-sin-jornada
+      ?screen=inicio-activa
+      ?screen=ruta-vacia
+      ?screen=ruta-disponible
+      ?screen=actividad-vacia
+      ?screen=mas
+      ?screen=carga
+      ?screen=error
+      ?screen=sin-permiso
+      ?screen=dato-desactualizado
+      ?screen=visita-activa
+
+    PARÁMETRO DE REVISIÓN:
+      ?clean=1 -> muestra únicamente el dispositivo, como MOB-001 y MOB-033.
+
+    REGLAS DE SHELL REPRESENTADAS:
+    - FubAuthenticatedShell muestra FubBottomNavBar solo en pantallas raíz.
+    - FubBottomNavBar contiene exclusivamente: Inicio, Ruta, Actividad y Más.
+    - Login, recuperación, formularios, diálogos, permisos y navegación externa
+      quedan fuera del shell con barra inferior.
+    - Tracking, permisos, conectividad y datos desactualizados usan
+      FubContextAlert / plantillas de estado; nunca son destinos de navegación.
+    - FubFocusedAppBar usa regreso controlado para visita activa y formularios.
+
+    WIDGETS FLUTTER A CREAR — comentarios de handoff, no código Flutter:
+    - FubAuthenticatedShell
+    - FubRootAppBar
+    - FubFocusedAppBar
+    - FubBottomNavBar / FubBottomNavItem
+    - FubHomeTemplate
+    - FubRouteTemplate / FubRouteStateLegend
+    - FubActivityTemplate
+    - FubMoreTemplate / FubSettingsGroup / FubSettingsRow
+    - FubContextAlert
+    - FubLoadingState / FubEmptyState / FubErrorState
+    - FubPermissionState / FubStaleDataState
+    - FubVisitActiveTemplate / FubControlledBackDialog
+
+    INDICACIÓN PARA CODEX:
+    Implementa únicamente la HU MOB-034 usando este archivo como referencia
+    visual y los widgets base de MOB-033. Conserva literalmente el logo de
+    MOB-001. No implementes APIs, autenticación, tracking, permisos, rutas,
+    ventas ni reglas de negocio. La barra inferior solo pertenece a las cuatro
+    pantallas raíz autenticadas. Si el mockup contradice un contrato, detente y
+    repórtalo.
+  -->
+
+  <style>
+    /* =========================================================
+       TOKENS LITERALES DE MOB-033 — FubThemeTokens / FubThemeData
+       ========================================================= */
+    :root{
+      --navy:#102A43;
+      --navy-2:#163B62;
+      --navy-3:#0F6B78;
+      --teal:#176D77;
+      --teal-dark:#145F68;
+      --teal-light:#7DD3D7;
+      --teal-mid:#38B2AC;
+
+      --text:#14213D;
+      --text-secondary:#67778A;
+      --form-text:#26384A;
+      --muted:#8090A0;
+      --line:#CFD9E4;
+      --placeholder:#96A4B2;
+      --background:#F7F9FC;
+      --surface:#FFFFFF;
+
+      --danger:#D83B57;
+      --danger-dark:#8F2B3C;
+      --danger-bg:#FFF3F5;
+      --danger-line:#F2B6C0;
+      --success:#168A5B;
+      --success-dark:#116746;
+      --success-bg:#EFFAF5;
+      --success-line:#BDE8D5;
+      --info:#246B9B;
+      --info-dark:#1D5E87;
+      --info-bg:#F0F7FC;
+      --info-line:#C6E1F2;
+      --warning:#9B6908;
+      --warning-dark:#7F570A;
+      --warning-bg:#FFF9EB;
+      --warning-line:#F2D89A;
+
+      --review-background:#E9EFF4;
+      --soft-surface:#F8FBFD;
+      --soft-teal:#EDF8F8;
+      --soft-line:#DDE7EE;
+      --disabled-bg:#F5F7F9;
+      --disabled-line:#D8E0E6;
+      --skeleton:#E9EEF2;
+      --skeleton-strong:#E2E9EE;
+      --toast-base:#123A46;
+
+      --shadow-sm:0 8px 24px rgba(16,42,67,.08);
+      --shadow-md:0 20px 56px rgba(16,42,67,.14);
+      --shadow-device:0 28px 90px rgba(16,42,67,.28);
+
+      --radius-sm:12px;
+      --radius-md:18px;
+      --radius-lg:24px;
+      --radius-pill:999px;
+
+      --space-1:4px;
+      --space-2:8px;
+      --space-3:12px;
+      --space-4:16px;
+      --space-5:20px;
+      --space-6:24px;
+      --space-7:32px;
+
+      --font-scale:1;
+      --fs-10:calc(10px * var(--font-scale));
+      --fs-11:calc(11px * var(--font-scale));
+      --fs-12:calc(12px * var(--font-scale));
+      --fs-13:calc(13px * var(--font-scale));
+      --fs-14:calc(14px * var(--font-scale));
+      --fs-16:calc(16px * var(--font-scale));
+      --fs-18:calc(18px * var(--font-scale));
+      --fs-20:calc(20px * var(--font-scale));
+      --fs-24:calc(24px * var(--font-scale));
+      --fs-28:calc(28px * var(--font-scale));
+
+      --transition:160ms cubic-bezier(.2,.7,.2,1);
+    }
+
+    *{box-sizing:border-box}
+
+    html,body{
+      min-width:320px;
+      min-height:100%;
+      margin:0;
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      color:var(--text);
+      background:var(--review-background);
+      text-rendering:optimizeLegibility;
+      -webkit-font-smoothing:antialiased;
+    }
+
+    body{min-height:100vh}
+    button{font:inherit;color:inherit}
+    svg{display:block}
+
+    :focus-visible{
+      outline:3px solid rgba(56,178,172,.32);
+      outline-offset:3px;
+    }
+
+    .sr-only{
+      position:absolute!important;
+      width:1px!important;
+      height:1px!important;
+      padding:0!important;
+      margin:-1px!important;
+      overflow:hidden!important;
+      clip:rect(0,0,0,0)!important;
+      white-space:nowrap!important;
+      border:0!important;
+    }
+
+    /* =========================================================
+       MESA DE REVISIÓN — no convertir a Flutter
+       ========================================================= */
+    .review-app{
+      min-height:100vh;
+      display:grid;
+      grid-template-columns:304px minmax(0,1fr);
+      background:var(--review-background);
+    }
+
+    .review-sidebar{
+      position:sticky;
+      top:0;
+      z-index:20;
+      height:100vh;
+      overflow:auto;
+      padding:26px 20px 24px;
+      border-right:1px solid rgba(16,42,67,.09);
+      background:rgba(255,255,255,.94);
+      backdrop-filter:blur(16px);
+    }
+
+    .review-brand{
+      display:flex;
+      align-items:center;
+      gap:11px;
+      margin:0 4px 22px;
+    }
+
+    .review-brand .brand-mark{width:38px;height:38px;border-radius:var(--radius-sm)}
+    .review-brand-copy strong{display:block;font-size:var(--fs-14);letter-spacing:-.2px}
+    .review-brand-copy span{display:block;margin-top:2px;color:var(--muted);font-size:var(--fs-11)}
+
+    .review-note{
+      padding:13px 14px;
+      margin-bottom:18px;
+      border:1px solid var(--soft-line);
+      border-radius:14px;
+      background:var(--soft-surface);
+      color:var(--text-secondary);
+      font-size:var(--fs-12);
+      line-height:1.5;
+    }
+
+    .review-note strong{display:block;margin-bottom:4px;color:var(--navy)}
+    .review-note code{font:inherit;font-weight:760;color:var(--teal-dark)}
+
+    .review-group{margin-top:18px}
+    .review-group-title{
+      margin:0 6px 8px;
+      color:var(--muted);
+      font-size:var(--fs-10);
+      font-weight:800;
+      letter-spacing:.09em;
+      text-transform:uppercase;
+    }
+
+    .review-nav{display:grid;gap:5px}
+
+    .review-state-button{
+      width:100%;
+      min-height:44px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:9px 11px;
+      border:1px solid transparent;
+      border-radius:11px;
+      background:transparent;
+      color:var(--text-secondary);
+      cursor:pointer;
+      text-align:left;
+      transition:background var(--transition),border-color var(--transition),color var(--transition),transform var(--transition);
+    }
+
+    .review-state-button:hover{background:#F3F8FA;color:var(--text)}
+    .review-state-button:active{transform:translateY(1px)}
+    .review-state-button.is-active{
+      color:var(--teal-dark);
+      border-color:#B8DDE0;
+      background:var(--soft-teal);
+      box-shadow:inset 3px 0 0 var(--teal);
+    }
+
+    .state-dot{width:8px;height:8px;flex:0 0 auto;border-radius:var(--radius-pill);background:#B4C2CE}
+    .review-state-button.is-active .state-dot{background:var(--teal)}
+    .state-button-copy{display:grid;gap:1px}
+    .state-button-copy strong{font-size:var(--fs-12);font-weight:760}
+    .state-button-copy span{color:var(--muted);font-size:var(--fs-10)}
+
+    .review-main{min-width:0;min-height:100vh;display:flex;flex-direction:column}
+
+    .review-toolbar{
+      position:sticky;
+      top:0;
+      z-index:15;
+      min-height:66px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      padding:12px 24px;
+      border-bottom:1px solid rgba(16,42,67,.08);
+      background:rgba(233,239,244,.88);
+      backdrop-filter:blur(14px);
+    }
+
+    .toolbar-title{min-width:0}
+    .toolbar-title strong{display:block;font-size:var(--fs-14);letter-spacing:-.15px}
+    .toolbar-title code{
+      display:block;
+      max-width:min(620px,62vw);
+      margin-top:2px;
+      overflow:hidden;
+      color:var(--muted);
+      font:11px/1.4 ui-monospace,SFMono-Regular,Consolas,monospace;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+
+    .toolbar-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+    .toolbar-button{
+      min-height:38px;
+      display:inline-flex;
+      align-items:center;
+      gap:7px;
+      padding:0 13px;
+      border:1px solid #C9D8E2;
+      border-radius:10px;
+      background:var(--surface);
+      color:var(--form-text);
+      box-shadow:0 5px 16px rgba(16,42,67,.05);
+      cursor:pointer;
+      font-size:var(--fs-12);
+      font-weight:720;
+    }
+    .toolbar-button:hover{border-color:#AFC6D3;background:#FBFDFE}
+    .toolbar-button svg{width:16px;height:16px}
+
+    .preview-stage{
+      flex:1;
+      min-height:0;
+      display:grid;
+      place-items:center;
+      padding:28px;
+      overflow:auto;
+    }
+
+    .device{
+      position:relative;
+      width:414px;
+      height:896px;
+      padding:12px;
+      border:1px solid rgba(255,255,255,.6);
+      border-radius:58px;
+      background:var(--navy);
+      box-shadow:var(--shadow-device);
+    }
+
+    .device::before{
+      content:"";
+      position:absolute;
+      inset:5px;
+      border:1px solid rgba(255,255,255,.18);
+      border-radius:52px;
+      pointer-events:none;
+    }
+
+    .device-screen{
+      position:relative;
+      width:100%;
+      height:100%;
+      overflow:hidden;
+      border-radius:47px;
+      background:var(--background);
+      isolation:isolate;
+    }
+
+    .device-island{
+      position:absolute;
+      z-index:30;
+      top:16px;
+      left:50%;
+      width:124px;
+      height:34px;
+      transform:translateX(-50%);
+      border-radius:var(--radius-pill);
+      background:#090A0B;
+      box-shadow:inset 0 -1px 0 rgba(255,255,255,.08);
+      pointer-events:none;
+    }
+
+    .device-island::after{
+      content:"";
+      position:absolute;
+      top:10px;
+      right:12px;
+      width:7px;
+      height:7px;
+      border-radius:50%;
+      background:#0B1A25;
+      box-shadow:0 0 0 2px #141A1F,0 0 7px rgba(56,178,172,.25);
+    }
+
+    .home-indicator{
+      position:absolute;
+      z-index:135;
+      left:50%;
+      bottom:19px;
+      width:134px;
+      height:5px;
+      transform:translateX(-50%);
+      border-radius:var(--radius-pill);
+      background:#121416;
+      pointer-events:none;
+    }
+
+    /* =========================================================
+       APLICACIÓN MOBILE — FubAuthenticatedShell
+       ========================================================= */
+    .mobile-app{
+      position:relative;
+      width:100%;
+      height:100%;
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+      background:var(--background);
+    }
+
+    .mobile-status-bar{
+      position:relative;
+      z-index:5;
+      height:52px;
+      flex:0 0 auto;
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      padding:0 25px 8px;
+      color:#0B1722;
+      font-size:var(--fs-14);
+      font-weight:760;
+      background:var(--surface);
+    }
+
+    .mobile-status-icons{display:flex;align-items:center;gap:6px}
+    .signal-bars{display:flex;align-items:flex-end;gap:2px;height:13px}
+    .signal-bars span{width:3px;border-radius:2px;background:currentColor}
+    .signal-bars span:nth-child(1){height:4px}
+    .signal-bars span:nth-child(2){height:7px}
+    .signal-bars span:nth-child(3){height:10px}
+    .signal-bars span:nth-child(4){height:13px}
+    .wifi-icon{width:16px;height:13px;position:relative}
+    .wifi-icon::before,.wifi-icon::after{
+      content:"";
+      position:absolute;
+      left:50%;
+      border:2px solid currentColor;
+      border-right-color:transparent;
+      border-bottom-color:transparent;
+      border-radius:50% 0 0 0;
+      transform:translateX(-50%) rotate(45deg);
+    }
+    .wifi-icon::before{top:0;width:12px;height:12px}
+    .wifi-icon::after{top:4px;width:6px;height:6px}
+    .battery-icon{width:22px;height:11px;border:1.7px solid currentColor;border-radius:3px;position:relative;margin-left:1px}
+    .battery-icon::before{content:"";position:absolute;inset:2px;border-radius:1px;background:currentColor}
+    .battery-icon::after{content:"";position:absolute;right:-3px;top:3px;width:2px;height:5px;border-radius:0 2px 2px 0;background:currentColor}
+
+    /* Widget Flutter: FubRootAppBar */
+    .mobile-app-bar{
+      position:relative;
+      z-index:6;
+      min-height:72px;
+      flex:0 0 auto;
+      display:flex;
+      align-items:center;
+      gap:11px;
+      padding:10px 18px;
+      border-bottom:1px solid rgba(16,42,67,.08);
+      background:var(--surface);
+      box-shadow:0 5px 18px rgba(16,42,67,.045);
+    }
+
+    .mobile-app-bar[hidden]{display:none}
+
+    .brand-mark{
+      width:36px;
+      height:36px;
+      flex:0 0 auto;
+      display:grid;
+      place-items:center;
+      border-radius:var(--radius-sm);
+      background:var(--teal);
+      color:#fff;
+      box-shadow:0 8px 20px rgba(23,109,119,.2);
+    }
+    .brand-mark svg{width:24px;height:24px}
+    .brand-mark path,.brand-mark circle{stroke:#fff}
+
+    .app-bar-copy{min-width:0;flex:1}
+    .brand-wordmark{color:var(--navy);font-size:var(--fs-16);font-weight:780;letter-spacing:-.5px;white-space:nowrap}
+    .brand-wordmark span{color:var(--teal);font-weight:700}
+    .app-bar-subtitle{margin-top:2px;color:var(--text-secondary);font-size:var(--fs-10);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .app-bar-actions{display:flex;align-items:center;gap:4px}
+
+    .icon-button{
+      width:38px;
+      height:38px;
+      flex:0 0 auto;
+      display:grid;
+      place-items:center;
+      padding:0;
+      border:0;
+      border-radius:10px;
+      background:transparent;
+      color:#52677D;
+      cursor:pointer;
+      transition:background var(--transition),color var(--transition);
+    }
+    .icon-button:hover{background:#F1F6F8;color:var(--teal-dark)}
+    .icon-button svg{width:19px;height:19px}
+
+    .focused-app-bar{padding-left:14px}
+    .focused-app-bar .focused-title{min-width:0;flex:1}
+    .focused-app-bar .focused-title strong{display:block;color:var(--navy);font-size:var(--fs-16);letter-spacing:-.25px}
+    .focused-app-bar .focused-title span{display:block;margin-top:2px;color:var(--text-secondary);font-size:var(--fs-10);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+    .avatar{
+      width:34px;
+      height:34px;
+      display:grid;
+      place-items:center;
+      border-radius:50%;
+      background:var(--soft-teal);
+      color:var(--teal-dark);
+      font-size:var(--fs-10);
+      font-weight:800;
+    }
+
+    .screen-host{position:relative;z-index:2;flex:1;min-height:0;overflow:hidden}
+    .screen{
+      position:absolute;
+      inset:0;
+      display:none;
+      overflow-y:auto;
+      overscroll-behavior:contain;
+      scrollbar-width:thin;
+      scrollbar-color:#B8C7D2 transparent;
+      padding:18px 18px 24px;
+    }
+    .screen::-webkit-scrollbar{width:5px}
+    .screen::-webkit-scrollbar-thumb{background:#B8C7D2;border-radius:var(--radius-pill)}
+    .screen.is-active{display:block;animation:screen-in 180ms ease-out both}
+
+    @keyframes screen-in{
+      from{opacity:0;transform:translateY(5px)}
+      to{opacity:1;transform:none}
+    }
+
+    .screen-kicker{
+      margin:0 0 5px;
+      color:var(--teal-dark);
+      font-size:var(--fs-10);
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+    .screen-heading{margin:0;color:var(--navy);font-size:var(--fs-24);line-height:1.18;letter-spacing:-.7px}
+    .screen-description{margin:8px 0 18px;color:var(--text-secondary);font-size:var(--fs-13);line-height:1.55}
+
+    .page-intro{margin-bottom:14px}
+    .page-intro.is-compact{margin-bottom:11px}
+
+    /* =========================================================
+       COMPONENTES REUTILIZADOS DE MOB-033
+       ========================================================= */
+    .section-card,
+    .status-hero,
+    .route-card,
+    .profile-card,
+    .focus-card{
+      border:1px solid rgba(16,42,67,.07);
+      border-radius:var(--radius-md);
+      background:var(--surface);
+      box-shadow:var(--shadow-sm);
+    }
+
+    .section-card{padding:16px;margin-bottom:12px}
+    .section-card:last-child{margin-bottom:0}
+
+    .section-title-row{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:12px;
+    }
+    .section-title-row h2{margin:0;color:var(--navy);font-size:var(--fs-16);line-height:1.3;letter-spacing:-.25px}
+    .section-title-row p{margin:3px 0 0;color:var(--muted);font-size:var(--fs-10);line-height:1.45}
+
+    .widget-tag{
+      flex:0 0 auto;
+      min-height:24px;
+      display:inline-flex;
+      align-items:center;
+      padding:0 8px;
+      border:1px solid #B8DDE0;
+      border-radius:var(--radius-pill);
+      background:var(--soft-teal);
+      color:var(--teal-dark);
+      font:700 9px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;
+      white-space:nowrap;
+    }
+
+    .button{
+      width:100%;
+      min-height:48px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      padding:0 15px;
+      border:1px solid transparent;
+      border-radius:var(--radius-sm);
+      background:transparent;
+      cursor:pointer;
+      font-size:var(--fs-13);
+      font-weight:780;
+      text-decoration:none;
+      transition:transform var(--transition),box-shadow var(--transition),background var(--transition),border-color var(--transition),opacity var(--transition);
+    }
+    .button:active:not(:disabled){transform:translateY(1px)}
+    .button svg{width:17px;height:17px;flex:0 0 auto}
+    .button-primary{color:#fff;background:var(--teal);box-shadow:0 9px 22px rgba(23,109,119,.18)}
+    .button-primary:hover:not(:disabled){background:var(--teal-dark);box-shadow:0 11px 26px rgba(23,109,119,.24)}
+    .button-secondary{color:var(--teal-dark);border-color:#A9CED2;background:var(--surface)}
+    .button-secondary:hover:not(:disabled){background:#F3FAFA;border-color:#7FB9BE}
+    .button-text{min-height:42px;color:var(--teal);background:transparent}
+    .button-text:hover:not(:disabled){color:var(--teal-dark);background:#F3FAFA}
+    .button-destructive{color:#fff;background:var(--danger);box-shadow:0 9px 22px rgba(216,59,87,.16)}
+    .button-destructive:hover:not(:disabled){background:var(--danger-dark)}
+    .button:disabled,.button.is-disabled{opacity:.54;cursor:not-allowed;box-shadow:none}
+    .button + .button{margin-top:8px}
+
+    .alert{
+      display:flex;
+      align-items:flex-start;
+      gap:10px;
+      padding:12px 13px;
+      border:1px solid;
+      border-radius:13px;
+      font-size:var(--fs-11);
+      line-height:1.45;
+    }
+    .alert + .alert{margin-top:8px}
+    .alert svg{width:18px;height:18px;flex:0 0 auto;margin-top:1px}
+    .alert strong{display:block;margin-bottom:1px;font-weight:780}
+    .alert-info{color:var(--info-dark);border-color:var(--info-line);background:var(--info-bg)}
+    .alert-success{color:var(--success-dark);border-color:var(--success-line);background:var(--success-bg)}
+    .alert-warning{color:var(--warning-dark);border-color:var(--warning-line);background:var(--warning-bg)}
+    .alert-error{color:var(--danger-dark);border-color:var(--danger-line);background:var(--danger-bg)}
+
+    .context-alert{margin-bottom:12px}
+
+    .chip-wrap{display:flex;flex-wrap:wrap;gap:8px}
+    .chip{
+      min-height:30px;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:0 10px;
+      border:1px solid;
+      border-radius:var(--radius-pill);
+      font-size:var(--fs-10);
+      font-weight:720;
+    }
+    .chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+    .chip-new{color:#2375A5;border-color:#BBDDF0;background:#F0F8FD}
+    .chip-progress{color:#A46D05;border-color:#F1D496;background:#FFF9EA}
+    .chip-pending{color:#65778A;border-color:#D8E0E6;background:#F5F7F9}
+    .chip-complete{color:var(--success);border-color:var(--success-line);background:var(--success-bg)}
+    .chip-cancelled{color:#C93650;border-color:#F2C0C8;background:#FFF4F6}
+
+    .badge{
+      min-width:24px;
+      min-height:24px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:0 7px;
+      border-radius:var(--radius-pill);
+      font-size:var(--fs-10);
+      font-weight:800;
+      white-space:nowrap;
+    }
+    .badge-neutral{color:var(--navy);background:#EDF1F4}
+    .badge-info{color:var(--info-dark);background:var(--info-bg);border:1px solid var(--info-line)}
+    .badge-success{color:var(--success-dark);background:var(--success-bg);border:1px solid var(--success-line)}
+    .badge-warning{color:var(--warning-dark);background:var(--warning-bg);border:1px solid var(--warning-line)}
+    .badge-error{color:var(--danger-dark);background:var(--danger-bg);border:1px solid var(--danger-line)}
+
+    .list-card{overflow:hidden;border:1px solid #E0E7EC;border-radius:var(--radius-md);background:var(--surface);box-shadow:0 6px 18px rgba(16,42,67,.055)}
+    .list-header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 14px;border-bottom:1px solid #EDF1F4}
+    .list-header strong{color:var(--navy);font-size:var(--fs-12)}
+    .list-header span{color:var(--muted);font-size:var(--fs-10)}
+    .list-row{display:flex;align-items:center;gap:11px;padding:12px 14px;border-bottom:1px solid #EDF1F4}
+    .list-row:last-child{border-bottom:0}
+    .list-row.is-action{cursor:pointer;transition:background var(--transition)}
+    .list-row.is-action:hover{background:#FAFCFD}
+    .row-leading{width:34px;height:34px;flex:0 0 auto;display:grid;place-items:center;border-radius:11px;background:#EDF5F7;color:var(--teal-dark)}
+    .row-leading svg{width:18px;height:18px}
+    .row-leading.is-danger{background:var(--danger-bg);color:var(--danger-dark)}
+    .row-copy{min-width:0;flex:1}
+    .row-copy strong{display:block;color:var(--form-text);font-size:var(--fs-11);line-height:1.35}
+    .row-copy span{display:block;margin-top:2px;color:var(--muted);font-size:var(--fs-10);line-height:1.4}
+    .row-trailing{flex:0 0 auto;color:var(--navy);font-size:var(--fs-10);font-weight:760}
+    .row-chevron{width:17px;height:17px;color:#8A9AA8}
+
+    .info-table{overflow:hidden;border:1px solid #E0E7EC;border-radius:var(--radius-sm);background:var(--surface)}
+    .info-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:12px;padding:11px 12px;border-bottom:1px solid #EDF1F4}
+    .info-row:last-child{border-bottom:0}
+    .info-row dt{color:var(--text-secondary);font-size:var(--fs-10)}
+    .info-row dd{margin:0;color:var(--navy);font-size:var(--fs-10);font-weight:760;text-align:right;line-height:1.4}
+
+    /* =========================================================
+       PLANTILLAS OPERATIVAS — MOB-034
+       ========================================================= */
+    .status-hero{padding:18px;margin-bottom:12px}
+    .hero-top{display:flex;align-items:flex-start;gap:12px}
+    .hero-icon{
+      width:48px;
+      height:48px;
+      flex:0 0 auto;
+      display:grid;
+      place-items:center;
+      border-radius:15px;
+      background:var(--soft-teal);
+      color:var(--teal-dark);
+    }
+    .hero-icon svg{width:25px;height:25px}
+    .hero-icon.is-success{background:var(--success-bg);color:var(--success-dark)}
+    .hero-copy{min-width:0;flex:1}
+    .hero-copy h2{margin:7px 0 0;color:var(--navy);font-size:var(--fs-18);line-height:1.25;letter-spacing:-.35px}
+    .hero-copy p{margin:6px 0 0;color:var(--text-secondary);font-size:var(--fs-11);line-height:1.5}
+    .status-hero .button{margin-top:15px}
+
+    .next-action{
+      display:flex;
+      align-items:center;
+      gap:11px;
+      padding:12px;
+      border:1px solid #E0E7EC;
+      border-radius:var(--radius-sm);
+      background:#FAFCFD;
+    }
+    .next-action-icon{width:38px;height:38px;flex:0 0 auto;display:grid;place-items:center;border-radius:12px;background:var(--soft-teal);color:var(--teal-dark)}
+    .next-action-icon svg{width:20px;height:20px}
+    .next-action-copy{min-width:0;flex:1}
+    .next-action-copy strong{display:block;color:var(--navy);font-size:var(--fs-12)}
+    .next-action-copy span{display:block;margin-top:2px;color:var(--muted);font-size:var(--fs-10);line-height:1.4}
+    .next-action .icon-button{background:var(--surface);border:1px solid #D9E4EA}
+
+    .operational-note{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:11px 12px;
+      border:1px solid #E0E7EC;
+      border-radius:var(--radius-sm);
+      background:#FAFCFD;
+    }
+    .operational-note svg{width:18px;height:18px;flex:0 0 auto;color:var(--teal)}
+    .operational-note div{min-width:0;flex:1}
+    .operational-note strong{display:block;color:var(--navy);font-size:var(--fs-11)}
+    .operational-note span{display:block;margin-top:2px;color:var(--muted);font-size:var(--fs-10);line-height:1.4}
+
+    .route-card{padding:16px;margin-bottom:12px}
+    .route-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+    .route-card-head h2{margin:0;color:var(--navy);font-size:var(--fs-18);letter-spacing:-.35px}
+    .route-card-head p{margin:4px 0 0;color:var(--text-secondary);font-size:var(--fs-10);line-height:1.45}
+
+    .route-visual{
+      position:relative;
+      height:150px;
+      margin:14px 0;
+      overflow:hidden;
+      border:1px solid #DCE9E9;
+      border-radius:var(--radius-md);
+      background:var(--soft-teal);
+    }
+    .route-visual::before,
+    .route-visual::after{
+      content:"";
+      position:absolute;
+      border:1px solid rgba(23,109,119,.09);
+      border-radius:50%;
+    }
+    .route-visual::before{width:170px;height:170px;right:-54px;top:-72px}
+    .route-visual::after{width:110px;height:110px;left:-44px;bottom:-57px}
+    .route-visual svg{position:absolute;inset:16px;width:calc(100% - 32px);height:calc(100% - 32px);color:var(--teal)}
+    .route-caption{position:absolute;z-index:2;left:13px;bottom:11px;display:inline-flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid #B8DDE0;border-radius:var(--radius-pill);background:rgba(255,255,255,.92);color:var(--teal-dark);font-size:var(--fs-10);font-weight:760}
+
+    .state-legend{display:grid;gap:8px}
+    .legend-row{display:flex;align-items:center;gap:10px;padding:10px 11px;border:1px solid #E0E7EC;border-radius:var(--radius-sm);background:#FAFCFD}
+    .legend-dot{width:10px;height:10px;flex:0 0 auto;border-radius:50%;background:#B4C2CE}
+    .legend-dot.is-progress{background:var(--warning)}
+    .legend-dot.is-complete{background:var(--success)}
+    .legend-copy{min-width:0;flex:1}
+    .legend-copy strong{display:block;color:var(--navy);font-size:var(--fs-11)}
+    .legend-copy span{display:block;margin-top:2px;color:var(--muted);font-size:var(--fs-10)}
+
+    .template-card{
+      padding:22px 18px;
+      border:1px solid rgba(16,42,67,.07);
+      border-radius:var(--radius-md);
+      background:var(--surface);
+      box-shadow:var(--shadow-sm);
+      text-align:center;
+    }
+    .template-icon{width:68px;height:68px;display:grid;place-items:center;margin:0 auto 14px;border:1px solid;border-radius:21px}
+    .template-icon svg{width:35px;height:35px}
+    .template-card h1,.template-card h2{margin:0;color:var(--navy);font-size:var(--fs-20);letter-spacing:-.45px}
+    .template-card p{margin:8px auto 15px;max-width:300px;color:var(--text-secondary);font-size:var(--fs-11);line-height:1.52}
+    .template-card .button{max-width:285px;margin-left:auto;margin-right:auto}
+    .template-info .template-icon{color:var(--info-dark);border-color:var(--info-line);background:var(--info-bg)}
+    .template-warning .template-icon{color:var(--warning-dark);border-color:var(--warning-line);background:var(--warning-bg)}
+    .template-error .template-icon{color:var(--danger-dark);border-color:var(--danger-line);background:var(--danger-bg)}
+
+    .unavailable-card{
+      display:flex;
+      align-items:flex-start;
+      gap:11px;
+      padding:13px;
+      border:1px solid var(--disabled-line);
+      border-radius:var(--radius-sm);
+      background:var(--disabled-bg);
+      color:var(--text-secondary);
+    }
+    .unavailable-card svg{width:20px;height:20px;flex:0 0 auto;color:var(--muted);margin-top:1px}
+    .unavailable-card strong{display:block;color:var(--form-text);font-size:var(--fs-11)}
+    .unavailable-card span{display:block;margin-top:3px;font-size:var(--fs-10);line-height:1.45}
+
+    .profile-card{padding:16px;margin-bottom:12px;display:flex;align-items:center;gap:12px}
+    .profile-avatar{width:50px;height:50px;flex:0 0 auto;display:grid;place-items:center;border-radius:16px;background:var(--soft-teal);color:var(--teal-dark)}
+    .profile-avatar svg{width:27px;height:27px}
+    .profile-copy{min-width:0;flex:1}
+    .profile-copy strong{display:block;color:var(--navy);font-size:var(--fs-16);letter-spacing:-.2px}
+    .profile-copy span{display:block;margin-top:3px;color:var(--muted);font-size:var(--fs-10);line-height:1.4}
+
+    .focus-card{padding:18px;margin-bottom:12px}
+    .focus-card .chip{margin-bottom:10px}
+    .focus-card h1{margin:0;color:var(--navy);font-size:var(--fs-24);line-height:1.18;letter-spacing:-.65px}
+    .focus-card p{margin:8px 0 0;color:var(--text-secondary);font-size:var(--fs-11);line-height:1.52}
+    .focus-actions{padding-top:3px}
+
+    /* Widget Flutter: FubLoadingState */
+    .skeleton-card{padding:13px;border:1px solid #E0E7EC;border-radius:var(--radius-sm);background:var(--surface)}
+    .skeleton-card + .skeleton-card{margin-top:10px}
+    .skeleton-head{display:flex;align-items:center;gap:9px}
+    .skeleton-circle,.skeleton-line,.skeleton-block{background:var(--skeleton);animation:pulse 1.3s ease-in-out infinite}
+    .skeleton-circle{width:38px;height:38px;border-radius:12px}
+    .skeleton-lines{flex:1;display:grid;gap:6px}
+    .skeleton-line{height:8px;border-radius:var(--radius-pill)}
+    .skeleton-line.short{width:62%}
+    .skeleton-block{height:82px;margin-top:11px;border-radius:10px}
+    @keyframes pulse{0%,100%{opacity:.58}50%{opacity:1}}
+    .loading-caption{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:14px;color:var(--text-secondary);font-size:var(--fs-10)}
+    .spinner{width:18px;height:18px;flex:0 0 auto;border:2px solid rgba(23,109,119,.19);border-top-color:var(--teal);border-radius:50%;animation:spin .75s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* =========================================================
+       BARRA INFERIOR — FubBottomNavBar / FubBottomNavItem
+       Solo pantallas raíz autenticadas
+       ========================================================= */
+    .bottom-nav{
+      position:relative;
+      z-index:20;
+      min-height:78px;
+      flex:0 0 auto;
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      align-items:start;
+      padding:7px 8px 13px;
+      border-top:1px solid rgba(16,42,67,.09);
+      background:rgba(255,255,255,.98);
+      box-shadow:0 -7px 22px rgba(16,42,67,.055);
+    }
+    .bottom-nav[hidden]{display:none}
+
+    .bottom-nav-item{
+      position:relative;
+      min-width:0;
+      min-height:56px;
+      display:grid;
+      justify-items:center;
+      align-content:center;
+      gap:4px;
+      padding:5px 4px;
+      border:0;
+      border-radius:11px;
+      background:transparent;
+      color:var(--muted);
+      cursor:pointer;
+      transition:background var(--transition),color var(--transition),transform var(--transition);
+    }
+    .bottom-nav-item:hover{background:#F3F8FA;color:var(--text-secondary)}
+    .bottom-nav-item:active{transform:translateY(1px)}
+    .bottom-nav-item svg{width:21px;height:21px}
+    .bottom-nav-item span{font-size:var(--fs-10);font-weight:720;white-space:nowrap}
+    .bottom-nav-item.is-active{color:var(--teal-dark);background:var(--soft-teal)}
+    .bottom-nav-item.is-active::before{
+      content:"";
+      position:absolute;
+      top:0;
+      left:50%;
+      width:22px;
+      height:3px;
+      transform:translateX(-50%);
+      border-radius:0 0 var(--radius-pill) var(--radius-pill);
+      background:var(--teal);
+    }
+
+    /* =========================================================
+       DIÁLOGO Y TOAST DEL HANDOFF
+       ========================================================= */
+    .overlay{
+      position:absolute;
+      z-index:120;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:22px;
+      background:rgba(16,42,67,.46);
+      backdrop-filter:blur(5px);
+    }
+    .overlay.is-open{display:flex;animation:fade-in 140ms ease-out both}
+    @keyframes fade-in{from{opacity:0}to{opacity:1}}
+
+    .dialog{
+      width:100%;
+      max-width:324px;
+      padding:24px 20px 19px;
+      border-radius:22px;
+      background:var(--surface);
+      box-shadow:0 24px 70px rgba(16,42,67,.28);
+      text-align:center;
+    }
+    .dialog-icon{width:54px;height:54px;display:grid;place-items:center;margin:0 auto 14px;border:1px solid var(--warning-line);border-radius:17px;background:var(--warning-bg);color:var(--warning-dark)}
+    .dialog-icon svg{width:27px;height:27px}
+    .dialog h3{margin:0;color:var(--navy);font-size:var(--fs-20);letter-spacing:-.45px}
+    .dialog p{margin:8px auto 18px;color:var(--text-secondary);font-size:var(--fs-11);line-height:1.5}
+    .dialog-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+    .dialog-actions .button{min-height:44px;padding:0 10px;font-size:var(--fs-11);margin-top:0}
+
+    .toast{
+      position:absolute;
+      z-index:130;
+      left:20px;
+      right:20px;
+      bottom:35px;
+      min-height:54px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:12px 14px;
+      border-radius:14px;
+      color:#fff;
+      background:var(--toast-base);
+      box-shadow:0 16px 38px rgba(16,42,67,.24);
+      font-size:var(--fs-11);
+      line-height:1.35;
+      opacity:0;
+      transform:translateY(18px);
+      pointer-events:none;
+      transition:opacity 180ms ease,transform 180ms ease,bottom var(--transition);
+    }
+    .mobile-app.has-bottom-nav .toast{bottom:96px}
+    .toast.is-visible{opacity:1;transform:none;pointer-events:auto}
+    .toast svg{width:19px;height:19px;flex:0 0 auto;color:var(--teal-light)}
+    .toast span{min-width:0;flex:1}
+    .toast button{border:0;background:transparent;color:#DDF8F8;font-size:var(--fs-10);font-weight:800;cursor:pointer}
+
+    /* Vista limpia */
+    body.clean-mode .review-app{display:block;background:var(--background)}
+    body.clean-mode .review-sidebar,body.clean-mode .review-toolbar{display:none}
+    body.clean-mode .review-main{min-height:100vh}
+    body.clean-mode .preview-stage{min-height:100vh;padding:0}
+    body.clean-mode .device{box-shadow:none}
+
+    @media(max-height:980px) and (min-width:761px){
+      .device{transform:scale(.88)}
+      .preview-stage{padding:0}
+    }
+    @media(max-height:820px) and (min-width:761px){.device{transform:scale(.74)}}
+    @media(max-width:1080px){
+      .review-app{grid-template-columns:254px minmax(0,1fr)}
+      .review-sidebar{padding-left:14px;padding-right:14px}
+      .device{transform:scale(.9)}
+      .toolbar-actions .toolbar-button span{display:none}
+    }
+    @media(max-width:760px){
+      html,body{background:var(--background)}
+      .review-app{display:block;min-height:100dvh;background:var(--background)}
+      .review-sidebar,.review-toolbar{display:none}
+      .review-main{min-height:100dvh}
+      .preview-stage{display:block;min-height:100dvh;padding:0;overflow:visible}
+      .device{width:100%;height:100dvh;min-height:680px;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;transform:none!important}
+      .device::before,.device-island{display:none}
+      .device-screen{border-radius:0}
+      .mobile-status-bar{padding-top:max(8px,env(safe-area-inset-top));height:calc(44px + env(safe-area-inset-top))}
+      .bottom-nav{padding-bottom:max(10px,env(safe-area-inset-bottom))}
+      .home-indicator{display:none}
+      .toast{bottom:calc(18px + env(safe-area-inset-bottom))}
+      .mobile-app.has-bottom-nav .toast{bottom:calc(88px + env(safe-area-inset-bottom))}
+    }
+    @media(max-width:380px){
+      .screen{padding-left:15px;padding-right:15px}
+      .mobile-app-bar{padding-left:14px;padding-right:14px}
+      .info-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+    }
+    @media(prefers-reduced-motion:reduce){
+      *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
+    }
+  </style>
+</head>
+<body>
+  <!-- Sprite. brand-route se copia literalmente desde MOB-001. -->
+  <svg class="sr-only" aria-hidden="true" width="0" height="0">
+    <defs>
+      <symbol id="brand-route" viewBox="0 0 24 24" fill="none">
+        <path d="M5 18.5V9.5M5 9.5l5 2.7 4.5-5.2 4.5 2.4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="5" cy="9" r="1.7" stroke="currentColor" stroke-width="2"/>
+        <circle cx="10" cy="12.2" r="1.7" stroke="currentColor" stroke-width="2"/>
+        <circle cx="14.5" cy="7" r="1.7" stroke="currentColor" stroke-width="2"/>
+        <circle cx="19" cy="9.4" r="1.7" stroke="currentColor" stroke-width="2"/>
+      </symbol>
+      <symbol id="icon-home" viewBox="0 0 24 24" fill="none">
+        <path d="m3.5 10.5 8.5-7 8.5 7V20H5.5v-9.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+        <path d="M9 20v-6h6v6" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="icon-route" viewBox="0 0 24 24" fill="none">
+        <circle cx="6" cy="18" r="2" stroke="currentColor" stroke-width="1.8"/>
+        <circle cx="18" cy="6" r="2" stroke="currentColor" stroke-width="1.8"/>
+        <path d="M8 18h2.5a2.5 2.5 0 0 0 0-5H9a2.5 2.5 0 0 1 0-5h7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-activity" viewBox="0 0 24 24" fill="none">
+        <path d="M4 19V9M10 19V5M16 19v-7M22 19H2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-more" viewBox="0 0 24 24" fill="none">
+        <circle cx="5" cy="12" r="1.5" fill="currentColor"/>
+        <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+        <circle cx="19" cy="12" r="1.5" fill="currentColor"/>
+      </symbol>
+      <symbol id="icon-clock" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/>
+        <path d="M12 7v5l3.5 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="icon-play" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/>
+        <path d="m10 8.8 5.2 3.2-5.2 3.2V8.8Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="icon-check" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/>
+        <path d="m8 12.2 2.5 2.5 5.5-6" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="icon-info" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/>
+        <path d="M12 10.5V16M12 7.5h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-alert" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/>
+        <path d="M12 7.5V13M12 16.5h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-location" viewBox="0 0 24 24" fill="none">
+        <path d="M12 21s7-6.1 7-12a7 7 0 1 0-14 0c0 5.9 7 12 7 12Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+        <circle cx="12" cy="9" r="2.4" stroke="currentColor" stroke-width="1.8"/>
+      </symbol>
+      <symbol id="icon-calendar" viewBox="0 0 24 24" fill="none">
+        <rect x="3.5" y="5.5" width="17" height="15" rx="2.5" stroke="currentColor" stroke-width="1.8"/>
+        <path d="M7 3.5v4M17 3.5v4M3.5 10h17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-visit" viewBox="0 0 24 24" fill="none">
+        <path d="M4 20V7l8-4 8 4v13" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+        <path d="M9 20v-5h6v5M8 9h.01M12 9h.01M16 9h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-sale" viewBox="0 0 24 24" fill="none">
+        <path d="M4 5h16v14H4z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+        <path d="M8 9h8M8 13h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-sync" viewBox="0 0 24 24" fill="none">
+        <path d="M20 7v5h-5M4 17v-5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M18.3 11A7 7 0 0 0 6.4 7.4L4 10M5.7 13A7 7 0 0 0 17.6 16.6L20 14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="icon-user" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.8"/>
+        <path d="M5 20a7 7 0 0 1 14 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-privacy" viewBox="0 0 24 24" fill="none">
+        <path d="M12 3 5.5 5.7v5.4c0 4.4 2.6 7.9 6.5 9.9 3.9-2 6.5-5.5 6.5-9.9V5.7L12 3Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+        <path d="M9.5 12h5M12 9.5v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-permission" viewBox="0 0 24 24" fill="none">
+        <path d="M12 3 5.5 5.7v5.4c0 4.4 2.6 7.9 6.5 9.9 3.9-2 6.5-5.5 6.5-9.9V5.7L12 3Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+        <circle cx="12" cy="11" r="2" stroke="currentColor" stroke-width="1.7"/>
+        <path d="M12 13v3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-technical" viewBox="0 0 24 24" fill="none">
+        <path d="M4 7h16M4 12h10M4 17h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        <circle cx="17" cy="12" r="2" stroke="currentColor" stroke-width="1.8"/>
+      </symbol>
+      <symbol id="icon-logout" viewBox="0 0 24 24" fill="none">
+        <path d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4M14 8l4 4-4 4M18 12H9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="icon-chevron" viewBox="0 0 24 24" fill="none">
+        <path d="m9 5 7 7-7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="icon-arrow-back" viewBox="0 0 24 24" fill="none">
+        <path d="m10 6-6 6 6 6M4 12h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="icon-refresh" viewBox="0 0 24 24" fill="none">
+        <path d="M20 7v5h-5M4 17v-5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M18.3 11A7 7 0 0 0 6.4 7.4L4 10M5.7 13A7 7 0 0 0 17.6 16.6L20 14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="icon-bell" viewBox="0 0 24 24" fill="none">
+        <path d="M6 9a6 6 0 0 1 12 0c0 6 2.5 6 2.5 7.5H3.5C3.5 15 6 15 6 9ZM10 20h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="icon-copy" viewBox="0 0 24 24" fill="none">
+        <rect x="8" y="8" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.8"/>
+        <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-expand" viewBox="0 0 24 24" fill="none">
+        <path d="M8 3H3v5M16 3h5v5M21 16v5h-5M3 16v5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="icon-close" viewBox="0 0 24 24" fill="none">
+        <path d="m7 7 10 10M17 7 7 17" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>
+      </symbol>
+    </defs>
+  </svg>
+
+  <div class="review-app" id="reviewApp">
+    <aside class="review-sidebar" aria-label="Selector de pantallas de MOB-034">
+      <div class="review-brand">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#brand-route"/></svg></span>
+        <div class="review-brand-copy">
+          <strong>FollowUpBusiness</strong>
+          <span>Entrega visual MOB-034</span>
+        </div>
+      </div>
+
+      <div class="review-note">
+        <strong>Shell autenticado</strong>
+        La barra inferior contiene solo <code>Inicio</code>, <code>Ruta</code>, <code>Actividad</code> y <code>Más</code>. Los estados técnicos nunca son pestañas.
+      </div>
+
+      <div class="review-group">
+        <h2 class="review-group-title">Inicio</h2>
+        <nav class="review-nav">
+          <button class="review-state-button" data-screen-target="inicio-sin-jornada" type="button"><span class="state-dot"></span><span class="state-button-copy"><strong>Sin jornada</strong><span>Estado y siguiente acción</span></span></button>
+          <button class="review-state-button" data-screen-target="inicio-activa" type="button"><span class="state-dot"></span><span class="state-button-copy"><strong>Jornada activa</strong><span>Tracking y acceso a ruta</span></span></button>
+        </nav>
+      </div>
+
+      <div class="review-group">
+        <h2 class="review-group-title">Ruta</h2>
+        <nav class="review-nav">
+          <button class="review-state-button" data-screen-target="ruta-vacia" type="button"><span class="state-dot"></span><span class="state-button-copy"><strong>Vacía / no disponible</strong><span>Sin inventar recorridos</span></span></button>
+          <button class="review-state-button" data-screen-target="ruta-disponible" type="button"><span class="state-dot"></span><span class="state-button-copy"><strong>Disponible</strong><span>Acceso y estados permitidos</span></span></button>
+        </nav>
+      </div>
+
+      <div class="review-group">
+        <h2 class="review-group-title">Actividad y Más</h2>
+        <nav class="review-nav">
+          <button class="review-state-button" data-screen-target="actividad-vacia" type="button"><span class="state-dot"></span><span class="state-button-copy"><strong>Actividad vacía</strong><span>Grupos y disponibilidad</span></span></button>
+          <button class="review-state-button" data-screen-target="mas" type="button"><span class="state-dot"></span><span class="state-button-copy"><strong>Más</strong><span>Perfil, privacidad y sistema</span></span></button>
+        </nav>
+      </div>
+
+      <div class="review-group">
+        <h2 class="review-group-title">Estados contextuales</h2>
+        <nav class="review-nav">
+          <button class="review-state-button" data-screen-target="carga" type="button"><span class="state-dot"></span><span class="state-button-copy"><strong>Carga</strong><span>Raíz con navegación</span></span></button>
+          <button class="review-state-button" data-screen-target="error" type="button"><span class="state-dot"></span><span class="state-button-copy"><strong>Error / conectividad</strong><span>Aviso, no pestaña</span></span></button>
+          <button class="review-state-button" data-screen-target="sin-permiso" type="button"><span class="state-dot"></span><span class="state-button-copy"><strong>Sin permiso</strong><span>Sin barra inferior</span></span></button>
+          <button class="review-state-button" data-screen-target="dato-desactualizado" type="button"><span class="state-dot"></span><span class="state-button-copy"><strong>Dato desactualizado</strong><span>Aviso contextual</span></span></button>
+        </nav>
+      </div>
+
+      <div class="review-group">
+        <h2 class="review-group-title">Pantalla enfocada</h2>
+        <nav class="review-nav">
+          <button class="review-state-button" data-screen-target="visita-activa" type="button"><span class="state-dot"></span><span class="state-button-copy"><strong>Visita activa</strong><span>Regreso controlado, sin tabs</span></span></button>
+        </nav>
+      </div>
+    </aside>
+
+    <main class="review-main">
+      <header class="review-toolbar">
+        <div class="toolbar-title">
+          <strong id="toolbarStateLabel">Inicio · sin jornada</strong>
+          <code id="toolbarStateUrl">?screen=inicio-sin-jornada</code>
+        </div>
+        <div class="toolbar-actions">
+          <button class="toolbar-button" id="copyStateUrl" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-copy"/></svg><span>Copiar URL</span></button>
+          <button class="toolbar-button" id="openCleanPreview" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-expand"/></svg><span>Vista limpia</span></button>
+        </div>
+      </header>
+
+      <div class="preview-stage">
+        <div class="device" aria-label="Vista previa móvil de aproximadamente 390 por 844 píxeles">
+          <div class="device-island" aria-hidden="true"></div>
+          <div class="device-screen">
+            <div class="mobile-app" id="mobileApp">
+              <div class="mobile-status-bar" aria-hidden="true">
+                <span>9:41</span>
+                <span class="mobile-status-icons">
+                  <span class="signal-bars"><span></span><span></span><span></span><span></span></span>
+                  <span class="wifi-icon"></span>
+                  <span class="battery-icon"></span>
+                </span>
+              </div>
+
+              <!-- Widget Flutter: FubRootAppBar -->
+              <header class="mobile-app-bar" id="rootAppBar">
+                <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#brand-route"/></svg></span>
+                <div class="app-bar-copy">
+                  <div class="brand-wordmark">FollowUp<span>Business</span></div>
+                  <div class="app-bar-subtitle" id="rootAppBarSubtitle">Inicio</div>
+                </div>
+                <div class="app-bar-actions">
+                  <button class="icon-button" type="button" aria-label="Avisos operativos" data-demo-message="Los avisos se muestran dentro de cada pantalla; este botón es solo referencial."><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-bell"/></svg></button>
+                  <span class="avatar" aria-label="Perfil del vendedor">V</span>
+                </div>
+              </header>
+
+              <!-- Widget Flutter: FubFocusedAppBar -->
+              <header class="mobile-app-bar focused-app-bar" id="focusedAppBar" hidden>
+                <button class="icon-button" id="visitBackButton" type="button" aria-label="Volver con confirmación"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-arrow-back"/></svg></button>
+                <div class="focused-title">
+                  <strong id="focusedAppBarTitle">Visita activa</strong>
+                  <span id="focusedAppBarSubtitle">Regreso controlado</span>
+                </div>
+                <button class="icon-button" type="button" aria-label="Cerrar pantalla enfocada" id="visitCloseButton"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-close"/></svg></button>
+              </header>
+
+              <main class="screen-host" id="screenHost">
+                <!-- =====================================================
+                     Widget Flutter: FubHomeTemplate
+                     PANTALLA RAÍZ: INICIO SIN JORNADA
+                     ===================================================== -->
+                <section class="screen" data-screen="inicio-sin-jornada" aria-labelledby="inicioSinJornadaTitle">
+                  <header class="page-intro">
+                    <p class="screen-kicker">Inicio</p>
+                    <h1 class="screen-heading" id="inicioSinJornadaTitle">Tu jornada aún no inicia</h1>
+                    <p class="screen-description">El inicio concentra el estado del día, la siguiente acción y los avisos operativos.</p>
+                  </header>
+
+                  <article class="status-hero">
+                    <div class="hero-top">
+                      <span class="hero-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#icon-clock"/></svg></span>
+                      <div class="hero-copy">
+                        <span class="chip chip-pending">No iniciada</span>
+                        <h2>Jornada pendiente</h2>
+                        <p>Inicia la jornada para habilitar el seguimiento operativo y el acceso a la siguiente acción.</p>
+                      </div>
+                    </div>
+                    <button class="button button-primary" type="button" data-demo-message="Acción visual: este mockup no inicia una jornada real."><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-play"/></svg>Iniciar jornada</button>
+                  </article>
+
+                  <section class="section-card" aria-labelledby="nextActionNoShiftTitle">
+                    <div class="section-title-row"><div><h2 id="nextActionNoShiftTitle">Siguiente acción</h2><p>Una sola prioridad operativa.</p></div><span class="widget-tag">FubNextActionCard</span></div>
+                    <div class="next-action">
+                      <span class="next-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#icon-play"/></svg></span>
+                      <div class="next-action-copy"><strong>Iniciar jornada</strong><span>La ruta y la actividad dependen del estado real de la jornada.</span></div>
+                      <button class="icon-button" type="button" aria-label="Ver acción de inicio" data-demo-message="La acción se mantiene ilustrativa y no ejecuta reglas de negocio."><svg viewBox="0 0 24 24"><use href="#icon-chevron"/></svg></button>
+                    </div>
+                  </section>
+
+                  <section class="section-card" aria-labelledby="alertsNoShiftTitle">
+                    <div class="section-title-row"><div><h2 id="alertsNoShiftTitle">Avisos operativos</h2><p>Solo aparecen cuando aportan contexto.</p></div><span class="widget-tag">FubContextAlert</span></div>
+                    <div class="operational-note"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-info"/></svg><div><strong>Sin tracking activo</strong><span>El aviso de tracking se mostrará después de iniciar la jornada, no como una pestaña.</span></div></div>
+                  </section>
+                </section>
+
+                <!-- =====================================================
+                     Widget Flutter: FubHomeTemplate
+                     PANTALLA RAÍZ: INICIO CON JORNADA ACTIVA
+                     ===================================================== -->
+                <section class="screen" data-screen="inicio-activa" aria-labelledby="inicioActivaTitle">
+                  <header class="page-intro">
+                    <p class="screen-kicker">Inicio</p>
+                    <h1 class="screen-heading" id="inicioActivaTitle">Continúa con la siguiente acción</h1>
+                    <p class="screen-description">La jornada está activa; los avisos siguen siendo contextuales dentro del contenido.</p>
+                  </header>
+
+                  <!-- Widget Flutter: FubContextAlert -->
+                  <div class="alert alert-success context-alert" role="status">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-location"/></svg>
+                    <div><strong>Tracking activo</strong>La ubicación se representa como aviso contextual durante la jornada; nunca como destino de navegación.</div>
+                  </div>
+
+                  <article class="status-hero">
+                    <div class="hero-top">
+                      <span class="hero-icon is-success" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#icon-check"/></svg></span>
+                      <div class="hero-copy">
+                        <span class="chip chip-complete">Jornada activa</span>
+                        <h2>Estado operativo disponible</h2>
+                        <p>Inicio mantiene visible el estado del día sin exponer datos reales en este handoff.</p>
+                      </div>
+                    </div>
+                  </article>
+
+                  <section class="section-card" aria-labelledby="nextActionActiveTitle">
+                    <div class="section-title-row"><div><h2 id="nextActionActiveTitle">Siguiente acción</h2><p>Acceso directo al destino raíz correspondiente.</p></div><span class="widget-tag">FubNextActionCard</span></div>
+                    <div class="next-action">
+                      <span class="next-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#icon-route"/></svg></span>
+                      <div class="next-action-copy"><strong>Abrir ruta del día</strong><span>La secuencia real no se implementa en este archivo.</span></div>
+                      <button class="icon-button" type="button" aria-label="Ir a Ruta" data-screen-target="ruta-disponible"><svg viewBox="0 0 24 24"><use href="#icon-chevron"/></svg></button>
+                    </div>
+                  </section>
+
+                  <section class="section-card" aria-labelledby="alertsActiveTitle">
+                    <div class="section-title-row"><div><h2 id="alertsActiveTitle">Avisos operativos</h2><p>Estado técnico resumido, sin nueva pestaña.</p></div><span class="widget-tag">FubContextAlert</span></div>
+                    <div class="operational-note"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-info"/></svg><div><strong>Sin avisos adicionales</strong><span>Conectividad, permisos o datos desactualizados aparecerán aquí cuando corresponda.</span></div></div>
+                  </section>
+                </section>
+
+                <!-- =====================================================
+                     Widget Flutter: FubRouteTemplate + FubEmptyState
+                     PANTALLA RAÍZ: RUTA VACÍA / NO DISPONIBLE
+                     ===================================================== -->
+                <section class="screen" data-screen="ruta-vacia" aria-labelledby="rutaVaciaTitle">
+                  <header class="page-intro is-compact">
+                    <p class="screen-kicker">Ruta</p>
+                    <h1 class="screen-heading" id="rutaVaciaTitle">Ruta del día</h1>
+                    <p class="screen-description">El destino permanece visible aunque no exista contenido disponible.</p>
+                  </header>
+
+                  <article class="template-card template-info">
+                    <div class="template-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#icon-route"/></svg></div>
+                    <h2>No hay una ruta disponible</h2>
+                    <p>No se inventan visitas, direcciones ni recorridos. La aplicación debe explicar el estado real que reciba.</p>
+                    <button class="button button-secondary" type="button" data-screen-target="inicio-activa">Volver a Inicio</button>
+                  </article>
+
+                  <section class="section-card" aria-labelledby="routeUnavailableTitle">
+                    <div class="section-title-row"><div><h2 id="routeUnavailableTitle">Destino futuro</h2><p>Debe mostrarse como no disponible.</p></div><span class="widget-tag">FubUnavailableState</span></div>
+                    <div class="unavailable-card"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-location"/></svg><div><strong>Navegación externa no disponible</strong><span>Este mockup no abre mapas, turn-by-turn ni aplicaciones externas.</span></div></div>
+                  </section>
+                </section>
+
+                <!-- =====================================================
+                     Widget Flutter: FubRouteTemplate / FubRouteStateLegend
+                     PANTALLA RAÍZ: RUTA DISPONIBLE
+                     ===================================================== -->
+                <section class="screen" data-screen="ruta-disponible" aria-labelledby="rutaDisponibleTitle">
+                  <header class="page-intro is-compact">
+                    <p class="screen-kicker">Ruta</p>
+                    <h1 class="screen-heading" id="rutaDisponibleTitle">Ruta del día</h1>
+                    <p class="screen-description">Acceso visual a la secuencia y a sus estados permitidos, sin implementar una ruta real.</p>
+                  </header>
+
+                  <div class="alert alert-success context-alert" role="status"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-location"/></svg><div><strong>Tracking activo</strong>Se mantiene como aviso contextual mientras la jornada está activa.</div></div>
+
+                  <article class="route-card">
+                    <div class="route-card-head">
+                      <div><h2>Secuencia disponible</h2><p>Estructura ilustrativa sin clientes ni direcciones.</p></div>
+                      <span class="chip chip-progress">Disponible</span>
+                    </div>
+                    <div class="route-visual" aria-label="Diagrama abstracto de ruta sin datos reales">
+                      <svg viewBox="0 0 320 120" fill="none" aria-hidden="true">
+                        <path d="M28 88C70 22 118 104 163 48c38-47 79 28 129-17" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-dasharray="8 10"/>
+                        <circle cx="28" cy="88" r="10" fill="#FFFFFF" stroke="currentColor" stroke-width="5"/>
+                        <circle cx="163" cy="48" r="10" fill="#FFFFFF" stroke="currentColor" stroke-width="5"/>
+                        <circle cx="292" cy="31" r="10" fill="#FFFFFF" stroke="currentColor" stroke-width="5"/>
+                      </svg>
+                      <span class="route-caption">Referencia visual · sin datos</span>
+                    </div>
+                    <button class="button button-primary" type="button" data-demo-message="Acción visual: no se abre una ruta ni navegación externa."><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-route"/></svg>Abrir ruta del día</button>
+                  </article>
+
+                  <section class="section-card" aria-labelledby="routeStatesTitle">
+                    <div class="section-title-row"><div><h2 id="routeStatesTitle">Estados de visita</h2><p>Semántica permitida, no registros reales.</p></div><span class="widget-tag">FubRouteStateLegend</span></div>
+                    <div class="state-legend">
+                      <div class="legend-row"><span class="legend-dot"></span><div class="legend-copy"><strong>Pendiente</strong><span>La visita aún no inicia.</span></div><span class="badge badge-neutral">Estado</span></div>
+                      <div class="legend-row"><span class="legend-dot is-progress"></span><div class="legend-copy"><strong>En curso</strong><span>La visita usa una pantalla enfocada.</span></div><span class="badge badge-warning">Estado</span></div>
+                      <div class="legend-row"><span class="legend-dot is-complete"></span><div class="legend-copy"><strong>Completada</strong><span>El resultado real lo define el backend.</span></div><span class="badge badge-success">Estado</span></div>
+                    </div>
+                  </section>
+
+                  <section class="section-card" aria-labelledby="visitFocusExampleTitle">
+                    <div class="section-title-row"><div><h2 id="visitFocusExampleTitle">Pantalla enfocada</h2><p>Ejemplo sin barra inferior.</p></div><span class="widget-tag">FubVisitActiveTemplate</span></div>
+                    <div class="next-action"><span class="next-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#icon-visit"/></svg></span><div class="next-action-copy"><strong>Ver visita activa</strong><span>Usa app bar con regreso controlado.</span></div><button class="icon-button" type="button" aria-label="Abrir ejemplo de visita activa" data-screen-target="visita-activa"><svg viewBox="0 0 24 24"><use href="#icon-chevron"/></svg></button></div>
+                  </section>
+                </section>
+
+                <!-- =====================================================
+                     Widget Flutter: FubActivityTemplate
+                     PANTALLA RAÍZ: ACTIVIDAD SIN ELEMENTOS
+                     ===================================================== -->
+                <section class="screen" data-screen="actividad-vacia" aria-labelledby="actividadVaciaTitle">
+                  <header class="page-intro is-compact">
+                    <p class="screen-kicker">Actividad</p>
+                    <h1 class="screen-heading" id="actividadVaciaTitle">Actividad</h1>
+                    <p class="screen-description">Agrupa jornada, visitas, ventas y sincronizaciones únicamente cuando estén disponibles.</p>
+                  </header>
+
+                  <article class="template-card template-info" style="margin-bottom:12px">
+                    <div class="template-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#icon-activity"/></svg></div>
+                    <h2>Aún no hay actividad</h2>
+                    <p>Los eventos reales aparecerán aquí después de registrarse; este handoff no simula historial.</p>
+                  </article>
+
+                  <div class="list-card" aria-label="Disponibilidad de grupos de actividad">
+                    <div class="list-header"><strong>Grupos de actividad</strong><span>Estado actual</span></div>
+                    <div class="list-row"><span class="row-leading"><svg viewBox="0 0 24 24"><use href="#icon-calendar"/></svg></span><div class="row-copy"><strong>Jornada</strong><span>Sin movimientos disponibles.</span></div><span class="badge badge-neutral">Vacío</span></div>
+                    <div class="list-row"><span class="row-leading"><svg viewBox="0 0 24 24"><use href="#icon-visit"/></svg></span><div class="row-copy"><strong>Visitas</strong><span>Sin registros disponibles.</span></div><span class="badge badge-neutral">Vacío</span></div>
+                    <div class="list-row"><span class="row-leading"><svg viewBox="0 0 24 24"><use href="#icon-sale"/></svg></span><div class="row-copy"><strong>Ventas</strong><span>No se presenta como funcional mientras el módulo no esté disponible.</span></div><span class="badge badge-warning">No disponible</span></div>
+                    <div class="list-row"><span class="row-leading"><svg viewBox="0 0 24 24"><use href="#icon-sync"/></svg></span><div class="row-copy"><strong>Sincronizaciones</strong><span>Sin eventos técnicos disponibles.</span></div><span class="badge badge-neutral">Vacío</span></div>
+                  </div>
+                </section>
+
+                <!-- =====================================================
+                     Widget Flutter: FubMoreTemplate / FubSettingsGroup
+                     PANTALLA RAÍZ: MÁS
+                     ===================================================== -->
+                <section class="screen" data-screen="mas" aria-labelledby="masTitle">
+                  <header class="page-intro is-compact">
+                    <p class="screen-kicker">Más</p>
+                    <h1 class="screen-heading" id="masTitle">Más</h1>
+                    <p class="screen-description">Agrupa cuenta, privacidad, permisos y estado técnico sin sumar destinos a la barra inferior.</p>
+                  </header>
+
+                  <article class="profile-card">
+                    <span class="profile-avatar" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#icon-user"/></svg></span>
+                    <div class="profile-copy"><strong>Perfil del vendedor</strong><span>Los datos reales se omiten en este handoff visual.</span></div>
+                    <span class="badge badge-info">Autenticado</span>
+                  </article>
+
+                  <section class="section-card" aria-labelledby="accountGroupTitle">
+                    <div class="section-title-row"><div><h2 id="accountGroupTitle">Cuenta</h2><p>Identidad y sesión.</p></div><span class="widget-tag">FubSettingsGroup</span></div>
+                    <div class="list-card">
+                      <button class="list-row is-action" type="button" data-demo-message="Perfil: destino visual no implementado en esta HU." style="width:100%;border-left:0;border-right:0;border-top:0;text-align:left;background:transparent"><span class="row-leading"><svg viewBox="0 0 24 24"><use href="#icon-user"/></svg></span><span class="row-copy"><strong>Perfil</strong><span>Datos personales y laborales.</span></span><svg class="row-chevron" viewBox="0 0 24 24"><use href="#icon-chevron"/></svg></button>
+                      <button class="list-row is-action" type="button" data-demo-message="Cerrar sesión es una acción referencial; no modifica autenticación." style="width:100%;border:0;text-align:left;background:transparent"><span class="row-leading is-danger"><svg viewBox="0 0 24 24"><use href="#icon-logout"/></svg></span><span class="row-copy"><strong style="color:var(--danger-dark)">Cerrar sesión</strong><span>Acción sensible, sin ejecución en el mockup.</span></span><svg class="row-chevron" viewBox="0 0 24 24"><use href="#icon-chevron"/></svg></button>
+                    </div>
+                  </section>
+
+                  <section class="section-card" aria-labelledby="privacyGroupTitle">
+                    <div class="section-title-row"><div><h2 id="privacyGroupTitle">Privacidad y seguimiento</h2><p>Explica el tratamiento del tracking.</p></div><span class="widget-tag">FubSettingsGroup</span></div>
+                    <div class="list-card">
+                      <button class="list-row is-action" type="button" data-demo-message="El tracking se explica aquí y se avisa contextualmente durante la jornada." style="width:100%;border:0;text-align:left;background:transparent"><span class="row-leading"><svg viewBox="0 0 24 24"><use href="#icon-privacy"/></svg></span><span class="row-copy"><strong>Privacidad y tracking</strong><span>Finalidad, visibilidad y avisos contextuales.</span></span><span class="badge badge-info">Contextual</span></button>
+                    </div>
+                  </section>
+
+                  <section class="section-card" aria-labelledby="systemGroupTitle">
+                    <div class="section-title-row"><div><h2 id="systemGroupTitle">Aplicación</h2><p>Permisos y diagnóstico técnico.</p></div><span class="widget-tag">FubSettingsGroup</span></div>
+                    <div class="list-card">
+                      <button class="list-row is-action" type="button" data-screen-target="sin-permiso" style="width:100%;border-left:0;border-right:0;border-top:0;text-align:left;background:transparent"><span class="row-leading"><svg viewBox="0 0 24 24"><use href="#icon-permission"/></svg></span><span class="row-copy"><strong>Permisos</strong><span>Acceso del sistema y explicación del impacto.</span></span><svg class="row-chevron" viewBox="0 0 24 24"><use href="#icon-chevron"/></svg></button>
+                      <button class="list-row is-action" type="button" data-demo-message="Estado técnico: conectividad y sincronización se muestran como información contextual." style="width:100%;border:0;text-align:left;background:transparent"><span class="row-leading"><svg viewBox="0 0 24 24"><use href="#icon-technical"/></svg></span><span class="row-copy"><strong>Estado técnico</strong><span>Conectividad, sincronización y última actualización.</span></span><span class="badge badge-neutral">Informativo</span></button>
+                    </div>
+                  </section>
+                </section>
+
+                <!-- =====================================================
+                     Widget Flutter: FubLoadingState
+                     ESTADO DE RAÍZ: CARGA — conserva barra inferior
+                     ===================================================== -->
+                <section class="screen" data-screen="carga" aria-labelledby="cargaTitle" aria-busy="true">
+                  <header class="page-intro is-compact">
+                    <p class="screen-kicker">Inicio</p>
+                    <h1 class="screen-heading" id="cargaTitle">Cargando resumen operativo</h1>
+                    <p class="screen-description">El shell raíz permanece estable mientras el contenido obtiene su estado real.</p>
+                  </header>
+
+                  <div class="skeleton-card" aria-hidden="true"><div class="skeleton-head"><span class="skeleton-circle"></span><span class="skeleton-lines"><span class="skeleton-line"></span><span class="skeleton-line short"></span></span></div><div class="skeleton-block"></div></div>
+                  <div class="skeleton-card" aria-hidden="true"><div class="skeleton-head"><span class="skeleton-circle"></span><span class="skeleton-lines"><span class="skeleton-line"></span><span class="skeleton-line short"></span></span></div></div>
+                  <div class="skeleton-card" aria-hidden="true"><div class="skeleton-head"><span class="skeleton-circle"></span><span class="skeleton-lines"><span class="skeleton-line"></span><span class="skeleton-line short"></span></span></div></div>
+                  <div class="loading-caption"><span class="spinner"></span><span>Esperando datos reales…</span></div>
+                </section>
+
+                <!-- =====================================================
+                     Widget Flutter: FubErrorState + FubContextAlert
+                     ESTADO DE RAÍZ: ERROR / CONECTIVIDAD
+                     ===================================================== -->
+                <section class="screen" data-screen="error" aria-labelledby="errorTitle">
+                  <header class="page-intro is-compact">
+                    <p class="screen-kicker">Ruta</p>
+                    <h1 class="screen-heading" id="errorTitle">Ruta del día</h1>
+                    <p class="screen-description">Un problema técnico se explica dentro del destino raíz; no crea una nueva pestaña.</p>
+                  </header>
+
+                  <div class="alert alert-warning context-alert" role="alert"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-alert"/></svg><div><strong>Conectividad deficiente</strong>La aplicación debe evitar mostrar éxito o datos recientes sin confirmación.</div></div>
+
+                  <article class="template-card template-error">
+                    <div class="template-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#icon-alert"/></svg></div>
+                    <h2>No pudimos cargar la ruta</h2>
+                    <p>Conserva el contexto y ofrece una nueva carga sin inventar información ni cambiar de destino.</p>
+                    <button class="button button-primary" type="button" data-demo-message="Reintento visual: no se realiza ninguna solicitud de red."><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-refresh"/></svg>Reintentar</button>
+                    <button class="button button-text" type="button" data-screen-target="inicio-activa">Volver a Inicio</button>
+                  </article>
+                </section>
+
+                <!-- =====================================================
+                     Widget Flutter: FubPermissionState
+                     PANTALLA DE PERMISO: sin barra inferior
+                     ===================================================== -->
+                <section class="screen" data-screen="sin-permiso" aria-labelledby="permissionTitle">
+                  <article class="template-card template-warning">
+                    <div class="template-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#icon-permission"/></svg></div>
+                    <h1 id="permissionTitle">Permiso de ubicación requerido</h1>
+                    <p>Explica para qué se solicita y qué parte de la jornada queda limitada. Esta pantalla no muestra la barra inferior.</p>
+                    <button class="button button-primary" type="button" data-demo-message="Acción visual: el mockup no abre ajustes ni solicita permisos del sistema.">Abrir ajustes del sistema</button>
+                    <button class="button button-text" type="button" data-screen-target="mas">Ahora no</button>
+                  </article>
+
+                  <div class="alert alert-info" style="margin-top:12px" role="status"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-info"/></svg><div><strong>Regla del shell</strong>La falta de permiso puede aparecer como aviso contextual; la solicitud dedicada usa una pantalla sin navegación inferior.</div></div>
+                </section>
+
+                <!-- =====================================================
+                     Widget Flutter: FubStaleDataState + FubContextAlert
+                     ESTADO DE RAÍZ: DATO DESACTUALIZADO
+                     ===================================================== -->
+                <section class="screen" data-screen="dato-desactualizado" aria-labelledby="staleTitle">
+                  <header class="page-intro is-compact">
+                    <p class="screen-kicker">Actividad</p>
+                    <h1 class="screen-heading" id="staleTitle">Actividad</h1>
+                    <p class="screen-description">El contenido permanece visible, pero informa claramente que podría no ser reciente.</p>
+                  </header>
+
+                  <div class="alert alert-warning context-alert" role="alert"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-clock"/></svg><div><strong>Dato desactualizado</strong>La interfaz debe mostrar la fecha real de actualización y evitar presentarlo como información vigente.</div></div>
+
+                  <section class="section-card" aria-labelledby="staleCardTitle">
+                    <div class="section-title-row"><div><h2 id="staleCardTitle">Estado de actualización</h2><p>Plantilla sin timestamp ficticio.</p></div><span class="widget-tag">FubStaleDataState</span></div>
+                    <dl class="info-table">
+                      <div class="info-row"><dt>Última actualización</dt><dd>Mostrar valor real aquí</dd></div>
+                      <div class="info-row"><dt>Conectividad</dt><dd>Validar antes de refrescar</dd></div>
+                      <div class="info-row"><dt>Contenido visible</dt><dd>Conservar con advertencia</dd></div>
+                    </dl>
+                    <button class="button button-primary" style="margin-top:13px" type="button" data-demo-message="Actualización visual: no se consultan datos ni servicios."><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-refresh"/></svg>Actualizar</button>
+                  </section>
+                </section>
+
+                <!-- =====================================================
+                     Widget Flutter: FubVisitActiveTemplate
+                     PANTALLA ENFOCADA: app bar con regreso controlado,
+                     sin FubBottomNavBar. Formularios de visita o venta
+                     deben reutilizar el mismo patrón de shell.
+                     ===================================================== -->
+                <section class="screen" data-screen="visita-activa" aria-labelledby="visitaActivaTitle">
+                  <div class="alert alert-success context-alert" role="status"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-location"/></svg><div><strong>Tracking activo</strong>El aviso acompaña la visita; no reemplaza el título ni crea una pestaña.</div></div>
+
+                  <article class="focus-card">
+                    <span class="chip chip-progress">En curso</span>
+                    <h1 id="visitaActivaTitle">Visita activa</h1>
+                    <p>Cliente, dirección y datos comerciales se omiten intencionalmente. La pantalla demuestra únicamente el foco y la jerarquía.</p>
+                  </article>
+
+                  <section class="section-card" aria-labelledby="visitContextTitle">
+                    <div class="section-title-row"><div><h2 id="visitContextTitle">Contexto de la visita</h2><p>Sin datos ficticios que parezcan funcionales.</p></div><span class="widget-tag">FubVisitFocusCard</span></div>
+                    <dl class="info-table">
+                      <div class="info-row"><dt>Datos operativos</dt><dd>Omitidos en el mockup</dd></div>
+                      <div class="info-row"><dt>Registro</dt><dd>Pendiente de completar</dd></div>
+                      <div class="info-row"><dt>Regreso</dt><dd>Controlado por app bar</dd></div>
+                    </dl>
+                  </section>
+
+                  <section class="section-card focus-actions" aria-labelledby="visitActionsTitle">
+                    <div class="section-title-row"><div><h2 id="visitActionsTitle">Acciones enfocadas</h2><p>Sin barra inferior durante la visita o sus formularios.</p></div><span class="widget-tag">FubVisitActiveTemplate</span></div>
+                    <button class="button button-primary" type="button" data-demo-message="Formulario visual: no se registra una visita ni una venta.">Registrar resultado</button>
+                    <button class="button button-secondary" type="button" id="finishVisitButton">Finalizar visita</button>
+                  </section>
+
+                  <div class="unavailable-card"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-info"/></svg><div><strong>Navegación inferior oculta</strong><span>Los formularios de visita y venta reutilizan esta app bar con regreso controlado.</span></div></div>
+                </section>
+              </main>
+
+              <!-- Widget Flutter: FubBottomNavBar. Solo cuatro destinos raíz. -->
+              <nav class="bottom-nav" id="bottomNav" aria-label="Navegación principal del vendedor">
+                <button class="bottom-nav-item" type="button" data-root-destination="inicio" data-screen-target="inicio-sin-jornada"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-home"/></svg><span>Inicio</span></button>
+                <button class="bottom-nav-item" type="button" data-root-destination="ruta" data-screen-target="ruta-vacia"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-route"/></svg><span>Ruta</span></button>
+                <button class="bottom-nav-item" type="button" data-root-destination="actividad" data-screen-target="actividad-vacia"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-activity"/></svg><span>Actividad</span></button>
+                <button class="bottom-nav-item" type="button" data-root-destination="mas" data-screen-target="mas"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-more"/></svg><span>Más</span></button>
+              </nav>
+
+              <!-- Widget Flutter: FubControlledBackDialog. En un diálogo no se muestra barra inferior. -->
+              <div class="overlay" id="exitDialogOverlay" role="presentation">
+                <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="exitDialogTitle" aria-describedby="exitDialogDescription">
+                  <div class="dialog-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#icon-alert"/></svg></div>
+                  <h3 id="exitDialogTitle">¿Salir de la visita?</h3>
+                  <p id="exitDialogDescription">El regreso es controlado para evitar abandonar una pantalla enfocada sin una decisión explícita. No se guardan ni descartan datos en este mockup.</p>
+                  <div class="dialog-actions">
+                    <button class="button button-secondary" id="cancelExitDialog" type="button">Continuar aquí</button>
+                    <button class="button button-primary" id="confirmExitDialog" type="button">Volver a Ruta</button>
+                  </div>
+                </section>
+              </div>
+
+              <div class="toast" id="toast" role="status" aria-live="polite">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-info"/></svg>
+                <span id="toastMessage">Acción ilustrativa del handoff.</span>
+                <button id="closeToast" type="button">CERRAR</button>
+              </div>
+            </div>
+          </div>
+          <div class="home-indicator" aria-hidden="true"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const screenMeta = {
+        'inicio-sin-jornada': { label:'Inicio · sin jornada', appBar:'Inicio', shell:'root', destination:'inicio' },
+        'inicio-activa': { label:'Inicio · jornada activa', appBar:'Inicio', shell:'root', destination:'inicio' },
+        'ruta-vacia': { label:'Ruta · vacía / no disponible', appBar:'Ruta', shell:'root', destination:'ruta' },
+        'ruta-disponible': { label:'Ruta · disponible', appBar:'Ruta', shell:'root', destination:'ruta' },
+        'actividad-vacia': { label:'Actividad · sin elementos', appBar:'Actividad', shell:'root', destination:'actividad' },
+        'mas': { label:'Más', appBar:'Más', shell:'root', destination:'mas' },
+        'carga': { label:'Estado · carga', appBar:'Inicio · cargando', shell:'root', destination:'inicio' },
+        'error': { label:'Estado · error y conectividad', appBar:'Ruta · error', shell:'root', destination:'ruta' },
+        'sin-permiso': { label:'Estado · sin permiso', appBar:'Permiso requerido', shell:'permission', destination:null },
+        'dato-desactualizado': { label:'Estado · dato desactualizado', appBar:'Actividad · actualización', shell:'root', destination:'actividad' },
+        'visita-activa': { label:'Visita activa · pantalla enfocada', appBar:'Visita activa', shell:'focused', destination:null }
+      };
+
+      const defaultScreen = 'inicio-sin-jornada';
+      const params = new URLSearchParams(window.location.search);
+      const mobileApp = document.getElementById('mobileApp');
+      const screens = [...document.querySelectorAll('[data-screen]')];
+      const reviewButtons = [...document.querySelectorAll('.review-state-button[data-screen-target]')];
+      const bottomItems = [...document.querySelectorAll('.bottom-nav-item')];
+      const rootAppBar = document.getElementById('rootAppBar');
+      const focusedAppBar = document.getElementById('focusedAppBar');
+      const bottomNav = document.getElementById('bottomNav');
+      const toolbarStateLabel = document.getElementById('toolbarStateLabel');
+      const toolbarStateUrl = document.getElementById('toolbarStateUrl');
+      const rootAppBarSubtitle = document.getElementById('rootAppBarSubtitle');
+      const exitDialogOverlay = document.getElementById('exitDialogOverlay');
+      const toast = document.getElementById('toast');
+      const toastMessage = document.getElementById('toastMessage');
+      let currentScreen = screenMeta[params.get('screen')] ? params.get('screen') : defaultScreen;
+      let toastTimer = null;
+      let lastFocusedElement = null;
+
+      if (params.get('clean') === '1') document.body.classList.add('clean-mode');
+
+      function buildStateUrl(screenName, clean = document.body.classList.contains('clean-mode')) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('screen', screenName);
+        if (clean) url.searchParams.set('clean', '1');
+        else url.searchParams.delete('clean');
+        return url;
+      }
+
+      function closeExitDialog(restoreFocus = true) {
+        exitDialogOverlay.classList.remove('is-open');
+        if (restoreFocus && lastFocusedElement instanceof HTMLElement) lastFocusedElement.focus({preventScroll:true});
+      }
+
+      function setScreen(screenName, {updateUrl = true} = {}) {
+        if (!screenMeta[screenName]) screenName = defaultScreen;
+        currentScreen = screenName;
+        closeExitDialog(false);
+
+        screens.forEach(screen => {
+          const active = screen.dataset.screen === screenName;
+          screen.classList.toggle('is-active', active);
+          screen.setAttribute('aria-hidden', active ? 'false' : 'true');
+          if (active) screen.scrollTop = 0;
+        });
+
+        reviewButtons.forEach(button => {
+          const active = button.dataset.screenTarget === screenName;
+          button.classList.toggle('is-active', active);
+          if (active) button.setAttribute('aria-current','page');
+          else button.removeAttribute('aria-current');
+        });
+
+        const meta = screenMeta[screenName];
+        const showFocusedAppBar = meta.shell === 'focused';
+        const showBottomNav = meta.shell === 'root';
+
+        rootAppBar.hidden = showFocusedAppBar;
+        focusedAppBar.hidden = !showFocusedAppBar;
+        bottomNav.hidden = !showBottomNav;
+        mobileApp.classList.toggle('has-bottom-nav', showBottomNav);
+        rootAppBarSubtitle.textContent = meta.appBar;
+
+        bottomItems.forEach(item => {
+          const active = showBottomNav && item.dataset.rootDestination === meta.destination;
+          item.classList.toggle('is-active', active);
+          if (active) item.setAttribute('aria-current','page');
+          else item.removeAttribute('aria-current');
+        });
+
+        toolbarStateLabel.textContent = meta.label;
+        toolbarStateUrl.textContent = `?screen=${screenName}`;
+        document.title = `${meta.label} — MOB-034 FollowUpBusiness`;
+
+        if (updateUrl) history.replaceState({screen:screenName},'',buildStateUrl(screenName));
+      }
+
+      function showToast(message) {
+        toastMessage.textContent = message || 'Acción ilustrativa del handoff.';
+        toast.classList.add('is-visible');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove('is-visible'), 3600);
+      }
+
+      function openExitDialog() {
+        lastFocusedElement = document.activeElement;
+        exitDialogOverlay.classList.add('is-open');
+        document.getElementById('cancelExitDialog').focus({preventScroll:true});
+      }
+
+      async function copyText(text) {
+        try {
+          await navigator.clipboard.writeText(text);
+          showToast('URL de revisión copiada.');
+        } catch {
+          window.prompt('Copia esta URL:',text);
+        }
+      }
+
+      document.addEventListener('click', event => {
+        const screenTrigger = event.target.closest('[data-screen-target]');
+        if (screenTrigger) {
+          event.preventDefault();
+          setScreen(screenTrigger.dataset.screenTarget);
+          return;
+        }
+
+        const demoTrigger = event.target.closest('[data-demo-message]');
+        if (demoTrigger) {
+          event.preventDefault();
+          showToast(demoTrigger.dataset.demoMessage);
+        }
+      });
+
+      document.getElementById('copyStateUrl').addEventListener('click',() => copyText(buildStateUrl(currentScreen,false).toString()));
+      document.getElementById('openCleanPreview').addEventListener('click',() => window.open(buildStateUrl(currentScreen,true),'_blank','noopener,noreferrer'));
+      document.getElementById('closeToast').addEventListener('click',() => toast.classList.remove('is-visible'));
+
+      document.getElementById('visitBackButton').addEventListener('click',openExitDialog);
+      document.getElementById('visitCloseButton').addEventListener('click',openExitDialog);
+      document.getElementById('finishVisitButton').addEventListener('click',openExitDialog);
+      document.getElementById('cancelExitDialog').addEventListener('click',() => closeExitDialog());
+      document.getElementById('confirmExitDialog').addEventListener('click',() => {
+        closeExitDialog(false);
+        setScreen('ruta-disponible');
+      });
+
+      exitDialogOverlay.addEventListener('click',event => {
+        if (event.target === exitDialogOverlay) closeExitDialog();
+      });
+
+      document.addEventListener('keydown',event => {
+        if (event.key === 'Escape') closeExitDialog();
+      });
+
+      window.addEventListener('popstate',() => {
+        const nextParams = new URLSearchParams(window.location.search);
+        const nextScreen = nextParams.get('screen');
+        setScreen(screenMeta[nextScreen] ? nextScreen : defaultScreen,{updateUrl:false});
+      });
+
+      setScreen(currentScreen,{updateUrl:false});
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,1992 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light" />
+  <title>MOB-033 — Sistema visual y componentes base mobile</title>
+
+  <!--
+    MOB-033 — SISTEMA VISUAL Y COMPONENTES BASE MOBILE
+    ==================================================
+    Mockup HTML autocontenido para handoff visual. Fuente obligatoria: MOB-001.
+
+    IMPORTANTE:
+    - mockup no productivo; no implementar API, reglas ni datos simulados como funcionalidad.
+    - No contiene navegación operativa, autenticación real, backend ni reglas de negocio.
+    - MOB-033 cubre únicamente tokens, tema y widgets base reutilizables.
+    - La navegación y las pantallas operativas corresponden a MOB-034.
+    - El isotipo brand-route se reutiliza literalmente desde MOB-001:
+      una ruta con cuatro nodos dentro de un contenedor teal.
+
+    PANTALLAS DE LA GALERÍA:
+      ?screen=resumen
+      ?screen=marca
+      ?screen=botones
+      ?screen=campos
+      ?screen=contenido
+      ?screen=estados
+      ?screen=feedback
+      ?screen=plantillas
+      ?screen=accesibilidad
+
+    PARÁMETROS DE REVISIÓN:
+      ?clean=1  -> muestra únicamente el dispositivo, como MOB-001.
+      ?text=125 -> activa una muestra de texto ampliado al 125 %.
+
+    CONVERTIR A WIDGETS FLUTTER REUTILIZABLES:
+      - FubThemeTokens / FubThemeData
+      - FubBrandHeader / FubAppBar
+      - FubButton / FubTextButton / FubDestructiveButton
+      - FubTextField / FubSelectField / FubTextArea
+      - FubSummaryCard / FubListCard / FubInfoRow
+      - FubStatusChip / FubBadge
+      - FubAlert / FubToast / FubDialog / FubBottomSheet
+      - FubLoadingState / FubEmptyState / FubErrorState
+      - FubPermissionState / FubStaleDataState
+
+    INDICACIÓN PARA CODEX:
+    Implementa únicamente la HU MOB-033 usando
+    docs/mobileMockups/MOB-033-mobile-design-system.html como referencia visual.
+    No implementes navegación, APIs, autenticación ni módulos funcionales.
+    Crea solo tokens, tema y widgets reutilizables cubiertos por la HU; conserva
+    el logo y la paleta de MOB-001. Si el mockup contradice la HU o un contrato,
+    detente y repórtalo.
+  -->
+
+  <style>
+    /* =========================================================
+       TOKENS VISUALES — convertir a FubThemeTokens / FubThemeData
+       ========================================================= */
+    :root{
+      --navy:#102A43;
+      --navy-2:#163B62;
+      --navy-3:#0F6B78;
+      --teal:#176D77;
+      --teal-dark:#145F68;
+      --teal-light:#7DD3D7;
+      --teal-mid:#38B2AC;
+
+      --text:#14213D;
+      --text-secondary:#67778A;
+      --form-text:#26384A;
+      --muted:#8090A0;
+      --line:#CFD9E4;
+      --placeholder:#96A4B2;
+      --background:#F7F9FC;
+      --surface:#FFFFFF;
+
+      --danger:#D83B57;
+      --danger-dark:#8F2B3C;
+      --danger-bg:#FFF3F5;
+      --danger-line:#F2B6C0;
+      --success:#168A5B;
+      --success-dark:#116746;
+      --success-bg:#EFFAF5;
+      --success-line:#BDE8D5;
+      --info:#246B9B;
+      --info-dark:#1D5E87;
+      --info-bg:#F0F7FC;
+      --info-line:#C6E1F2;
+      --warning:#9B6908;
+      --warning-dark:#7F570A;
+      --warning-bg:#FFF9EB;
+      --warning-line:#F2D89A;
+
+      --review-background:#E9EFF4;
+      --soft-surface:#F8FBFD;
+      --soft-teal:#EDF8F8;
+      --soft-line:#DDE7EE;
+      --disabled-bg:#F5F7F9;
+      --disabled-line:#D8E0E6;
+      --skeleton:#E9EEF2;
+      --skeleton-strong:#E2E9EE;
+      --toast-base:#123A46;
+
+      --shadow-sm:0 8px 24px rgba(16,42,67,.08);
+      --shadow-md:0 20px 56px rgba(16,42,67,.14);
+      --shadow-device:0 28px 90px rgba(16,42,67,.28);
+
+      --radius-sm:12px;
+      --radius-md:18px;
+      --radius-lg:24px;
+      --radius-pill:999px;
+
+      --space-1:4px;
+      --space-2:8px;
+      --space-3:12px;
+      --space-4:16px;
+      --space-5:20px;
+      --space-6:24px;
+      --space-7:32px;
+
+      --font-scale:1;
+      --fs-10:calc(10px * var(--font-scale));
+      --fs-11:calc(11px * var(--font-scale));
+      --fs-12:calc(12px * var(--font-scale));
+      --fs-13:calc(13px * var(--font-scale));
+      --fs-14:calc(14px * var(--font-scale));
+      --fs-16:calc(16px * var(--font-scale));
+      --fs-18:calc(18px * var(--font-scale));
+      --fs-20:calc(20px * var(--font-scale));
+      --fs-24:calc(24px * var(--font-scale));
+      --fs-28:calc(28px * var(--font-scale));
+
+      --transition:160ms cubic-bezier(.2,.7,.2,1);
+    }
+
+    body.text-125{--font-scale:1.25}
+
+    *{box-sizing:border-box}
+
+    html,body{
+      min-width:320px;
+      min-height:100%;
+      margin:0;
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      color:var(--text);
+      background:var(--review-background);
+      text-rendering:optimizeLegibility;
+      -webkit-font-smoothing:antialiased;
+    }
+
+    body{min-height:100vh}
+    button,input,select,textarea{font:inherit}
+    button{color:inherit}
+    svg{display:block}
+
+    :focus-visible{
+      outline:3px solid rgba(56,178,172,.32);
+      outline-offset:3px;
+    }
+
+    .sr-only{
+      position:absolute!important;
+      width:1px!important;
+      height:1px!important;
+      padding:0!important;
+      margin:-1px!important;
+      overflow:hidden!important;
+      clip:rect(0,0,0,0)!important;
+      white-space:nowrap!important;
+      border:0!important;
+    }
+
+    /* =========================================================
+       MESA DE REVISIÓN — no convertir a Flutter
+       ========================================================= */
+    .review-app{
+      min-height:100vh;
+      display:grid;
+      grid-template-columns:304px minmax(0,1fr);
+      background:var(--review-background);
+    }
+
+    .review-sidebar{
+      position:sticky;
+      top:0;
+      z-index:20;
+      height:100vh;
+      overflow:auto;
+      padding:26px 20px 24px;
+      border-right:1px solid rgba(16,42,67,.09);
+      background:rgba(255,255,255,.94);
+      backdrop-filter:blur(16px);
+    }
+
+    .review-brand{
+      display:flex;
+      align-items:center;
+      gap:11px;
+      margin:0 4px 22px;
+    }
+
+    .review-brand .brand-mark{width:38px;height:38px;border-radius:var(--radius-sm)}
+    .review-brand-copy strong{display:block;font-size:var(--fs-14);letter-spacing:-.2px}
+    .review-brand-copy span{display:block;margin-top:2px;color:var(--muted);font-size:var(--fs-11)}
+
+    .review-note{
+      padding:13px 14px;
+      margin-bottom:18px;
+      border:1px solid var(--soft-line);
+      border-radius:14px;
+      background:var(--soft-surface);
+      color:var(--text-secondary);
+      font-size:var(--fs-12);
+      line-height:1.5;
+    }
+
+    .review-note strong{display:block;margin-bottom:4px;color:var(--navy)}
+    .review-note code{font:inherit;font-weight:760;color:var(--teal-dark)}
+
+    .review-group{margin-top:18px}
+    .review-group-title{
+      margin:0 6px 8px;
+      color:var(--muted);
+      font-size:var(--fs-10);
+      font-weight:800;
+      letter-spacing:.09em;
+      text-transform:uppercase;
+    }
+
+    .review-nav{display:grid;gap:5px}
+
+    .review-state-button{
+      width:100%;
+      min-height:44px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:9px 11px;
+      border:1px solid transparent;
+      border-radius:11px;
+      background:transparent;
+      color:var(--text-secondary);
+      cursor:pointer;
+      text-align:left;
+      transition:background var(--transition),border-color var(--transition),color var(--transition),transform var(--transition);
+    }
+
+    .review-state-button:hover{background:#F3F8FA;color:var(--text)}
+    .review-state-button:active{transform:translateY(1px)}
+    .review-state-button.is-active{
+      color:var(--teal-dark);
+      border-color:#B8DDE0;
+      background:var(--soft-teal);
+      box-shadow:inset 3px 0 0 var(--teal);
+    }
+
+    .state-dot{width:8px;height:8px;flex:0 0 auto;border-radius:var(--radius-pill);background:#B4C2CE}
+    .review-state-button.is-active .state-dot{background:var(--teal)}
+    .state-button-copy{display:grid;gap:1px}
+    .state-button-copy strong{font-size:var(--fs-12);font-weight:760}
+    .state-button-copy span{color:var(--muted);font-size:var(--fs-10)}
+
+    .review-main{min-width:0;min-height:100vh;display:flex;flex-direction:column}
+
+    .review-toolbar{
+      position:sticky;
+      top:0;
+      z-index:15;
+      min-height:66px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      padding:12px 24px;
+      border-bottom:1px solid rgba(16,42,67,.08);
+      background:rgba(233,239,244,.88);
+      backdrop-filter:blur(14px);
+    }
+
+    .toolbar-title{min-width:0}
+    .toolbar-title strong{display:block;font-size:var(--fs-14);letter-spacing:-.15px}
+    .toolbar-title code{
+      display:block;
+      max-width:min(620px,62vw);
+      margin-top:2px;
+      overflow:hidden;
+      color:var(--muted);
+      font:11px/1.4 ui-monospace,SFMono-Regular,Consolas,monospace;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+
+    .toolbar-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+    .toolbar-button{
+      min-height:38px;
+      display:inline-flex;
+      align-items:center;
+      gap:7px;
+      padding:0 13px;
+      border:1px solid #C9D8E2;
+      border-radius:10px;
+      background:var(--surface);
+      color:var(--form-text);
+      box-shadow:0 5px 16px rgba(16,42,67,.05);
+      cursor:pointer;
+      font-size:var(--fs-12);
+      font-weight:720;
+    }
+    .toolbar-button:hover{border-color:#AFC6D3;background:#FBFDFE}
+    .toolbar-button svg{width:16px;height:16px}
+
+    .preview-stage{
+      flex:1;
+      min-height:0;
+      display:grid;
+      place-items:center;
+      padding:28px;
+      overflow:auto;
+    }
+
+    .device{
+      position:relative;
+      width:414px;
+      height:896px;
+      padding:12px;
+      border:1px solid rgba(255,255,255,.6);
+      border-radius:58px;
+      background:var(--navy);
+      box-shadow:var(--shadow-device);
+    }
+
+    .device::before{
+      content:"";
+      position:absolute;
+      inset:5px;
+      border:1px solid rgba(255,255,255,.18);
+      border-radius:52px;
+      pointer-events:none;
+    }
+
+    .device-screen{
+      position:relative;
+      width:100%;
+      height:100%;
+      overflow:hidden;
+      border-radius:47px;
+      background:var(--background);
+      isolation:isolate;
+    }
+
+    .device-island{
+      position:absolute;
+      z-index:30;
+      top:16px;
+      left:50%;
+      width:124px;
+      height:34px;
+      transform:translateX(-50%);
+      border-radius:var(--radius-pill);
+      background:#090A0B;
+      box-shadow:inset 0 -1px 0 rgba(255,255,255,.08);
+      pointer-events:none;
+    }
+
+    .device-island::after{
+      content:"";
+      position:absolute;
+      top:10px;
+      right:12px;
+      width:7px;
+      height:7px;
+      border-radius:50%;
+      background:#0B1A25;
+      box-shadow:0 0 0 2px #141A1F,0 0 7px rgba(56,178,172,.25);
+    }
+
+    .home-indicator{
+      position:absolute;
+      z-index:35;
+      left:50%;
+      bottom:19px;
+      width:134px;
+      height:5px;
+      transform:translateX(-50%);
+      border-radius:var(--radius-pill);
+      background:#121416;
+      pointer-events:none;
+    }
+
+    /* =========================================================
+       APLICACIÓN MOBILE — convertir a tema y widgets Flutter
+       ========================================================= */
+    .mobile-app{
+      position:relative;
+      width:100%;
+      height:100%;
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+      background:var(--background);
+    }
+
+    .mobile-status-bar{
+      position:relative;
+      z-index:5;
+      height:52px;
+      flex:0 0 auto;
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      padding:0 25px 8px;
+      color:#0B1722;
+      font-size:var(--fs-14);
+      font-weight:760;
+      background:var(--surface);
+    }
+
+    .mobile-status-icons{display:flex;align-items:center;gap:6px}
+    .signal-bars{display:flex;align-items:flex-end;gap:2px;height:13px}
+    .signal-bars span{width:3px;border-radius:2px;background:currentColor}
+    .signal-bars span:nth-child(1){height:4px}
+    .signal-bars span:nth-child(2){height:7px}
+    .signal-bars span:nth-child(3){height:10px}
+    .signal-bars span:nth-child(4){height:13px}
+    .wifi-icon{width:16px;height:13px;position:relative}
+    .wifi-icon::before,.wifi-icon::after{
+      content:"";
+      position:absolute;
+      left:50%;
+      border:2px solid currentColor;
+      border-right-color:transparent;
+      border-bottom-color:transparent;
+      border-radius:50% 0 0 0;
+      transform:translateX(-50%) rotate(45deg);
+    }
+    .wifi-icon::before{top:0;width:12px;height:12px}
+    .wifi-icon::after{top:4px;width:6px;height:6px}
+    .battery-icon{width:22px;height:11px;border:1.7px solid currentColor;border-radius:3px;position:relative;margin-left:1px}
+    .battery-icon::before{content:"";position:absolute;inset:2px;border-radius:1px;background:currentColor}
+    .battery-icon::after{content:"";position:absolute;right:-3px;top:3px;width:2px;height:5px;border-radius:0 2px 2px 0;background:currentColor}
+
+    /* Widget Flutter: FubAppBar */
+    .mobile-app-bar{
+      position:relative;
+      z-index:6;
+      min-height:72px;
+      flex:0 0 auto;
+      display:flex;
+      align-items:center;
+      gap:11px;
+      padding:10px 18px;
+      border-bottom:1px solid rgba(16,42,67,.08);
+      background:var(--surface);
+      box-shadow:0 5px 18px rgba(16,42,67,.045);
+    }
+
+    .brand-mark{
+      width:36px;
+      height:36px;
+      flex:0 0 auto;
+      display:grid;
+      place-items:center;
+      border-radius:var(--radius-sm);
+      background:var(--teal);
+      color:#fff;
+      box-shadow:0 8px 20px rgba(23,109,119,.2);
+    }
+    .brand-mark svg{width:24px;height:24px}
+    .brand-mark path,.brand-mark circle{stroke:#fff}
+
+    .app-bar-copy{min-width:0;flex:1}
+    .brand-wordmark{color:var(--navy);font-size:var(--fs-16);font-weight:780;letter-spacing:-.5px;white-space:nowrap}
+    .brand-wordmark span{color:var(--teal);font-weight:700}
+    .app-bar-subtitle{margin-top:2px;color:var(--text-secondary);font-size:var(--fs-10);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .app-bar-actions{display:flex;align-items:center;gap:4px}
+
+    .icon-button{
+      width:38px;
+      height:38px;
+      flex:0 0 auto;
+      display:grid;
+      place-items:center;
+      padding:0;
+      border:0;
+      border-radius:10px;
+      background:transparent;
+      color:#52677D;
+      cursor:pointer;
+      transition:background var(--transition),color var(--transition);
+    }
+    .icon-button:hover{background:#F1F6F8;color:var(--teal-dark)}
+    .icon-button svg{width:19px;height:19px}
+
+    .screen-host{position:relative;z-index:2;flex:1;min-height:0;overflow:hidden}
+    .screen{
+      position:absolute;
+      inset:0;
+      display:none;
+      overflow-y:auto;
+      overscroll-behavior:contain;
+      scrollbar-width:thin;
+      scrollbar-color:#B8C7D2 transparent;
+      padding:20px 18px 46px;
+    }
+    .screen::-webkit-scrollbar{width:5px}
+    .screen::-webkit-scrollbar-thumb{background:#B8C7D2;border-radius:var(--radius-pill)}
+    .screen.is-active{display:block;animation:screen-in 180ms ease-out both}
+
+    @keyframes screen-in{
+      from{opacity:0;transform:translateY(5px)}
+      to{opacity:1;transform:none}
+    }
+
+    .screen-kicker{
+      margin:0 0 5px;
+      color:var(--teal-dark);
+      font-size:var(--fs-10);
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+    .screen-heading{margin:0;color:var(--navy);font-size:var(--fs-24);line-height:1.18;letter-spacing:-.7px}
+    .screen-description{margin:8px 0 18px;color:var(--text-secondary);font-size:var(--fs-13);line-height:1.55}
+
+    .nonprod-banner{
+      display:flex;
+      align-items:flex-start;
+      gap:10px;
+      padding:12px 13px;
+      margin-bottom:14px;
+      border:1px solid var(--warning-line);
+      border-radius:13px;
+      background:var(--warning-bg);
+      color:var(--warning-dark);
+      font-size:var(--fs-11);
+      line-height:1.5;
+    }
+    .nonprod-banner svg{width:18px;height:18px;flex:0 0 auto;margin-top:1px}
+    .nonprod-banner strong{display:block;margin-bottom:2px;font-size:var(--fs-12)}
+
+    .section-card,
+    .token-card,
+    .component-card,
+    .template-card,
+    .access-card{
+      border:1px solid rgba(16,42,67,.07);
+      border-radius:var(--radius-md);
+      background:var(--surface);
+      box-shadow:var(--shadow-sm);
+    }
+
+    .section-card{padding:17px;margin-bottom:13px}
+    .section-card:last-child{margin-bottom:0}
+
+    .section-title-row{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:12px;
+    }
+    .section-title-row h2{margin:0;color:var(--navy);font-size:var(--fs-16);line-height:1.3;letter-spacing:-.25px}
+    .section-title-row p{margin:3px 0 0;color:var(--muted);font-size:var(--fs-10);line-height:1.45}
+
+    .widget-tag{
+      flex:0 0 auto;
+      min-height:24px;
+      display:inline-flex;
+      align-items:center;
+      padding:0 8px;
+      border:1px solid #B8DDE0;
+      border-radius:var(--radius-pill);
+      background:var(--soft-teal);
+      color:var(--teal-dark);
+      font:700 9px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;
+      white-space:nowrap;
+    }
+
+    .annotation{
+      display:flex;
+      align-items:flex-start;
+      gap:8px;
+      padding:10px 11px;
+      margin-top:12px;
+      border-left:3px solid var(--teal-mid);
+      border-radius:0 10px 10px 0;
+      background:#F8FBFB;
+      color:var(--text-secondary);
+      font-size:var(--fs-10);
+      line-height:1.5;
+    }
+    .annotation svg{width:15px;height:15px;flex:0 0 auto;color:var(--teal);margin-top:1px}
+    .annotation strong{color:var(--navy)}
+
+    /* =========================================================
+       RESUMEN Y TOKENS
+       ========================================================= */
+    .hero-card{
+      padding:20px;
+      margin-bottom:14px;
+      border-radius:var(--radius-lg);
+      background:var(--navy);
+      color:#fff;
+      box-shadow:var(--shadow-md);
+    }
+    .hero-card .screen-kicker{color:var(--teal-light)}
+    .hero-card h1{margin:0;font-size:var(--fs-28);line-height:1.15;letter-spacing:-.8px}
+    .hero-card p{margin:10px 0 0;color:#DDF8F8;font-size:var(--fs-12);line-height:1.55}
+    .hero-meta{display:flex;flex-wrap:wrap;gap:7px;margin-top:15px}
+    .hero-pill{display:inline-flex;align-items:center;gap:6px;min-height:27px;padding:0 9px;border:1px solid rgba(255,255,255,.26);border-radius:var(--radius-pill);font-size:var(--fs-10);font-weight:700}
+    .hero-pill::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--teal-light)}
+
+    .token-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+    .token-card{overflow:hidden;box-shadow:none}
+    .token-swatch{height:52px;display:flex;align-items:flex-end;padding:8px;color:#fff;font-size:var(--fs-10);font-weight:760}
+    .token-swatch.is-light{color:var(--navy);border-bottom:1px solid rgba(16,42,67,.07)}
+    .token-copy{padding:9px 10px}
+    .token-copy strong{display:block;color:var(--navy);font-size:var(--fs-11)}
+    .token-copy code{display:block;margin-top:2px;color:var(--muted);font:9px/1.4 ui-monospace,SFMono-Regular,Consolas,monospace}
+
+    .radius-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+    .radius-sample{min-height:68px;display:grid;place-items:center;padding:8px;border:1px solid var(--line);background:#F8FBFD;color:var(--navy);font-size:var(--fs-10);font-weight:760;text-align:center}
+    .radius-sample:nth-child(1){border-radius:var(--radius-sm)}
+    .radius-sample:nth-child(2){border-radius:var(--radius-md)}
+    .radius-sample:nth-child(3){border-radius:var(--radius-lg)}
+
+    .scope-list{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+    .scope-item{display:flex;align-items:flex-start;gap:9px;padding:10px;border:1px solid #E0E7EC;border-radius:var(--radius-sm);background:#FAFCFD}
+    .scope-item svg{width:17px;height:17px;flex:0 0 auto;color:var(--teal);margin-top:1px}
+    .scope-item strong{display:block;color:var(--navy);font-size:var(--fs-11)}
+    .scope-item span{display:block;margin-top:2px;color:var(--text-secondary);font-size:var(--fs-10);line-height:1.4}
+
+    .code-brief{
+      padding:13px;
+      border:1px solid var(--soft-line);
+      border-radius:var(--radius-sm);
+      background:var(--soft-surface);
+      color:var(--form-text);
+      font:10px/1.65 ui-monospace,SFMono-Regular,Consolas,monospace;
+      white-space:pre-wrap;
+    }
+
+    /* =========================================================
+       CABECERA DE MARCA Y BARRA DE APLICACIÓN
+       Widgets Flutter: FubBrandHeader / FubAppBar
+       ========================================================= */
+    .brand-header-demo{
+      display:grid;
+      justify-items:center;
+      gap:8px;
+      padding:22px 16px;
+      border:1px solid #DCE9E9;
+      border-radius:var(--radius-lg);
+      background:#F8FBFB;
+      text-align:center;
+    }
+    .brand-header-demo .brand-mark{width:48px;height:48px;border-radius:15px}
+    .brand-header-demo .brand-mark svg{width:31px;height:31px}
+    .brand-header-demo .brand-wordmark{font-size:var(--fs-20)}
+    .brand-header-demo p{margin:0;color:var(--text-secondary);font-size:var(--fs-11)}
+
+    .app-bar-demo{
+      min-height:58px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:8px 10px;
+      border:1px solid #E0E7EC;
+      border-radius:var(--radius-sm);
+      background:var(--surface);
+      box-shadow:0 5px 14px rgba(16,42,67,.05);
+    }
+    .app-bar-demo + .app-bar-demo{margin-top:9px}
+    .app-bar-demo .brand-mark{width:30px;height:30px;border-radius:9px;box-shadow:none}
+    .app-bar-demo .brand-mark svg{width:19px;height:19px}
+    .app-bar-demo-copy{min-width:0;flex:1}
+    .app-bar-demo-copy strong{display:block;color:var(--navy);font-size:var(--fs-12)}
+    .app-bar-demo-copy span{display:block;margin-top:1px;color:var(--muted);font-size:var(--fs-10);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .avatar{width:30px;height:30px;display:grid;place-items:center;border-radius:50%;background:#EDF5F7;color:var(--teal-dark);font-size:var(--fs-10);font-weight:800}
+
+    /* =========================================================
+       BOTONES — convertir a FubButton y variantes
+       ========================================================= */
+    .button{
+      width:100%;
+      min-height:48px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      padding:0 15px;
+      border:1px solid transparent;
+      border-radius:var(--radius-sm);
+      background:transparent;
+      cursor:pointer;
+      font-size:var(--fs-13);
+      font-weight:780;
+      text-decoration:none;
+      transition:transform var(--transition),box-shadow var(--transition),background var(--transition),border-color var(--transition),opacity var(--transition);
+    }
+    .button:active:not(:disabled){transform:translateY(1px)}
+    .button svg{width:17px;height:17px;flex:0 0 auto}
+    .button-primary{color:#fff;background:var(--teal);box-shadow:0 9px 22px rgba(23,109,119,.18)}
+    .button-primary:hover:not(:disabled){background:var(--teal-dark);box-shadow:0 11px 26px rgba(23,109,119,.24)}
+    .button-secondary{color:var(--teal-dark);border-color:#A9CED2;background:var(--surface)}
+    .button-secondary:hover:not(:disabled){background:#F3FAFA;border-color:#7FB9BE}
+    .button-text{min-height:42px;color:var(--teal);background:transparent}
+    .button-text:hover:not(:disabled){color:var(--teal-dark);background:#F3FAFA}
+    .button-destructive{color:#fff;background:var(--danger);box-shadow:0 9px 22px rgba(216,59,87,.16)}
+    .button-destructive:hover:not(:disabled){background:var(--danger-dark)}
+    .button-error-state{color:var(--danger-dark);border-color:var(--danger-line);background:var(--danger-bg);box-shadow:none}
+    .button:disabled,.button.is-disabled{opacity:.54;cursor:not-allowed;box-shadow:none}
+
+    .spinner{
+      width:18px;
+      height:18px;
+      flex:0 0 auto;
+      border:2px solid rgba(255,255,255,.42);
+      border-top-color:#fff;
+      border-radius:50%;
+      animation:spin .75s linear infinite;
+    }
+    .spinner.is-teal{border-color:rgba(23,109,119,.19);border-top-color:var(--teal)}
+    .spinner.is-danger{border-color:rgba(143,43,60,.2);border-top-color:var(--danger-dark)}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    .variant-card{padding:13px;border:1px solid #E0E7EC;border-radius:var(--radius-sm);background:#FAFCFD}
+    .variant-card + .variant-card{margin-top:10px}
+    .variant-title{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+    .variant-title strong{color:var(--navy);font-size:var(--fs-12)}
+    .variant-title span{color:var(--muted);font-size:var(--fs-10)}
+    .state-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+    .state-cell{min-width:0}
+    .state-label{display:block;margin:0 0 5px;color:var(--muted);font-size:var(--fs-10);font-weight:720}
+    .state-cell .button{min-height:42px;padding:0 9px;font-size:var(--fs-11)}
+
+    /* =========================================================
+       CAMPOS — FubTextField / FubSelectField / FubTextArea
+       ========================================================= */
+    .field-sample{padding:12px;border:1px solid #E0E7EC;border-radius:var(--radius-sm);background:#FAFCFD}
+    .field-sample + .field-sample{margin-top:9px}
+    .sample-caption{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+    .sample-caption strong{color:var(--navy);font-size:var(--fs-11)}
+    .sample-caption span{color:var(--muted);font-size:var(--fs-10)}
+    .field-label{display:block;margin:0 0 7px;color:var(--navy);font-size:var(--fs-12);font-weight:760}
+
+    .input-shell{
+      min-height:50px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:0 13px;
+      border:1px solid var(--line);
+      border-radius:var(--radius-sm);
+      background:var(--surface);
+      transition:border-color var(--transition),box-shadow var(--transition),background var(--transition);
+    }
+    .input-shell:focus-within,.input-shell.is-focus{border-color:var(--teal-mid);box-shadow:0 0 0 3px rgba(56,178,172,.12)}
+    .input-shell.is-valid{border-color:var(--success);background:var(--success-bg);box-shadow:0 0 0 3px rgba(22,138,91,.07)}
+    .input-shell.is-error{border-color:var(--danger);background:#FFFCFC;box-shadow:0 0 0 3px rgba(216,59,87,.07)}
+    .input-shell.is-disabled{border-color:var(--disabled-line);background:var(--disabled-bg)}
+
+    .field-icon{width:19px;height:19px;flex:0 0 auto;color:#52677D}
+    .field-icon.is-valid{color:var(--success)}
+    .field-icon.is-error{color:var(--danger)}
+    .field-input,.field-select,.field-textarea{
+      min-width:0;
+      width:100%;
+      flex:1;
+      padding:0;
+      border:0;
+      outline:0;
+      background:transparent;
+      color:var(--form-text);
+      font-size:var(--fs-13);
+    }
+    .field-input{height:48px}
+    .field-input::placeholder,.field-textarea::placeholder{color:var(--placeholder)}
+    .field-input:disabled,.field-select:disabled,.field-textarea:disabled{color:#667B8D;-webkit-text-fill-color:#667B8D;opacity:1;cursor:not-allowed}
+    .field-select{height:48px;appearance:auto}
+    .textarea-shell{align-items:flex-start;min-height:116px;padding-top:12px;padding-bottom:12px}
+    .field-textarea{min-height:90px;resize:none;line-height:1.5}
+
+    .field-helper{display:flex;align-items:flex-start;gap:6px;margin:6px 0 0;color:var(--muted);font-size:var(--fs-10);line-height:1.45}
+    .field-helper svg{width:14px;height:14px;flex:0 0 auto;margin-top:1px}
+    .field-helper.is-error{color:var(--danger-dark)}
+    .field-helper.is-success{color:var(--success)}
+
+    /* =========================================================
+       TARJETAS, LISTAS Y FILAS
+       ========================================================= */
+    .summary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+    .summary-card{padding:14px;border:1px solid #E0E7EC;border-radius:var(--radius-md);background:var(--surface);box-shadow:0 6px 18px rgba(16,42,67,.055)}
+    .summary-card-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+    .summary-card-head span{color:var(--text-secondary);font-size:var(--fs-10);font-weight:700}
+    .summary-icon{width:30px;height:30px;display:grid;place-items:center;border-radius:10px;background:var(--soft-teal);color:var(--teal)}
+    .summary-icon svg{width:17px;height:17px}
+    .summary-value{display:block;margin-top:10px;color:var(--navy);font-size:var(--fs-24);font-weight:820;letter-spacing:-.6px}
+    .summary-detail{display:block;margin-top:2px;color:var(--muted);font-size:var(--fs-10);line-height:1.35}
+
+    .list-card{overflow:hidden;border:1px solid #E0E7EC;border-radius:var(--radius-md);background:var(--surface);box-shadow:0 6px 18px rgba(16,42,67,.055)}
+    .list-header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 14px;border-bottom:1px solid #EDF1F4}
+    .list-header strong{color:var(--navy);font-size:var(--fs-12)}
+    .list-header span{color:var(--muted);font-size:var(--fs-10)}
+    .list-row{display:flex;align-items:center;gap:11px;padding:12px 14px;border-bottom:1px solid #EDF1F4}
+    .list-row:last-child{border-bottom:0}
+    .row-leading{width:34px;height:34px;flex:0 0 auto;display:grid;place-items:center;border-radius:11px;background:#EDF5F7;color:var(--teal-dark)}
+    .row-leading svg{width:18px;height:18px}
+    .row-copy{min-width:0;flex:1}
+    .row-copy strong{display:block;color:var(--form-text);font-size:var(--fs-11);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .row-copy span{display:block;margin-top:2px;color:var(--muted);font-size:var(--fs-10);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .row-trailing{flex:0 0 auto;color:var(--navy);font-size:var(--fs-10);font-weight:760}
+
+    .info-table{overflow:hidden;border:1px solid #E0E7EC;border-radius:var(--radius-sm);background:var(--surface)}
+    .info-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:11px 12px;border-bottom:1px solid #EDF1F4}
+    .info-row:last-child{border-bottom:0}
+    .info-row dt{color:var(--text-secondary);font-size:var(--fs-10)}
+    .info-row dd{margin:0;color:var(--navy);font-size:var(--fs-10);font-weight:760;text-align:right}
+
+    /* =========================================================
+       CHIPS Y BADGES — FubStatusChip / FubBadge
+       ========================================================= */
+    .chip-wrap{display:flex;flex-wrap:wrap;gap:8px}
+    .chip{
+      min-height:30px;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:0 10px;
+      border:1px solid;
+      border-radius:var(--radius-pill);
+      font-size:var(--fs-10);
+      font-weight:720;
+    }
+    .chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+    .chip-new{color:#2375A5;border-color:#BBDDF0;background:#F0F8FD}
+    .chip-progress{color:#A46D05;border-color:#F1D496;background:#FFF9EA}
+    .chip-pending{color:#65778A;border-color:#D8E0E6;background:#F5F7F9}
+    .chip-complete{color:var(--success);border-color:var(--success-line);background:var(--success-bg)}
+    .chip-cancelled{color:#C93650;border-color:#F2C0C8;background:#FFF4F6}
+
+    .badge-row{display:flex;flex-wrap:wrap;align-items:center;gap:9px}
+    .badge{min-width:24px;min-height:24px;display:inline-flex;align-items:center;justify-content:center;padding:0 7px;border-radius:var(--radius-pill);font-size:var(--fs-10);font-weight:800}
+    .badge-neutral{color:var(--navy);background:#EDF1F4}
+    .badge-info{color:var(--info-dark);background:var(--info-bg);border:1px solid var(--info-line)}
+    .badge-success{color:var(--success-dark);background:var(--success-bg);border:1px solid var(--success-line)}
+    .badge-warning{color:var(--warning-dark);background:var(--warning-bg);border:1px solid var(--warning-line)}
+    .badge-error{color:var(--danger-dark);background:var(--danger-bg);border:1px solid var(--danger-line)}
+
+    /* =========================================================
+       FEEDBACK — FubAlert / FubToast / FubDialog / FubBottomSheet
+       ========================================================= */
+    .alert{
+      display:flex;
+      align-items:flex-start;
+      gap:10px;
+      padding:12px 13px;
+      border:1px solid;
+      border-radius:13px;
+      font-size:var(--fs-11);
+      line-height:1.45;
+    }
+    .alert + .alert{margin-top:8px}
+    .alert svg{width:18px;height:18px;flex:0 0 auto;margin-top:1px}
+    .alert strong{display:block;margin-bottom:1px;font-weight:780}
+    .alert-info{color:var(--info-dark);border-color:var(--info-line);background:var(--info-bg)}
+    .alert-success{color:var(--success-dark);border-color:var(--success-line);background:var(--success-bg)}
+    .alert-warning{color:var(--warning-dark);border-color:var(--warning-line);background:var(--warning-bg)}
+    .alert-error{color:var(--danger-dark);border-color:var(--danger-line);background:var(--danger-bg)}
+
+    .feedback-matrix{display:grid;gap:8px}
+    .feedback-row{display:grid;grid-template-columns:88px repeat(3,minmax(0,1fr));gap:6px;align-items:center}
+    .feedback-row-label{display:flex;align-items:center;gap:6px;color:var(--navy);font-size:var(--fs-10);font-weight:760}
+    .feedback-row-label::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+    .feedback-row-label.info{color:var(--info-dark)}
+    .feedback-row-label.success{color:var(--success-dark)}
+    .feedback-row-label.warning{color:var(--warning-dark)}
+    .feedback-row-label.error{color:var(--danger-dark)}
+    .mini-action{min-height:36px;padding:0 6px;border:1px solid #C9D8E2;border-radius:9px;background:var(--surface);color:var(--form-text);cursor:pointer;font-size:var(--fs-10);font-weight:700}
+    .mini-action:hover{border-color:#AFC6D3;background:#FBFDFE}
+
+    .overlay{
+      position:absolute;
+      z-index:100;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:22px;
+      background:rgba(16,42,67,.46);
+      backdrop-filter:blur(5px);
+    }
+    .overlay.is-open{display:flex;animation:fade-in 140ms ease-out both}
+    @keyframes fade-in{from{opacity:0}to{opacity:1}}
+
+    .dialog{
+      width:100%;
+      max-width:324px;
+      padding:24px 20px 19px;
+      border-radius:22px;
+      background:var(--surface);
+      box-shadow:0 24px 70px rgba(16,42,67,.28);
+      text-align:center;
+    }
+    .dialog-icon{width:54px;height:54px;display:grid;place-items:center;margin:0 auto 14px;border:1px solid;border-radius:17px}
+    .dialog-icon svg{width:27px;height:27px}
+    .dialog h3{margin:0;color:var(--navy);font-size:var(--fs-20);letter-spacing:-.45px}
+    .dialog p{margin:8px auto 18px;color:var(--text-secondary);font-size:var(--fs-11);line-height:1.5}
+    .dialog-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+    .dialog-actions .button{min-height:44px;padding:0 10px;font-size:var(--fs-11)}
+
+    .tone-info .dialog-icon,.sheet-tone-info .sheet-icon{color:var(--info-dark);border-color:var(--info-line);background:var(--info-bg)}
+    .tone-success .dialog-icon,.sheet-tone-success .sheet-icon{color:var(--success-dark);border-color:var(--success-line);background:var(--success-bg)}
+    .tone-warning .dialog-icon,.sheet-tone-warning .sheet-icon{color:var(--warning-dark);border-color:var(--warning-line);background:var(--warning-bg)}
+    .tone-error .dialog-icon,.sheet-tone-error .sheet-icon{color:var(--danger-dark);border-color:var(--danger-line);background:var(--danger-bg)}
+
+    .sheet-overlay{align-items:flex-end;padding:0;background:rgba(16,42,67,.42)}
+    .bottom-sheet{
+      width:100%;
+      padding:11px 18px calc(24px + env(safe-area-inset-bottom));
+      border-radius:var(--radius-lg) var(--radius-lg) 0 0;
+      background:var(--surface);
+      box-shadow:0 -20px 60px rgba(16,42,67,.22);
+    }
+    .sheet-handle{width:45px;height:5px;margin:0 auto 17px;border-radius:var(--radius-pill);background:#D7E0E6}
+    .sheet-head{display:flex;align-items:flex-start;gap:11px;margin-bottom:15px}
+    .sheet-icon{width:44px;height:44px;flex:0 0 auto;display:grid;place-items:center;border:1px solid;border-radius:14px}
+    .sheet-icon svg{width:23px;height:23px}
+    .sheet-copy{min-width:0;flex:1}
+    .bottom-sheet h3{margin:0 0 4px;color:var(--navy);font-size:var(--fs-18);letter-spacing:-.35px}
+    .bottom-sheet p{margin:0;color:var(--text-secondary);font-size:var(--fs-11);line-height:1.5}
+    .sheet-actions{display:grid;gap:9px}
+
+    .toast{
+      position:absolute;
+      z-index:120;
+      left:20px;
+      right:20px;
+      bottom:35px;
+      min-height:54px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:12px 14px;
+      border-radius:14px;
+      color:#fff;
+      background:var(--toast-base);
+      box-shadow:0 16px 38px rgba(16,42,67,.24);
+      font-size:var(--fs-11);
+      line-height:1.35;
+      opacity:0;
+      transform:translateY(18px);
+      pointer-events:none;
+      transition:opacity 180ms ease,transform 180ms ease;
+    }
+    .toast.is-visible{opacity:1;transform:none;pointer-events:auto}
+    .toast.is-info{background:var(--info-dark)}
+    .toast.is-success{background:var(--success-dark)}
+    .toast.is-warning{background:var(--warning-dark)}
+    .toast.is-error{background:var(--danger-dark)}
+    .toast svg{width:19px;height:19px;flex:0 0 auto;color:#fff}
+    .toast span{min-width:0;flex:1}
+    .toast button{border:0;background:transparent;color:#fff;font-size:var(--fs-10);font-weight:800;cursor:pointer}
+
+    /* =========================================================
+       PLANTILLAS DE ESTADO
+       ========================================================= */
+    .template-card{padding:18px;margin-bottom:11px;text-align:center}
+    .template-card:last-child{margin-bottom:0}
+    .template-icon{width:64px;height:64px;display:grid;place-items:center;margin:0 auto 13px;border:1px solid;border-radius:21px}
+    .template-icon svg{width:34px;height:34px}
+    .template-card h2{margin:0;color:var(--navy);font-size:var(--fs-18);letter-spacing:-.35px}
+    .template-card p{margin:7px auto 14px;max-width:286px;color:var(--text-secondary);font-size:var(--fs-11);line-height:1.5}
+    .template-card .button{max-width:270px;margin:0 auto;min-height:44px;font-size:var(--fs-11)}
+    .template-card .button + .button{margin-top:8px}
+    .template-info .template-icon{color:var(--info-dark);border-color:var(--info-line);background:var(--info-bg)}
+    .template-success .template-icon{color:var(--success-dark);border-color:var(--success-line);background:var(--success-bg)}
+    .template-warning .template-icon{color:var(--warning-dark);border-color:var(--warning-line);background:var(--warning-bg)}
+    .template-error .template-icon{color:var(--danger-dark);border-color:var(--danger-line);background:var(--danger-bg)}
+
+    .skeleton-card{padding:13px;border:1px solid #E0E7EC;border-radius:var(--radius-sm);background:var(--surface)}
+    .skeleton-head{display:flex;align-items:center;gap:9px}
+    .skeleton-circle,.skeleton-line,.skeleton-block{background:var(--skeleton);animation:pulse 1.3s ease-in-out infinite}
+    .skeleton-circle{width:30px;height:30px;border-radius:50%}
+    .skeleton-lines{flex:1;display:grid;gap:6px}
+    .skeleton-line{height:8px;border-radius:var(--radius-pill)}
+    .skeleton-line.short{width:62%}
+    .skeleton-block{height:62px;margin-top:11px;border-radius:9px}
+    @keyframes pulse{0%,100%{opacity:.58}50%{opacity:1}}
+    .loading-caption{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:13px;color:var(--text-secondary);font-size:var(--fs-10)}
+
+    /* =========================================================
+       ACCESIBILIDAD VISIBLE
+       ========================================================= */
+    .access-card{padding:15px;margin-bottom:10px;box-shadow:none}
+    .access-card:last-child{margin-bottom:0}
+    .access-card h2{display:flex;align-items:center;gap:8px;margin:0;color:var(--navy);font-size:var(--fs-14)}
+    .access-card h2 svg{width:18px;height:18px;color:var(--teal)}
+    .access-card p{margin:7px 0 0;color:var(--text-secondary);font-size:var(--fs-11);line-height:1.5}
+    .focus-demo{margin-top:12px;outline:3px solid rgba(56,178,172,.32);outline-offset:3px}
+
+    .contrast-list{display:grid;gap:8px;margin-top:12px}
+    .contrast-row{display:grid;grid-template-columns:42px minmax(0,1fr) auto;align-items:center;gap:9px}
+    .contrast-swatch{width:42px;height:34px;border:1px solid rgba(16,42,67,.09);border-radius:9px}
+    .contrast-copy strong{display:block;color:var(--navy);font-size:var(--fs-10)}
+    .contrast-copy span{display:block;margin-top:1px;color:var(--muted);font-size:var(--fs-10)}
+    .contrast-pass{color:var(--success-dark);font-size:var(--fs-10);font-weight:800}
+
+    .large-text-demo{padding:13px;margin-top:12px;border:1px solid #DCE9E9;border-radius:var(--radius-sm);background:#F8FBFB}
+    .large-text-demo strong{display:block;color:var(--navy);font-size:calc(16px * 1.25)}
+    .large-text-demo p{margin:5px 0 0;font-size:calc(12px * 1.25);line-height:1.5}
+
+    .screen-reader-sample{display:flex;align-items:center;gap:10px;margin-top:12px;padding:11px;border:1px solid #E0E7EC;border-radius:var(--radius-sm);background:#FAFCFD}
+    .screen-reader-sample code{min-width:0;color:var(--form-text);font:9px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;word-break:break-word}
+
+    .noncolor-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+    .noncolor-state{display:inline-flex;align-items:center;gap:6px;min-height:30px;padding:0 10px;border:1px solid;border-radius:var(--radius-pill);font-size:var(--fs-10);font-weight:720}
+    .noncolor-state svg{width:14px;height:14px}
+
+    /* Vista limpia */
+    body.clean-mode .review-app{display:block;background:var(--background)}
+    body.clean-mode .review-sidebar,body.clean-mode .review-toolbar{display:none}
+    body.clean-mode .review-main{min-height:100vh}
+    body.clean-mode .preview-stage{min-height:100vh;padding:0}
+    body.clean-mode .device{box-shadow:none}
+
+    @media(max-height:980px) and (min-width:761px){
+      .device{transform:scale(.88)}
+      .preview-stage{padding:0}
+    }
+    @media(max-height:820px) and (min-width:761px){.device{transform:scale(.74)}}
+    @media(max-width:1080px){
+      .review-app{grid-template-columns:254px minmax(0,1fr)}
+      .review-sidebar{padding-left:14px;padding-right:14px}
+      .device{transform:scale(.9)}
+      .toolbar-actions .toolbar-button span{display:none}
+    }
+    @media(max-width:760px){
+      html,body{background:var(--background)}
+      .review-app{display:block;min-height:100dvh;background:var(--background)}
+      .review-sidebar,.review-toolbar{display:none}
+      .review-main{min-height:100dvh}
+      .preview-stage{display:block;min-height:100dvh;padding:0;overflow:visible}
+      .device{width:100%;height:100dvh;min-height:680px;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;transform:none!important}
+      .device::before,.device-island{display:none}
+      .device-screen{border-radius:0}
+      .mobile-status-bar{padding-top:max(8px,env(safe-area-inset-top));height:calc(44px + env(safe-area-inset-top))}
+      .home-indicator{display:none}
+      .screen{padding-bottom:calc(30px + env(safe-area-inset-bottom))}
+      .toast{bottom:calc(18px + env(safe-area-inset-bottom))}
+    }
+    @media(max-width:380px){
+      .screen{padding-left:15px;padding-right:15px}
+      .mobile-app-bar{padding-left:14px;padding-right:14px}
+      .state-grid,.summary-grid,.token-grid{grid-template-columns:1fr}
+      .feedback-row{grid-template-columns:76px repeat(3,minmax(0,1fr))}
+      .mini-action{font-size:9px}
+    }
+    @media(prefers-reduced-motion:reduce){
+      *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
+    }
+  </style>
+</head>
+<body>
+  <!-- Sprite reutilizado. brand-route es literalmente el isotipo de MOB-001. -->
+  <svg class="sr-only" aria-hidden="true" width="0" height="0">
+    <defs>
+      <symbol id="brand-route" viewBox="0 0 24 24" fill="none">
+        <path d="M5 18.5V9.5M5 9.5l5 2.7 4.5-5.2 4.5 2.4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="5" cy="9" r="1.7" stroke="currentColor" stroke-width="2"/>
+        <circle cx="10" cy="12.2" r="1.7" stroke="currentColor" stroke-width="2"/>
+        <circle cx="14.5" cy="7" r="1.7" stroke="currentColor" stroke-width="2"/>
+        <circle cx="19" cy="9.4" r="1.7" stroke="currentColor" stroke-width="2"/>
+      </symbol>
+      <symbol id="icon-mail" viewBox="0 0 24 24" fill="none">
+        <rect x="3" y="5" width="18" height="14" rx="2.5" stroke="currentColor" stroke-width="1.8"/>
+        <path d="m4.5 7 7.5 6 7.5-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="icon-lock" viewBox="0 0 24 24" fill="none">
+        <rect x="5" y="10" width="14" height="10" rx="2.5" stroke="currentColor" stroke-width="1.8"/>
+        <path d="M8 10V7.5a4 4 0 0 1 8 0V10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-eye" viewBox="0 0 24 24" fill="none">
+        <path d="M2.8 12s3.5-6 9.2-6 9.2 6 9.2 6-3.5 6-9.2 6-9.2-6-9.2-6Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+        <circle cx="12" cy="12" r="2.6" stroke="currentColor" stroke-width="1.8"/>
+      </symbol>
+      <symbol id="icon-shield" viewBox="0 0 24 24" fill="none">
+        <path d="M12 3 5.5 5.7v5.4c0 4.4 2.6 7.9 6.5 9.9 3.9-2 6.5-5.5 6.5-9.9V5.7L12 3Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+        <path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="icon-info" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/>
+        <path d="M12 10.5V16M12 7.5h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-alert" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/>
+        <path d="M12 7.5V13M12 16.5h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-check" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/>
+        <path d="m8 12.2 2.5 2.5 5.5-6" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="icon-x" viewBox="0 0 24 24" fill="none">
+        <path d="m7 7 10 10M17 7 7 17" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-copy" viewBox="0 0 24 24" fill="none">
+        <rect x="8" y="8" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.8"/>
+        <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-expand" viewBox="0 0 24 24" fill="none">
+        <path d="M8 3H3v5M16 3h5v5M21 16v5h-5M3 16v5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="icon-user" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.8"/>
+        <path d="M5 20a7 7 0 0 1 14 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-settings" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/>
+        <path d="M19 12a7.1 7.1 0 0 0-.1-1l2-1.5-2-3.4-2.4 1A8.6 8.6 0 0 0 14.7 6L14.4 3h-4.8l-.3 3a8.6 8.6 0 0 0-1.8 1.1l-2.4-1-2 3.4 2 1.5a7.1 7.1 0 0 0 0 2l-2 1.5 2 3.4 2.4-1A8.6 8.6 0 0 0 9.3 18l.3 3h4.8l.3-3a8.6 8.6 0 0 0 1.8-1.1l2.4 1 2-3.4-2-1.5a7.1 7.1 0 0 0 .1-1Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="icon-help" viewBox="0 0 24 24" fill="none">
+        <path d="M4 13v-2a8 8 0 0 1 16 0v2M4 13h3v6H5a1 1 0 0 1-1-1v-5ZM20 13h-3v6h2a1 1 0 0 0 1-1v-5ZM17 19c0 1-1 2-3 2h-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="icon-menu" viewBox="0 0 24 24" fill="none">
+        <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="icon-bell" viewBox="0 0 24 24" fill="none">
+        <path d="M6 9a6 6 0 0 1 12 0c0 6 2.5 6 2.5 7.5H3.5C3.5 15 6 15 6 9ZM10 20h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="icon-logout" viewBox="0 0 24 24" fill="none">
+        <path d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4M14 8l4 4-4 4M18 12H9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+    </defs>
+  </svg>
+
+  <div class="review-app" id="reviewApp">
+    <aside class="review-sidebar" aria-label="Selector de secciones del sistema visual">
+      <div class="review-brand">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><use href="#brand-route"/></svg>
+        </span>
+        <div class="review-brand-copy">
+          <strong>FollowUpBusiness</strong>
+          <span>Entrega visual MOB-033</span>
+        </div>
+      </div>
+
+      <div class="review-note">
+        <strong>Alcance controlado</strong>
+        <span>mockup no productivo; no implementar API, reglas ni datos simulados como funcionalidad</span>
+      </div>
+
+      <div class="review-group">
+        <h2 class="review-group-title">Fundamentos</h2>
+        <nav class="review-nav">
+          <button class="review-state-button" data-screen-target="resumen" type="button">
+            <span class="state-dot"></span><span class="state-button-copy"><strong>Resumen y tokens</strong><span>Paleta, radios y alcance</span></span>
+          </button>
+          <button class="review-state-button" data-screen-target="marca" type="button">
+            <span class="state-dot"></span><span class="state-button-copy"><strong>Marca y cabeceras</strong><span>Logo literal y barras</span></span>
+          </button>
+        </nav>
+      </div>
+
+      <div class="review-group">
+        <h2 class="review-group-title">Componentes base</h2>
+        <nav class="review-nav">
+          <button class="review-state-button" data-screen-target="botones" type="button">
+            <span class="state-dot"></span><span class="state-button-copy"><strong>Botones</strong><span>Variantes y estados</span></span>
+          </button>
+          <button class="review-state-button" data-screen-target="campos" type="button">
+            <span class="state-dot"></span><span class="state-button-copy"><strong>Campos</strong><span>Texto, selector y área</span></span>
+          </button>
+          <button class="review-state-button" data-screen-target="contenido" type="button">
+            <span class="state-dot"></span><span class="state-button-copy"><strong>Contenido</strong><span>Tarjetas, listas y filas</span></span>
+          </button>
+          <button class="review-state-button" data-screen-target="estados" type="button">
+            <span class="state-dot"></span><span class="state-button-copy"><strong>Chips e indicadores</strong><span>Estados operativos</span></span>
+          </button>
+        </nav>
+      </div>
+
+      <div class="review-group">
+        <h2 class="review-group-title">Respuesta del sistema</h2>
+        <nav class="review-nav">
+          <button class="review-state-button" data-screen-target="feedback" type="button">
+            <span class="state-dot"></span><span class="state-button-copy"><strong>Mensajes y capas</strong><span>Alertas, avisos y paneles</span></span>
+          </button>
+          <button class="review-state-button" data-screen-target="plantillas" type="button">
+            <span class="state-dot"></span><span class="state-button-copy"><strong>Plantillas de estado</strong><span>Carga, vacío y errores</span></span>
+          </button>
+          <button class="review-state-button" data-screen-target="accesibilidad" type="button">
+            <span class="state-dot"></span><span class="state-button-copy"><strong>Accesibilidad</strong><span>Reglas visibles</span></span>
+          </button>
+        </nav>
+      </div>
+    </aside>
+
+    <main class="review-main">
+      <header class="review-toolbar">
+        <div class="toolbar-title">
+          <strong id="toolbarStateLabel">Resumen y tokens</strong>
+          <code id="toolbarStateUrl">?screen=resumen</code>
+        </div>
+        <div class="toolbar-actions">
+          <button class="toolbar-button" id="toggleTextSize" type="button" aria-pressed="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-info"/></svg>
+            <span>Texto 125 %</span>
+          </button>
+          <button class="toolbar-button" id="copyStateUrl" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-copy"/></svg>
+            <span>Copiar URL</span>
+          </button>
+          <button class="toolbar-button" id="openCleanPreview" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-expand"/></svg>
+            <span>Vista limpia</span>
+          </button>
+        </div>
+      </header>
+
+      <div class="preview-stage">
+        <div class="device" aria-label="Vista previa móvil de aproximadamente 390 por 844 píxeles">
+          <div class="device-island" aria-hidden="true"></div>
+          <div class="device-screen">
+            <div class="mobile-app" id="mobileApp">
+              <div class="mobile-status-bar" aria-hidden="true">
+                <span>9:41</span>
+                <span class="mobile-status-icons">
+                  <span class="signal-bars"><span></span><span></span><span></span><span></span></span>
+                  <span class="wifi-icon"></span>
+                  <span class="battery-icon"></span>
+                </span>
+              </div>
+
+              <!-- Widget Flutter: FubAppBar -->
+              <header class="mobile-app-bar">
+                <span class="brand-mark" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><use href="#brand-route"/></svg>
+                </span>
+                <div class="app-bar-copy">
+                  <div class="brand-wordmark">FollowUp<span>Business</span></div>
+                  <div class="app-bar-subtitle" id="appBarSubtitle">Sistema visual mobile</div>
+                </div>
+                <div class="app-bar-actions">
+                  <button class="icon-button" type="button" aria-label="Abrir ayuda del mockup" data-toast-message="Ayuda visual del mockup" data-toast-tone="info">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-help"/></svg>
+                  </button>
+                </div>
+              </header>
+
+              <main class="screen-host" id="screenHost">
+                <!-- =====================================================
+                     PANTALLA: RESUMEN Y TOKENS
+                     ===================================================== -->
+                <section class="screen" data-screen="resumen" aria-labelledby="resumenTitle">
+                  <article class="hero-card">
+                    <p class="screen-kicker">HU MOB-033</p>
+                    <h1 id="resumenTitle">Sistema visual mobile</h1>
+                    <p>Base consistente para que Flutter construya componentes reutilizables sin mezclar navegación ni funcionalidades de MOB-034.</p>
+                    <div class="hero-meta" aria-label="Características del sistema visual">
+                      <span class="hero-pill">Inter</span>
+                      <span class="hero-pill">Sin gradientes</span>
+                      <span class="hero-pill">Diseño móvil</span>
+                    </div>
+                  </article>
+
+                  <div class="nonprod-banner" role="note">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-alert"/></svg>
+                    <div>
+                      <strong>Referencia visual, no funcional</strong>
+                      <span>mockup no productivo; no implementar API, reglas ni datos simulados como funcionalidad</span>
+                    </div>
+                  </div>
+
+                  <!-- Widget Flutter: FubThemeTokens -->
+                  <section class="section-card" aria-labelledby="paletteTitle">
+                    <div class="section-title-row">
+                      <div><h2 id="paletteTitle">Paleta principal</h2><p>Valores literales de MOB-001.</p></div>
+                      <span class="widget-tag">FubThemeTokens</span>
+                    </div>
+                    <div class="token-grid">
+                      <article class="token-card"><div class="token-swatch" style="background:#102A43">Navy</div><div class="token-copy"><strong>Principal</strong><code>#102A43</code></div></article>
+                      <article class="token-card"><div class="token-swatch" style="background:#163B62">Navy 2</div><div class="token-copy"><strong>Secundario</strong><code>#163B62</code></div></article>
+                      <article class="token-card"><div class="token-swatch" style="background:#176D77">Teal</div><div class="token-copy"><strong>Acción</strong><code>#176D77</code></div></article>
+                      <article class="token-card"><div class="token-swatch" style="background:#145F68">Teal oscuro</div><div class="token-copy"><strong>Interacción</strong><code>#145F68</code></div></article>
+                      <article class="token-card"><div class="token-swatch" style="background:#38B2AC">Teal medio</div><div class="token-copy"><strong>Foco</strong><code>#38B2AC</code></div></article>
+                      <article class="token-card"><div class="token-swatch is-light" style="background:#7DD3D7">Teal claro</div><div class="token-copy"><strong>Acento</strong><code>#7DD3D7</code></div></article>
+                      <article class="token-card"><div class="token-swatch is-light" style="background:#F7F9FC">Fondo</div><div class="token-copy"><strong>Aplicación</strong><code>#F7F9FC</code></div></article>
+                      <article class="token-card"><div class="token-swatch is-light" style="background:#FFFFFF">Superficie</div><div class="token-copy"><strong>Tarjetas</strong><code>#FFFFFF</code></div></article>
+                    </div>
+                    <div class="annotation"><svg viewBox="0 0 24 24"><use href="#icon-info"/></svg><span><strong>Flutter:</strong> centralizar estos valores; ningún componente debe declarar colores de marca por separado.</span></div>
+                  </section>
+
+                  <section class="section-card" aria-labelledby="radiusTitle">
+                    <div class="section-title-row">
+                      <div><h2 id="radiusTitle">Radios y sombra</h2><p>Tres niveles, sin inventar variantes.</p></div>
+                      <span class="widget-tag">FubShapeTokens</span>
+                    </div>
+                    <div class="radius-row">
+                      <div class="radius-sample">12 px<br />Controles</div>
+                      <div class="radius-sample">18 px<br />Tarjetas</div>
+                      <div class="radius-sample">24 px<br />Capas</div>
+                    </div>
+                    <div class="annotation"><svg viewBox="0 0 24 24"><use href="#icon-info"/></svg><span>Sombras suaves con base navy; no usar elevaciones negras intensas.</span></div>
+                  </section>
+
+                  <section class="section-card" aria-labelledby="scopeTitle">
+                    <div class="section-title-row">
+                      <div><h2 id="scopeTitle">Separación de alcance</h2><p>MOB-033 termina en componentes base.</p></div>
+                      <span class="widget-tag">MOB-033</span>
+                    </div>
+                    <ul class="scope-list">
+                      <li class="scope-item"><svg viewBox="0 0 24 24"><use href="#icon-check"/></svg><div><strong>Incluido ahora</strong><span>Tokens, tema, cabeceras, controles, estados y accesibilidad.</span></div></li>
+                      <li class="scope-item"><svg viewBox="0 0 24 24"><use href="#icon-x"/></svg><div><strong>Reservado para MOB-034</strong><span>Navegación, destinos, pantallas operativas y flujos funcionales.</span></div></li>
+                    </ul>
+                  </section>
+
+                  <section class="section-card" aria-labelledby="codexTitle">
+                    <div class="section-title-row">
+                      <div><h2 id="codexTitle">Indicación para Codex</h2><p>Copiar junto con la implementación.</p></div>
+                      <button class="icon-button" id="copyCodexBrief" type="button" aria-label="Copiar indicación para Codex"><svg viewBox="0 0 24 24"><use href="#icon-copy"/></svg></button>
+                    </div>
+                    <div class="code-brief" id="codexBrief">Implementa únicamente la HU MOB-033 usando
+docs/mobileMockups/MOB-033-mobile-design-system.html como referencia visual.
+No implementes navegación, APIs, autenticación ni módulos funcionales.
+Crea solo tokens, tema y widgets reutilizables cubiertos por la HU; conserva
+el logo y la paleta de MOB-001. Si el mockup contradice la HU o un contrato,
+detente y repórtalo.</div>
+                  </section>
+                </section>
+
+                <!-- =====================================================
+                     PANTALLA: CABECERA DE MARCA Y APP BAR
+                     Widgets Flutter: FubBrandHeader / FubAppBar
+                     ===================================================== -->
+                <section class="screen" data-screen="marca" aria-labelledby="marcaTitle">
+                  <p class="screen-kicker">Componente 01</p>
+                  <h1 class="screen-heading" id="marcaTitle">Marca y cabeceras</h1>
+                  <p class="screen-description">El isotipo y el wordmark mantienen la composición visual de MOB-001, sin sustituciones.</p>
+
+                  <section class="section-card" aria-labelledby="brandHeaderTitle">
+                    <div class="section-title-row">
+                      <div><h2 id="brandHeaderTitle">Cabecera de marca</h2><p>Para contextos de acceso o bienvenida.</p></div>
+                      <span class="widget-tag">FubBrandHeader</span>
+                    </div>
+                    <div class="brand-header-demo">
+                      <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#brand-route"/></svg></span>
+                      <div class="brand-wordmark">FollowUp<span>Business</span></div>
+                      <p>Gestiona tu jornada con claridad</p>
+                    </div>
+                    <div class="annotation"><svg viewBox="0 0 24 24"><use href="#icon-shield"/></svg><span><strong>Logo:</strong> reutilizar el mismo SVG; no reconstruirlo con otro ícono ni archivo.</span></div>
+                  </section>
+
+                  <section class="section-card" aria-labelledby="appBarTitle">
+                    <div class="section-title-row">
+                      <div><h2 id="appBarTitle">Barra de aplicación</h2><p>Altura compacta y acciones con etiqueta accesible.</p></div>
+                      <span class="widget-tag">FubAppBar</span>
+                    </div>
+
+                    <div class="app-bar-demo">
+                      <button class="icon-button" type="button" aria-label="Abrir menú"><svg viewBox="0 0 24 24"><use href="#icon-menu"/></svg></button>
+                      <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#brand-route"/></svg></span>
+                      <div class="app-bar-demo-copy"><strong>FollowUpBusiness</strong><span>Inicio</span></div>
+                      <button class="icon-button" type="button" aria-label="Abrir notificaciones"><svg viewBox="0 0 24 24"><use href="#icon-bell"/></svg></button>
+                      <span class="avatar" aria-label="Perfil de Julia Morales">JM</span>
+                    </div>
+
+                    <div class="app-bar-demo">
+                      <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#brand-route"/></svg></span>
+                      <div class="app-bar-demo-copy"><strong>Resumen</strong><span>Última actualización visible</span></div>
+                      <button class="icon-button" type="button" aria-label="Abrir ayuda"><svg viewBox="0 0 24 24"><use href="#icon-help"/></svg></button>
+                    </div>
+
+                    <div class="annotation"><svg viewBox="0 0 24 24"><use href="#icon-info"/></svg><span>Área táctil mínima de 38 px en el mockup; Flutter debe llevarla a un objetivo cómodo y conservar <strong>aria-label</strong> como equivalente semántico.</span></div>
+                  </section>
+
+                  <section class="section-card" aria-labelledby="brandRulesTitle">
+                    <div class="section-title-row"><div><h2 id="brandRulesTitle">Reglas de uso</h2><p>Aplicación consistente.</p></div><span class="widget-tag">Marca</span></div>
+                    <ul class="scope-list">
+                      <li class="scope-item"><svg viewBox="0 0 24 24"><use href="#icon-check"/></svg><div><strong>Contenedor teal</strong><span>Radio 12 px y símbolo blanco centrado.</span></div></li>
+                      <li class="scope-item"><svg viewBox="0 0 24 24"><use href="#icon-check"/></svg><div><strong>Nombre en una línea</strong><span>FollowUp en navy y Business en teal.</span></div></li>
+                      <li class="scope-item"><svg viewBox="0 0 24 24"><use href="#icon-x"/></svg><div><strong>No alterar</strong><span>Sin nuevos colores, sombras fuertes, gradientes ni isotipos alternativos.</span></div></li>
+                    </ul>
+                  </section>
+                </section>
+
+                <!-- =====================================================
+                     PANTALLA: BOTONES
+                     Widget Flutter: FubButton y variantes
+                     ===================================================== -->
+                <section class="screen" data-screen="botones" aria-labelledby="botonesTitle">
+                  <p class="screen-kicker">Componente 02</p>
+                  <h1 class="screen-heading" id="botonesTitle">Botones</h1>
+                  <p class="screen-description">Cuatro variantes con estados visibles y mensajes que no dependen únicamente del color.</p>
+
+                  <section class="section-card" aria-labelledby="buttonGalleryTitle">
+                    <div class="section-title-row">
+                      <div><h2 id="buttonGalleryTitle">Galería de variantes</h2><p>Normal, cargando, deshabilitado y error.</p></div>
+                      <span class="widget-tag">FubButton</span>
+                    </div>
+
+                    <article class="variant-card">
+                      <div class="variant-title"><strong>Primario</strong><span>Acción principal</span></div>
+                      <div class="state-grid">
+                        <div class="state-cell"><span class="state-label">Normal</span><button class="button button-primary" type="button">Continuar</button></div>
+                        <div class="state-cell"><span class="state-label">Cargando</span><button class="button button-primary" type="button" disabled aria-busy="true"><span class="spinner"></span>Procesando</button></div>
+                        <div class="state-cell"><span class="state-label">Deshabilitado</span><button class="button button-primary" type="button" disabled>No disponible</button></div>
+                        <div class="state-cell"><span class="state-label">Error</span><button class="button button-error-state" type="button"><svg viewBox="0 0 24 24"><use href="#icon-alert"/></svg>Reintentar</button></div>
+                      </div>
+                    </article>
+
+                    <article class="variant-card">
+                      <div class="variant-title"><strong>Secundario</strong><span>Acción alternativa</span></div>
+                      <div class="state-grid">
+                        <div class="state-cell"><span class="state-label">Normal</span><button class="button button-secondary" type="button">Cancelar</button></div>
+                        <div class="state-cell"><span class="state-label">Cargando</span><button class="button button-secondary" type="button" disabled aria-busy="true"><span class="spinner is-teal"></span>Validando</button></div>
+                        <div class="state-cell"><span class="state-label">Deshabilitado</span><button class="button button-secondary" type="button" disabled>Bloqueado</button></div>
+                        <div class="state-cell"><span class="state-label">Error</span><button class="button button-error-state" type="button"><svg viewBox="0 0 24 24"><use href="#icon-alert"/></svg>Corregir</button></div>
+                      </div>
+                    </article>
+
+                    <article class="variant-card">
+                      <div class="variant-title"><strong>Texto</strong><span>Acción de baja jerarquía</span></div>
+                      <div class="state-grid">
+                        <div class="state-cell"><span class="state-label">Normal</span><button class="button button-text" type="button">Ver detalle</button></div>
+                        <div class="state-cell"><span class="state-label">Cargando</span><button class="button button-text" type="button" disabled aria-busy="true"><span class="spinner is-teal"></span>Abriendo</button></div>
+                        <div class="state-cell"><span class="state-label">Deshabilitado</span><button class="button button-text" type="button" disabled>Sin acceso</button></div>
+                        <div class="state-cell"><span class="state-label">Error</span><button class="button button-error-state" type="button"><svg viewBox="0 0 24 24"><use href="#icon-alert"/></svg>Intentar otra vez</button></div>
+                      </div>
+                    </article>
+
+                    <article class="variant-card">
+                      <div class="variant-title"><strong>Destructivo</strong><span>Acción sensible</span></div>
+                      <div class="state-grid">
+                        <div class="state-cell"><span class="state-label">Normal</span><button class="button button-destructive" type="button">Eliminar</button></div>
+                        <div class="state-cell"><span class="state-label">Cargando</span><button class="button button-destructive" type="button" disabled aria-busy="true"><span class="spinner"></span>Eliminando</button></div>
+                        <div class="state-cell"><span class="state-label">Deshabilitado</span><button class="button button-destructive" type="button" disabled>No permitido</button></div>
+                        <div class="state-cell"><span class="state-label">Error</span><button class="button button-error-state" type="button"><svg viewBox="0 0 24 24"><use href="#icon-alert"/></svg>No se eliminó</button></div>
+                      </div>
+                    </article>
+
+                    <div class="annotation"><svg viewBox="0 0 24 24"><use href="#icon-info"/></svg><span><strong>Estado de error:</strong> usar texto e ícono además del color. El estado cargando bloquea doble interacción, pero aquí solo se muestra visualmente.</span></div>
+                  </section>
+                </section>
+
+                <!-- =====================================================
+                     PANTALLA: CAMPOS
+                     Widgets Flutter: FubTextField, FubSelectField, FubTextArea
+                     ===================================================== -->
+                <section class="screen" data-screen="campos" aria-labelledby="camposTitle">
+                  <p class="screen-kicker">Componente 03</p>
+                  <h1 class="screen-heading" id="camposTitle">Campos de entrada</h1>
+                  <p class="screen-description">Estados equivalentes para texto, selector y área de texto; etiquetas persistentes y ayudas asociadas.</p>
+
+                  <section class="section-card" aria-labelledby="textFieldTitle">
+                    <div class="section-title-row"><div><h2 id="textFieldTitle">Campo de texto</h2><p>Seis estados base.</p></div><span class="widget-tag">FubTextField</span></div>
+
+                    <div class="field-sample"><div class="sample-caption"><strong>Vacío</strong><span>Valor inicial</span></div><label class="field-label" for="textEmpty">Nombre</label><div class="input-shell"><svg class="field-icon" viewBox="0 0 24 24"><use href="#icon-user"/></svg><input class="field-input" id="textEmpty" placeholder="Ingresa el nombre" /></div></div>
+                    <div class="field-sample"><div class="sample-caption"><strong>Foco</strong><span>Borde y halo</span></div><label class="field-label" for="textFocus">Nombre</label><div class="input-shell is-focus"><svg class="field-icon" viewBox="0 0 24 24"><use href="#icon-user"/></svg><input class="field-input" id="textFocus" value="Julia" /></div></div>
+                    <div class="field-sample"><div class="sample-caption"><strong>Válido</strong><span>Texto + ícono</span></div><label class="field-label" for="textValid">Correo</label><div class="input-shell is-valid"><svg class="field-icon" viewBox="0 0 24 24"><use href="#icon-mail"/></svg><input class="field-input" id="textValid" value="julia@empresa.com" /><svg class="field-icon is-valid" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-check"/></svg></div><p class="field-helper is-success"><svg viewBox="0 0 24 24"><use href="#icon-check"/></svg>Formato válido.</p></div>
+                    <div class="field-sample"><div class="sample-caption"><strong>Inválido</strong><span>Mensaje específico</span></div><label class="field-label" for="textInvalid">Correo</label><div class="input-shell is-error"><svg class="field-icon" viewBox="0 0 24 24"><use href="#icon-mail"/></svg><input class="field-input" id="textInvalid" value="julia@empresa" aria-invalid="true" aria-describedby="textInvalidHelp" /><svg class="field-icon is-error" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-alert"/></svg></div><p class="field-helper is-error" id="textInvalidHelp"><svg viewBox="0 0 24 24"><use href="#icon-alert"/></svg>Ingresa un correo electrónico válido.</p></div>
+                    <div class="field-sample"><div class="sample-caption"><strong>Deshabilitado</strong><span>Sin interacción</span></div><label class="field-label" for="textDisabled">Empresa</label><div class="input-shell is-disabled"><svg class="field-icon" viewBox="0 0 24 24"><use href="#icon-lock"/></svg><input class="field-input" id="textDisabled" value="Empresa asignada" disabled /></div></div>
+                    <div class="field-sample"><div class="sample-caption"><strong>Con ayuda</strong><span>Descripción asociada</span></div><label class="field-label" for="textHelp">Código</label><div class="input-shell"><svg class="field-icon" viewBox="0 0 24 24"><use href="#icon-info"/></svg><input class="field-input" id="textHelp" placeholder="Ejemplo: FUB-102" aria-describedby="textHelpCopy" /></div><p class="field-helper" id="textHelpCopy"><svg viewBox="0 0 24 24"><use href="#icon-info"/></svg>Usa el código visible en tu invitación.</p></div>
+                  </section>
+
+                  <section class="section-card" aria-labelledby="selectFieldTitle">
+                    <div class="section-title-row"><div><h2 id="selectFieldTitle">Selector</h2><p>Control nativo en el mockup.</p></div><span class="widget-tag">FubSelectField</span></div>
+
+                    <div class="field-sample"><div class="sample-caption"><strong>Vacío</strong><span>Sin selección</span></div><label class="field-label" for="selectEmpty">Estado</label><div class="input-shell"><select class="field-select" id="selectEmpty"><option selected>Selecciona una opción</option><option>Nuevo</option></select></div></div>
+                    <div class="field-sample"><div class="sample-caption"><strong>Foco</strong><span>Halo teal</span></div><label class="field-label" for="selectFocus">Estado</label><div class="input-shell is-focus"><select class="field-select" id="selectFocus"><option>Selecciona una opción</option><option selected>En progreso</option></select></div></div>
+                    <div class="field-sample"><div class="sample-caption"><strong>Válido</strong><span>Confirmación textual</span></div><label class="field-label" for="selectValid">Estado</label><div class="input-shell is-valid"><select class="field-select" id="selectValid"><option selected>Completado</option></select><svg class="field-icon is-valid" viewBox="0 0 24 24"><use href="#icon-check"/></svg></div><p class="field-helper is-success"><svg viewBox="0 0 24 24"><use href="#icon-check"/></svg>Selección válida.</p></div>
+                    <div class="field-sample"><div class="sample-caption"><strong>Inválido</strong><span>Requiere selección</span></div><label class="field-label" for="selectInvalid">Estado</label><div class="input-shell is-error"><select class="field-select" id="selectInvalid" aria-invalid="true" aria-describedby="selectInvalidHelp"><option selected>Selecciona una opción</option></select><svg class="field-icon is-error" viewBox="0 0 24 24"><use href="#icon-alert"/></svg></div><p class="field-helper is-error" id="selectInvalidHelp"><svg viewBox="0 0 24 24"><use href="#icon-alert"/></svg>Selecciona un estado antes de continuar.</p></div>
+                    <div class="field-sample"><div class="sample-caption"><strong>Deshabilitado</strong><span>Valor bloqueado</span></div><label class="field-label" for="selectDisabled">Estado</label><div class="input-shell is-disabled"><select class="field-select" id="selectDisabled" disabled><option selected>Pendiente</option></select></div></div>
+                    <div class="field-sample"><div class="sample-caption"><strong>Con ayuda</strong><span>Explica el criterio</span></div><label class="field-label" for="selectHelp">Prioridad</label><div class="input-shell"><select class="field-select" id="selectHelp" aria-describedby="selectHelpCopy"><option selected>Selecciona una prioridad</option><option>Alta</option></select></div><p class="field-helper" id="selectHelpCopy"><svg viewBox="0 0 24 24"><use href="#icon-info"/></svg>La prioridad orienta el orden visual; no ejecuta reglas en este mockup.</p></div>
+                  </section>
+
+                  <section class="section-card" aria-labelledby="textareaTitle">
+                    <div class="section-title-row"><div><h2 id="textareaTitle">Área de texto</h2><p>Mensajes de varias líneas.</p></div><span class="widget-tag">FubTextArea</span></div>
+
+                    <div class="field-sample"><div class="sample-caption"><strong>Vacío</strong><span>Sin contenido</span></div><label class="field-label" for="areaEmpty">Comentario</label><div class="input-shell textarea-shell"><textarea class="field-textarea" id="areaEmpty" placeholder="Escribe un comentario"></textarea></div></div>
+                    <div class="field-sample"><div class="sample-caption"><strong>Foco</strong><span>Halo teal</span></div><label class="field-label" for="areaFocus">Comentario</label><div class="input-shell textarea-shell is-focus"><textarea class="field-textarea" id="areaFocus">Revisar el detalle antes de continuar.</textarea></div></div>
+                    <div class="field-sample"><div class="sample-caption"><strong>Válido</strong><span>Confirmación visible</span></div><label class="field-label" for="areaValid">Comentario</label><div class="input-shell textarea-shell is-valid"><textarea class="field-textarea" id="areaValid">Información completa y lista para revisión.</textarea><svg class="field-icon is-valid" viewBox="0 0 24 24"><use href="#icon-check"/></svg></div><p class="field-helper is-success"><svg viewBox="0 0 24 24"><use href="#icon-check"/></svg>Contenido válido.</p></div>
+                    <div class="field-sample"><div class="sample-caption"><strong>Inválido</strong><span>Límite explicado</span></div><label class="field-label" for="areaInvalid">Comentario</label><div class="input-shell textarea-shell is-error"><textarea class="field-textarea" id="areaInvalid" aria-invalid="true" aria-describedby="areaInvalidHelp">Ok</textarea><svg class="field-icon is-error" viewBox="0 0 24 24"><use href="#icon-alert"/></svg></div><p class="field-helper is-error" id="areaInvalidHelp"><svg viewBox="0 0 24 24"><use href="#icon-alert"/></svg>Escribe al menos 10 caracteres.</p></div>
+                    <div class="field-sample"><div class="sample-caption"><strong>Deshabilitado</strong><span>Lectura visual</span></div><label class="field-label" for="areaDisabled">Comentario</label><div class="input-shell textarea-shell is-disabled"><textarea class="field-textarea" id="areaDisabled" disabled>Contenido bloqueado para edición.</textarea></div></div>
+                    <div class="field-sample"><div class="sample-caption"><strong>Con ayuda</strong><span>Contexto antes de escribir</span></div><label class="field-label" for="areaHelp">Nota interna</label><div class="input-shell textarea-shell"><textarea class="field-textarea" id="areaHelp" placeholder="Añade contexto" aria-describedby="areaHelpCopy"></textarea></div><p class="field-helper" id="areaHelpCopy"><svg viewBox="0 0 24 24"><use href="#icon-info"/></svg>No incluyas información sensible en el ejemplo visual.</p></div>
+                  </section>
+                </section>
+
+                <!-- =====================================================
+                     PANTALLA: TARJETAS, LISTAS Y FILAS
+                     ===================================================== -->
+                <section class="screen" data-screen="contenido" aria-labelledby="contenidoTitle">
+                  <p class="screen-kicker">Componente 04</p>
+                  <h1 class="screen-heading" id="contenidoTitle">Tarjetas y filas</h1>
+                  <p class="screen-description">Contenedores neutros para resumir, agrupar y mostrar pares de información sin definir reglas del producto.</p>
+
+                  <section class="section-card" aria-labelledby="summaryCardsTitle">
+                    <div class="section-title-row"><div><h2 id="summaryCardsTitle">Tarjetas de resumen</h2><p>Datos puramente ilustrativos.</p></div><span class="widget-tag">FubSummaryCard</span></div>
+                    <div class="summary-grid">
+                      <article class="summary-card">
+                        <div class="summary-card-head"><span>Pendientes</span><span class="summary-icon"><svg viewBox="0 0 24 24"><use href="#icon-info"/></svg></span></div>
+                        <strong class="summary-value">12</strong><span class="summary-detail">Dato de muestra</span>
+                      </article>
+                      <article class="summary-card">
+                        <div class="summary-card-head"><span>Completados</span><span class="summary-icon"><svg viewBox="0 0 24 24"><use href="#icon-check"/></svg></span></div>
+                        <strong class="summary-value">4</strong><span class="summary-detail">Dato de muestra</span>
+                      </article>
+                    </div>
+                    <div class="annotation"><svg viewBox="0 0 24 24"><use href="#icon-alert"/></svg><span>Los valores solo muestran jerarquía tipográfica; no deben convertirse en lógica ni datos simulados dentro de la app.</span></div>
+                  </section>
+
+                  <section class="section-card" aria-labelledby="listCardTitle">
+                    <div class="section-title-row"><div><h2 id="listCardTitle">Lista agrupada</h2><p>Filas con ícono, texto y estado.</p></div><span class="widget-tag">FubListCard</span></div>
+                    <div class="list-card">
+                      <div class="list-header"><strong>Elementos recientes</strong><span>Ejemplo visual</span></div>
+                      <div class="list-row"><span class="row-leading"><svg viewBox="0 0 24 24"><use href="#icon-user"/></svg></span><div class="row-copy"><strong>Seguimiento comercial</strong><span>Actualizado hoy</span></div><span class="chip chip-progress">En progreso</span></div>
+                      <div class="list-row"><span class="row-leading"><svg viewBox="0 0 24 24"><use href="#icon-check"/></svg></span><div class="row-copy"><strong>Revisión de contacto</strong><span>Completado</span></div><span class="chip chip-complete">Listo</span></div>
+                      <div class="list-row"><span class="row-leading"><svg viewBox="0 0 24 24"><use href="#icon-alert"/></svg></span><div class="row-copy"><strong>Dato pendiente</strong><span>Requiere atención</span></div><span class="chip chip-pending">Pendiente</span></div>
+                    </div>
+                  </section>
+
+                  <section class="section-card" aria-labelledby="infoRowsTitle">
+                    <div class="section-title-row"><div><h2 id="infoRowsTitle">Filas de información</h2><p>Etiqueta y valor con alineación estable.</p></div><span class="widget-tag">FubInfoRow</span></div>
+                    <dl class="info-table">
+                      <div class="info-row"><dt>Responsable</dt><dd>Julia Morales</dd></div>
+                      <div class="info-row"><dt>Estado</dt><dd>En revisión</dd></div>
+                      <div class="info-row"><dt>Última actualización</dt><dd>10:24</dd></div>
+                      <div class="info-row"><dt>Referencia</dt><dd>FUB-102</dd></div>
+                    </dl>
+                    <div class="annotation"><svg viewBox="0 0 24 24"><use href="#icon-info"/></svg><span>Permitir salto de línea cuando el texto se amplíe; nunca truncar información crítica sin alternativa accesible.</span></div>
+                  </section>
+                </section>
+
+                <!-- =====================================================
+                     PANTALLA: CHIPS Y BADGES
+                     ===================================================== -->
+                <section class="screen" data-screen="estados" aria-labelledby="estadosTitle">
+                  <p class="screen-kicker">Componente 05</p>
+                  <h1 class="screen-heading" id="estadosTitle">Chips e indicadores</h1>
+                  <p class="screen-description">Estados operativos con texto explícito; el color refuerza, pero nunca reemplaza el significado.</p>
+
+                  <section class="section-card" aria-labelledby="chipsTitle">
+                    <div class="section-title-row"><div><h2 id="chipsTitle">Chips de estado</h2><p>Semántica equivalente a MOB-001.</p></div><span class="widget-tag">FubStatusChip</span></div>
+                    <div class="chip-wrap">
+                      <span class="chip chip-new">Nuevo</span>
+                      <span class="chip chip-progress">En progreso</span>
+                      <span class="chip chip-pending">Pendiente</span>
+                      <span class="chip chip-complete">Completado</span>
+                      <span class="chip chip-cancelled">Cancelado</span>
+                    </div>
+                    <div class="annotation"><svg viewBox="0 0 24 24"><use href="#icon-info"/></svg><span>La etiqueta textual forma parte obligatoria del componente. No mostrar solo un punto coloreado.</span></div>
+                  </section>
+
+                  <section class="section-card" aria-labelledby="badgesTitle">
+                    <div class="section-title-row"><div><h2 id="badgesTitle">Indicadores compactos</h2><p>Conteo o señal breve.</p></div><span class="widget-tag">FubBadge</span></div>
+                    <div class="badge-row">
+                      <span class="badge badge-neutral" aria-label="Tres elementos">3</span>
+                      <span class="badge badge-info">Información</span>
+                      <span class="badge badge-success">Actualizado</span>
+                      <span class="badge badge-warning">Atención</span>
+                      <span class="badge badge-error">Error</span>
+                    </div>
+                  </section>
+
+                  <section class="section-card" aria-labelledby="statusPairTitle">
+                    <div class="section-title-row"><div><h2 id="statusPairTitle">Uso dentro de filas</h2><p>El estado acompaña al contenido.</p></div><span class="widget-tag">Composición</span></div>
+                    <div class="list-card">
+                      <div class="list-row"><span class="row-leading"><svg viewBox="0 0 24 24"><use href="#icon-info"/></svg></span><div class="row-copy"><strong>Registro de muestra</strong><span>Estado visible y legible</span></div><span class="chip chip-progress">En progreso</span></div>
+                      <div class="list-row"><span class="row-leading"><svg viewBox="0 0 24 24"><use href="#icon-alert"/></svg></span><div class="row-copy"><strong>Revisión requerida</strong><span>El texto explica la situación</span></div><span class="chip chip-cancelled">Con error</span></div>
+                    </div>
+                  </section>
+                </section>
+
+                <!-- =====================================================
+                     PANTALLA: ALERTAS, TOAST, DIÁLOGO Y PANEL INFERIOR
+                     ===================================================== -->
+                <section class="screen" data-screen="feedback" aria-labelledby="feedbackTitle">
+                  <p class="screen-kicker">Componente 06</p>
+                  <h1 class="screen-heading" id="feedbackTitle">Mensajes y capas</h1>
+                  <p class="screen-description">Información, éxito, advertencia y error en alertas, aviso breve, diálogo y panel inferior.</p>
+
+                  <section class="section-card" aria-labelledby="alertsTitle">
+                    <div class="section-title-row"><div><h2 id="alertsTitle">Alertas persistentes</h2><p>Dentro del flujo de lectura.</p></div><span class="widget-tag">FubAlert</span></div>
+                    <div class="alert alert-info" role="status"><svg viewBox="0 0 24 24"><use href="#icon-info"/></svg><div><strong>Información</strong>Hay un dato adicional para revisar.</div></div>
+                    <div class="alert alert-success" role="status"><svg viewBox="0 0 24 24"><use href="#icon-check"/></svg><div><strong>Éxito</strong>La acción visual se completó correctamente.</div></div>
+                    <div class="alert alert-warning" role="alert"><svg viewBox="0 0 24 24"><use href="#icon-alert"/></svg><div><strong>Advertencia</strong>Revisa el contenido antes de continuar.</div></div>
+                    <div class="alert alert-error" role="alert"><svg viewBox="0 0 24 24"><use href="#icon-alert"/></svg><div><strong>Error</strong>No se pudo completar la acción visual.</div></div>
+                  </section>
+
+                  <section class="section-card" aria-labelledby="feedbackMatrixTitle">
+                    <div class="section-title-row"><div><h2 id="feedbackMatrixTitle">Variantes interactivas</h2><p>Solo demostración de presentación.</p></div><span class="widget-tag">Mensajería</span></div>
+                    <div class="feedback-matrix" aria-label="Matriz de variantes de mensajes">
+                      <div class="feedback-row"><span class="feedback-row-label info">Información</span><button class="mini-action" type="button" data-feedback-kind="toast" data-feedback-tone="info">Aviso</button><button class="mini-action" type="button" data-feedback-kind="dialog" data-feedback-tone="info">Diálogo</button><button class="mini-action" type="button" data-feedback-kind="sheet" data-feedback-tone="info">Panel</button></div>
+                      <div class="feedback-row"><span class="feedback-row-label success">Éxito</span><button class="mini-action" type="button" data-feedback-kind="toast" data-feedback-tone="success">Aviso</button><button class="mini-action" type="button" data-feedback-kind="dialog" data-feedback-tone="success">Diálogo</button><button class="mini-action" type="button" data-feedback-kind="sheet" data-feedback-tone="success">Panel</button></div>
+                      <div class="feedback-row"><span class="feedback-row-label warning">Alerta</span><button class="mini-action" type="button" data-feedback-kind="toast" data-feedback-tone="warning">Aviso</button><button class="mini-action" type="button" data-feedback-kind="dialog" data-feedback-tone="warning">Diálogo</button><button class="mini-action" type="button" data-feedback-kind="sheet" data-feedback-tone="warning">Panel</button></div>
+                      <div class="feedback-row"><span class="feedback-row-label error">Error</span><button class="mini-action" type="button" data-feedback-kind="toast" data-feedback-tone="error">Aviso</button><button class="mini-action" type="button" data-feedback-kind="dialog" data-feedback-tone="error">Diálogo</button><button class="mini-action" type="button" data-feedback-kind="sheet" data-feedback-tone="error">Panel</button></div>
+                    </div>
+                    <div class="annotation"><svg viewBox="0 0 24 24"><use href="#icon-alert"/></svg><span>Los ejemplos abren capas locales del handoff. No representan API, confirmaciones reales ni reglas de negocio.</span></div>
+                  </section>
+                </section>
+
+                <!-- =====================================================
+                     PANTALLA: PLANTILLAS DE ESTADO
+                     ===================================================== -->
+                <section class="screen" data-screen="plantillas" aria-labelledby="plantillasTitle">
+                  <p class="screen-kicker">Componente 07</p>
+                  <h1 class="screen-heading" id="plantillasTitle">Plantillas de estado</h1>
+                  <p class="screen-description">Estructuras consistentes para carga, vacío, error, falta de permiso y dato desactualizado.</p>
+
+                  <!-- Widget Flutter: FubLoadingState -->
+                  <article class="template-card" aria-labelledby="loadingStateTitle" aria-busy="true">
+                    <div class="section-title-row"><span></span><span class="widget-tag">FubLoadingState</span></div>
+                    <div class="skeleton-card" aria-hidden="true"><div class="skeleton-head"><span class="skeleton-circle"></span><span class="skeleton-lines"><span class="skeleton-line"></span><span class="skeleton-line short"></span></span></div><div class="skeleton-block"></div></div>
+                    <div class="loading-caption"><span class="spinner is-teal"></span><span id="loadingStateTitle">Cargando contenido…</span></div>
+                  </article>
+
+                  <!-- Widget Flutter: FubEmptyState -->
+                  <article class="template-card template-info" aria-labelledby="emptyStateTitle">
+                    <span class="widget-tag">FubEmptyState</span>
+                    <div class="template-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#icon-info"/></svg></div>
+                    <h2 id="emptyStateTitle">Aún no hay elementos</h2>
+                    <p>Cuando exista contenido, aparecerá en este espacio.</p>
+                    <button class="button button-primary" type="button">Crear primero</button>
+                  </article>
+
+                  <!-- Widget Flutter: FubErrorState -->
+                  <article class="template-card template-error" aria-labelledby="errorStateTitle">
+                    <span class="widget-tag">FubErrorState</span>
+                    <div class="template-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#icon-alert"/></svg></div>
+                    <h2 id="errorStateTitle">No pudimos cargar</h2>
+                    <p>Revisa tu conexión e inténtalo nuevamente.</p>
+                    <button class="button button-primary" type="button">Reintentar</button>
+                    <button class="button button-text" type="button">Volver</button>
+                  </article>
+
+                  <!-- Widget Flutter: FubPermissionState -->
+                  <article class="template-card template-warning" aria-labelledby="permissionStateTitle">
+                    <span class="widget-tag">FubPermissionState</span>
+                    <div class="template-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#icon-shield"/></svg></div>
+                    <h2 id="permissionStateTitle">Sin permiso</h2>
+                    <p>Tu perfil no tiene acceso a esta vista. La interfaz no muestra información restringida.</p>
+                    <button class="button button-secondary" type="button">Volver a una zona segura</button>
+                  </article>
+
+                  <!-- Widget Flutter: FubStaleDataState -->
+                  <article class="template-card template-warning" aria-labelledby="staleStateTitle">
+                    <span class="widget-tag">FubStaleDataState</span>
+                    <div class="template-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#icon-alert"/></svg></div>
+                    <h2 id="staleStateTitle">Dato desactualizado</h2>
+                    <p>La información visible podría no ser la más reciente. Muestra fecha y acción de actualización.</p>
+                    <span class="chip chip-pending" style="margin-bottom:13px">Última actualización: 09:20</span>
+                    <button class="button button-primary" type="button">Actualizar</button>
+                  </article>
+
+                  <div class="annotation"><svg viewBox="0 0 24 24"><use href="#icon-info"/></svg><span>Cada plantilla debe aceptar título, descripción, ícono permitido y acciones opcionales; no codificar módulos funcionales dentro del widget.</span></div>
+                </section>
+
+                <!-- =====================================================
+                     PANTALLA: ACCESIBILIDAD
+                     ===================================================== -->
+                <section class="screen" data-screen="accesibilidad" aria-labelledby="accesibilidadTitle">
+                  <p class="screen-kicker">Componente 08</p>
+                  <h1 class="screen-heading" id="accesibilidadTitle">Accesibilidad visible</h1>
+                  <p class="screen-description">Reglas que deben conservarse en el tema y en cada widget Flutter.</p>
+
+                  <article class="access-card">
+                    <h2><svg viewBox="0 0 24 24"><use href="#icon-check"/></svg>Foco perceptible</h2>
+                    <p>Halo teal de 3 px, separado del control. No eliminar el foco del teclado.</p>
+                    <button class="button button-secondary focus-demo" type="button">Control con foco visible</button>
+                  </article>
+
+                  <article class="access-card">
+                    <h2><svg viewBox="0 0 24 24"><use href="#icon-info"/></svg>Contraste</h2>
+                    <p>Combinaciones principales calculadas sobre los tokens del mockup.</p>
+                    <div class="contrast-list">
+                      <div class="contrast-row"><span class="contrast-swatch" style="background:#102A43"></span><div class="contrast-copy"><strong>Navy sobre blanco</strong><span>14.64:1</span></div><span class="contrast-pass">AA</span></div>
+                      <div class="contrast-row"><span class="contrast-swatch" style="background:#176D77"></span><div class="contrast-copy"><strong>Teal sobre blanco</strong><span>6.02:1</span></div><span class="contrast-pass">AA</span></div>
+                      <div class="contrast-row"><span class="contrast-swatch" style="background:#14213D"></span><div class="contrast-copy"><strong>Texto sobre fondo</strong><span>15.15:1</span></div><span class="contrast-pass">AA</span></div>
+                      <div class="contrast-row"><span class="contrast-swatch" style="background:#67778A"></span><div class="contrast-copy"><strong>Secundario sobre blanco</strong><span>4.58:1</span></div><span class="contrast-pass">AA</span></div>
+                    </div>
+                  </article>
+
+                  <article class="access-card">
+                    <h2><svg viewBox="0 0 24 24"><use href="#icon-info"/></svg>Texto ampliado</h2>
+                    <p>El contenido debe crecer y reacomodarse sin cortar etiquetas ni valores.</p>
+                    <div class="large-text-demo"><strong>Muestra al 125 %</strong><p>Este texto conserva el espaciado, permite varias líneas y mantiene la acción debajo.</p></div>
+                    <button class="button button-secondary" type="button" id="toggleTextInside">Alternar vista al 125 %</button>
+                  </article>
+
+                  <article class="access-card">
+                    <h2><svg viewBox="0 0 24 24"><use href="#icon-help"/></svg>Etiquetas para lector de pantalla</h2>
+                    <p>Los botones de solo ícono necesitan un nombre accesible que describa la acción.</p>
+                    <div class="screen-reader-sample">
+                      <button class="icon-button" type="button" aria-label="Abrir notificaciones"><svg viewBox="0 0 24 24"><use href="#icon-bell"/></svg></button>
+                      <code>Semántica: “Abrir notificaciones”</code>
+                    </div>
+                  </article>
+
+                  <article class="access-card">
+                    <h2><svg viewBox="0 0 24 24"><use href="#icon-alert"/></svg>No comunicar solo con color</h2>
+                    <p>Combinar color, ícono y texto para que el estado siga siendo comprensible.</p>
+                    <div class="noncolor-row">
+                      <span class="noncolor-state" style="color:var(--success-dark);border-color:var(--success-line);background:var(--success-bg)"><svg viewBox="0 0 24 24"><use href="#icon-check"/></svg>Completado</span>
+                      <span class="noncolor-state" style="color:var(--danger-dark);border-color:var(--danger-line);background:var(--danger-bg)"><svg viewBox="0 0 24 24"><use href="#icon-alert"/></svg>Con error</span>
+                    </div>
+                  </article>
+
+                  <article class="access-card">
+                    <h2><svg viewBox="0 0 24 24"><use href="#icon-shield"/></svg>Semántica y anuncios</h2>
+                    <p>Asociar ayudas con el campo, usar anuncios de estado no intrusivos y mover el foco al diálogo cuando se abra.</p>
+                    <div class="annotation"><svg viewBox="0 0 24 24"><use href="#icon-info"/></svg><span>Equivalencias Flutter: <strong>Semantics</strong>, <strong>FocusNode</strong>, <strong>MergeSemantics</strong> y anuncios accesibles del sistema.</span></div>
+                  </article>
+                </section>
+              </main>
+
+              <!-- Widget Flutter: FubDialog -->
+              <div class="overlay" id="dialogOverlay" role="presentation">
+                <section class="dialog tone-info" id="feedbackDialog" role="dialog" aria-modal="true" aria-labelledby="dialogTitle" aria-describedby="dialogDescription">
+                  <div class="dialog-icon" aria-hidden="true"><svg id="dialogIcon" viewBox="0 0 24 24"><use href="#icon-info"/></svg></div>
+                  <h3 id="dialogTitle">Información</h3>
+                  <p id="dialogDescription">Este diálogo representa una capa visual del sistema base.</p>
+                  <div class="dialog-actions">
+                    <button class="button button-secondary" id="cancelDialog" type="button">Cancelar</button>
+                    <button class="button button-primary" id="confirmDialog" type="button">Entendido</button>
+                  </div>
+                </section>
+              </div>
+
+              <!-- Widget Flutter: FubBottomSheet -->
+              <div class="overlay sheet-overlay" id="sheetOverlay" role="presentation">
+                <section class="bottom-sheet sheet-tone-info" id="feedbackSheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+                  <div class="sheet-handle" aria-hidden="true"></div>
+                  <div class="sheet-head">
+                    <div class="sheet-icon" aria-hidden="true"><svg id="sheetIcon" viewBox="0 0 24 24"><use href="#icon-info"/></svg></div>
+                    <div class="sheet-copy"><h3 id="sheetTitle">Información</h3><p id="sheetDescription">Panel inferior de referencia visual.</p></div>
+                  </div>
+                  <div class="sheet-actions">
+                    <button class="button button-primary" id="confirmSheet" type="button">Entendido</button>
+                    <button class="button button-text" id="cancelSheet" type="button">Cerrar</button>
+                  </div>
+                </section>
+              </div>
+
+              <!-- Widget Flutter: FubToast -->
+              <div class="toast" id="toast" role="status" aria-live="polite">
+                <svg id="toastIcon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-info"/></svg>
+                <span id="toastMessage">Mensaje informativo</span>
+                <button id="closeToast" type="button">CERRAR</button>
+              </div>
+            </div>
+          </div>
+          <div class="home-indicator" aria-hidden="true"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const screenMeta = {
+        resumen:{label:'Resumen y tokens',subtitle:'Sistema visual mobile'},
+        marca:{label:'Marca y cabeceras',subtitle:'Marca y cabeceras'},
+        botones:{label:'Botones',subtitle:'Variantes y estados'},
+        campos:{label:'Campos de entrada',subtitle:'Controles reutilizables'},
+        contenido:{label:'Tarjetas y filas',subtitle:'Contenido estructurado'},
+        estados:{label:'Chips y badges',subtitle:'Estados operativos'},
+        feedback:{label:'Mensajes y capas',subtitle:'Feedback del sistema'},
+        plantillas:{label:'Plantillas de estado',subtitle:'Estados de pantalla'},
+        accesibilidad:{label:'Accesibilidad',subtitle:'Reglas visibles'}
+      };
+
+      const feedbackMeta = {
+        info:{
+          title:'Información',
+          message:'Hay un dato adicional para revisar.',
+          description:'Este componente presenta información sin interrumpir innecesariamente.',
+          icon:'icon-info',
+          confirm:'Entendido'
+        },
+        success:{
+          title:'Acción completada',
+          message:'La acción visual se completó correctamente.',
+          description:'La confirmación incluye texto e ícono, no solo color.',
+          icon:'icon-check',
+          confirm:'Continuar'
+        },
+        warning:{
+          title:'Revisa antes de continuar',
+          message:'Hay información que requiere tu atención.',
+          description:'La advertencia explica el posible impacto antes de la acción.',
+          icon:'icon-alert',
+          confirm:'Revisar'
+        },
+        error:{
+          title:'No se pudo completar',
+          message:'Ocurrió un error. Inténtalo nuevamente.',
+          description:'El mensaje indica el problema sin afirmar un resultado no confirmado.',
+          icon:'icon-alert',
+          confirm:'Reintentar'
+        }
+      };
+
+      const defaultScreen = 'resumen';
+      const params = new URLSearchParams(window.location.search);
+      const screens = [...document.querySelectorAll('[data-screen]')];
+      const stateButtons = [...document.querySelectorAll('[data-screen-target]')];
+      const toolbarStateLabel = document.getElementById('toolbarStateLabel');
+      const toolbarStateUrl = document.getElementById('toolbarStateUrl');
+      const appBarSubtitle = document.getElementById('appBarSubtitle');
+      const toggleTextSize = document.getElementById('toggleTextSize');
+      let currentScreen = screenMeta[params.get('screen')] ? params.get('screen') : defaultScreen;
+      let currentTextScale = params.get('text') === '125';
+      let toastTimer = null;
+      let lastFocusedElement = null;
+
+      if (params.get('clean') === '1') document.body.classList.add('clean-mode');
+      document.body.classList.toggle('text-125', currentTextScale);
+
+      function buildStateUrl(screenName, clean = document.body.classList.contains('clean-mode')) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('screen', screenName);
+        if (clean) url.searchParams.set('clean', '1');
+        else url.searchParams.delete('clean');
+        if (currentTextScale) url.searchParams.set('text', '125');
+        else url.searchParams.delete('text');
+        return url;
+      }
+
+      function updateTextControl() {
+        document.body.classList.toggle('text-125', currentTextScale);
+        toggleTextSize.setAttribute('aria-pressed', currentTextScale ? 'true' : 'false');
+        const label = toggleTextSize.querySelector('span');
+        if (label) label.textContent = currentTextScale ? 'Texto 100 %' : 'Texto 125 %';
+        const nextUrl = buildStateUrl(currentScreen);
+        history.replaceState({screen:currentScreen,text:currentTextScale},'',nextUrl);
+      }
+
+      function setScreen(screenName, {updateUrl = true} = {}) {
+        if (!screenMeta[screenName]) screenName = defaultScreen;
+        currentScreen = screenName;
+        closeOverlays(false);
+
+        screens.forEach(screen => {
+          const active = screen.dataset.screen === screenName;
+          screen.classList.toggle('is-active', active);
+          screen.setAttribute('aria-hidden', active ? 'false' : 'true');
+          if (active) screen.scrollTop = 0;
+        });
+
+        stateButtons.forEach(button => {
+          const active = button.dataset.screenTarget === screenName;
+          button.classList.toggle('is-active', active);
+          if (active && button.classList.contains('review-state-button')) button.setAttribute('aria-current','page');
+          else button.removeAttribute('aria-current');
+        });
+
+        const meta = screenMeta[screenName];
+        toolbarStateLabel.textContent = meta.label;
+        toolbarStateUrl.textContent = `?screen=${screenName}`;
+        appBarSubtitle.textContent = meta.subtitle;
+        document.title = `${meta.label} — MOB-033 FollowUpBusiness`;
+
+        if (updateUrl) history.replaceState({screen:screenName},'',buildStateUrl(screenName));
+      }
+
+      function iconMarkup(id) {
+        return `<use href="#${id}"></use>`;
+      }
+
+      function showToast(message, tone = 'info') {
+        const toast = document.getElementById('toast');
+        const meta = feedbackMeta[tone] || feedbackMeta.info;
+        document.getElementById('toastMessage').textContent = message || meta.message;
+        document.getElementById('toastIcon').innerHTML = iconMarkup(meta.icon);
+        toast.className = `toast is-${tone} is-visible`;
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove('is-visible'), 3300);
+      }
+
+      function openDialog(tone) {
+        const meta = feedbackMeta[tone] || feedbackMeta.info;
+        const overlay = document.getElementById('dialogOverlay');
+        const dialog = document.getElementById('feedbackDialog');
+        lastFocusedElement = document.activeElement;
+        dialog.className = `dialog tone-${tone}`;
+        document.getElementById('dialogIcon').innerHTML = iconMarkup(meta.icon);
+        document.getElementById('dialogTitle').textContent = meta.title;
+        document.getElementById('dialogDescription').textContent = meta.description;
+        document.getElementById('confirmDialog').textContent = meta.confirm;
+        overlay.classList.add('is-open');
+        document.getElementById('cancelDialog').focus({preventScroll:true});
+      }
+
+      function openSheet(tone) {
+        const meta = feedbackMeta[tone] || feedbackMeta.info;
+        const overlay = document.getElementById('sheetOverlay');
+        const sheet = document.getElementById('feedbackSheet');
+        lastFocusedElement = document.activeElement;
+        sheet.className = `bottom-sheet sheet-tone-${tone}`;
+        document.getElementById('sheetIcon').innerHTML = iconMarkup(meta.icon);
+        document.getElementById('sheetTitle').textContent = meta.title;
+        document.getElementById('sheetDescription').textContent = meta.description;
+        document.getElementById('confirmSheet').textContent = meta.confirm;
+        overlay.classList.add('is-open');
+        document.getElementById('confirmSheet').focus({preventScroll:true});
+      }
+
+      function closeOverlays(restoreFocus = true) {
+        document.getElementById('dialogOverlay').classList.remove('is-open');
+        document.getElementById('sheetOverlay').classList.remove('is-open');
+        if (restoreFocus && lastFocusedElement instanceof HTMLElement) lastFocusedElement.focus({preventScroll:true});
+      }
+
+      async function copyText(text, successMessage) {
+        try {
+          await navigator.clipboard.writeText(text);
+          showToast(successMessage,'success');
+        } catch {
+          window.prompt('Copia este texto:',text);
+        }
+      }
+
+      document.addEventListener('click', event => {
+        const screenTarget = event.target.closest('[data-screen-target]');
+        if (screenTarget) {
+          event.preventDefault();
+          setScreen(screenTarget.dataset.screenTarget);
+          return;
+        }
+
+        const feedbackTrigger = event.target.closest('[data-feedback-kind]');
+        if (feedbackTrigger) {
+          const tone = feedbackTrigger.dataset.feedbackTone || 'info';
+          const kind = feedbackTrigger.dataset.feedbackKind;
+          if (kind === 'toast') showToast(feedbackMeta[tone].message,tone);
+          if (kind === 'dialog') openDialog(tone);
+          if (kind === 'sheet') openSheet(tone);
+          return;
+        }
+
+        const toastTrigger = event.target.closest('[data-toast-message]');
+        if (toastTrigger) showToast(toastTrigger.dataset.toastMessage,toastTrigger.dataset.toastTone || 'info');
+      });
+
+      document.getElementById('toggleTextSize').addEventListener('click',() => {
+        currentTextScale = !currentTextScale;
+        updateTextControl();
+      });
+      document.getElementById('toggleTextInside').addEventListener('click',() => {
+        currentTextScale = !currentTextScale;
+        updateTextControl();
+      });
+
+      document.getElementById('copyStateUrl').addEventListener('click',() => copyText(buildStateUrl(currentScreen,false).toString(),'URL de revisión copiada.'));
+      document.getElementById('openCleanPreview').addEventListener('click',() => window.open(buildStateUrl(currentScreen,true),'_blank','noopener,noreferrer'));
+      document.getElementById('copyCodexBrief').addEventListener('click',() => copyText(document.getElementById('codexBrief').textContent.trim(),'Indicación para Codex copiada.'));
+
+      document.getElementById('cancelDialog').addEventListener('click',() => closeOverlays());
+      document.getElementById('confirmDialog').addEventListener('click',() => {closeOverlays();showToast('Acción visual confirmada.','success')});
+      document.getElementById('cancelSheet').addEventListener('click',() => closeOverlays());
+      document.getElementById('confirmSheet').addEventListener('click',() => {closeOverlays();showToast('Panel cerrado correctamente.','success')});
+      document.getElementById('closeToast').addEventListener('click',() => document.getElementById('toast').classList.remove('is-visible'));
+
+      ['dialogOverlay','sheetOverlay'].forEach(id => {
+        document.getElementById(id).addEventListener('click',event => {
+          if (event.target.id === id) closeOverlays();
+        });
+      });
+
+      document.addEventListener('keydown',event => {
+        if (event.key === 'Escape') closeOverlays();
+      });
+
+      window.addEventListener('popstate',() => {
+        const nextParams = new URLSearchParams(window.location.search);
+        currentTextScale = nextParams.get('text') === '125';
+        document.body.classList.toggle('text-125',currentTextScale);
+        const nextScreen = nextParams.get('screen');
+        setScreen(screenMeta[nextScreen] ? nextScreen : defaultScreen,{updateUrl:false});
+        updateTextControl();
+      });
+
+      setScreen(currentScreen,{updateUrl:false});
+      updateTextControl();
+    })();
+  </script>
+</body>
+</html>
