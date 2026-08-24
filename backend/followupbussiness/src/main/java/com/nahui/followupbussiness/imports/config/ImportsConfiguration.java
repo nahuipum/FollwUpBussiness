@@ -24,22 +24,71 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.jdbc.core.JdbcTemplate;
+
 import java.time.Clock;
 
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnProperty(prefix = "followupbussiness.outbox", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class ImportsConfiguration {
     private static final int MAX_MESSAGE_TTL_MS = 86_400_000;
-    @Bean CustomerImportService customerImportService(JdbcTemplate jdbc, OutboxStore outbox, RecordAuditEntryUseCase audit, MeterRegistry meters) { return new CustomerImportService(new JdbcCustomerImportStore(jdbc), outbox, Clock.systemUTC(), audit, meters.counter("customer_imports.errors.downloaded")); }
-    @Bean CustomerImportStore customerImportStore(JdbcTemplate jdbc) { return new JdbcCustomerImportStore(jdbc); }
-    @Bean CustomerImportProcessor customerImportProcessor(CustomerImportStore store, CreateCustomerService customers, CheckCustomerDuplicatesService duplicates) { return new CustomerImportProcessor(store, customers, duplicates); }
-    @Bean CustomerImportProcessingAudit customerImportProcessingAudit(AuditEntryStore store) { return new AuditCustomerImportProcessing(store, Clock.systemUTC()); }
-    @Bean CustomerImportRequestedListener customerImportRequestedListener(CustomerImportProcessor processor, CustomerImportStore store, CustomerImportProcessingAudit audit, ObjectMapper json, org.springframework.amqp.rabbit.core.RabbitTemplate rabbit, MeterRegistry meters) { return new CustomerImportRequestedListener(processor, store, audit, json, rabbit, meters.counter("customer_imports.processed"), meters.counter("customer_imports.failed")); }
-    @Bean CustomerImportRetentionScheduler customerImportRetentionScheduler(CustomerImportStore store, MeterRegistry meters) { return new CustomerImportRetentionScheduler(store, meters.counter("customer_imports.files.retention_deleted"), meters.counter("customer_imports.results.retention_deleted")); }
-    @Bean Queue customerImportWorkQueue() { return QueueBuilder.durable("customer-import.requested.v1").ttl(MAX_MESSAGE_TTL_MS).deadLetterExchange("followupbussiness.events").deadLetterRoutingKey("customer-import.retry.v1").build(); }
-    @Bean Queue customerImportRetryQueue() { return QueueBuilder.durable("customer-import.retry.v1").ttl(1_000).deadLetterExchange("followupbussiness.events").deadLetterRoutingKey("customer-import.requested.v1").build(); }
-    @Bean Queue customerImportDlq() { return QueueBuilder.durable("customer-import.dlq.v1").ttl(MAX_MESSAGE_TTL_MS).build(); }
-    @Bean Binding customerImportWorkBinding(Queue customerImportWorkQueue, TopicExchange outboxExchange) { return BindingBuilder.bind(customerImportWorkQueue).to(outboxExchange).with("customer-import.requested.v1"); }
-    @Bean Binding customerImportRetryBinding(Queue customerImportRetryQueue, TopicExchange outboxExchange) { return BindingBuilder.bind(customerImportRetryQueue).to(outboxExchange).with("customer-import.retry.v1"); }
-    @Bean Binding customerImportDlqBinding(Queue customerImportDlq, TopicExchange outboxExchange) { return BindingBuilder.bind(customerImportDlq).to(outboxExchange).with("customer-import.dlq.v1"); }
+
+    @Bean
+    CustomerImportService customerImportService(JdbcTemplate jdbc, OutboxStore outbox, RecordAuditEntryUseCase audit, MeterRegistry meters) {
+        return new CustomerImportService(new JdbcCustomerImportStore(jdbc), outbox, Clock.systemUTC(), audit, meters.counter("customer_imports.errors.downloaded"));
+    }
+
+    @Bean
+    CustomerImportStore customerImportStore(JdbcTemplate jdbc) {
+        return new JdbcCustomerImportStore(jdbc);
+    }
+
+    @Bean
+    CustomerImportProcessor customerImportProcessor(CustomerImportStore store, CreateCustomerService customers, CheckCustomerDuplicatesService duplicates) {
+        return new CustomerImportProcessor(store, customers, duplicates);
+    }
+
+    @Bean
+    CustomerImportProcessingAudit customerImportProcessingAudit(AuditEntryStore store) {
+        return new AuditCustomerImportProcessing(store, Clock.systemUTC());
+    }
+
+    @Bean
+    CustomerImportRequestedListener customerImportRequestedListener(CustomerImportProcessor processor, CustomerImportStore store, CustomerImportProcessingAudit audit, ObjectMapper json, org.springframework.amqp.rabbit.core.RabbitTemplate rabbit, MeterRegistry meters) {
+        return new CustomerImportRequestedListener(processor, store, audit, json, rabbit, meters.counter("customer_imports.processed"), meters.counter("customer_imports.failed"));
+    }
+
+    @Bean
+    CustomerImportRetentionScheduler customerImportRetentionScheduler(CustomerImportStore store, MeterRegistry meters) {
+        return new CustomerImportRetentionScheduler(store, meters.counter("customer_imports.files.retention_deleted"), meters.counter("customer_imports.results.retention_deleted"));
+    }
+
+    @Bean
+    Queue customerImportWorkQueue() {
+        return QueueBuilder.durable("customer-import.requested.v1").ttl(MAX_MESSAGE_TTL_MS).deadLetterExchange("followupbussiness.events").deadLetterRoutingKey("customer-import.retry.v1").build();
+    }
+
+    @Bean
+    Queue customerImportRetryQueue() {
+        return QueueBuilder.durable("customer-import.retry.v1").ttl(1_000).deadLetterExchange("followupbussiness.events").deadLetterRoutingKey("customer-import.requested.v1").build();
+    }
+
+    @Bean
+    Queue customerImportDlq() {
+        return QueueBuilder.durable("customer-import.dlq.v1").ttl(MAX_MESSAGE_TTL_MS).build();
+    }
+
+    @Bean
+    Binding customerImportWorkBinding(Queue customerImportWorkQueue, TopicExchange outboxExchange) {
+        return BindingBuilder.bind(customerImportWorkQueue).to(outboxExchange).with("customer-import.requested.v1");
+    }
+
+    @Bean
+    Binding customerImportRetryBinding(Queue customerImportRetryQueue, TopicExchange outboxExchange) {
+        return BindingBuilder.bind(customerImportRetryQueue).to(outboxExchange).with("customer-import.retry.v1");
+    }
+
+    @Bean
+    Binding customerImportDlqBinding(Queue customerImportDlq, TopicExchange outboxExchange) {
+        return BindingBuilder.bind(customerImportDlq).to(outboxExchange).with("customer-import.dlq.v1");
+    }
 }

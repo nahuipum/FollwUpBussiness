@@ -16,6 +16,7 @@ import { CompanySellersPage } from "../features/company-sellers/CompanySellersPa
 import { CompanyUsersPageRoute } from "../features/company-users/CompanyUsersPageRoute";
 import { CompanyTerritoriesPage } from "../features/company-territories/CompanyTerritoriesPage";
 import { CustomerAssignmentPage } from "../features/company-customer-assignments/components/CustomerAssignmentPage";
+import { CompanyClientImportPage } from "../features/company-client-import/CompanyClientImportPage";
 import { SupervisorDashboardPage } from "../features/supervisor-dashboard/SupervisorDashboardPage";
 import { CompanyWorkspaceLayout } from "./components/CompanyWorkspaceLayout";
 import { PlatformWorkspaceLayout } from "./components/PlatformWorkspaceLayout";
@@ -95,6 +96,8 @@ export function App() {
       return <CompanyWorkspaceLayout workspace="company" activeSection="clients"><CompanyClientsPage /></CompanyWorkspaceLayout>;
     if (path === "/company/clients/map")
       return <CompanyWorkspaceLayout workspace="company" activeSection="clients"><CompanyClientsMapPage /></CompanyWorkspaceLayout>;
+    if (path === "/company/customer-imports")
+      return <CompanyWorkspaceLayout workspace="company" activeSection="clients"><CompanyClientImportPage /></CompanyWorkspaceLayout>;
     if (path === "/company/customer-assignments")
       return <CompanyWorkspaceLayout workspace="company" activeSection="customer-assignments"><CustomerAssignmentPage /></CompanyWorkspaceLayout>;
     if (path === "/company/sellers")

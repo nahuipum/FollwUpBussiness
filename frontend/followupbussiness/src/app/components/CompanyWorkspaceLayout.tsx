@@ -65,7 +65,7 @@ function companyNavigation(activeSection: CompanySection, canManage: boolean): D
     item("administrators-supervisors", "Administradores y supervisores", <Users />, activeSection, "/company/administrators-supervisors"),
     item("sellers", "Vendedores", <UserRound />, activeSection, "/company/sellers"),
     ...(canManage ? [item("territories", "Zonas", <MapPinned />, activeSection, "/company/territories")] : []),
-    clientGroup(activeSection, "/company/clients", "/company/clients/map"),
+    clientGroup(activeSection, "/company/clients", "/company/clients/map", canManage),
     ...(canManage ? [item("customer-assignments", "Asignar cartera", <ContactRound />, activeSection, "/company/customer-assignments")] : []),
     { id: "audit", label: "Auditoría", icon: <ClipboardList /> },
     { id: "settings", label: "Configuración", icon: <Settings /> },
@@ -77,7 +77,7 @@ function supervisorNavigation(activeSection: SupervisorSection): DashboardNaviga
     item("dashboard", "Resumen", <LayoutDashboard />, activeSection, "/supervisor/dashboard"),
     item("sellers", "Vendedores", <UserRound />, activeSection, "/supervisor/sellers"),
     item("territories", "Zonas", <MapPinned />, activeSection, "/supervisor/territories"),
-    clientGroup(activeSection, "/supervisor/clients", "/supervisor/clients/map"),
+    clientGroup(activeSection, "/supervisor/clients", "/supervisor/clients/map", false),
   ];
 }
 
@@ -85,7 +85,7 @@ function item(id: string, label: string, icon: ReactNode, activeSection: string,
   return { id, label, icon, active: id === activeSection, onSelect: () => navigate(path) };
 }
 
-function clientGroup(activeSection: string, managementPath: string, mapPath?: string): DashboardNavigationItem {
+function clientGroup(activeSection: string, managementPath: string, mapPath: string | undefined, canManage: boolean): DashboardNavigationItem {
   const active = activeSection === "clients";
   return {
     id: "clients",
@@ -95,6 +95,7 @@ function clientGroup(activeSection: string, managementPath: string, mapPath?: st
     children: [
       { id: "clients-management", label: "Gestión de clientes", icon: <ListFilter />, active: window.location.pathname === managementPath, onSelect: () => navigate(managementPath) },
       ...(mapPath ? [{ id: "clients-map", label: "Mapa general", icon: <Map />, active: window.location.pathname === mapPath, onSelect: () => navigate(mapPath) }] : []),
+      ...(canManage ? [{ id: "clients-import", label: "Carga de clientes", icon: <ClipboardList />, active: window.location.pathname === "/company/customer-imports", onSelect: () => navigate("/company/customer-imports") }] : []),
     ],
   };
 }

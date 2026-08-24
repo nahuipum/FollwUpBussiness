@@ -1,0 +1,17 @@
+.file-upload-field { display: flex; align-items: center; gap: 13px; min-height: 100px; padding: 16px; border: 1px dashed #9ab8c1; border-radius: 14px; color: #26384a; background: #fbfdfd; }
+.file-upload-field:hover { border-color: #2b7e88; background: #f5fbfc; }
+.file-upload-field__input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+.file-upload-field__input:focus-visible + .file-upload-field__icon { outline: 3px solid rgb(56 178 172 / 35%); outline-offset: 3px; }
+.file-upload-field__icon { display: grid; width: 42px; height: 42px; flex: 0 0 auto; place-items: center; border-radius: 12px; color: #176d77; background: #e8f5f6; }
+.file-upload-field__icon svg { width: 21px; height: 21px; }
+.file-upload-field__content { display: grid; min-width: 0; flex: 1; gap: 4px; }
+.file-upload-field__content strong { overflow: hidden; color: #14213d; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+.file-upload-field__content span { color: #67778a; font-size: 13px; line-height: 1.4; }
+.file-upload-field__choose, .file-upload-field__clear { display: inline-flex; min-height: 38px; align-items: center; justify-content: center; gap: 7px; border: 1px solid #c7d8df; border-radius: 10px; color: #176d77; background: #fff; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.file-upload-field__choose { padding: 0 12px; }
+.file-upload-field__clear { width: 38px; padding: 0; }
+.file-upload-field__choose:hover:not(:disabled), .file-upload-field__clear:hover:not(:disabled) { border-color: #176d77; background: #eef9fa; }
+.file-upload-field__choose svg, .file-upload-field__clear svg { width: 17px; height: 17px; }
+.file-upload-field button:disabled { cursor: not-allowed; opacity: .58; }
+.file-upload-field button:focus-visible { outline: 3px solid rgb(56 178 172 / 35%); outline-offset: 2px; }
+@media (max-width: 540px) { .file-upload-field { align-items: flex-start; flex-wrap: wrap; }.file-upload-field__choose { width: 100%; }.file-upload-field__content { flex-basis: calc(100% - 55px); }.file-upload-field__clear { margin-left: auto; } }

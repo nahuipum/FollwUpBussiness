@@ -371,6 +371,7 @@ export function canAccessPath(path: string): boolean {
     "/company/dashboard": "COMPANY_ADMIN",
     "/company/clients": "COMPANY_ADMIN",
     "/company/clients/map": "COMPANY_ADMIN",
+    "/company/customer-imports": "COMPANY_ADMIN",
     "/company/customer-assignments": "COMPANY_ADMIN",
     "/company/sellers": "COMPANY_ADMIN",
     "/company/territories": "COMPANY_ADMIN",

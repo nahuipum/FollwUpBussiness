@@ -1,6 +1,7 @@
 package com.nahui.followupbussiness.imports.application;
 
 import com.nahui.followupbussiness.imports.application.port.in.DownloadCustomerImportTemplateUseCase;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -12,7 +13,8 @@ public final class CustomerImportTemplateService implements DownloadCustomerImpo
     private static final String[] COLUMNS = {"name", "address", "latitude", "longitude", "documentType", "documentNumber", "phone", "email", "segment", "visitFrequencyDays", "territoryId"};
     private static final String[] EXAMPLE = {"Example customer", "Example address", "-12.0464", "-77.0428", "", "", "", "", "", "", ""};
 
-    @Override public Template download(Format format) {
+    @Override
+    public Template download(Format format) {
         return format == Format.XLSX
                 ? new Template(VERSION, "customer-import-template-" + VERSION + ".xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", xlsx())
                 : new Template(VERSION, "customer-import-template-" + VERSION + ".csv", "text/csv;charset=UTF-8", csv());
@@ -36,13 +38,28 @@ public final class CustomerImportTemplateService implements DownloadCustomerImpo
             entry(zip, "xl/worksheets/sheet1.xml", sheet());
             zip.finish();
             return bytes.toByteArray();
-        } catch (IOException impossible) { throw new IllegalStateException("Cannot build static template", impossible); }
+        } catch (IOException impossible) {
+            throw new IllegalStateException("Cannot build static template", impossible);
+        }
     }
 
     private static String sheet() {
         return "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><sheetData><row r=\"1\">" + row(COLUMNS) + "</row><row r=\"2\">" + row(EXAMPLE) + "</row></sheetData></worksheet>";
     }
-    private static String row(String[] values) { StringBuilder row = new StringBuilder(); for (String value : values) row.append("<c t=\"inlineStr\"><is><t>").append(xml(value)).append("</t></is></c>"); return row.toString(); }
-    private static String xml(String value) { return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;").replace("'", "&apos;"); }
-    private static void entry(ZipOutputStream zip, String name, String value) throws IOException { zip.putNextEntry(new ZipEntry(name)); zip.write(value.getBytes(StandardCharsets.UTF_8)); zip.closeEntry(); }
+
+    private static String row(String[] values) {
+        StringBuilder row = new StringBuilder();
+        for (String value : values) row.append("<c t=\"inlineStr\"><is><t>").append(xml(value)).append("</t></is></c>");
+        return row.toString();
+    }
+
+    private static String xml(String value) {
+        return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;").replace("'", "&apos;");
+    }
+
+    private static void entry(ZipOutputStream zip, String name, String value) throws IOException {
+        zip.putNextEntry(new ZipEntry(name));
+        zip.write(value.getBytes(StandardCharsets.UTF_8));
+        zip.closeEntry();
+    }
 }

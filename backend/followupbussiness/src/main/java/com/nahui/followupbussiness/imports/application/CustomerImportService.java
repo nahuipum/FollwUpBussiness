@@ -22,7 +22,7 @@ import java.util.UUID;
 import io.micrometer.core.instrument.Counter;
 import org.springframework.transaction.annotation.Transactional;
 
-public final class CustomerImportService implements CreateCustomerImportUseCase, GetCustomerImportUseCase, DownloadCustomerImportErrorsUseCase {
+public class CustomerImportService implements CreateCustomerImportUseCase, GetCustomerImportUseCase, DownloadCustomerImportErrorsUseCase {
     private static final int MAX_BYTES = 10 * 1024 * 1024;
     private final CustomerImportStore store; private final OutboxStore outbox; private final Clock clock;
     private final RecordAuditEntryUseCase audit; private final Counter downloads;
