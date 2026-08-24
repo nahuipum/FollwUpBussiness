@@ -46,10 +46,10 @@ class CustomerImportProcessorTransactionIntegrationTest {
         var jdbc = new JdbcTemplate(dataSource);
         jdbc.execute("DROP TABLE IF EXISTS customer_import_row_error");
         jdbc.execute("DROP TABLE IF EXISTS customer_import");
-        jdbc.execute("CREATE TABLE customer_import (id UUID PRIMARY KEY, tenant_id UUID NOT NULL, requested_by UUID NOT NULL, correlation_id UUID NOT NULL, idempotency_key VARCHAR(128) NOT NULL, file_name VARCHAR(255) NOT NULL, content_type VARCHAR(160) NOT NULL, template_version VARCHAR(16) NOT NULL, partial_acceptance BOOLEAN NOT NULL, file_sha256 CHAR(64) NOT NULL, status VARCHAR(32) NOT NULL, accepted_rows INTEGER NOT NULL, rejected_rows INTEGER NOT NULL, original_file BYTEA, created_at TIMESTAMP WITH TIME ZONE NOT NULL, updated_at TIMESTAMP WITH TIME ZONE NOT NULL, terminal_at TIMESTAMP WITH TIME ZONE, error_file_expires_at TIMESTAMP WITH TIME ZONE)");
+        jdbc.execute("CREATE TABLE customer_import (id UUID PRIMARY KEY, tenant_id UUID NOT NULL, requested_by UUID NOT NULL, correlation_id UUID NOT NULL, idempotency_key VARCHAR(128) NOT NULL, file_name VARCHAR(255) NOT NULL, content_type VARCHAR(160) NOT NULL, template_version VARCHAR(16) NOT NULL, partial_acceptance BOOLEAN NOT NULL, file_sha256 CHAR(64) NOT NULL, status VARCHAR(32) NOT NULL, total_rows INTEGER, accepted_rows INTEGER NOT NULL, rejected_rows INTEGER NOT NULL, failure_reason VARCHAR(80), original_file BYTEA, created_at TIMESTAMP WITH TIME ZONE NOT NULL, updated_at TIMESTAMP WITH TIME ZONE NOT NULL, terminal_at TIMESTAMP WITH TIME ZONE, error_file_expires_at TIMESTAMP WITH TIME ZONE)");
         jdbc.execute("CREATE TABLE customer_import_row_error (id UUID PRIMARY KEY, import_id UUID NOT NULL, row_number INTEGER NOT NULL, error_code VARCHAR(80) NOT NULL, created_at TIMESTAMP WITH TIME ZONE NOT NULL)");
         UUID importId = UUID.randomUUID(), tenantId = UUID.randomUUID();
-        jdbc.update("INSERT INTO customer_import VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", importId, tenantId, UUID.randomUUID(), UUID.randomUUID(), "key", "customers.csv", "text/csv", "1.0", true, "0".repeat(64), "PENDING", 0, 0, "# template-version: 1.0\nname,address,latitude,longitude,documentType,documentNumber,phone,email,segment,visitFrequencyDays,territoryId\n".getBytes(), Timestamp.from(Instant.now()), Timestamp.from(Instant.now()), null, null);
+        jdbc.update("INSERT INTO customer_import VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", importId, tenantId, UUID.randomUUID(), UUID.randomUUID(), "key", "customers.csv", "text/csv", "1.0", true, "0".repeat(64), "PENDING", null, 0, 0, null, "# template-version: 1.0\nname,address,latitude,longitude,documentType,documentNumber,phone,email,segment,visitFrequencyDays,territoryId\n".getBytes(), Timestamp.from(Instant.now()), Timestamp.from(Instant.now()), null, null);
 
         try (var context = new AnnotationConfigApplicationContext()) {
             context.registerBean(DataSourceTransactionManager.class, () -> new DataSourceTransactionManager(dataSource));
@@ -78,7 +78,7 @@ class CustomerImportProcessorTransactionIntegrationTest {
         public List<RowError> findRowErrors(UUID tenantId, UUID importId) { return delegate.findRowErrors(tenantId, importId); }
         public Optional<CustomerImport> insertIfAbsent(CustomerImport job, byte[] contents) { return delegate.insertIfAbsent(job, contents); }
         public Optional<ClaimedImport> claim(UUID importId, UUID tenantId) { return delegate.claim(importId, tenantId); }
-        public void complete(UUID importId, int acceptedRows, int rejectedRows, boolean failed) { delegate.complete(importId, acceptedRows, rejectedRows, failed); }
+        public void complete(UUID importId, Integer totalRows, int acceptedRows, int rejectedRows, boolean failed, CustomerImport.FailureReason failureReason) { delegate.complete(importId, totalRows, acceptedRows, rejectedRows, failed, failureReason); }
         public void recordRowErrors(UUID importId, List<RowError> errors) { throw new IllegalStateException("post-claim persistence failure"); }
         public Optional<CustomerImport> fail(UUID importId, UUID tenantId) { return delegate.fail(importId, tenantId); }
         public int purgeExpiredFiles() { return delegate.purgeExpiredFiles(); }

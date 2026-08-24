@@ -4,13 +4,18 @@ import com.nahui.followupbussiness.imports.application.CustomerImportProcessor;
 import com.nahui.followupbussiness.imports.application.port.out.CustomerImportProcessingAudit;
 import com.nahui.followupbussiness.imports.application.port.out.CustomerImportStore;
 import com.nahui.followupbussiness.imports.domain.CustomerImport;
+import com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor;
+import com.nahui.followupbussiness.identityaccess.domain.model.BaseRole;
 import io.micrometer.core.instrument.Counter;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -49,11 +54,40 @@ public final class CustomerImportRequestedListener {
             return;
         }
         try {
-            processor.process(ids.importId, ids.tenantId);
-            store.findById(ids.tenantId, ids.importId).filter(job -> job.status() == CustomerImport.Status.COMPLETED || job.status() == CustomerImport.Status.COMPLETED_WITH_ERRORS || job.status() == CustomerImport.Status.FAILED).ifPresent(this::audit);
+            processWithPersistedAuditContext(ids);
             processed.increment();
         } catch (RuntimeException exception) {
             scheduleRetry(message);
+        }
+    }
+
+    private void processWithPersistedAuditContext(MessageIds ids) {
+        Runnable process = () -> {
+            processor.process(ids.importId, ids.tenantId);
+            store.findById(ids.tenantId, ids.importId)
+                    .filter(job -> job.status() == CustomerImport.Status.COMPLETED
+                            || job.status() == CustomerImport.Status.COMPLETED_WITH_ERRORS
+                            || job.status() == CustomerImport.Status.FAILED)
+                    .ifPresent(this::audit);
+        };
+        store.findById(ids.tenantId, ids.importId).ifPresentOrElse(job -> runAsRequestingAdmin(job, process), process::run);
+    }
+
+    /**
+     * Rabbit deliveries do not carry an HTTP security context.  The context is rebuilt only from
+     * the persisted job, never from the message envelope, and is cleared before the worker is reused.
+     */
+    private static void runAsRequestingAdmin(CustomerImport job, Runnable action) {
+        var context = SecurityContextHolder.createEmptyContext();
+        var actor = new AuthenticatedActor(job.requestedBy(), job.tenantId(), BaseRole.COMPANY_ADMIN);
+        var authentication = UsernamePasswordAuthenticationToken.authenticated(actor, "internal-import-worker", List.of());
+        authentication.setDetails(job.correlationId());
+        context.setAuthentication(authentication);
+        SecurityContextHolder.setContext(context);
+        try {
+            action.run();
+        } finally {
+            SecurityContextHolder.clearContext();
         }
     }
 

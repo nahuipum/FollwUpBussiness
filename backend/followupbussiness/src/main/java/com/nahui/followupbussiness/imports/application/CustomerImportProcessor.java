@@ -41,7 +41,7 @@ public class CustomerImportProcessor {
             rows = parse(job.contentType(), claimed.get().contents());
         } catch (RuntimeException ex) {
             imports.recordRowErrors(id, List.of(new CustomerImportStore.RowError(1, "INVALID_TEMPLATE")));
-            imports.complete(id, 0, 1, true);
+            imports.complete(id, null, 0, 1, true, com.nahui.followupbussiness.imports.domain.CustomerImport.FailureReason.INVALID_TEMPLATE);
             return;
         }
         var actor = new AuthenticatedActor(job.requestedBy(), job.tenantId(), BaseRole.COMPANY_ADMIN);
@@ -59,7 +59,7 @@ public class CustomerImportProcessor {
             }
         if (!job.partialAcceptance() && !errors.isEmpty()) {
             imports.recordRowErrors(id, errors);
-            imports.complete(id, 0, errors.size(), false);
+            imports.complete(id, rows.size(), 0, errors.size(), false, null);
             return;
         }
         int accepted = 0;
@@ -71,7 +71,7 @@ public class CustomerImportProcessor {
                 errors.add(new CustomerImportStore.RowError(c.row(), code(e)));
             }
         imports.recordRowErrors(id, errors);
-        imports.complete(id, accepted, errors.size(), false);
+        imports.complete(id, rows.size(), accepted, errors.size(), false, null);
     }
 
     @Transactional

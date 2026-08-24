@@ -10,9 +10,11 @@ import {
 
 function isProtectedPath(path: string): boolean {
   return (
+    /^\/company\/customer-imports\/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(path) ||
     path === "/platform/dashboard" ||
     path === "/platform/companies" ||
     path === "/company/dashboard" ||
+    path === "/company/customer-imports" ||
     path === "/company/customer-assignments" ||
     path === "/company/clients" ||
     path === "/company/clients/map" ||

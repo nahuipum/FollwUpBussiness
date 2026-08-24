@@ -1,13 +1,13 @@
-import { act, cleanup, renderHook } from "@testing-library/react";
+import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { useCustomerImport } from "./useCustomerImport";
 
-const state = vi.hoisted(() => ({ create: vi.fn(), download: vi.fn(), get: vi.fn(), listeners: new Set<() => void>(), generation: 1 }));
-vi.mock("../api", () => ({ createCustomerImport: state.create, downloadCustomerImportTemplate: state.download, getCustomerImport: state.get }));
+const state = vi.hoisted(() => ({ create: vi.fn(), download: vi.fn(), version: vi.fn(), listeners: new Set<() => void>(), generation: 1 }));
+vi.mock("../api", () => ({ createCustomerImport: state.create, downloadCustomerImportTemplate: state.download, getCustomerImportTemplateVersion: state.version }));
 vi.mock("../../auth/auth", () => ({ getSessionGeneration: () => state.generation, getSessionIdentity: () => ({ id: "admin", company: { id: "company-a" }, roles: ["COMPANY_ADMIN"] }), subscribeToSession: (listener: () => void) => { state.listeners.add(listener); return () => state.listeners.delete(listener); } }));
 
 const job = { id: "00000000-0000-4000-8000-000000000001", status: "PENDING", totalRows: 1, acceptedRows: 0, rejectedRows: 0, createdAt: "2026-08-24T10:00:00Z", completedAt: null };
-beforeEach(() => { state.create.mockReset(); state.download.mockReset(); state.get.mockReset(); state.generation = 1; vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:template"); vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined); vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined); });
+beforeEach(() => { state.create.mockReset(); state.download.mockReset(); state.version.mockReset(); state.version.mockResolvedValue({ response: new Response(null, { status: 200, headers: { "X-Template-Version": "1.0" } }), templateVersion: "1.0", correlationId: null }); state.generation = 1; vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:template"); vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined); vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined); });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.useRealTimers(); });
 
 test("bloquea extensiones y tamaños no permitidos sin enviar el archivo", () => {
@@ -17,18 +17,16 @@ test("bloquea extensiones y tamaños no permitidos sin enviar el archivo", () =>
   expect(result.current.error?.status).toBe(415);
 });
 
-test("envía un único intento y consulta el trabajo de forma controlada", async () => {
-  vi.useFakeTimers(); state.create.mockResolvedValue({ response: new Response(JSON.stringify(job), { status: 202 }), job, correlationId: null }); state.get.mockResolvedValue({ response: new Response(JSON.stringify({ ...job, status: "COMPLETED", acceptedRows: 1 }), { status: 200 }), job: { ...job, status: "COMPLETED", acceptedRows: 1 }, correlationId: null });
+test("permite importar una plantilla ya guardada sin volver a descargarla", async () => {
+  state.create.mockResolvedValue({ response: new Response(JSON.stringify(job), { status: 202 }), job, correlationId: null });
   const { result } = renderHook(useCustomerImport);
+  await waitFor(() => expect(result.current.templateVersion).toBe("1.0"));
   act(() => result.current.selectFile(new File(["x"], "clientes.csv", { type: "text/csv" })));
-  state.download.mockResolvedValue({ response: new Response("x", { status: 200, headers: { "X-Template-Version": "1.0" } }), blob: new Blob(["x"]), templateVersion: "1.0", correlationId: null });
-  await act(async () => { await result.current.downloadTemplate(); });
   await act(async () => { await result.current.submit(); });
   await act(async () => { await result.current.submit(); });
   expect(state.create).toHaveBeenCalledOnce();
-  await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
-  expect(state.get).toHaveBeenCalledWith(job.id);
-  expect(result.current.job?.status).toBe("COMPLETED");
+  expect(state.download).not.toHaveBeenCalled();
+  expect(result.current.job?.id).toBe(job.id);
 });
 
 test("limpia archivo, versión y trabajo cuando cambia la sesión", async () => {

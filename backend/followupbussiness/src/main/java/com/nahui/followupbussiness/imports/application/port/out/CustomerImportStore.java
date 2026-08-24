@@ -17,7 +17,8 @@ public interface CustomerImportStore {
 
     Optional<ClaimedImport> claim(UUID importId, UUID tenantId);
 
-    void complete(UUID importId, int acceptedRows, int rejectedRows, boolean failed);
+    void complete(UUID importId, Integer totalRows, int acceptedRows, int rejectedRows, boolean failed,
+                  CustomerImport.FailureReason failureReason);
 
     void recordRowErrors(UUID importId, List<RowError> errors);
 

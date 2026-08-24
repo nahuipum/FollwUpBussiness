@@ -7,6 +7,8 @@ import com.nahui.followupbussiness.imports.application.CustomerImportProcessor;
 import com.nahui.followupbussiness.imports.application.port.out.CustomerImportProcessingAudit;
 import com.nahui.followupbussiness.imports.application.port.out.CustomerImportStore;
 import com.nahui.followupbussiness.imports.domain.CustomerImport;
+import com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor;
+import com.nahui.followupbussiness.identityaccess.domain.model.BaseRole;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Instant;
 import java.util.List;
@@ -17,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.security.core.context.SecurityContextHolder;
 import tools.jackson.databind.json.JsonMapper;
 
 class CustomerImportRequestedListenerTest {
@@ -77,6 +80,27 @@ class CustomerImportRequestedListenerTest {
         listener.receive(envelope(importId, tenantId, null));
         verify(rabbit).send(eq("followupbussiness.events"), eq("customer-import.retry.v1"), any(Message.class));
         verify(rabbit, never()).send(eq("followupbussiness.events"), eq("customer-import.dlq.v1"), any(Message.class));
+    }
+
+    @Test void rebuildsAndClearsAuditContextFromThePersistedJob() {
+        UUID importId = UUID.randomUUID(), tenantId = UUID.randomUUID(), actorId = UUID.randomUUID(), correlationId = UUID.randomUUID();
+        CustomerImportProcessor processor = mock(CustomerImportProcessor.class); CustomerImportStore store = mock(CustomerImportStore.class);
+        CustomerImportProcessingAudit audit = mock(CustomerImportProcessingAudit.class); RabbitTemplate rabbit = mock(RabbitTemplate.class);
+        CustomerImport pending = new CustomerImport(importId, tenantId, actorId, correlationId, "key", "file.csv", "text/csv", "1.0", true, "0".repeat(64), CustomerImport.Status.PENDING, 0, 0, Instant.now(), null, null, null);
+        CustomerImport completed = new CustomerImport(importId, tenantId, actorId, correlationId, "key", "file.csv", "text/csv", "1.0", true, "0".repeat(64), CustomerImport.Status.COMPLETED, 1, 0, Instant.now(), Instant.now(), Instant.now(), null);
+        when(store.findById(tenantId, importId)).thenReturn(Optional.of(pending), Optional.of(completed));
+        doAnswer(invocation -> {
+            var authentication = SecurityContextHolder.getContext().getAuthentication();
+            org.assertj.core.api.Assertions.assertThat(authentication.getPrincipal()).isEqualTo(new AuthenticatedActor(actorId, tenantId, BaseRole.COMPANY_ADMIN));
+            org.assertj.core.api.Assertions.assertThat(authentication.getDetails()).isEqualTo(correlationId);
+            return null;
+        }).when(processor).process(importId, tenantId);
+        var meters = new SimpleMeterRegistry(); var listener = new CustomerImportRequestedListener(processor, store, audit, JsonMapper.builder().build(), rabbit, meters.counter("processed"), meters.counter("failed"));
+
+        listener.receive(envelope(importId, tenantId, null));
+
+        verify(audit).record(tenantId, actorId, importId, correlationId, "COMPLETED");
+        org.assertj.core.api.Assertions.assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
     }
 
     private static Message envelope(UUID importId, UUID tenantId, List<Map<String, Long>> deaths) {

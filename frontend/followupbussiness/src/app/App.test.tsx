@@ -384,6 +384,41 @@ test("restaura sesión al recargar directamente el mapa general de clientes", as
   expect(screen.queryByText("Inicia sesión para continuar")).toBeNull();
 });
 
+test("restaura sesión al recargar la carga de clientes", async () => {
+  window.history.replaceState({}, "", "/company/customer-imports");
+  window.sessionStorage.setItem("followupbusiness.csrf-token", "c".repeat(43));
+  const fetchMock = vi.fn((url: string) => Promise.resolve(
+    url.endsWith("/me") ? currentUserResponse("COMPANY_ADMIN")
+      : new Response(JSON.stringify(webResponse("COMPANY_ADMIN")), { status: 200 }),
+  ));
+  vi.stubGlobal("fetch", fetchMock);
+
+  render(<App />);
+
+  await screen.findByRole("heading", { name: "Carga de clientes" });
+  expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/auth/refresh");
+  expect(screen.queryByText("Inicia sesión para continuar")).toBeNull();
+});
+
+test("restaura sesión al recargar un resultado de importación autorizado", async () => {
+  const importId = "00000000-0000-4000-8000-000000000013";
+  window.history.replaceState({}, "", `/company/customer-imports/${importId}`);
+  window.sessionStorage.setItem("followupbusiness.csrf-token", "c".repeat(43));
+  const job = { id: importId, status: "COMPLETED", totalRows: 1, acceptedRows: 1, rejectedRows: 0, createdAt: "2026-08-24T10:00:00Z", completedAt: "2026-08-24T10:01:00Z", errorFileExpiresAt: null };
+  const fetchMock = vi.fn((url: string) => Promise.resolve(
+    url.endsWith("/me") ? currentUserResponse("COMPANY_ADMIN")
+      : url.includes(`/customer-imports/${importId}`) ? new Response(JSON.stringify(job), { status: 200 })
+        : new Response(JSON.stringify(webResponse("COMPANY_ADMIN")), { status: 200 }),
+  ));
+  vi.stubGlobal("fetch", fetchMock);
+
+  render(<App />);
+
+  await screen.findByRole("heading", { name: "Resultado de importación" });
+  expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/auth/refresh");
+  expect(screen.queryByText("Inicia sesión para continuar")).toBeNull();
+});
+
 test("restaura la ruta directa de Asignar cartera sólo para administrador", async () => {
   window.history.replaceState({}, "", "/company/customer-assignments");
   window.sessionStorage.setItem("followupbusiness.csrf-token", "c".repeat(43));

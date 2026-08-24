@@ -18,10 +18,11 @@ public final class SecurityContextAuditTrustedContextProvider implements AuditTr
         if (authentication == null || !(authentication.getPrincipal() instanceof AuthenticatedActor actor) || actor.tenantId() == null) {
             throw new SecurityException("A tenant-scoped authenticated actor is required for audit recording");
         }
-        return new AuditTrustedContext(actor.tenantId(), actor.accountId(), correlationId(), AuditScope.AUTHORIZED_RESOURCE);
+        return new AuditTrustedContext(actor.tenantId(), actor.accountId(), correlationId(authentication), AuditScope.AUTHORIZED_RESOURCE);
     }
 
-    private static UUID correlationId() {
+    private static UUID correlationId(Authentication authentication) {
+        if (authentication.getDetails() instanceof UUID correlation) return correlation;
         try {
             var attributes = org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
             if (attributes instanceof org.springframework.web.context.request.ServletRequestAttributes servlet) {

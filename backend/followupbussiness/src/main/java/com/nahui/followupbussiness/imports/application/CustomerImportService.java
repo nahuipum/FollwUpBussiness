@@ -32,7 +32,7 @@ public class CustomerImportService implements CreateCustomerImportUseCase, GetCu
         var previous = store.findByIdempotency(actor.tenantId(), actor.accountId(), c.idempotencyKey());
         if (previous.isPresent()) { if (previous.get().fileSha256().equals(hash) && previous.get().templateVersion().equals(c.templateVersion()) && previous.get().partialAcceptance() == c.partialAcceptance()) return previous.get(); throw new Conflict(); }
         Instant now = clock.instant(); UUID id = UUID.randomUUID();
-        var job = new CustomerImport(id, actor.tenantId(), actor.accountId(), correlation, c.idempotencyKey(), safeName(c.fileName()), c.contentType(), c.templateVersion(), c.partialAcceptance(), hash, CustomerImport.Status.PENDING, 0, 0, now, now, null, null);
+        var job = new CustomerImport(id, actor.tenantId(), actor.accountId(), correlation, c.idempotencyKey(), safeName(c.fileName()), c.contentType(), c.templateVersion(), c.partialAcceptance(), hash, CustomerImport.Status.PENDING, null, 0, 0, now, now, null, null);
         var saved = store.insertIfAbsent(job, c.contents());
         if (saved.isEmpty()) {
             CustomerImport existing = store.findByIdempotency(actor.tenantId(), actor.accountId(), c.idempotencyKey())

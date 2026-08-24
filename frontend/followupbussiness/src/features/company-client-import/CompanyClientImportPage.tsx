@@ -1,4 +1,5 @@
-import { Download, FileUp, RefreshCw } from "lucide-react";
+import { Download, FileUp } from "lucide-react";
+import { useEffect } from "react";
 import { AsyncStateCard } from "../../shared/ui/AsyncStateCard";
 import { InlineAlert } from "../../shared/ui/error-ui/components";
 import { FileUploadField } from "../../shared/ui/FileUploadField";
@@ -17,6 +18,10 @@ const errorMessage = (status: number) =>
 
 export function CompanyClientImportPage() {
   const importer = useCustomerImport();
+  useEffect(() => {
+    if (importer.job !== null)
+      navigate(`/company/customer-imports/${encodeURIComponent(importer.job.id)}`, { replace: true });
+  }, [importer.job]);
   if (importer.forbidden)
     return (
       <AsyncStateCard
@@ -36,8 +41,8 @@ export function CompanyClientImportPage() {
         <div>
           <h1 id="customer-import-title">Carga de clientes</h1>
           <p>
-            Descarga la plantilla, carga un archivo CSV o XLSX y consulta el
-            avance de la importación.
+            Usa tu plantilla vigente o descarga una nueva, carga un archivo CSV
+            o XLSX y consulta el avance de la importación.
           </p>
         </div>
       </header>
@@ -48,8 +53,8 @@ export function CompanyClientImportPage() {
             <div>
               <h2>Descarga la plantilla</h2>
               <p>
-                Usa la plantilla vigente para validar el archivo sin mostrar su
-                contenido en esta pantalla.
+                Si ya tienes una plantilla vigente, puedes usarla directamente.
+                Verificamos su versión antes de importar sin descargarla de nuevo.
               </p>
             </div>
           </div>
@@ -63,6 +68,11 @@ export function CompanyClientImportPage() {
             {importer.loadingTemplate ? "Descargando…" : "Descargar plantilla"}
           </button>
         </section>
+        {importer.checkingTemplateVersion && (
+          <p className="customer-import__updated" role="status">
+            Verificando la versión vigente de la plantilla…
+          </p>
+        )}
         <section className="customer-import__step">
           <div className="customer-import__step-heading">
             <span>2</span>
@@ -113,51 +123,16 @@ export function CompanyClientImportPage() {
           type="button"
           onClick={() => void importer.submit()}
           disabled={
-            !importer.file || !importer.templateVersion || importer.submitting
+            !importer.file ||
+            !importer.templateVersion ||
+            importer.checkingTemplateVersion ||
+            importer.submitting
           }
         >
           <FileUp aria-hidden="true" />
           {importer.submitting ? "Enviando…" : "Iniciar importación"}
         </button>
       </section>
-      {importer.job && (
-        <section
-          className="customer-import__status"
-          aria-live="polite"
-          aria-label="Estado de importación"
-        >
-          <h2>
-            {importer.polling
-              ? "Procesando importación"
-              : "Resultado de importación"}
-          </h2>
-          <p>
-            {importer.polling
-              ? "Estamos consultando el avance del trabajo."
-              : `Estado: ${importer.job.status}.`}
-          </p>
-          <dl>
-            <div>
-              <dt>Filas recibidas</dt>
-              <dd>{importer.job.totalRows}</dd>
-            </div>
-            <div>
-              <dt>Aceptadas</dt>
-              <dd>{importer.job.acceptedRows}</dd>
-            </div>
-            <div>
-              <dt>Rechazadas</dt>
-              <dd>{importer.job.rejectedRows}</dd>
-            </div>
-          </dl>
-          {importer.polling && (
-            <RefreshCw
-              aria-label="Actualizando estado"
-              className="customer-import__spin"
-            />
-          )}
-        </section>
-      )}
     </section>
   );
 }

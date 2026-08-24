@@ -36,7 +36,7 @@ public final class JdbcCustomerImportStore implements CustomerImportStore {
 
     @Override
     public Optional<CustomerImport> insertIfAbsent(CustomerImport j, byte[] file) {
-        return jdbc.query("INSERT INTO customer_import (id,tenant_id,requested_by,correlation_id,idempotency_key,file_name,content_type,template_version,partial_acceptance,file_sha256,status,accepted_rows,rejected_rows,original_file,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT (tenant_id,requested_by,idempotency_key) DO NOTHING RETURNING *", rs -> rs.next() ? Optional.of(map(rs, 0)) : Optional.empty(), j.id(), j.tenantId(), j.requestedBy(), j.correlationId(), j.idempotencyKey(), j.fileName(), j.contentType(), j.templateVersion(), j.partialAcceptance(), j.fileSha256(), j.status().name(), 0, 0, file, Timestamp.from(j.createdAt()), Timestamp.from(j.updatedAt()));
+        return jdbc.query("INSERT INTO customer_import (id,tenant_id,requested_by,correlation_id,idempotency_key,file_name,content_type,template_version,partial_acceptance,file_sha256,status,total_rows,accepted_rows,rejected_rows,original_file,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT (tenant_id,requested_by,idempotency_key) DO NOTHING RETURNING *", rs -> rs.next() ? Optional.of(map(rs, 0)) : Optional.empty(), j.id(), j.tenantId(), j.requestedBy(), j.correlationId(), j.idempotencyKey(), j.fileName(), j.contentType(), j.templateVersion(), j.partialAcceptance(), j.fileSha256(), j.status().name(), j.totalRows(), 0, 0, file, Timestamp.from(j.createdAt()), Timestamp.from(j.updatedAt()));
     }
 
     @Override
@@ -45,8 +45,9 @@ public final class JdbcCustomerImportStore implements CustomerImportStore {
     }
 
     @Override
-    public void complete(UUID id, int accepted, int rejected, boolean failed) {
-        jdbc.update("UPDATE customer_import SET status=?,accepted_rows=?,rejected_rows=?,terminal_at=now(),error_file_expires_at=now()+interval '30 days',updated_at=now() WHERE id=? AND status='PROCESSING'", failed ? "FAILED" : rejected == 0 ? "COMPLETED" : "COMPLETED_WITH_ERRORS", accepted, rejected, id);
+    public void complete(UUID id, Integer total, int accepted, int rejected, boolean failed,
+                         CustomerImport.FailureReason failureReason) {
+        jdbc.update("UPDATE customer_import SET status=?,total_rows=?,accepted_rows=?,rejected_rows=?,failure_reason=?,terminal_at=now(),error_file_expires_at=now()+interval '30 days',updated_at=now() WHERE id=? AND status='PROCESSING'", failed ? "FAILED" : rejected == 0 ? "COMPLETED" : "COMPLETED_WITH_ERRORS", total, accepted, rejected, failureReason == null ? null : failureReason.name(), id);
     }
 
     @Override
@@ -57,7 +58,7 @@ public final class JdbcCustomerImportStore implements CustomerImportStore {
 
     @Override
     public Optional<CustomerImport> fail(UUID id, UUID tenant) {
-        return jdbc.query("UPDATE customer_import SET status='FAILED',terminal_at=now(),error_file_expires_at=now()+interval '30 days',updated_at=now() WHERE id=? AND tenant_id=? AND status IN ('PENDING','PROCESSING') RETURNING *", rs -> rs.next() ? Optional.of(map(rs, 0)) : Optional.empty(), id, tenant);
+        return jdbc.query("UPDATE customer_import SET status='FAILED',failure_reason=NULL,terminal_at=now(),error_file_expires_at=now()+interval '30 days',updated_at=now() WHERE id=? AND tenant_id=? AND status IN ('PENDING','PROCESSING') RETURNING *", rs -> rs.next() ? Optional.of(map(rs, 0)) : Optional.empty(), id, tenant);
     }
 
     @Override
@@ -71,6 +72,7 @@ public final class JdbcCustomerImportStore implements CustomerImportStore {
     }
 
     private CustomerImport map(ResultSet r, int n) throws SQLException {
-        return new CustomerImport(r.getObject("id", UUID.class), r.getObject("tenant_id", UUID.class), r.getObject("requested_by", UUID.class), r.getObject("correlation_id", UUID.class), r.getString("idempotency_key"), r.getString("file_name"), r.getString("content_type"), r.getString("template_version"), r.getBoolean("partial_acceptance"), r.getString("file_sha256"), CustomerImport.Status.valueOf(r.getString("status")), r.getInt("accepted_rows"), r.getInt("rejected_rows"), r.getTimestamp("created_at").toInstant(), r.getTimestamp("updated_at").toInstant(), r.getTimestamp("terminal_at") == null ? null : r.getTimestamp("terminal_at").toInstant(), r.getTimestamp("error_file_expires_at") == null ? null : r.getTimestamp("error_file_expires_at").toInstant());
+        String failureReason = r.getString("failure_reason");
+        return new CustomerImport(r.getObject("id", UUID.class), r.getObject("tenant_id", UUID.class), r.getObject("requested_by", UUID.class), r.getObject("correlation_id", UUID.class), r.getString("idempotency_key"), r.getString("file_name"), r.getString("content_type"), r.getString("template_version"), r.getBoolean("partial_acceptance"), r.getString("file_sha256"), CustomerImport.Status.valueOf(r.getString("status")), r.getObject("total_rows", Integer.class), r.getInt("accepted_rows"), r.getInt("rejected_rows"), r.getTimestamp("created_at").toInstant(), r.getTimestamp("updated_at").toInstant(), r.getTimestamp("terminal_at") == null ? null : r.getTimestamp("terminal_at").toInstant(), r.getTimestamp("error_file_expires_at") == null ? null : r.getTimestamp("error_file_expires_at").toInstant(), failureReason == null ? null : CustomerImport.FailureReason.valueOf(failureReason));
     }
 }

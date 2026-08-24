@@ -1,0 +1,3 @@
+# template-version: 1.0
+name,address,latitude,longitude,documentType,documentNumber,phone,emailAddress,segment,visitFrequencyDays,territoryId
+Cliente de prueba,Dirección de prueba,-12.0464,-77.0428,,,,,MAYORISTA,30,

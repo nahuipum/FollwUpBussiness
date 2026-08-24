@@ -1,0 +1,4 @@
+# template-version: 1.0
+name,address,latitude,longitude,documentType,documentNumber,phone,email,segment,visitFrequencyDays,territoryId
+Cliente Demo Centro,Jr. Muestra 300,-12.0600,-77.0350,,,,,PREFERENTE,30,
+Cliente Demo Este,Pasaje Ensayo 400,-12.0550,-77.0100,,,,,MAYORISTA,21,

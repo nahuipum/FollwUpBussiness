@@ -37,4 +37,19 @@ class SecurityContextAuditTrustedContextProviderTest {
         assertThat(context.actorId()).isEqualTo(actor);
         assertThat(context.correlationId()).isEqualTo(correlation);
     }
+
+    @Test
+    void usesThePersistedJobCorrelationAttachedToTheAsyncAuthentication() {
+        UUID tenant = UUID.randomUUID(), actor = UUID.randomUUID(), correlation = UUID.randomUUID();
+        var authentication = UsernamePasswordAuthenticationToken.authenticated(
+                new AuthenticatedActor(actor, tenant, BaseRole.COMPANY_ADMIN), "internal-import-worker", java.util.List.of());
+        authentication.setDetails(correlation);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        var context = provider.current();
+
+        assertThat(context.tenantId()).isEqualTo(tenant);
+        assertThat(context.actorId()).isEqualTo(actor);
+        assertThat(context.correlationId()).isEqualTo(correlation);
+    }
 }

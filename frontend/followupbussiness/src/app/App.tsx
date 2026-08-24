@@ -17,6 +17,7 @@ import { CompanyUsersPageRoute } from "../features/company-users/CompanyUsersPag
 import { CompanyTerritoriesPage } from "../features/company-territories/CompanyTerritoriesPage";
 import { CustomerAssignmentPage } from "../features/company-customer-assignments/components/CustomerAssignmentPage";
 import { CompanyClientImportPage } from "../features/company-client-import/CompanyClientImportPage";
+import { CompanyClientImportResultPage } from "../features/company-client-import/CompanyClientImportResultPage";
 import { SupervisorDashboardPage } from "../features/supervisor-dashboard/SupervisorDashboardPage";
 import { CompanyWorkspaceLayout } from "./components/CompanyWorkspaceLayout";
 import { PlatformWorkspaceLayout } from "./components/PlatformWorkspaceLayout";
@@ -85,6 +86,7 @@ export function App() {
 
   const canAccessCompanyUsers = path === "/company/administrators-supervisors" &&
     (getSessionIdentity()?.roles.includes("COMPANY_ADMIN") || getSessionIdentity()?.roles.includes("SUPERVISOR"));
+  const importResultId = /^\/company\/customer-imports\/([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i.exec(path)?.[1] ?? null;
   if (hasSession() && (canAccessPath(path) || canAccessCompanyUsers)) {
     if (path === "/platform/dashboard")
       return <PlatformWorkspaceLayout activeSection="dashboard"><PlatformDashboardPage /></PlatformWorkspaceLayout>;
@@ -98,6 +100,8 @@ export function App() {
       return <CompanyWorkspaceLayout workspace="company" activeSection="clients"><CompanyClientsMapPage /></CompanyWorkspaceLayout>;
     if (path === "/company/customer-imports")
       return <CompanyWorkspaceLayout workspace="company" activeSection="clients"><CompanyClientImportPage /></CompanyWorkspaceLayout>;
+    if (importResultId !== null)
+      return <CompanyWorkspaceLayout workspace="company" activeSection="clients"><CompanyClientImportResultPage importId={importResultId} /></CompanyWorkspaceLayout>;
     if (path === "/company/customer-assignments")
       return <CompanyWorkspaceLayout workspace="company" activeSection="customer-assignments"><CustomerAssignmentPage /></CompanyWorkspaceLayout>;
     if (path === "/company/sellers")

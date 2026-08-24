@@ -89,10 +89,10 @@ public final class CustomerImportController {
         }
     }
 
-    record View(UUID importId, String status, int acceptedRows, int rejectedRows, java.time.Instant createdAt,
-                java.time.Instant errorFileExpiresAt) {
+    record View(UUID importId, String status, Integer totalRows, int acceptedRows, int rejectedRows, java.time.Instant createdAt,
+                java.time.Instant completedAt, java.time.Instant errorFileExpiresAt, CustomerImport.FailureReason failureReason) {
         static View from(CustomerImport x) {
-            return new View(x.id(), x.status().name(), x.acceptedRows(), x.rejectedRows(), x.createdAt(), x.errorFileExpiresAt());
+            return new View(x.id(), x.status().name(), x.totalRows(), x.acceptedRows(), x.rejectedRows(), x.createdAt(), x.terminalAt(), x.errorFileExpiresAt(), x.failureReason());
         }
     }
 }

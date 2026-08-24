@@ -16,13 +16,14 @@ type InlineAlertProps = {
   message: ReactNode;
   action?: VisualAction;
   correlationId?: string;
+  className?: string;
 };
 
-export function InlineAlert({ variant, title, message, action, correlationId }: InlineAlertProps) {
+export function InlineAlert({ variant, title, message, action, correlationId, className }: InlineAlertProps) {
   const Icon = variant === "warning" ? CircleAlert : Info;
 
   return (
-    <section className={`error-ui-inline-alert error-ui-inline-alert--${variant}`} role="alert">
+    <section className={`error-ui-inline-alert error-ui-inline-alert--${variant}${className ? ` ${className}` : ""}`} role="alert">
       <span className="error-ui-inline-alert__icon" aria-hidden="true"><Icon /></span>
       <div className="error-ui-inline-alert__content">
         {title && <h2>{title}</h2>}

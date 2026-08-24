@@ -22,6 +22,20 @@ import java.util.zip.ZipOutputStream;
 import org.junit.jupiter.api.Test;
 
 class CustomerImportProcessorTest {
+    @Test void persistsAllParsedRowsIncludingRowsRejectedDuringValidation() {
+        UUID importId = UUID.randomUUID(), tenantId = UUID.randomUUID();
+        CustomerImportStore store = mock(CustomerImportStore.class);
+        CustomerImport job = new CustomerImport(importId, tenantId, UUID.randomUUID(), UUID.randomUUID(), "key", "customers.csv", "text/csv", "1.0", true, "0".repeat(64), CustomerImport.Status.PENDING, 0, 0, Instant.now(), Instant.now(), null, null);
+        byte[] csv = ("# template-version: 1.0\n"
+                + "name,address,latitude,longitude,documentType,documentNumber,phone,email,segment,visitFrequencyDays,territoryId\n"
+                + "Cliente,Dirección,invalid,0,,,,,,,\n").getBytes(StandardCharsets.UTF_8);
+        when(store.claim(importId, tenantId)).thenReturn(Optional.of(new CustomerImportStore.ClaimedImport(job, csv)));
+
+        new CustomerImportProcessor(store, mock(CreateCustomerService.class), mock(CheckCustomerDuplicatesService.class)).process(importId, tenantId);
+
+        verify(store).complete(importId, 1, 0, 1, false, null);
+    }
+
     @Test void acceptsXlsxWithRequiredMetadataAndOneWorksheet() throws Exception {
         UUID importId = UUID.randomUUID(), tenantId = UUID.randomUUID();
         CustomerImportStore store = mock(CustomerImportStore.class);
@@ -29,7 +43,7 @@ class CustomerImportProcessorTest {
         when(store.claim(importId, tenantId)).thenReturn(Optional.of(new CustomerImportStore.ClaimedImport(job, xlsx(true, false))));
         new CustomerImportProcessor(store, mock(CreateCustomerService.class), mock(CheckCustomerDuplicatesService.class)).process(importId, tenantId);
         verify(store).recordRowErrors(importId, List.of());
-        verify(store).complete(importId, 0, 0, false);
+        verify(store).complete(importId, 0, 0, 0, false, null);
     }
 
     @Test void rejectsXlsxWithoutTemplateVersionMetadata() throws Exception { assertInvalidTemplate(xlsx(false, false)); }
@@ -43,7 +57,7 @@ class CustomerImportProcessorTest {
         CreateCustomerService customers = mock(CreateCustomerService.class);
         new CustomerImportProcessor(store, customers, mock(CheckCustomerDuplicatesService.class)).process(importId, tenantId);
         verify(store).recordRowErrors(eq(importId), eq(List.of(new CustomerImportStore.RowError(1, "INVALID_TEMPLATE"))));
-        verify(store).complete(importId, 0, 1, true);
+        verify(store).complete(importId, null, 0, 1, true, CustomerImport.FailureReason.INVALID_TEMPLATE);
         verify(customers, never()).create(any(), any());
     }
 

@@ -365,6 +365,9 @@ export function getSessionMutationAuthorization(): HeadersInit {
 }
 
 export function canAccessPath(path: string): boolean {
+  const importResultRoute = /^\/company\/customer-imports\/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (importResultRoute.test(path))
+    return session !== null && session.roles.includes("COMPANY_ADMIN");
   const requiredRole: Record<string, UserRole> = {
     "/platform/dashboard": "PLATFORM_SUPERADMIN",
     "/platform/companies": "PLATFORM_SUPERADMIN",
