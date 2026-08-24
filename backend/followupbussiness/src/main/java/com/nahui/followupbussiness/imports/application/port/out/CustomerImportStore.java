@@ -8,6 +8,7 @@ import java.util.UUID;
 public interface CustomerImportStore {
     Optional<CustomerImport> findByIdempotency(UUID tenantId, UUID requesterId, String key);
     Optional<CustomerImport> findById(UUID tenantId, UUID id);
+    List<RowError> findRowErrors(UUID tenantId, UUID importId);
     Optional<CustomerImport> insertIfAbsent(CustomerImport job, byte[] contents);
     Optional<ClaimedImport> claim(UUID importId, UUID tenantId);
     void complete(UUID importId, int acceptedRows, int rejectedRows, boolean failed);

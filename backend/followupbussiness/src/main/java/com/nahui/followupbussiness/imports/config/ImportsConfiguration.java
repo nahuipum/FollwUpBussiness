@@ -11,6 +11,7 @@ import com.nahui.followupbussiness.imports.application.CustomerImportProcessor;
 import com.nahui.followupbussiness.imports.application.port.out.CustomerImportProcessingAudit;
 import com.nahui.followupbussiness.imports.application.port.out.CustomerImportStore;
 import com.nahui.followupbussiness.audit.application.port.out.AuditEntryStore;
+import com.nahui.followupbussiness.audit.application.port.in.RecordAuditEntryUseCase;
 import com.nahui.followupbussiness.customers.application.CheckCustomerDuplicatesService;
 import com.nahui.followupbussiness.customers.application.CreateCustomerService;
 import com.nahui.followupbussiness.outbox.application.port.out.OutboxStore;
@@ -30,7 +31,7 @@ import java.time.Clock;
 public class ImportsConfiguration {
     private static final int MAX_MESSAGE_TTL_MS = 86_400_000;
     @Bean DownloadCustomerImportTemplateUseCase downloadCustomerImportTemplateUseCase() { return new CustomerImportTemplateService(); }
-    @Bean CustomerImportService customerImportService(JdbcTemplate jdbc, OutboxStore outbox) { return new CustomerImportService(new JdbcCustomerImportStore(jdbc), outbox, Clock.systemUTC()); }
+    @Bean CustomerImportService customerImportService(JdbcTemplate jdbc, OutboxStore outbox, RecordAuditEntryUseCase audit, MeterRegistry meters) { return new CustomerImportService(new JdbcCustomerImportStore(jdbc), outbox, Clock.systemUTC(), audit, meters.counter("customer_imports.errors.downloaded")); }
     @Bean CustomerImportStore customerImportStore(JdbcTemplate jdbc) { return new JdbcCustomerImportStore(jdbc); }
     @Bean CustomerImportProcessor customerImportProcessor(CustomerImportStore store, CreateCustomerService customers, CheckCustomerDuplicatesService duplicates) { return new CustomerImportProcessor(store, customers, duplicates); }
     @Bean CustomerImportProcessingAudit customerImportProcessingAudit(AuditEntryStore store) { return new AuditCustomerImportProcessing(store, Clock.systemUTC()); }

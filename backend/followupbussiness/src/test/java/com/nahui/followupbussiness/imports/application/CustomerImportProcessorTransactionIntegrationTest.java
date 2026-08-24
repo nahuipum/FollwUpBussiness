@@ -75,6 +75,7 @@ class CustomerImportProcessorTransactionIntegrationTest {
     private record FailingRowErrorStore(CustomerImportStore delegate) implements CustomerImportStore {
         public Optional<CustomerImport> findByIdempotency(UUID tenantId, UUID requesterId, String key) { return delegate.findByIdempotency(tenantId, requesterId, key); }
         public Optional<CustomerImport> findById(UUID tenantId, UUID id) { return delegate.findById(tenantId, id); }
+        public List<RowError> findRowErrors(UUID tenantId, UUID importId) { return delegate.findRowErrors(tenantId, importId); }
         public Optional<CustomerImport> insertIfAbsent(CustomerImport job, byte[] contents) { return delegate.insertIfAbsent(job, contents); }
         public Optional<ClaimedImport> claim(UUID importId, UUID tenantId) { return delegate.claim(importId, tenantId); }
         public void complete(UUID importId, int acceptedRows, int rejectedRows, boolean failed) { delegate.complete(importId, acceptedRows, rejectedRows, failed); }

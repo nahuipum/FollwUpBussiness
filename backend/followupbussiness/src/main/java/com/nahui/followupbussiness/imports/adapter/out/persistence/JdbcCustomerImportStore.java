@@ -15,6 +15,9 @@ public final class JdbcCustomerImportStore implements CustomerImportStore {
     public JdbcCustomerImportStore(JdbcTemplate jdbc) { this.jdbc = jdbc; }
     @Override public Optional<CustomerImport> findByIdempotency(UUID tenant, UUID requester, String key) { return jdbc.query("SELECT * FROM customer_import WHERE tenant_id=? AND requested_by=? AND idempotency_key=?", this::map, tenant, requester, key).stream().findFirst(); }
     @Override public Optional<CustomerImport> findById(UUID tenant, UUID id) { return jdbc.query("SELECT * FROM customer_import WHERE tenant_id=? AND id=?", this::map, tenant, id).stream().findFirst(); }
+    @Override public List<RowError> findRowErrors(UUID tenant, UUID importId) {
+        return jdbc.query("SELECT e.row_number,e.error_code FROM customer_import_row_error e JOIN customer_import i ON i.id=e.import_id WHERE i.tenant_id=? AND e.import_id=? ORDER BY e.row_number,e.error_code", (r, n) -> new RowError(r.getInt("row_number"), r.getString("error_code")), tenant, importId);
+    }
     @Override public Optional<CustomerImport> insertIfAbsent(CustomerImport j, byte[] file) {
         return jdbc.query("INSERT INTO customer_import (id,tenant_id,requested_by,correlation_id,idempotency_key,file_name,content_type,template_version,partial_acceptance,file_sha256,status,accepted_rows,rejected_rows,original_file,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT (tenant_id,requested_by,idempotency_key) DO NOTHING RETURNING *", rs -> rs.next() ? Optional.of(map(rs, 0)) : Optional.empty(), j.id(),j.tenantId(),j.requestedBy(),j.correlationId(),j.idempotencyKey(),j.fileName(),j.contentType(),j.templateVersion(),j.partialAcceptance(),j.fileSha256(),j.status().name(),0,0,file,Timestamp.from(j.createdAt()),Timestamp.from(j.updatedAt()));
     }

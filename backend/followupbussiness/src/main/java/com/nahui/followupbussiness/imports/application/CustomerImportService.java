@@ -2,6 +2,11 @@ package com.nahui.followupbussiness.imports.application;
 
 import com.nahui.followupbussiness.imports.application.port.in.*;
 import com.nahui.followupbussiness.imports.application.port.out.CustomerImportStore;
+import com.nahui.followupbussiness.audit.application.RecordAuditEntryCommand;
+import com.nahui.followupbussiness.audit.application.port.in.RecordAuditEntryUseCase;
+import com.nahui.followupbussiness.audit.domain.AuditAction;
+import com.nahui.followupbussiness.audit.domain.AuditResourceType;
+import com.nahui.followupbussiness.audit.domain.AuditResult;
 import com.nahui.followupbussiness.imports.domain.CustomerImport;
 import com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor;
 import com.nahui.followupbussiness.identityaccess.domain.model.BaseRole;
@@ -12,13 +17,16 @@ import java.security.MessageDigest;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.HexFormat;
+import java.util.Map;
 import java.util.UUID;
+import io.micrometer.core.instrument.Counter;
 import org.springframework.transaction.annotation.Transactional;
 
-public final class CustomerImportService implements CreateCustomerImportUseCase, GetCustomerImportUseCase {
+public final class CustomerImportService implements CreateCustomerImportUseCase, GetCustomerImportUseCase, DownloadCustomerImportErrorsUseCase {
     private static final int MAX_BYTES = 10 * 1024 * 1024;
     private final CustomerImportStore store; private final OutboxStore outbox; private final Clock clock;
-    public CustomerImportService(CustomerImportStore store, OutboxStore outbox, Clock clock) { this.store = store; this.outbox = outbox; this.clock = clock; }
+    private final RecordAuditEntryUseCase audit; private final Counter downloads;
+    public CustomerImportService(CustomerImportStore store, OutboxStore outbox, Clock clock, RecordAuditEntryUseCase audit, Counter downloads) { this.store = store; this.outbox = outbox; this.clock = clock; this.audit = audit; this.downloads = downloads; }
     @Override @Transactional public CustomerImport create(Command c, AuthenticatedActor actor, UUID correlation) {
         authorize(actor); validate(c); String hash = sha256(c.contents());
         var previous = store.findByIdempotency(actor.tenantId(), actor.accountId(), c.idempotencyKey());
@@ -36,7 +44,23 @@ public final class CustomerImportService implements CreateCustomerImportUseCase,
         return saved.get();
     }
     @Override public java.util.Optional<CustomerImport> get(UUID id, AuthenticatedActor actor) { authorize(actor); return store.findById(actor.tenantId(), id); }
+    @Override @Transactional public ErrorFile download(UUID id, AuthenticatedActor actor) {
+        authorizeDownload(actor);
+        CustomerImport job = store.findById(actor.tenantId(), id).orElseThrow(DownloadCustomerImportErrorsUseCase.NotFound::new);
+        if (job.errorFileExpiresAt() != null && !job.errorFileExpiresAt().isAfter(clock.instant())) throw new DownloadCustomerImportErrorsUseCase.Expired();
+        if (!terminal(job.status()) || job.rejectedRows() == 0) throw new DownloadCustomerImportErrorsUseCase.NotFound();
+        var errors = store.findRowErrors(actor.tenantId(), id);
+        if (errors.isEmpty()) throw new DownloadCustomerImportErrorsUseCase.NotFound();
+        byte[] csv = csv(errors);
+        if (!audit.record(new RecordAuditEntryCommand(AuditAction.RESOURCE_ACCESS, AuditResourceType.CUSTOMER_IMPORT, id, AuditResult.SUCCESS, Map.of(), Map.of("operation", "ERRORS_DOWNLOADED")))) throw new IllegalStateException("audit persistence failed");
+        downloads.increment();
+        return new ErrorFile("customer-import-errors-" + id + ".csv", csv);
+    }
     private static void authorize(AuthenticatedActor a) { if (a == null || a.tenantId() == null || a.accountId() == null || a.role() != BaseRole.COMPANY_ADMIN) throw new CreateCustomerImportUseCase.Forbidden(); }
+    private static void authorizeDownload(AuthenticatedActor a) { if (a == null || a.tenantId() == null || a.accountId() == null || a.role() != BaseRole.COMPANY_ADMIN) throw new DownloadCustomerImportErrorsUseCase.Forbidden(); }
+    private static boolean terminal(CustomerImport.Status status) { return status == CustomerImport.Status.COMPLETED || status == CustomerImport.Status.COMPLETED_WITH_ERRORS || status == CustomerImport.Status.FAILED; }
+    private static byte[] csv(java.util.List<CustomerImportStore.RowError> errors) { StringBuilder result = new StringBuilder("row_number,error_code\r\n"); for (var error : errors) result.append(error.rowNumber()).append(',').append(safeCode(error.code())).append("\r\n"); return result.toString().getBytes(StandardCharsets.UTF_8); }
+    private static String safeCode(String code) { return code != null && code.matches("[A-Z_]{1,80}") ? code : "INVALID_ROW"; }
     private static boolean sameRequest(CustomerImport existing, String hash, Command command) { return existing.fileSha256().equals(hash) && existing.templateVersion().equals(command.templateVersion()) && existing.partialAcceptance() == command.partialAcceptance(); }
     private static void validate(Command c) { if (c == null || c.idempotencyKey() == null || !c.idempotencyKey().matches("[A-Za-z0-9._:-]{1,128}")) throw new Invalid("idempotency"); if (c.contents() == null || c.contents().length == 0) throw new Invalid("file"); if (c.contents().length > MAX_BYTES) throw new PayloadTooLarge(); if (!"1.0".equals(c.templateVersion())) throw new Invalid("version"); if (!("text/csv".equalsIgnoreCase(base(c.contentType())) || "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet".equalsIgnoreCase(base(c.contentType())))) throw new Invalid("content type"); }
     private static String base(String x) { return x == null ? "" : x.split(";", 2)[0].trim(); }
