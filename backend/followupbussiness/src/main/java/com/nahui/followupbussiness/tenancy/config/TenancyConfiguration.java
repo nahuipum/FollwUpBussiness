@@ -8,6 +8,8 @@ import com.nahui.followupbussiness.tenancy.adapter.out.persistence.JdbcCompanyLi
 import com.nahui.followupbussiness.tenancy.adapter.out.persistence.JdbcCompanyDetailStore;
 import com.nahui.followupbussiness.tenancy.adapter.out.persistence.JdbcCompanyCurrencyCatalog;
 import com.nahui.followupbussiness.tenancy.adapter.out.persistence.JdbcCurrentCompanyQuery;
+import com.nahui.followupbussiness.tenancy.adapter.out.persistence.JdbcCompanySettingsStore;
+import com.nahui.followupbussiness.tenancy.application.CompanySettingsService;
 import com.nahui.followupbussiness.tenancy.application.ChangeCompanyStatusService;
 import com.nahui.followupbussiness.tenancy.application.CreateCompanyService;
 import com.nahui.followupbussiness.tenancy.application.ListCompaniesService;
@@ -20,8 +22,12 @@ import com.nahui.followupbussiness.tenancy.application.port.in.CreateCompanyUseC
 import com.nahui.followupbussiness.tenancy.application.port.in.ListCompaniesUseCase;
 import com.nahui.followupbussiness.tenancy.application.port.in.ListCompanyCurrenciesUseCase;
 import com.nahui.followupbussiness.tenancy.application.port.in.GetCompanyUseCase;
+import com.nahui.followupbussiness.tenancy.application.port.in.CompanySettingsUseCase;
 import com.nahui.followupbussiness.audit.application.port.in.RecordPlatformCompanyAuditUseCase;
 import com.nahui.followupbussiness.audit.application.port.in.RecordCompanyDenialAuditUseCase;
+import com.nahui.followupbussiness.audit.application.port.in.RecordAuditEntryUseCase;
+import io.micrometer.core.instrument.MeterRegistry;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -42,6 +48,26 @@ public class TenancyConfiguration {
     @Bean
     CurrentCompanyQuery currentCompanyQuery(JdbcTemplate jdbcTemplate) {
         return new JdbcCurrentCompanyQuery(jdbcTemplate);
+    }
+
+    @Bean
+    CompanySettingsUseCase companySettingsUseCase(JdbcTemplate jdbcTemplate, PlatformTransactionManager transactionManager,
+                                                  @Qualifier("transactionalAuditEntryUseCase") RecordAuditEntryUseCase audit,
+                                                  MeterRegistry meters) {
+        var service = new CompanySettingsService(new JdbcCompanySettingsStore(jdbcTemplate), audit,
+                meters.counter("company.settings.updated"), meters.counter("company.settings.rejected"),
+                meters.counter("company.settings.conflicts"), Clock.systemUTC());
+        var transaction = new TransactionTemplate(transactionManager);
+        return new CompanySettingsUseCase() {
+            @Override public java.util.Optional<com.nahui.followupbussiness.tenancy.domain.model.Company> get(
+                    com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor actor) {
+                return service.get(actor);
+            }
+            @Override public com.nahui.followupbussiness.tenancy.domain.model.Company update(Update command,
+                    com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor actor) {
+                return transaction.execute(status -> service.update(command, actor));
+            }
+        };
     }
 
     @Bean

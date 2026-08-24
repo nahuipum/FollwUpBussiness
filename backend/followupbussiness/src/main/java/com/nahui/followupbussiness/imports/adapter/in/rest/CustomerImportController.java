@@ -7,11 +7,13 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.util.UUID;
 import org.springframework.http.*;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController @RequestMapping("/customer-imports")
+@ConditionalOnProperty(prefix = "followupbussiness.outbox", name = "enabled", havingValue = "true", matchIfMissing = true)
 public final class CustomerImportController {
  private static final MediaType CSV = MediaType.parseMediaType("text/csv;charset=UTF-8");
  private final CreateCustomerImportUseCase create; private final GetCustomerImportUseCase get; private final DownloadCustomerImportErrorsUseCase errors;

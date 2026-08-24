@@ -1,8 +1,6 @@
 package com.nahui.followupbussiness.imports.config;
 
-import com.nahui.followupbussiness.imports.application.CustomerImportTemplateService;
 import com.nahui.followupbussiness.imports.application.CustomerImportService;
-import com.nahui.followupbussiness.imports.application.port.in.DownloadCustomerImportTemplateUseCase;
 import com.nahui.followupbussiness.imports.adapter.out.persistence.JdbcCustomerImportStore;
 import com.nahui.followupbussiness.imports.adapter.out.audit.AuditCustomerImportProcessing;
 import com.nahui.followupbussiness.imports.adapter.in.messaging.CustomerImportRequestedListener;
@@ -24,13 +22,14 @@ import org.springframework.amqp.core.TopicExchange;
 import tools.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.jdbc.core.JdbcTemplate;
 import java.time.Clock;
 
 @Configuration(proxyBeanMethods = false)
+@ConditionalOnProperty(prefix = "followupbussiness.outbox", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class ImportsConfiguration {
     private static final int MAX_MESSAGE_TTL_MS = 86_400_000;
-    @Bean DownloadCustomerImportTemplateUseCase downloadCustomerImportTemplateUseCase() { return new CustomerImportTemplateService(); }
     @Bean CustomerImportService customerImportService(JdbcTemplate jdbc, OutboxStore outbox, RecordAuditEntryUseCase audit, MeterRegistry meters) { return new CustomerImportService(new JdbcCustomerImportStore(jdbc), outbox, Clock.systemUTC(), audit, meters.counter("customer_imports.errors.downloaded")); }
     @Bean CustomerImportStore customerImportStore(JdbcTemplate jdbc) { return new JdbcCustomerImportStore(jdbc); }
     @Bean CustomerImportProcessor customerImportProcessor(CustomerImportStore store, CreateCustomerService customers, CheckCustomerDuplicatesService duplicates) { return new CustomerImportProcessor(store, customers, duplicates); }
