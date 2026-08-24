@@ -1253,6 +1253,13 @@ paths:
       tags: [Customer imports]
       operationId: downloadCustomerImportTemplate
       summary: Descargar plantilla versionada de clientes
+      description: >-
+        Negocia `Accept` entre `text/csv` y XLSX; sin `Accept` o con `*/*` devuelve CSV.
+        CSV UTF-8 inicia con `# template-version: 1.0`, que BE-019 debe ignorar antes del
+        encabezado. XLSX expone `TemplateVersion=1.0` en propiedades. El encabezado exacto y
+        ordenado es `name,address,latitude,longitude,documentType,documentNumber,phone,email,segment,visitFrequencyDays,territoryId`;
+        las primeras cuatro columnas son obligatorias y el resto opcionales. `territoryId`, si
+        se informa al importar, debe ser un territorio activo del tenant. Un `Accept` incompatible devuelve 406.
       x-required-roles: [COMPANY_ADMIN]
       x-story-ids: [BE-018, FE-012]
       responses:
@@ -1268,6 +1275,8 @@ paths:
             application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
               schema: { type: string, format: binary }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '406':
+          description: Representación no compatible con `Accept`
 
   /customer-imports:
     post:

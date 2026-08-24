@@ -40,9 +40,9 @@ no entra a sprint si sus predecesoras o contratos no están listos.
 | FE-034 | Manejo global de errores y permisos | BE-003, BE-007 | FE-004, FE-005, FE-008, FE-014, FE-020, FE-022, FE-023, FE-026, FE-030, FE-032, FE-033, FE-035, FE-037, FE-038, INT-002, INT-028 |
 | FE-039 | Onboarding de empresa desde plataforma | BE-001, BE-057, FE-003, FE-034 | INT-001 |
 | FE-004 | Gestión de usuarios y roles | BE-058, FE-003, FE-034 | INT-033 |
-| MOB-001 | Iniciar sesión móvil | BE-003, EN-013 | INT-003, INT-004, MOB-002, MOB-003, MOB-027 |
-| MOB-002 | Renovar y cerrar sesión | BE-004, BE-005, MOB-001 | INT-003, MOB-004 |
-| MOB-027 | Proteger datos locales | EN-015, MOB-001 | INT-003, MOB-004, MOB-015, MOB-019, MOB-028 |
+| MOB-001 | Iniciar sesión móvil | BE-003, EN-013 | INT-003, INT-004, MOB-002, MOB-003, MOB-027, MOB-033 |
+| MOB-002 | Renovar y cerrar sesión | BE-004, BE-005, MOB-001 | INT-003, MOB-004, MOB-034 |
+| MOB-027 | Proteger datos locales | EN-015, MOB-001 | INT-003, MOB-004, MOB-015, MOB-019, MOB-028, MOB-033, MOB-034 |
 | INT-001 | Onboarding completo de empresa | BE-001, BE-006, BE-057, FE-001, FE-039 | Cierre/DoF |
 | INT-002 | Autenticación web completa | BE-003, BE-004, BE-005, BE-006, BE-007, FE-001, FE-002, FE-003, FE-034 | Cierre/DoF |
 | INT-038 | Suspensión y reactivación de empresa E2E | BE-002, BE-003, BE-004, BE-005, FE-001 | Cierre/DoF |
@@ -90,6 +90,8 @@ no entra a sprint si sus predecesoras o contratos no están listos.
 | FE-012 | Carga de clientes | BE-018, BE-019, FE-008 | FE-013, INT-006 |
 | FE-013 | Resultado de importación | BE-019, BE-020, FE-012 | INT-006 |
 | FE-033 | Configurar geocerca y tracking | BE-054, FE-003, FE-034 | INT-013 |
+| MOB-033 | Definir sistema visual y componentes base mobile | MOB-001, MOB-027 | MOB-034, MOB-004, MOB-005, MOB-006, MOB-007, MOB-008, MOB-009, MOB-010, MOB-011, MOB-012, MOB-013, MOB-014, MOB-015, MOB-016, MOB-017, MOB-018, MOB-019, MOB-020, MOB-021, MOB-022, MOB-023, MOB-024, MOB-025, MOB-026, MOB-029, MOB-030, MOB-031, MOB-032 |
+| MOB-034 | Definir navegación y plantillas operativas mobile | MOB-002, MOB-027, MOB-033 | MOB-004, MOB-005, MOB-006, MOB-007, MOB-008, MOB-009, MOB-010, MOB-011, MOB-012, MOB-013, MOB-014, MOB-015, MOB-016, MOB-017, MOB-018, MOB-019, MOB-020, MOB-021, MOB-022, MOB-023, MOB-024, MOB-025, MOB-026, MOB-029, MOB-030, MOB-031, MOB-032 |
 | INT-006 | Importación completa de clientes | BE-018, BE-019, BE-020, BE-056, FE-012, FE-013 | INT-030 |
 
 ## Sprint 4 — Planificación y entrega de rutas
@@ -111,7 +113,7 @@ no entra a sprint si sus predecesoras o contratos no están listos.
 | FE-016 | Generar ruta automática | BE-022, BE-023, EN-018, FE-014 | INT-008 |
 | FE-017 | Publicar ruta | BE-024, FE-015 | INT-007 |
 | FE-018 | Reasignar ruta | BE-025, FE-014 | INT-009 |
-| MOB-004 | Descargar ruta del día | BE-061, EN-015, MOB-002, MOB-027 | INT-007, MOB-005, MOB-007, MOB-029 |
+| MOB-004 | Descargar ruta del día | BE-061, EN-015, MOB-002, MOB-027, MOB-033, MOB-034 | INT-007, MOB-005, MOB-007, MOB-029 |
 | MOB-005 | Ver clientes pendientes y visitados | MOB-004 | MOB-006, MOB-011 |
 | MOB-006 | Abrir navegación al cliente | EN-014, MOB-005 | INT-007 |
 | MOB-029 | Recibir ruta asignada o modificada | BE-053, EN-017, MOB-004 | INT-007, INT-009 |

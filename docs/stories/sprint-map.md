@@ -114,15 +114,20 @@ historia y sus flechas de dependencia está en
 
 ## Sprint 3 — Importación y configuración operativa
 
-### Ola 3A — Configuración previa al campo
+### Ola 3A — Base de experiencia mobile
+
+- MOB-033 y MOB-034. Definen sistema visual, navegación y estados comunes;
+  no habilitan acciones de negocio ni dependen de productores futuros.
+
+### Ola 3B — Configuración previa al campo
 
 - BE-054 y FE-033.
 
-### Ola 3B — Importación
+### Ola 3C — Importación
 
 - BE-018, BE-019, BE-020, FE-012 y FE-013.
 
-### Ola 3C — Validación vertical
+### Ola 3D — Validación vertical
 
 - INT-006.
 
@@ -132,6 +137,8 @@ historia y sus flechas de dependencia está en
   tracking antes de crear jornadas.
 - Archivo, cola, resultado y descarga de errores están probados sin bloquear la
   API ni mezclar tenants.
+- La aplicación móvil tiene componentes, navegación y estados reutilizables
+  antes de incorporar los módulos operativos del Sprint 4.
 
 ## Sprint 4 — Planificación y entrega de rutas
 

@@ -125,6 +125,9 @@
 | MOB-029 — Recibir ruta asignada o modificada | Mobile | RF-RUT-007 |
 | MOB-030 — Manejar batería y servicios desactivados | Mobile | R-001; R-002 |
 | MOB-031 — Consultar resumen diario | Mobile | 12.6; 18.1..18.3 |
+| MOB-032 — Editar venta dentro de ventana | Mobile | RN-012; RF-VTA-005 |
+| MOB-033 — Definir sistema visual y componentes base mobile | Mobile | RNF-002; RNF-006; MOB-001 |
+| MOB-034 — Definir navegación y plantillas operativas mobile | Mobile | RNF-002; RNF-006; EN-015; MOB-001; MOB-002; MOB-027 |
 | INT-001 — Onboarding completo de empresa | Integración | Flujo 12.1 |
 | INT-002 — Autenticación web completa | Integración | HU-001; RF-AUT |
 | INT-003 — Autenticación móvil completa | Integración | RF-AUT |

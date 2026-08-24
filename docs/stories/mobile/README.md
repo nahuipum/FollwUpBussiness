@@ -1,6 +1,6 @@
 ﻿# Historias — Mobile
 
-Total: **32**
+Total: **34**
 
 | ID | Épica | Historia | Prioridad | Fase |
 |---|---|---|---|---|
@@ -36,3 +36,5 @@ Total: **32**
 | [MOB-030](./MOB-030-manejar-bateria-y-servicios-desactivados.md) | Experiencia | Manejar batería y servicios desactivados | Must Have | MVP |
 | [MOB-031](./MOB-031-consultar-resumen-diario.md) | Resumen | Consultar resumen diario | Must Have | MVP |
 | [MOB-032](./MOB-032-editar-venta-dentro-de-ventana.md) | Ventas | Editar venta dentro de ventana | Should Have | MVP condicionado |
+| [MOB-033](./MOB-033-definir-sistema-visual-mobile.md) | Experiencia | Definir sistema visual y componentes base mobile | Must Have | MVP |
+| [MOB-034](./MOB-034-definir-navegacion-y-plantillas-operativas-mobile.md) | Experiencia | Definir navegación y plantillas operativas mobile | Must Have | MVP |

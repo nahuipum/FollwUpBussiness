@@ -52,7 +52,7 @@
 ## Secuencia de entrega y trazabilidad
 
 - **Sprint objetivo:** Sprint 4 — Planificación y entrega de rutas.
-- **Predecesoras obligatorias:** `BE-061` — Consultar rutas y ruta del día; `EN-015` — Definir persistencia local y sincronización móvil; `MOB-002` — Renovar y cerrar sesión; `MOB-027` — Proteger datos locales
+- **Predecesoras obligatorias:** `BE-061` — Consultar rutas y ruta del día; `EN-015` — Definir persistencia local y sincronización móvil; `MOB-002` — Renovar y cerrar sesión; `MOB-027` — Proteger datos locales; `MOB-033` — Definir sistema visual y componentes base mobile; `MOB-034` — Definir navegación y plantillas operativas mobile
 - **Historias consecuentes que habilita:** `INT-007` — Creación manual E2E; `MOB-005` — Ver clientes pendientes y visitados; `MOB-007` — Iniciar jornada; `MOB-029` — Recibir ruta asignada o modificada
 - **Validación vertical:** `INT-007` — Creación manual E2E
 

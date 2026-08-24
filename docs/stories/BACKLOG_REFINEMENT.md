@@ -49,6 +49,7 @@ un solo uso.
 | Exportación no tenía prueba vertical | Riesgo de archivos cruzados o CSV inseguro | INT-040 |
 | Auditoría/configuración estaban al final | Historias tempranas exigían algo aún inexistente | BE-051 pasa a Sprint 1 y BE-054 a Sprint 3 |
 | Seguridad mobile se planificaba después del almacenamiento | Tokens/datos podían persistirse antes de definir protección | EN-015 y MOB-027 pasan antes de ruta/offline |
+| Mobile saltaba de acceso a funcionalidades sin una base de diseño | Cada módulo podía definir navegación, componentes y estados de forma incompatible | MOB-033 y MOB-034 se incorporan como habilitación de experiencia en Sprint 3, antes de Ruta/Jornada/Visitas |
 | Detalle del vendedor dependía de visitas/ventas futuras | Pantalla inevitablemente vacía | FE-021 pasa a Sprint 8 |
 | Cierre E2E se probaba antes de producir visitas pendientes | Criterios imposibles de demostrar | INT-023 pasa a Sprint 7 |
 

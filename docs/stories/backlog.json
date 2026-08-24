@@ -3073,6 +3073,59 @@
         "type":  "Historia de usuario"
     },
     {
+        "area":  "Mobile",
+        "id":  "MOB-033",
+        "epic":  "Experiencia",
+        "title":  "Definir sistema visual y componentes base mobile",
+        "actor":  "vendedor",
+        "want":  "una interfaz móvil consistente y accesible",
+        "value":  "reconocer acciones y estados operativos sin reaprender cada módulo",
+        "scope":  "Definir e implementar en Flutter tokens visuales y componentes reutilizables; no agrega reglas de negocio ni modifica contratos.",
+        "acceptance":  [
+                           "Tema único con tokens visuales y estados semánticos accesibles.",
+                           "Componentes base con variantes de carga, inactivo, error y éxito sin comunicar solo por color.",
+                           "Soporta lector de pantalla, texto del sistema y objetivos táctiles adecuados.",
+                           "El mockup de acceso sirve de referencia visual documentada para los demás módulos.",
+                           "El renderizado no registra datos personales, credenciales ni ubicación."
+                       ],
+        "refs":  [
+                     "RNF-002",
+                     "RNF-006",
+                     "MOB-001"
+                 ],
+        "priority":  "Must Have",
+        "phase":  "MVP",
+        "type":  "Historia de habilitación de experiencia"
+    },
+    {
+        "area":  "Mobile",
+        "id":  "MOB-034",
+        "epic":  "Experiencia",
+        "title":  "Definir navegación y plantillas operativas mobile",
+        "actor":  "vendedor",
+        "want":  "una estructura de navegación y estados comunes predecibles",
+        "value":  "continuar la jornada y resolver incidencias sin perder el contexto",
+        "scope":  "Definir e implementar shell autenticado, rutas internas y plantillas de estados; no habilita acciones de negocio ni inventa datos sin productor.",
+        "acceptance":  [
+                           "Restaura sesión de forma segura o dirige a acceso y limpia estado al logout o cambio de empresa.",
+                           "Ofrece accesos a Ruta, Visita, Ventas y Resumen solo cuando cada capacidad está disponible.",
+                           "Jerarquía de pantallas, regreso, diálogos y foco accesible es coherente.",
+                           "Plantillas de carga, vacío, error, sin permiso y dato desactualizado no presentan datos antiguos como actuales.",
+                           "Conserva contexto visual sin persistir secretos o datos personales fuera de la política aprobada."
+                       ],
+        "refs":  [
+                     "RNF-002",
+                     "RNF-006",
+                     "EN-015",
+                     "MOB-001",
+                     "MOB-002",
+                     "MOB-027"
+                 ],
+        "priority":  "Must Have",
+        "phase":  "MVP",
+        "type":  "Historia de habilitación de experiencia"
+    },
+    {
         "area":  "Integración",
         "id":  "INT-001",
         "epic":  "Onboarding",

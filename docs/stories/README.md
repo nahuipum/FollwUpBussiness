@@ -4,11 +4,11 @@
 |---|---:|
 | Backend | 62 |
 | Frontend | 38 |
-| Mobile | 32 |
+| Mobile | 34 |
 | Integración E2E | 40 |
-| **Historias** | **172** |
+| **Historias** | **174** |
 | Enablers | 10 |
-| **Total backlog trazado** | **182** |
+| **Total backlog trazado** | **184** |
 
 ## Cómo leer el backlog
 
