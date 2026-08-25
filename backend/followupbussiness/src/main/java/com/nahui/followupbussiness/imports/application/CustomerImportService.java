@@ -28,7 +28,7 @@ public class CustomerImportService implements CreateCustomerImportUseCase, GetCu
     private final RecordAuditEntryUseCase audit; private final Counter downloads;
     public CustomerImportService(CustomerImportStore store, OutboxStore outbox, Clock clock, RecordAuditEntryUseCase audit, Counter downloads) { this.store = store; this.outbox = outbox; this.clock = clock; this.audit = audit; this.downloads = downloads; }
     @Override @Transactional public CustomerImport create(Command c, AuthenticatedActor actor, UUID correlation) {
-        authorize(actor); validate(c); String hash = sha256(c.contents());
+        authorizeCreate(actor); validate(c); String hash = sha256(c.contents());
         var previous = store.findByIdempotency(actor.tenantId(), actor.accountId(), c.idempotencyKey());
         if (previous.isPresent()) { if (previous.get().fileSha256().equals(hash) && previous.get().templateVersion().equals(c.templateVersion()) && previous.get().partialAcceptance() == c.partialAcceptance()) return previous.get(); throw new Conflict(); }
         Instant now = clock.instant(); UUID id = UUID.randomUUID();
@@ -43,7 +43,7 @@ public class CustomerImportService implements CreateCustomerImportUseCase, GetCu
         outbox.append(new OutboxEvent(UUID.randomUUID(), "customer-import.requested.v1", 1, now, actor.tenantId(), correlation, id, "{\"importId\":\"" + id + "\",\"tenantId\":\"" + actor.tenantId() + "\",\"correlationId\":\"" + correlation + "\"}"));
         return saved.get();
     }
-    @Override public java.util.Optional<CustomerImport> get(UUID id, AuthenticatedActor actor) { authorize(actor); return store.findById(actor.tenantId(), id); }
+    @Override public java.util.Optional<CustomerImport> get(UUID id, AuthenticatedActor actor) { authorizeGet(actor); return store.findById(actor.tenantId(), id); }
     @Override @Transactional public ErrorFile download(UUID id, AuthenticatedActor actor) {
         authorizeDownload(actor);
         CustomerImport job = store.findById(actor.tenantId(), id).orElseThrow(DownloadCustomerImportErrorsUseCase.NotFound::new);
@@ -56,7 +56,8 @@ public class CustomerImportService implements CreateCustomerImportUseCase, GetCu
         downloads.increment();
         return new ErrorFile("customer-import-errors-" + id + ".csv", csv);
     }
-    private static void authorize(AuthenticatedActor a) { if (a == null || a.tenantId() == null || a.accountId() == null || a.role() != BaseRole.COMPANY_ADMIN) throw new CreateCustomerImportUseCase.Forbidden(); }
+    private static void authorizeCreate(AuthenticatedActor a) { if (a == null || a.tenantId() == null || a.accountId() == null || a.role() != BaseRole.COMPANY_ADMIN) throw new CreateCustomerImportUseCase.Forbidden(); }
+    private static void authorizeGet(AuthenticatedActor a) { if (a == null || a.tenantId() == null || a.accountId() == null || a.role() != BaseRole.COMPANY_ADMIN) throw new GetCustomerImportUseCase.Forbidden(); }
     private static void authorizeDownload(AuthenticatedActor a) { if (a == null || a.tenantId() == null || a.accountId() == null || a.role() != BaseRole.COMPANY_ADMIN) throw new DownloadCustomerImportErrorsUseCase.Forbidden(); }
     private static boolean terminal(CustomerImport.Status status) { return status == CustomerImport.Status.COMPLETED || status == CustomerImport.Status.COMPLETED_WITH_ERRORS || status == CustomerImport.Status.FAILED; }
     private static byte[] csv(java.util.List<CustomerImportStore.RowError> errors) { StringBuilder result = new StringBuilder("row_number,error_code\r\n"); for (var error : errors) result.append(error.rowNumber()).append(',').append(safeCode(error.code())).append("\r\n"); return result.toString().getBytes(StandardCharsets.UTF_8); }

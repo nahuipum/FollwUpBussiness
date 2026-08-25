@@ -76,7 +76,7 @@ public final class CustomerImportController {
     static ResponseEntity<ProblemDetail> problem(HttpStatus status, UUID c) {
         ProblemDetail p = ProblemDetail.forStatusAndDetail(status, "Request cannot be processed");
         p.setProperty("correlationId", c.toString());
-        return ResponseEntity.status(status).header("X-Correlation-Id", c.toString()).body(p);
+        return ResponseEntity.status(status).contentType(MediaType.APPLICATION_PROBLEM_JSON).header("X-Correlation-Id", c.toString()).body(p);
     }
 
     static UUID correlation(HttpServletRequest r) {

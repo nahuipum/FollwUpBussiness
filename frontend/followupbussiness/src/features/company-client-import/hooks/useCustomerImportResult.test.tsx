@@ -51,6 +51,15 @@ test("no conserva contadores cuando el resultado deja de estar autorizado", asyn
   expect(result.current.job).toBeNull();
 });
 
+test("conserva el estado 404 neutral para que la página muestre una recuperación", async () => {
+  state.get.mockResolvedValue({ response: new Response(null, { status: 404 }), job: null, correlationId: "corr-404" });
+  const { result } = renderHook(() => useCustomerImportResult(job.id));
+  await waitFor(() => expect(result.current.loading).toBe(false));
+  expect(result.current.job).toBeNull();
+  expect(result.current.forbidden).toBe(false);
+  expect(result.current.error).toEqual({ status: 404, correlationId: "corr-404" });
+});
+
 test("deja de cargar y permite reintentar cuando la consulta excede el límite", async () => {
   vi.useFakeTimers();
   state.get.mockImplementation((_id: string, signal?: AbortSignal) => new Promise((_resolve, reject) => signal?.addEventListener("abort", () => reject(new DOMException("Abortado", "AbortError")))));

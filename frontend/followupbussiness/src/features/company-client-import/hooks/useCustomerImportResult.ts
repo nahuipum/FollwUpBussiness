@@ -61,7 +61,7 @@ export function useCustomerImportResult(importId: string) {
         setJob(result.job); setError(null); setStale(false); setForbidden(false); setLastUpdatedAt(new Date().toISOString());
       } else if (result.response.status === 403 || result.response.status === 404) {
         jobRef.current = null;
-        setJob(null); setError(null); setStale(false); setForbidden(result.response.status === 403);
+        setJob(null); setError(result.response.status === 404 ? { status: 404, correlationId: result.correlationId } : null); setStale(false); setForbidden(result.response.status === 403);
       } else {
         setError({ status: result.response.status, correlationId: result.correlationId });
         setStale(jobRef.current !== null);

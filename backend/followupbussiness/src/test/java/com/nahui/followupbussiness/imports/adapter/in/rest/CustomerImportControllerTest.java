@@ -17,6 +17,15 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class CustomerImportControllerTest {
     @Test void exposesSafeFailureReasonInTheJobView() {
@@ -51,6 +60,28 @@ class CustomerImportControllerTest {
         var controller = new CustomerImportController(create, mock(GetCustomerImportUseCase.class), mock(DownloadCustomerImportErrorsUseCase.class));
         var response = controller.create(new MockMultipartFile("file", "customers.csv", "text/csv", new byte[]{1}), "1.0", true, "key", new AuthenticatedActor(UUID.randomUUID(), UUID.randomUUID(), BaseRole.COMPANY_ADMIN), new MockHttpServletRequest());
         assertThat(response.getStatusCode().value()).isEqualTo(413);
+    }
+    @Test void unauthorizedGetIsNeutralForbiddenInsteadOfAnInternalError() {
+        GetCustomerImportUseCase get = mock(GetCustomerImportUseCase.class);
+        when(get.get(any(), any())).thenThrow(new GetCustomerImportUseCase.Forbidden());
+        var controller = new CustomerImportController(mock(CreateCustomerImportUseCase.class), get, mock(DownloadCustomerImportErrorsUseCase.class));
+        var response = controller.get(UUID.randomUUID(), new AuthenticatedActor(UUID.randomUUID(), UUID.randomUUID(), BaseRole.SELLER), new MockHttpServletRequest());
+        assertThat(response.getStatusCode().value()).isEqualTo(403);
+        assertThat(response.getBody()).isInstanceOf(org.springframework.http.ProblemDetail.class);
+    }
+    @Test void serializesNeutralNotFoundAndForbiddenAsProblemJson() throws Exception {
+        GetCustomerImportUseCase get = mock(GetCustomerImportUseCase.class);
+        MockMvc mvc = MockMvcBuilders.standaloneSetup(new CustomerImportController(mock(CreateCustomerImportUseCase.class), get, mock(DownloadCustomerImportErrorsUseCase.class)))
+                .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver()).build();
+        var actor = new AuthenticatedActor(UUID.randomUUID(), UUID.randomUUID(), BaseRole.COMPANY_ADMIN);
+        SecurityContextHolder.getContext().setAuthentication(UsernamePasswordAuthenticationToken.authenticated(actor, "test", java.util.List.of()));
+        try {
+            mvc.perform(get("/customer-imports/{id}", UUID.randomUUID())).andExpect(status().isNotFound()).andExpect(content().contentTypeCompatibleWith(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON));
+            when(get.get(any(), any())).thenThrow(new GetCustomerImportUseCase.Forbidden());
+            mvc.perform(get("/customer-imports/{id}", UUID.randomUUID())).andExpect(status().isForbidden()).andExpect(content().contentTypeCompatibleWith(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON));
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
     }
     @Test void errorsUseContractualGoneAndNeutralNotFoundWithoutCsv() {
         DownloadCustomerImportErrorsUseCase errors = mock(DownloadCustomerImportErrorsUseCase.class);
