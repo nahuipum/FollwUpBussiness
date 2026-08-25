@@ -35,6 +35,10 @@ public interface CustomerPortfolioStore {
 
     List<Customer> list(CustomerPortfolioReadUseCase.Query query, CustomerPortfolioReadUseCase.Scope scope);
 
+    default List<Customer> activeAssignedToSellerAt(UUID tenantId, UUID sellerId, List<UUID> customerIds, LocalDate operationalDate) {
+        return List.of();
+    }
+
     long count(CustomerPortfolioReadUseCase.Query query, CustomerPortfolioReadUseCase.Scope scope);
 
     record Assignment(UUID customerId, UUID sellerId, LocalDate effectiveFrom, UUID actorId, String reason,

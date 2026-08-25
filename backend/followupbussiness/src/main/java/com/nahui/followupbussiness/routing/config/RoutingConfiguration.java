@@ -1,0 +1,21 @@
+package com.nahui.followupbussiness.routing.config;
+
+import com.nahui.followupbussiness.audit.application.port.in.RecordAuditEntryUseCase;
+import com.nahui.followupbussiness.customers.application.port.in.CustomerPortfolioReadUseCase;
+import com.nahui.followupbussiness.routing.adapter.out.persistence.JdbcRouteStore;
+import com.nahui.followupbussiness.routing.application.CreateRouteService;
+import com.nahui.followupbussiness.routing.application.port.in.CreateRouteUseCase;
+import com.nahui.followupbussiness.workforce.application.port.in.PortfolioAccessScopeUseCase;
+import com.nahui.followupbussiness.workforce.application.port.in.SellerReferenceUseCase;
+import java.time.Clock;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.JdbcTemplate;
+
+@Configuration(proxyBeanMethods = false)
+public class RoutingConfiguration {
+    @Bean CreateRouteUseCase createRouteUseCase(JdbcTemplate jdbc, CustomerPortfolioReadUseCase customers, SellerReferenceUseCase sellers, PortfolioAccessScopeUseCase scopes, @Qualifier("transactionalAuditEntryUseCase") RecordAuditEntryUseCase audit) {
+        return new CreateRouteService(new JdbcRouteStore(jdbc), customers, sellers, scopes, audit, Clock.systemUTC());
+    }
+}

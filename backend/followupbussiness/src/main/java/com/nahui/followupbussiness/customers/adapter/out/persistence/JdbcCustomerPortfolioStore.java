@@ -110,6 +110,12 @@ public final class JdbcCustomerPortfolioStore implements CustomerPortfolioStore 
         return total == null ? 0 : total;
     }
 
+    @Override
+    public List<Customer> activeAssignedToSellerAt(UUID tenantId, UUID sellerId, List<UUID> customerIds, LocalDate operationalDate) {
+        if (customerIds.isEmpty()) return List.of();
+        return jdbc.query("select c.id,c.tenant_id,c.name,c.document_type,c.document_number,c.phone,c.email,c.segment,c.address,ST_Y(c.location),ST_X(c.location),c.visit_frequency_days,c.territory_id,c.status,c.created_at,c.updated_at,c.version from customer c where c.tenant_id=? and c.status='ACTIVE' and c.id in (" + placeholders(customerIds.size()) + ") and exists (select 1 from customer_portfolio_assignment p where p.tenant_id=c.tenant_id and p.customer_id=c.id and p.seller_id=? and p.effective_from<=? and (p.effective_to is null or p.effective_to>?))", (rs, row) -> new Customer(rs.getObject(1, UUID.class), rs.getObject(2, UUID.class), rs.getString(3), rs.getString(4), rs.getString(5), rs.getString(6), rs.getString(7), rs.getString(8), rs.getString(9), new GeoPoint(rs.getDouble(10), rs.getDouble(11)), (Integer) rs.getObject(12), rs.getObject(13, UUID.class), rs.getString(14), rs.getTimestamp(15).toInstant(), rs.getTimestamp(16).toInstant(), rs.getLong(17)), parameters(tenantId, customerIds, sellerId, operationalDate));
+    }
+
     private Sql sql(CustomerPortfolioReadUseCase.Query q, CustomerPortfolioReadUseCase.Scope scope) {
         String portfolio = scope.allCurrentPortfolios() ? "" : " and exists (select 1 from customer_portfolio_assignment p where p.tenant_id=c.tenant_id and p.customer_id=c.id and p.effective_from<=current_date and (p.effective_to is null or p.effective_to>current_date) and p.seller_id in (" + placeholders(scope.sellerIds().size()) + "))";
         String activity = (q.withoutVisitSince() == null ? "" : " and (not exists (select 1 from customer_activity_fact av where av.tenant_id=c.tenant_id and av.customer_id=c.id) or (select av.last_completed_visit_at from customer_activity_fact av where av.tenant_id=c.tenant_id and av.customer_id=c.id) is null or (select av.last_completed_visit_at from customer_activity_fact av where av.tenant_id=c.tenant_id and av.customer_id=c.id) < ?)")
@@ -157,6 +163,16 @@ public final class JdbcCustomerPortfolioStore implements CustomerPortfolioStore 
         java.util.ArrayList<Object> parameters = new java.util.ArrayList<>();
         parameters.add(tenantId);
         parameters.addAll(customerIds);
+        return parameters.toArray();
+    }
+
+    private static Object[] parameters(UUID tenantId, List<UUID> customerIds, UUID sellerId, LocalDate operationalDate) {
+        java.util.ArrayList<Object> parameters = new java.util.ArrayList<>();
+        parameters.add(tenantId);
+        parameters.addAll(customerIds);
+        parameters.add(sellerId);
+        parameters.add(operationalDate);
+        parameters.add(operationalDate);
         return parameters.toArray();
     }
 }

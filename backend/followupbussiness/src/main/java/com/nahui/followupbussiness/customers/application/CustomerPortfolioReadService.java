@@ -7,6 +7,7 @@ import com.nahui.followupbussiness.customers.application.port.out.CustomerStore;
 import com.nahui.followupbussiness.customers.domain.Customer;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -53,5 +54,13 @@ public final class CustomerPortfolioReadService implements CustomerPortfolioRead
                 return Optional.empty();
             return Optional.of(new Detail(customer, assignedSellerIds));
         });
+    }
+
+    @Override
+    public List<RouteCustomer> activeAssignedToSellerAt(UUID tenantId, UUID sellerId, List<UUID> customerIds, LocalDate operationalDate) {
+        if (tenantId == null || sellerId == null || customerIds == null || customerIds.isEmpty() || operationalDate == null)
+            return List.of();
+        return store.activeAssignedToSellerAt(tenantId, sellerId, customerIds, operationalDate).stream()
+                .map(customer -> new RouteCustomer(customer.id(), customer.location())).toList();
     }
 }
