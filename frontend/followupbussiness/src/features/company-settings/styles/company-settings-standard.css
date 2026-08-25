@@ -1,0 +1,47 @@
+.company-settings { color: #26384a; }
+.company-settings > header p { margin: 7px 0 0; }
+
+.company-settings__card {
+  align-content: start;
+  gap: 16px;
+  padding: 20px;
+}
+
+.company-settings__card h2 {
+  font-size: 20px;
+  line-height: 1.3;
+  letter-spacing: -.01em;
+}
+
+.company-settings__card input {
+  width: 100%;
+  color: #26384a;
+  background: #fff;
+  font-size: 14px;
+}
+
+.company-settings__card input:disabled {
+  color: #52677c;
+  background: #f7f9fc;
+  cursor: default;
+  opacity: 1;
+}
+
+.company-settings__card input:focus-visible {
+  border-color: #2b7e88;
+  outline: 3px solid rgb(56 178 172 / 16%);
+  outline-offset: 0;
+}
+
+.company-settings__card button { font-size: 14px; }
+.company-settings__card button:hover:not(:disabled) { background: #125c65; }
+.company-settings__card button:focus-visible { outline: 3px solid rgb(56 178 172 / 35%); outline-offset: 2px; }
+
+.company-settings dl { gap: 10px; }
+.company-settings dt { font-size: 12px; font-weight: 700; }
+.company-settings dd { font-size: 16px; font-weight: 750; }
+.company-settings__card p { margin: 2px 0 0; font-size: 13px; }
+
+@media (max-width: 760px) {
+  .company-settings__card { padding: 18px; }
+}

@@ -365,6 +365,8 @@ export function getSessionMutationAuthorization(): HeadersInit {
 }
 
 export function canAccessPath(path: string): boolean {
+  if (path === "/company/settings" || path === "/supervisor/settings" || path === "/seller/settings")
+    return session !== null && session.roles.some((role) => role === "COMPANY_ADMIN" || role === "SUPERVISOR" || role === "SELLER");
   const importResultRoute = /^\/company\/customer-imports\/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   if (importResultRoute.test(path))
     return session !== null && session.roles.includes("COMPANY_ADMIN");

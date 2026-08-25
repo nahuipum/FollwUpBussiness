@@ -30,6 +30,25 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 class CompanySettingsControllerTest {
     private static final String CORRELATION = "a0d0cf0e-7b8c-4143-b983-25d9e166aa30";
 
+    @Test void getExposesQuotedCurrentVersionAsEtagForTheFollowingUpdate() throws Exception {
+        CompanySettingsUseCase service = mock(CompanySettingsUseCase.class);
+        when(service.get(any())).thenReturn(Optional.of(company(7)));
+        fixture(service).mvc().perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/company/settings")
+                        .header("Authorization", "Bearer valid").header("X-Correlation-Id", CORRELATION))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().string("ETag", "\"7\""));
+    }
+
+    @Test void updateExposesTheResultingQuotedVersionAsEtag() throws Exception {
+        CompanySettingsUseCase service = mock(CompanySettingsUseCase.class);
+        when(service.update(any(), any())).thenReturn(company(8));
+        fixture(service).mvc().perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch("/company/settings")
+                        .header("Authorization", "Bearer valid").header("X-Correlation-Id", CORRELATION).header("If-Match", "\"7\"")
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"timezone\":\"America/Bogota\"}"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().string("ETag", "\"8\""));
+    }
+
     @Test void missingActiveConfigurationIsNeutralForbiddenInsteadOfServerError() throws Exception {
         CompanySettingsUseCase service = mock(CompanySettingsUseCase.class);
         when(service.get(any())).thenReturn(Optional.empty());
@@ -117,6 +136,11 @@ class CompanySettingsControllerTest {
                 .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
                 .addFilters(new CorrelationIdFilter(), new InboundJwtAuthenticationFilter(authenticator, new RestAuthenticationEntryPoint())).build();
         return new Fixture(mvc, rejected);
+    }
+
+    private static Company company(long version) {
+        return new Company(UUID.randomUUID(), "Nahui SAC", null, "NAHUI", null, CompanyStatus.ACTIVE,
+                new CompanySettings("America/Lima", "PEN", 100, 60, 90, 60), Instant.now(), Instant.now(), version);
     }
 
     private record Fixture(MockMvc mvc, Counter rejected) { }

@@ -706,6 +706,10 @@ paths:
         '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
           description: Configuración vigente y versión
+          headers:
+            ETag:
+              description: Versión vigente de la configuración entre comillas, utilizable sin transformación como `If-Match` en una actualización posterior.
+              schema: { type: string, pattern: '^"[1-9][0-9]*"$' }
           content:
             application/json:
               schema: { $ref: '#/components/schemas/CompanySettings' }
@@ -728,7 +732,11 @@ paths:
       responses:
         '400': { $ref: '#/components/responses/CorrelationIdInvalid' }
         '200':
-          description: Configuración actualizada
+          description: Configuración actualizada y nueva versión
+          headers:
+            ETag:
+              description: Versión resultante entre comillas; reemplaza la versión previa para la siguiente actualización.
+              schema: { type: string, pattern: '^"[1-9][0-9]*"$' }
           content:
             application/json:
               schema: { $ref: '#/components/schemas/CompanySettings' }

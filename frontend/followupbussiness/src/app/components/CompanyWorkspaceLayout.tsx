@@ -5,12 +5,13 @@ import { getSessionCompanyLabel, getSessionIdentity, logout } from "../../featur
 import { PasswordRecoveryBrandMark } from "../../features/auth/components/BrandPanel";
 import { navigate } from "../navigation";
 
-export type CompanySection = "dashboard" | "administrators-supervisors" | "sellers" | "territories" | "clients" | "customer-assignments";
-export type SupervisorSection = "dashboard" | "sellers" | "territories" | "clients";
+export type CompanySection = "dashboard" | "administrators-supervisors" | "sellers" | "territories" | "clients" | "customer-assignments" | "settings";
+export type SupervisorSection = "dashboard" | "sellers" | "territories" | "clients" | "settings";
+export type SellerSection = "settings";
 
 type Props = {
-  activeSection: CompanySection | SupervisorSection;
-  workspace: "company" | "supervisor";
+  activeSection: CompanySection | SupervisorSection | SellerSection;
+  workspace: "company" | "supervisor" | "seller";
   children: ReactNode;
 };
 
@@ -21,6 +22,7 @@ const companySections: Record<CompanySection, string> = {
   territories: "Zonas",
   clients: "Clientes",
   "customer-assignments": "Asignar cartera",
+  settings: "Configuración",
 };
 
 const supervisorSections: Record<SupervisorSection, string> = {
@@ -28,13 +30,14 @@ const supervisorSections: Record<SupervisorSection, string> = {
   sellers: "Vendedores",
   territories: "Zonas",
   clients: "Clientes",
+  settings: "Configuración",
 };
 
 export function CompanyWorkspaceLayout({ activeSection, workspace, children }: Props) {
   const identity = getSessionIdentity();
   const companyName = getSessionCompanyLabel() ?? "Empresa";
-  const isSupervisor = workspace === "supervisor";
-  const navigation = isSupervisor
+  const isSupervisor = workspace === "supervisor"; const isSeller = workspace === "seller";
+  const navigation = isSeller ? [item("settings", "Configuración", <Settings />, activeSection, "/seller/settings")] : isSupervisor
     ? supervisorNavigation(activeSection as SupervisorSection)
     : companyNavigation(activeSection as CompanySection, identity?.roles.includes("COMPANY_ADMIN") ?? false);
 
@@ -42,14 +45,14 @@ export function CompanyWorkspaceLayout({ activeSection, workspace, children }: P
     <DashboardLayout
       brand={<><span className="platform-logo"><PasswordRecoveryBrandMark /></span>FollowUpBusiness</>}
       contextLabel={companyName}
-      navigationLabel={isSupervisor ? "Supervisor" : "Empresa"}
+      navigationLabel={isSeller ? "Vendedor" : isSupervisor ? "Supervisor" : "Empresa"}
       profile={{
         initials: (identity?.displayName ?? "").slice(0, 2).toUpperCase(),
         name: identity?.displayName ?? "",
-        role: isSupervisor ? "Supervisor" : "Administradora de empresa",
+        role: isSeller ? "Vendedor" : isSupervisor ? "Supervisor" : "Administradora de empresa",
         scopeLabel: companyName,
       }}
-      breadcrumbs={[companyName, isSupervisor ? supervisorSections[activeSection as SupervisorSection] : companySections[activeSection as CompanySection]]}
+      breadcrumbs={[companyName, isSeller ? "Configuración" : isSupervisor ? supervisorSections[activeSection as SupervisorSection] : companySections[activeSection as CompanySection]]}
       topbarContext={companyName}
       onLogout={() => { void logout(); navigate("/", { replace: true }); }}
       navigation={navigation}
@@ -68,7 +71,7 @@ function companyNavigation(activeSection: CompanySection, canManage: boolean): D
     clientGroup(activeSection, "/company/clients", "/company/clients/map", canManage),
     ...(canManage ? [item("customer-assignments", "Asignar cartera", <ContactRound />, activeSection, "/company/customer-assignments")] : []),
     { id: "audit", label: "Auditoría", icon: <ClipboardList /> },
-    { id: "settings", label: "Configuración", icon: <Settings /> },
+    item("settings", "Configuración", <Settings />, activeSection, "/company/settings"),
   ];
 }
 
@@ -78,6 +81,7 @@ function supervisorNavigation(activeSection: SupervisorSection): DashboardNaviga
     item("sellers", "Vendedores", <UserRound />, activeSection, "/supervisor/sellers"),
     item("territories", "Zonas", <MapPinned />, activeSection, "/supervisor/territories"),
     clientGroup(activeSection, "/supervisor/clients", "/supervisor/clients/map", false),
+    item("settings", "Configuración", <Settings />, activeSection, "/supervisor/settings"),
   ];
 }
 

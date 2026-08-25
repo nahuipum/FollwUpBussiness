@@ -71,6 +71,19 @@ class AuditEntryMigrationTest {
     }
 
     @Test
+    void persistsCompanySettingsOperationInBothAuditStates() {
+        AuditEntry entry = new AuditEntry(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), AuditAction.CRITICAL_MUTATION,
+                "COMPANY", UUID.randomUUID(), AuditResult.SUCCESS, UUID.randomUUID(), "AUTHORIZED_RESOURCE",
+                Map.of("operation", "COMPANY_SETTINGS_UPDATED"), Map.of("operation", "COMPANY_SETTINGS_UPDATED"), Instant.now());
+
+        assertThat(store.append(entry)).isTrue();
+        assertThat(jdbc.queryForObject("SELECT before_state->>'operation' FROM audit_entry WHERE id = ?", String.class, entry.id()))
+                .isEqualTo("COMPANY_SETTINGS_UPDATED");
+        assertThat(jdbc.queryForObject("SELECT after_state->>'operation' FROM audit_entry WHERE id = ?", String.class, entry.id()))
+                .isEqualTo("COMPANY_SETTINGS_UPDATED");
+    }
+
+    @Test
     void concurrentRetriesOfTheSameAuditIdCreateOnlyOneEntry() throws Exception {
         AuditEntry entry = entry(Instant.parse("2026-08-04T12:00:00Z"));
         try (ExecutorService executor = Executors.newFixedThreadPool(2)) {

@@ -19,6 +19,7 @@ import { CustomerAssignmentPage } from "../features/company-customer-assignments
 import { CompanyClientImportPage } from "../features/company-client-import/CompanyClientImportPage";
 import { CompanyClientImportResultPage } from "../features/company-client-import/CompanyClientImportResultPage";
 import { SupervisorDashboardPage } from "../features/supervisor-dashboard/SupervisorDashboardPage";
+import { CompanySettingsPage } from "../features/company-settings/CompanySettingsPage";
 import { CompanyWorkspaceLayout } from "./components/CompanyWorkspaceLayout";
 import { PlatformWorkspaceLayout } from "./components/PlatformWorkspaceLayout";
 
@@ -94,6 +95,8 @@ export function App() {
       return <PlatformWorkspaceLayout activeSection="companies"><PlatformCompaniesPage /></PlatformWorkspaceLayout>;
     if (path === "/company/dashboard")
       return <CompanyWorkspaceLayout workspace="company" activeSection="dashboard"><CompanyDashboardPage /></CompanyWorkspaceLayout>;
+    if (path === "/company/settings")
+      return <CompanyWorkspaceLayout workspace="company" activeSection="settings"><CompanySettingsPage /></CompanyWorkspaceLayout>;
     if (path === "/company/clients")
       return <CompanyWorkspaceLayout workspace="company" activeSection="clients"><CompanyClientsPage /></CompanyWorkspaceLayout>;
     if (path === "/company/clients/map")
@@ -112,6 +115,10 @@ export function App() {
       return <CompanyWorkspaceLayout workspace="supervisor" activeSection="territories"><CompanyTerritoriesPage /></CompanyWorkspaceLayout>;
     if (path === "/supervisor/dashboard")
       return <CompanyWorkspaceLayout workspace="supervisor" activeSection="dashboard"><SupervisorDashboardPage view="dashboard" /></CompanyWorkspaceLayout>;
+    if (path === "/supervisor/settings")
+      return <CompanyWorkspaceLayout workspace="supervisor" activeSection="settings"><CompanySettingsPage /></CompanyWorkspaceLayout>;
+    if (path === "/seller/settings")
+      return <CompanyWorkspaceLayout workspace="seller" activeSection="settings"><CompanySettingsPage /></CompanyWorkspaceLayout>;
     if (path === "/supervisor/clients")
       return <CompanyWorkspaceLayout workspace="supervisor" activeSection="clients"><CompanyClientsPage /></CompanyWorkspaceLayout>;
     if (path === "/supervisor/clients/map")

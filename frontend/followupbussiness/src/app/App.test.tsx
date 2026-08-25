@@ -367,6 +367,25 @@ test("restores the protected route after a reload before rendering its panel", a
   expect(screen.queryByRole("dialog", { name: "Tu sesión terminó" })).toBeNull();
 });
 
+test("restaura sesión al recargar Configuración", async () => {
+  window.history.replaceState({}, "", "/company/settings");
+  window.sessionStorage.setItem("followupbusiness.csrf-token", "c".repeat(43));
+  const fetchMock = vi.fn((url: string) => Promise.resolve(
+    url.endsWith("/me")
+      ? currentUserResponse("COMPANY_ADMIN")
+      : url.endsWith("/company/settings")
+        ? new Response(JSON.stringify({ timezone: "America/Lima", currency: "PEN", geofenceRadiusMeters: 100, trackingIntervalSeconds: 60, locationRetentionDays: 90, saleEditWindowMinutes: null }), { status: 200, headers: { ETag: "\"7\"" } })
+        : new Response(JSON.stringify(webResponse("COMPANY_ADMIN")), { status: 200 }),
+  ));
+  vi.stubGlobal("fetch", fetchMock);
+
+  render(<App />);
+
+  await screen.findByRole("heading", { name: "Configuración" });
+  expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/auth/refresh");
+  expect(screen.queryByRole("dialog", { name: "Tu sesión terminó" })).toBeNull();
+});
+
 test("restaura sesión al recargar directamente el mapa general de clientes", async () => {
   window.history.replaceState({}, "", "/company/clients/map");
   window.sessionStorage.setItem("followupbusiness.csrf-token", "c".repeat(43));

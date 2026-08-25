@@ -14,6 +14,7 @@ function isProtectedPath(path: string): boolean {
     path === "/platform/dashboard" ||
     path === "/platform/companies" ||
     path === "/company/dashboard" ||
+    path === "/company/settings" ||
     path === "/company/customer-imports" ||
     path === "/company/customer-assignments" ||
     path === "/company/clients" ||
@@ -22,11 +23,13 @@ function isProtectedPath(path: string): boolean {
     path === "/company/territories" ||
     path === "/company/administrators-supervisors" ||
     path === "/supervisor/dashboard" ||
+    path === "/supervisor/settings" ||
     path === "/supervisor/clients" ||
     path === "/supervisor/clients/map" ||
     path === "/supervisor/sellers" ||
     path === "/supervisor/territories" ||
-    path === "/seller/dashboard"
+    path === "/seller/dashboard" ||
+    path === "/seller/settings"
   );
 }
 

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-
 import '../../../../app/app_theme.dart';
+import '../../../../shared/ui/brand_mark.dart';
 
 class AuthBrandHeader extends StatelessWidget {
   const AuthBrandHeader({super.key, this.subtitle = 'Accede a tu jornada'});
@@ -46,33 +45,6 @@ class _BrandWordmark extends StatelessWidget {
                 style: TextStyle(
                     color: AppColors.teal, fontWeight: FontWeight.w700)),
           ],
-        ),
-      );
-}
-
-/// Marca compartida con el flujo de recuperación web, servida desde el SVG fuente.
-class AuthBrandMark extends StatelessWidget {
-  const AuthBrandMark({super.key});
-
-  @override
-  Widget build(BuildContext context) => Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: const [
-            BoxShadow(
-                color: Color(0x33176D77), blurRadius: 20, offset: Offset(0, 8))
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.all(3),
-            child: SvgPicture.asset(
-                'assets/brand/password_recovery_brand_mark.svg',
-                fit: BoxFit.contain),
-          ),
         ),
       );
 }
