@@ -182,6 +182,36 @@ paths:
         '429': { $ref: '#/components/responses/AuthRateLimited' }
         '503': { $ref: '#/components/responses/AuthRateLimiterUnavailable' }
 
+  /auth/websocket-tickets:
+    post:
+      tags: [Authentication]
+      operationId: createTrackingWebSocketTicket
+      summary: Emitir ticket de conexión WebSocket para tracking
+      description: |
+        Requiere access JWT vigente y emite un ticket opaco, aleatorio, de un
+        uso y máximo 60 segundos, sin exceder el `exp` del access, para el
+        upgrade de `tracking/v1`. No acepta tenant,
+        rol, vendedor ni scope en entrada; no renueva la familia ni sustituye
+        la autorización del upgrade o la suscripción. Solo COMPANY_ADMIN y
+        SUPERVISOR pueden solicitarlo. El valor no debe enviarse por URL,
+        cookie o payload WebSocket, ni registrarse.
+      x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
+      x-story-ids: [EN-020, BE-031, FE-020, INT-011]
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+      responses:
+        '201':
+          description: Ticket de un uso para presentar exclusivamente en Sec-WebSocket-Protocol
+          headers:
+            X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+            Cache-Control: { $ref: '#/components/headers/NoStore' }
+            Pragma: { $ref: '#/components/headers/NoCache' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WebSocketTicketResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
   /auth/logout:
     post:
       tags: [Authentication]
@@ -3196,6 +3226,18 @@ components:
           description: JWT RS256 para mantener solo en memoria.
         tokenType: { type: string, const: Bearer }
         expiresIn: { type: integer, const: 600, description: Segundos hasta expirar el access token. }
+    WebSocketTicketResponse:
+      type: object
+      additionalProperties: false
+      required: [ticket, expiresIn, protocol]
+      properties:
+        ticket:
+          type: string
+          minLength: 43
+          maxLength: 128
+          description: Secreto opaco de un uso; presentar solo como ws-ticket.<valor> en Sec-WebSocket-Protocol y no persistir ni registrar.
+        expiresIn: { type: integer, minimum: 1, maximum: 60, description: 'Nunca excede el tiempo restante del access JWT vigente.' }
+        protocol: { type: string, const: tracking.v1 }
     WebAuthenticationResponse:
       type: object
       additionalProperties: false
@@ -4171,13 +4213,14 @@ components:
       type: object
       additionalProperties: false
       description: Solo representa una muestra aceptada, con accuracyMeters <=50 y aún dentro de la retención de 90 días. Nunca contiene rechazos ni telemetría degradada.
-      required: [capturedAt, receivedAt, location, accuracyMeters, integrityStatus]
+      required: [capturedAt, receivedAt, location, accuracyMeters, integrityStatus, stale]
       properties:
         capturedAt: { type: string, format: date-time }
         receivedAt: { type: string, format: date-time, description: 'Instante de recepción servidor usado para mostrar última actualización.' }
         location: { $ref: '#/components/schemas/GeoPoint' }
         accuracyMeters: { type: number, minimum: 0, maximum: 50 }
         integrityStatus: { $ref: '#/components/schemas/LocationIntegrityStatus' }
+        stale: { type: boolean, description: 'Calculado por servidor: receivedAt + 5 min <= now. Nunca es autoridad del cliente.' }
     LocationIntegrityStatus:
       type: string
       description: Señal declarada; no constituye prueba antifraude ni causa sanción automática.
