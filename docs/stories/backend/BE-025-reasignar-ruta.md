@@ -14,7 +14,10 @@
 
     ## Alcance
 
-    Cambiar vendedor conservando ejecución.
+    Cambiar vendedor conservando ejecución. Solo se reasignan rutas `PUBLISHED`.
+    Las visitas completadas y ventas
+    conservan responsable histórico; los puntos pendientes habilitan al nuevo
+    vendedor solo mediante la ruta, sin reasignar cartera ni jornada.
 
     ## Criterios de aceptación
 

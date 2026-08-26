@@ -15,6 +15,8 @@ import com.nahui.followupbussiness.routing.application.ReorderRoutePointsService
 import com.nahui.followupbussiness.routing.application.port.in.ReorderRoutePointsUseCase;
 import com.nahui.followupbussiness.routing.application.port.in.PublishRouteUseCase;
 import com.nahui.followupbussiness.routing.application.PublishRouteService;
+import com.nahui.followupbussiness.routing.application.ReassignRouteService;
+import com.nahui.followupbussiness.routing.application.port.in.ReassignRouteUseCase;
 import com.nahui.followupbussiness.outbox.application.port.out.OutboxStore;
 import com.nahui.followupbussiness.workforce.application.port.in.PortfolioAccessScopeUseCase;
 import com.nahui.followupbussiness.workforce.application.port.in.SellerReferenceUseCase;
@@ -71,5 +73,23 @@ public class RoutingConfiguration {
     @ConditionalOnProperty(prefix = "followupbussiness.outbox", name = "enabled", havingValue = "false")
     PublishRouteUseCase unavailablePublishRouteUseCase() {
         return (command, actor) -> { throw new PublishRouteUseCase.Unavailable(); };
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "followupbussiness.outbox", name = "enabled", havingValue = "true", matchIfMissing = true)
+    ReassignRouteUseCase reassignRouteUseCase(JdbcTemplate jdbc, SellerReferenceUseCase sellers,
+                                              PortfolioAccessScopeUseCase scopes, OutboxStore outbox,
+                                              @Qualifier("transactionalAuditEntryUseCase") RecordAuditEntryUseCase audit,
+                                              PlatformTransactionManager transactions) {
+        var service = new ReassignRouteService(new JdbcRouteStore(jdbc), sellers, scopes, outbox, audit, Clock.systemUTC());
+        var transaction = new TransactionTemplate(transactions);
+        transaction.setIsolationLevel(org.springframework.transaction.TransactionDefinition.ISOLATION_SERIALIZABLE);
+        return (command, actor) -> transaction.execute(status -> service.reassign(command, actor));
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "followupbussiness.outbox", name = "enabled", havingValue = "false")
+    ReassignRouteUseCase unavailableReassignRouteUseCase() {
+        return (command, actor) -> { throw new ReassignRouteUseCase.Unavailable(); };
     }
 }

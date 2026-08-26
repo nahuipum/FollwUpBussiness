@@ -649,7 +649,14 @@ El sistema deberá comparar:
 
 ### RF-RUT-009. Reasignación
 
-El administrador podrá reasignar una ruta.
+El administrador podrá reasignar cualquier ruta de su empresa. El supervisor
+podrá reasignar únicamente una ruta cuyo vendedor actual y vendedor nuevo
+pertenezcan a su equipo vigente. El vendedor no podrá reasignar rutas.
+
+La reasignación se permitirá solo en estado `PUBLISHED`. Las visitas completadas,
+ventas y su responsable histórico se conservan. Los puntos pendientes quedan
+disponibles para el nuevo vendedor únicamente mediante la ruta reasignada; no
+se modifica su cartera vigente ni se transfiere o cierra una jornada.
 
 ### RF-RUT-010. Copia de ruta
 

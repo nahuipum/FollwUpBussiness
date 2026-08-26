@@ -1610,6 +1610,13 @@ paths:
       tags: [Routes]
       operationId: reassignRoute
       summary: Reasignar una ruta
+      description: >-
+        COMPANY_ADMIN puede reasignar rutas de su tenant. SUPERVISOR solo puede
+        reasignar cuando el vendedor actual y el nuevo pertenecen a su equipo
+        vigente. Solo admite PUBLISHED; las visitas completadas conservan
+        responsable histórico y los puntos
+        pendientes habilitan al nuevo vendedor solo para esta ruta, sin alterar
+        cartera ni jornadas.
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
       x-story-ids: [BE-025, FE-018, INT-009]
       parameters:
