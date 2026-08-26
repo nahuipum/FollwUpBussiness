@@ -62,6 +62,7 @@ public final class RabbitMqEventTransport implements EventTransport {
         try {
             JsonNode payload = objectMapper.readTree(event.payloadJson());
             ObjectNode envelope = objectMapper.createObjectNode();
+            if (event.eventType().startsWith("route.")) { envelope.put("producer", "routing"); envelope.put("schemaVersion", "route-notification/v1"); }
             envelope.put("eventId", event.eventId().toString());
             envelope.put("eventType", event.eventType());
             envelope.put("version", event.version());

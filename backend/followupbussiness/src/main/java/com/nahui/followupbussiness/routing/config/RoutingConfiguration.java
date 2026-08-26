@@ -17,6 +17,8 @@ import com.nahui.followupbussiness.routing.application.port.in.PublishRouteUseCa
 import com.nahui.followupbussiness.routing.application.PublishRouteService;
 import com.nahui.followupbussiness.routing.application.ReassignRouteService;
 import com.nahui.followupbussiness.routing.application.port.in.ReassignRouteUseCase;
+import com.nahui.followupbussiness.routing.application.port.in.RouteNotificationAuthorizationUseCase;
+import com.nahui.followupbussiness.routing.application.RouteNotificationAuthorizationService;
 import com.nahui.followupbussiness.outbox.application.port.out.OutboxStore;
 import com.nahui.followupbussiness.workforce.application.port.in.PortfolioAccessScopeUseCase;
 import com.nahui.followupbussiness.workforce.application.port.in.SellerReferenceUseCase;
@@ -33,6 +35,10 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 @Configuration(proxyBeanMethods = false)
 public class RoutingConfiguration {
+    @Bean
+    RouteNotificationAuthorizationUseCase routeNotificationAuthorizationUseCase(JdbcTemplate jdbc) {
+        return new RouteNotificationAuthorizationService(new JdbcRouteStore(jdbc));
+    }
     @Bean
     TravelMatrix travelMatrix() {
         return coordinates -> {

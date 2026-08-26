@@ -48,6 +48,22 @@ class RabbitMqEventTransportTest {
     }
 
     @Test
+    void identifiesRoutingAsProducerOfRouteEvents() throws Exception {
+        RabbitTemplate template = mock(RabbitTemplate.class);
+        doAnswer(invocation -> { ((CorrelationData) invocation.getArgument(3)).getFuture().complete(new CorrelationData.Confirm(true, null)); return null; })
+                .when(template).send(any(String.class), any(String.class), any(Message.class), any(CorrelationData.class));
+        OutboxEvent event = new OutboxEvent(UUID.randomUUID(), "route.published", 1, Instant.now(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), "{}");
+
+        new RabbitMqEventTransport(template, new ObjectMapper(), "followupbussiness.events").publish(event);
+
+        var message = forClass(Message.class);
+        verify(template).send(eq("followupbussiness.events"), eq("route.published"), message.capture(), any(CorrelationData.class));
+        JsonNode envelope = new ObjectMapper().readTree(new String(message.getValue().getBody(), StandardCharsets.UTF_8));
+        assertThat(envelope.path("producer").asText()).isEqualTo("routing");
+        assertThat(envelope.path("schemaVersion").asText()).isEqualTo("route-notification/v1");
+    }
+
+    @Test
     void rejectsNegativePublisherConfirmInsteadOfReportingPublication() {
         RabbitTemplate template = mock(RabbitTemplate.class);
         doAnswer(invocation -> {
