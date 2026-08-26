@@ -14,4 +14,8 @@ public final class SellerReferenceService implements SellerReferenceUseCase {
                 && sellerIds.stream().allMatch(id -> id != null && sellers.find(tenantId, id)
                 .map(seller -> seller.status() == SellerStatus.ACTIVE).orElse(false));
     }
+    @Override public boolean activeAssignedToTerritory(UUID tenantId, UUID sellerId, UUID territoryId) {
+        return tenantId != null && sellerId != null && territoryId != null && sellers.find(tenantId, sellerId)
+                .map(seller -> seller.status() == SellerStatus.ACTIVE && seller.territoryIds().contains(territoryId)).orElse(false);
+    }
 }

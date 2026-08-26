@@ -6,30 +6,73 @@ import com.nahui.followupbussiness.routing.application.port.in.CreateRouteUseCas
 import com.nahui.followupbussiness.routing.domain.Route;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.servlet.http.HttpServletRequest;
+
 import java.net.URI;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+
 import org.springframework.http.*;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 public final class RouteController {
-    private final CreateRouteUseCase create; private final MeterRegistry meters;
-    public RouteController(CreateRouteUseCase create, MeterRegistry meters) { this.create=create; this.meters=meters; }
-    @PostMapping("/routes") public ResponseEntity<?> create(@RequestHeader("Idempotency-Key") UUID key, @RequestBody Request request, @AuthenticationPrincipal AuthenticatedActor actor, HttpServletRequest http) {
-        UUID correlation=correlationId(http);
-        try { Route route=create.create(new CreateRouteUseCase.Command(request.name(),request.date(),request.sellerId(),request.startLocation(),request.customerIds(),key),actor); meters.counter("routes.created").increment(); return ResponseEntity.created(URI.create("/routes/"+route.id())).header("X-Correlation-Id",correlation.toString()).body(View.from(route));
-        } catch (CreateRouteUseCase.Forbidden ex) { return problem(HttpStatus.FORBIDDEN,correlation); }
-        catch (CreateRouteUseCase.Conflict ex) { return problem(HttpStatus.CONFLICT,correlation); }
-        catch (CreateRouteUseCase.Invalid | IllegalArgumentException ex) { return problem(HttpStatus.UNPROCESSABLE_CONTENT,correlation); }
+    private final CreateRouteUseCase create;
+    private final MeterRegistry meters;
+
+    public RouteController(CreateRouteUseCase create, MeterRegistry meters) {
+        this.create = create;
+        this.meters = meters;
     }
-    private static ResponseEntity<?> problem(HttpStatus status, UUID correlation) { ProblemDetail detail=ProblemDetail.forStatusAndDetail(status,"Request cannot be processed"); detail.setProperty("correlationId",correlation.toString()); return ResponseEntity.status(status).header("X-Correlation-Id",correlation.toString()).body(detail); }
-    private static UUID correlationId(HttpServletRequest request) { Object value=request.getAttribute("com.nahui.followupbussiness.request.correlationId"); if (value instanceof UUID id) return id; try { UUID id=UUID.fromString(request.getHeader("X-Correlation-Id")); request.setAttribute("com.nahui.followupbussiness.request.correlationId",id); return id; } catch (Exception ignored) { UUID id=UUID.randomUUID(); request.setAttribute("com.nahui.followupbussiness.request.correlationId",id); return id; } }
-    public record Request(String name, LocalDate date, UUID sellerId, GeoPoint startLocation, List<UUID> customerIds) { }
-    record View(UUID id,String name,LocalDate date,UUID sellerId,GeoPoint startLocation,String status,List<Point> points,java.time.Instant createdAt,java.time.Instant updatedAt,long version) {
-        static View from(Route r) { return new View(r.id(),r.name(),r.date(),r.sellerId(),r.startLocation(),"DRAFT",r.points().stream().map(p->new Point(p.id(),p.customerId(),p.sequence(),"PENDING",p.location())).toList(),r.createdAt(),r.updatedAt(),r.version()); }
+
+    @PostMapping("/routes")
+    public ResponseEntity<?> create(@RequestHeader("Idempotency-Key") UUID key, @RequestBody Request request, @AuthenticationPrincipal AuthenticatedActor actor, HttpServletRequest http) {
+        UUID correlation = correlationId(http);
+        try {
+            Route route = create.create(new CreateRouteUseCase.Command(request.name(), request.date(), request.sellerId(), request.startLocation(), request.customerIds(), key), actor);
+            meters.counter("routes.created").increment();
+            return ResponseEntity.created(URI.create("/routes/" + route.id())).header("X-Correlation-Id", correlation.toString()).body(View.from(route));
+        } catch (CreateRouteUseCase.Forbidden ex) {
+            return problem(HttpStatus.FORBIDDEN, correlation);
+        } catch (CreateRouteUseCase.Conflict ex) {
+            return problem(HttpStatus.CONFLICT, correlation);
+        } catch (CreateRouteUseCase.Invalid | IllegalArgumentException ex) {
+            return problem(HttpStatus.UNPROCESSABLE_CONTENT, correlation);
+        }
     }
-    record Point(UUID id,UUID customerId,int sequence,String status,com.nahui.followupbussiness.customers.domain.GeoPoint location) { }
+
+    private static ResponseEntity<?> problem(HttpStatus status, UUID correlation) {
+        ProblemDetail detail = ProblemDetail.forStatusAndDetail(status, "Request cannot be processed");
+        detail.setProperty("correlationId", correlation.toString());
+        return ResponseEntity.status(status).header("X-Correlation-Id", correlation.toString()).body(detail);
+    }
+
+    private static UUID correlationId(HttpServletRequest request) {
+        Object value = request.getAttribute("com.nahui.followupbussiness.request.correlationId");
+        if (value instanceof UUID id) return id;
+        try {
+            UUID id = UUID.fromString(request.getHeader("X-Correlation-Id"));
+            request.setAttribute("com.nahui.followupbussiness.request.correlationId", id);
+            return id;
+        } catch (Exception ignored) {
+            UUID id = UUID.randomUUID();
+            request.setAttribute("com.nahui.followupbussiness.request.correlationId", id);
+            return id;
+        }
+    }
+
+    public record Request(String name, LocalDate date, UUID sellerId, GeoPoint startLocation, List<UUID> customerIds) {
+    }
+
+    record View(UUID id, String name, LocalDate date, UUID sellerId, GeoPoint startLocation, String status,
+                List<Point> points, java.time.Instant createdAt, java.time.Instant updatedAt, long version) {
+        static View from(Route r) {
+            return new View(r.id(), r.name(), r.date(), r.sellerId(), r.startLocation(), "DRAFT", r.points().stream().map(p -> new Point(p.id(), p.customerId(), p.sequence(), "PENDING", p.location())).toList(), r.createdAt(), r.updatedAt(), r.version());
+        }
+    }
+
+    record Point(UUID id, UUID customerId, int sequence, String status,
+                 com.nahui.followupbussiness.customers.domain.GeoPoint location) {
+    }
 }

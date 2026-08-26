@@ -61,6 +61,6 @@ public final class CustomerPortfolioReadService implements CustomerPortfolioRead
         if (tenantId == null || sellerId == null || customerIds == null || customerIds.isEmpty() || operationalDate == null)
             return List.of();
         return store.activeAssignedToSellerAt(tenantId, sellerId, customerIds, operationalDate).stream()
-                .map(customer -> new RouteCustomer(customer.id(), customer.location())).toList();
+                .map(customer -> new RouteCustomer(customer.id(), customer.location(), customer.territoryId())).toList();
     }
 }

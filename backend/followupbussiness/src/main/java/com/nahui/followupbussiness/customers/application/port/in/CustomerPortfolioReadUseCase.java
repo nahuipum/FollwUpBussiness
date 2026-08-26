@@ -36,7 +36,8 @@ public interface CustomerPortfolioReadUseCase {
     record Detail(Customer customer, List<UUID> assignedSellerIds) {
     }
 
-    record RouteCustomer(UUID id, GeoPoint location) { }
+    /** Minimal, tenant-scoped planning reference; no personal data is exposed. */
+    record RouteCustomer(UUID id, GeoPoint location, UUID territoryId) { }
 
     final class Forbidden extends RuntimeException {
     }
