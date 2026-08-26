@@ -1550,9 +1550,9 @@ paths:
     put:
       tags: [Routes]
       operationId: reorderRoutePoints
-      summary: Reordenar todos los puntos de una ruta
+      summary: Reordenar todos los puntos de una ruta DRAFT o PUBLISHED antes de iniciar la jornada
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
-      x-story-ids: [BE-023, FE-015, FE-016]
+      x-story-ids: [BE-023, BE-064, FE-015, FE-016]
       parameters:
         - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/IfMatch'
@@ -3052,8 +3052,8 @@ components:
         application/problem+json:
           schema: { $ref: '#/components/schemas/ErrorResponse' }
     RoutePlanningSnapshotConflict:
-      description: La ruta no puede reordenarse porque su snapshot de planificación no permite un recálculo seguro o la versión ya cambió.
-      x-error-codes: [SNAPSHOT_MISSING, SNAPSHOT_INCOMPLETE, SNAPSHOT_EXPIRED, SNAPSHOT_STALE, ROUTE_VERSION_CONFLICT]
+      description: La ruta no puede reordenarse porque su snapshot de planificación no permite un recálculo seguro, la versión ya cambió o la jornada ya inició/no puede verificarse.
+      x-error-codes: [SNAPSHOT_MISSING, SNAPSHOT_INCOMPLETE, SNAPSHOT_EXPIRED, SNAPSHOT_STALE, ROUTE_VERSION_CONFLICT, JOURNEY_ALREADY_STARTED, JOURNEY_STATE_UNAVAILABLE, ROUTE_NOTIFICATION_UNAVAILABLE]
       headers:
         X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
       content:

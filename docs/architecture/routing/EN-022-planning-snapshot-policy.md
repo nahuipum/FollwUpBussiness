@@ -37,6 +37,10 @@ El caso de uso deriva tenant, actor, rol y equipo de sesión. Cada fuente es un 
 
 Los instantes persistidos son UTC. La zona IANA original se conserva para reproducir los límites locales. Solo se entregan coordenadas estrictamente autorizadas al proveedor; nunca tenant, IDs, nombres, direcciones, ventanas, duración, tokens ni payload completo.
 
+### Consulta pública de inicio de jornada para BE-064
+
+Antes de mutar una ruta `PUBLISHED`, `routing` llama al puerto público de aplicación `journeys.JourneyStartedStatusUseCase` con el `tenantId`, `sellerId` y `businessDate` ya obtenidos de la ruta autorizada. No recibe ni interpreta un `journeyId`, ubicación, historial, visitas ni datos personales. `stateForUpdate` devuelve `NOT_STARTED` únicamente cuando no existe un inicio exitoso para esa triple; `STARTED` también cubre una jornada ya cerrada. La implementación de `journeys` bloquea el mismo guard tenant/vendedor/fecha que usa el inicio hasta terminar la transacción invocadora. Si no puede leer o bloquear ese hecho, lanza `Unavailable`: `routing` no lo traduce a permiso y no muta nada. Esta interfaz es interna del monolito y no agrega endpoint REST ni reutiliza `/journeys/start`.
+
 ## Ciclo de vida, acceso y retención
 
 La creación/regeneración autorizada captura fuentes, construye la matriz y persiste `VALID` de manera atómica. Un fallo deja la ruta `DRAFT` sin estimaciones confirmadas y snapshot `FAILED`/`INCOMPLETE`; reordenar responde sin efectos. Cambiar puntos, inicio/fin, vendedor, territorio, fecha, jornada, ventanas, duración, zona o perfil invalida el snapshot y exige otro. Un reordenamiento que solo cambia la secuencia crea, en su misma transacción, una revisión `VALID` ligada a la nueva `Route.version`, con matriz y restricciones inmutables del snapshot previo; el previo pasa a `SUPERSEDED`. Publicar requiere uno `VALID`; una ruta publicada no puede usar uno de otra versión.
@@ -49,7 +53,7 @@ La creación/regeneración autorizada captura fuentes, construye la matriz y per
 
 El futuro puerto de aplicación `RecalculateRouteFromPlanningSnapshot` recibe solo la permutación, `routeId` e `If-Match`; deriva contexto de sesión. Sus responsabilidades son autorizar ruta/vendedor/equipo, obtener por `tenantId+routeId+baseRouteVersion` un snapshot `VALID`, comprobar la permutación completa y calcular llegada/salida exclusivamente desde matriz, servicios, ventanas y jornada capturados.
 
-En una única transacción PostgreSQL: bloquear ruta/snapshot vigentes, volver a validar versión y autorización, recalcular, escribir orden/ETAs/`Route.version`, crear la revisión `VALID` de igual contenido para esa versión, registrar auditoría saneada y, si la ruta publicada puede editarse, encolar el `route.modified` v1. Si falla cualquier paso, revierten orden, estimaciones, versión, revisión, auditoría y outbox. No se emite éxito, evento ni notificación parcial.
+En una única transacción PostgreSQL: bloquear ruta/snapshot vigentes, consultar y conservar el guard de jornada mediante el puerto público, volver a validar versión y autorización, recalcular, escribir orden/ETAs/`Route.version`, crear la revisión `VALID` de igual contenido para esa versión, registrar auditoría saneada y, si la ruta publicada puede editarse, encolar el `route.modified` v1. Si falla cualquier paso, revierten orden, estimaciones, versión, revisión, auditoría y outbox. No se emite éxito, evento ni notificación parcial.
 
 ## REST, observabilidad y pruebas
 

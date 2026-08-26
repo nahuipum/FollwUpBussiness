@@ -22,6 +22,8 @@ Una edición de orden necesita estimaciones reproducibles sin consultar un prove
 
 `BE-023` y `BE-064` solo pueden confirmar una modificación si existe un snapshot vigente, completo, del mismo tenant/ruta/versión. El contrato baja el límite de creación a 50 y declara estados de snapshot como conflictos neutrales. Un reordenamiento exitoso crea atómicamente una nueva revisión `VALID` ligada a la nueva versión de ruta, con el mismo contenido inmutable y sin proveedor; la revisión anterior queda `SUPERSEDED`. La materialización futura requiere migraciones forward-only y puertos públicos para obtener datos de `customers`, `workforce`, `journeys` y `tenancy`; ninguno consulta tablas ajenas.
 
+Para la regla «antes de iniciar jornada», `journeys` expone `JourneyStartedStatusUseCase.stateForUpdate(Query(tenantId, sellerId, businessDate))`. Es un puerto de aplicación interno del monolito, no un endpoint REST ni una lectura de tablas de `journeys` desde `routing`. Devuelve `NOT_STARTED` solo si no hay inicio exitoso para la triple exacta; `STARTED` conserva ese significado aun después de cerrar la jornada. La implementación adquiere y conserva hasta el final de la transacción el mismo guard tenant/vendedor/fecha que emplea la transición de inicio, por lo que no puede intercalarse un inicio entre la comprobación y el commit del reordenamiento. Un fallo o la falta del guard resulta `Unavailable`, nunca `NOT_STARTED`.
+
 ## Alternativas descartadas
 
 1. Mantener 500 puntos: una matriz completa excede de forma desproporcionada la cuota/coste y latencia MVP.

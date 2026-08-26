@@ -1,6 +1,6 @@
 ﻿# Enablers
 
-Total: **14**
+Total: **15**
 
 | ID | Enabler | Prioridad | Fase |
 |---|---|---|---|
@@ -18,3 +18,4 @@ Total: **14**
 | [EN-020](./EN-020-definir-contrato-y-aislamiento-websocket.md) | Definir contrato y aislamiento multiempresa WebSocket | Must Have | MVP |
 | [EN-021](./EN-021-definir-modelo-contractual-de-cartera-y-actividad-cliente.md) | Definir modelo contractual de cartera y actividad de cliente | Must Have | MVP |
 | [EN-022](./EN-022-definir-snapshot-de-planificacion-y-estimaciones-de-ruta.md) | Definir snapshot de planificación y estimaciones de ruta | Must Have | MVP |
+| [EN-023](./EN-023-guard-transaccional-inicio-jornada.md) | Guard transaccional de inicio de jornada | Must Have | MVP |

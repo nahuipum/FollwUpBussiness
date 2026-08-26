@@ -3126,6 +3126,28 @@
         "type":  "Historia de habilitación de experiencia"
     },
     {
+        "area":  "Backend",
+        "id":  "EN-023",
+        "epic":  "Jornadas",
+        "title":  "Guard transaccional de inicio de jornada",
+        "actor":  "sistema",
+        "want":  "consultar y bloquear el inicio exacto de una jornada",
+        "value":  "evitar carreras entre inicio y edición de ruta",
+        "scope":  "Guard PostgreSQL tenant/seller/fecha reutilizable por BE-028 y BE-064 sin crear una jornada.",
+        "acceptance":  [
+                           "La llave tenant, vendedor y fecha es única.",
+                           "La consulta conserva el lock transaccional.",
+                           "El aislamiento tenant y la concurrencia quedan probados."
+                       ],
+        "refs":  [
+                     "BE-028",
+                     "BE-064"
+                 ],
+        "priority":  "Must Have",
+        "phase":  "MVP",
+        "type":  "Enabler técnico"
+    },
+    {
         "area":  "Integración",
         "id":  "INT-001",
         "epic":  "Onboarding",

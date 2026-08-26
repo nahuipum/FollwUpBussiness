@@ -71,7 +71,7 @@ public final class RouteController {
         UUID correlation=correlationId(http);
         try {
             long version=parseVersion(ifMatch);
-            Route route=reorder.reorder(new ReorderRoutePointsUseCase.Command(routeId,version,request.routePointIds()),actor);
+            Route route=reorder.reorder(new ReorderRoutePointsUseCase.Command(routeId,version,request.routePointIds(),correlation),actor);
             meters.counter("routes.reordered").increment();
             return ResponseEntity.ok().eTag("\""+route.version()+"\"").header("X-Correlation-Id",correlation.toString()).body(View.from(route));
         } catch (ReorderRoutePointsUseCase.Forbidden e) { return problem(HttpStatus.FORBIDDEN,correlation); }

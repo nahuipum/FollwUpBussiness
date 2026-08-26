@@ -4,6 +4,9 @@ import com.nahui.followupbussiness.audit.application.RecordAuditEntryCommand;
 import com.nahui.followupbussiness.audit.application.port.in.RecordAuditEntryUseCase;
 import com.nahui.followupbussiness.audit.domain.*;
 import com.nahui.followupbussiness.identityaccess.domain.model.*;
+import com.nahui.followupbussiness.journeys.application.port.in.JourneyStartedStatusUseCase;
+import com.nahui.followupbussiness.outbox.application.port.out.OutboxStore;
+import com.nahui.followupbussiness.outbox.domain.OutboxEvent;
 import com.nahui.followupbussiness.routing.application.port.in.ReorderRoutePointsUseCase;
 import com.nahui.followupbussiness.routing.application.port.out.*;
 import com.nahui.followupbussiness.routing.domain.*;
@@ -19,13 +22,18 @@ public class ReorderRoutePointsService implements ReorderRoutePointsUseCase {
     private final PlanningSnapshotStore snapshots;
     private final PortfolioAccessScopeUseCase scopes;
     private final RecordAuditEntryUseCase audit;
+    private final JourneyStartedStatusUseCase journeys;
+    private final OutboxStore outbox;
     private final Clock clock;
 
-    public ReorderRoutePointsService(RouteStore routes, PlanningSnapshotStore snapshots, PortfolioAccessScopeUseCase scopes, RecordAuditEntryUseCase audit, Clock clock) {
+    public ReorderRoutePointsService(RouteStore routes, PlanningSnapshotStore snapshots, PortfolioAccessScopeUseCase scopes,
+                                    RecordAuditEntryUseCase audit, JourneyStartedStatusUseCase journeys, OutboxStore outbox, Clock clock) {
         this.routes = routes;
         this.snapshots = snapshots;
         this.scopes = scopes;
         this.audit = audit;
+        this.journeys = journeys;
+        this.outbox = outbox;
         this.clock = clock;
     }
 
@@ -35,8 +43,21 @@ public class ReorderRoutePointsService implements ReorderRoutePointsUseCase {
         validate(command, actor);
         Route route = routes.findForUpdate(actor.tenantId(), command.routeId()).orElseThrow(Forbidden::new);
         authorize(actor, route);
-        if (!"DRAFT".equals(route.status()) || route.version() != command.baseRouteVersion())
+        boolean published = "PUBLISHED".equals(route.status());
+        if ((!"DRAFT".equals(route.status()) && !published) || route.version() != command.baseRouteVersion())
             throw new Conflict("ROUTE_VERSION_CONFLICT");
+        if (published) {
+            if (outbox == null) throw new Conflict("ROUTE_NOTIFICATION_UNAVAILABLE");
+            JourneyStartedStatusUseCase.State journeyState;
+            try {
+                journeyState = journeys.stateForUpdate(new JourneyStartedStatusUseCase.Query(actor.tenantId(), route.sellerId(), route.date()));
+            } catch (JourneyStartedStatusUseCase.Unavailable exception) {
+                throw new Conflict("JOURNEY_STATE_UNAVAILABLE");
+            }
+            if (journeyState != JourneyStartedStatusUseCase.State.NOT_STARTED) {
+                throw new Conflict("JOURNEY_ALREADY_STARTED");
+            }
+        }
         if (!samePermutation(route.points(), command.routePointIds())) throw new Invalid();
         PlanningSnapshot snapshot = snapshots.findValidForUpdate(actor.tenantId(), route.id(), route.version()).orElseThrow(() -> new Conflict("SNAPSHOT_MISSING"));
         if (!snapshot.validUntil().isAfter(clock.instant())) throw new Conflict("SNAPSHOT_EXPIRED");
@@ -67,13 +88,18 @@ public class ReorderRoutePointsService implements ReorderRoutePointsUseCase {
         snapshots.supersedeAndCopy(snapshot, updated.version());
         if (!audit.record(new RecordAuditEntryCommand(AuditAction.CRITICAL_MUTATION, AuditResourceType.ROUTE, route.id(), AuditResult.SUCCESS, Map.of("version", Long.toString(route.version())), Map.of("version", Long.toString(updated.version()), "pointCount", Integer.toString(reordered.size())))))
             throw new IllegalStateException("audit persistence failed");
+        if (published) {
+            outbox.append(new OutboxEvent(UUID.randomUUID(), "route.modified", 1, updated.updatedAt(), actor.tenantId(), command.correlationId(), route.id(),
+                    "{\"routeId\":\"" + route.id() + "\",\"tenantId\":\"" + actor.tenantId() + "\",\"routeVersion\":\"" + updated.version()
+                            + "\",\"recipientTechnicalIds\":[\"" + route.sellerId() + "\"]}"));
+        }
         return updated;
     }
 
     private static void validate(Command c, AuthenticatedActor a) {
         if (a == null || a.accountId() == null || a.tenantId() == null || (a.role() != BaseRole.COMPANY_ADMIN && a.role() != BaseRole.SUPERVISOR))
             throw new Forbidden();
-        if (c == null || c.routeId() == null || c.baseRouteVersion() < 1 || c.routePointIds() == null || c.routePointIds().isEmpty() || c.routePointIds().size() > 50 || c.routePointIds().stream().anyMatch(Objects::isNull) || new HashSet<>(c.routePointIds()).size() != c.routePointIds().size())
+        if (c == null || c.routeId() == null || c.correlationId() == null || c.baseRouteVersion() < 1 || c.routePointIds() == null || c.routePointIds().isEmpty() || c.routePointIds().size() > 50 || c.routePointIds().stream().anyMatch(Objects::isNull) || new HashSet<>(c.routePointIds()).size() != c.routePointIds().size())
             throw new Invalid();
     }
 

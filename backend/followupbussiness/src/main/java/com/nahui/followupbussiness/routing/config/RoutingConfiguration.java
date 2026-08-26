@@ -20,12 +20,14 @@ import com.nahui.followupbussiness.routing.application.port.in.ReassignRouteUseC
 import com.nahui.followupbussiness.routing.application.port.in.RouteNotificationAuthorizationUseCase;
 import com.nahui.followupbussiness.routing.application.RouteNotificationAuthorizationService;
 import com.nahui.followupbussiness.outbox.application.port.out.OutboxStore;
+import com.nahui.followupbussiness.journeys.application.port.in.JourneyStartedStatusUseCase;
 import com.nahui.followupbussiness.workforce.application.port.in.PortfolioAccessScopeUseCase;
 import com.nahui.followupbussiness.workforce.application.port.in.SellerReferenceUseCase;
 
 import java.time.Clock;
 
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -59,8 +61,14 @@ public class RoutingConfiguration {
     }
 
     @Bean
-    ReorderRoutePointsUseCase reorderRoutePointsUseCase(JdbcTemplate jdbc, tools.jackson.databind.ObjectMapper json, PortfolioAccessScopeUseCase scopes, @Qualifier("transactionalAuditEntryUseCase") RecordAuditEntryUseCase audit) {
-        return new ReorderRoutePointsService(new JdbcRouteStore(jdbc), new JdbcPlanningSnapshotStore(jdbc, json), scopes, audit, Clock.systemUTC());
+    ReorderRoutePointsUseCase reorderRoutePointsUseCase(JdbcTemplate jdbc, tools.jackson.databind.ObjectMapper json, PortfolioAccessScopeUseCase scopes,
+                                                         @Qualifier("transactionalAuditEntryUseCase") RecordAuditEntryUseCase audit,
+                                                         JourneyStartedStatusUseCase journeys, ObjectProvider<OutboxStore> outbox,
+                                                         PlatformTransactionManager transactions) {
+        var service = new ReorderRoutePointsService(new JdbcRouteStore(jdbc), new JdbcPlanningSnapshotStore(jdbc, json), scopes, audit, journeys, outbox.getIfAvailable(), Clock.systemUTC());
+        var transaction = new TransactionTemplate(transactions);
+        transaction.setIsolationLevel(org.springframework.transaction.TransactionDefinition.ISOLATION_SERIALIZABLE);
+        return (command, actor) -> transaction.execute(status -> service.reorder(command, actor));
     }
 
     @Bean
