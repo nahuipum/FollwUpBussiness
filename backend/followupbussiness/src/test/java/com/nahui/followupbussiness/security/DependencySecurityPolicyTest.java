@@ -14,6 +14,7 @@ class DependencySecurityPolicyTest {
     private static final String MINIMUM_POSTGRESQL_DRIVER_VERSION = "42.7.12";
     private static final String MINIMUM_JACKSON_DATABIND_VERSION = "3.1.5";
     private static final String MINIMUM_NETTY_COMPRESSION_VERSION = "4.2.16.Final";
+    private static final String MINIMUM_HTTPCORE5_VERSION = "5.4.3";
 
     @ParameterizedTest
     @ValueSource(strings = {
@@ -56,6 +57,14 @@ class DependencySecurityPolicyTest {
                 "io.netty.handler.codec.compression.CompressionOptions",
                 MINIMUM_NETTY_COMPRESSION_VERSION,
                 "4.2.15.Final");
+    }
+
+    @Test
+    void httpCore5MeetsSecurityBaseline() throws ClassNotFoundException {
+        assertDependencyVersionAtLeast(
+                "org.apache.hc.core5.http.HttpMessage",
+                MINIMUM_HTTPCORE5_VERSION,
+                "5.4.2");
     }
 
     private static void assertDependencyVersionAtLeast(
