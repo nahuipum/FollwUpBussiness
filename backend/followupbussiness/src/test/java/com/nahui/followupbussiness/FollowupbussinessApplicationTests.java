@@ -11,6 +11,8 @@ import com.nahui.followupbussiness.identityaccess.application.port.in.BootstrapP
 import com.nahui.followupbussiness.identityaccess.application.port.in.LogoutSessionUseCase;
 import com.nahui.followupbussiness.identityaccess.application.port.in.ProvisionInitialCompanyAdminUseCase;
 import com.nahui.followupbussiness.identityaccess.application.port.in.RefreshSessionUseCase;
+import com.nahui.followupbussiness.outbox.application.port.out.OutboxStore;
+import com.nahui.followupbussiness.routing.application.port.in.PublishRouteUseCase;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -66,6 +68,8 @@ class FollowupbussinessApplicationTests {
 
     @Test
     void contextLoads() {
+        assertThat(applicationContext.getBeansOfType(OutboxStore.class)).isEmpty();
+        assertThat(applicationContext.getBeansOfType(PublishRouteUseCase.class)).hasSize(1);
     }
 
     @Test

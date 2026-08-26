@@ -4054,7 +4054,10 @@ components:
       type: object
       additionalProperties: false
       properties:
-        notifySeller: { type: boolean, default: true }
+        notifySeller:
+          type: boolean
+          default: true
+          description: No altera la publicación ni route.published; false solo suprime el push posterior de BE-053.
     ReassignRouteRequest:
       type: object
       additionalProperties: false

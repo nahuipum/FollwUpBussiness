@@ -13,12 +13,16 @@ import com.nahui.followupbussiness.routing.adapter.out.persistence.JdbcMatrixQuo
 import com.nahui.followupbussiness.routing.adapter.out.persistence.JdbcPlanningSnapshotStore;
 import com.nahui.followupbussiness.routing.application.ReorderRoutePointsService;
 import com.nahui.followupbussiness.routing.application.port.in.ReorderRoutePointsUseCase;
+import com.nahui.followupbussiness.routing.application.port.in.PublishRouteUseCase;
+import com.nahui.followupbussiness.routing.application.PublishRouteService;
+import com.nahui.followupbussiness.outbox.application.port.out.OutboxStore;
 import com.nahui.followupbussiness.workforce.application.port.in.PortfolioAccessScopeUseCase;
 import com.nahui.followupbussiness.workforce.application.port.in.SellerReferenceUseCase;
 
 import java.time.Clock;
 
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -49,5 +53,23 @@ public class RoutingConfiguration {
     @Bean
     ReorderRoutePointsUseCase reorderRoutePointsUseCase(JdbcTemplate jdbc, tools.jackson.databind.ObjectMapper json, PortfolioAccessScopeUseCase scopes, @Qualifier("transactionalAuditEntryUseCase") RecordAuditEntryUseCase audit) {
         return new ReorderRoutePointsService(new JdbcRouteStore(jdbc), new JdbcPlanningSnapshotStore(jdbc, json), scopes, audit, Clock.systemUTC());
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "followupbussiness.outbox", name = "enabled", havingValue = "true", matchIfMissing = true)
+    PublishRouteUseCase publishRouteUseCase(JdbcTemplate jdbc, tools.jackson.databind.ObjectMapper json, SellerReferenceUseCase sellers,
+                                            PortfolioAccessScopeUseCase scopes, OutboxStore outbox,
+                                            @Qualifier("transactionalAuditEntryUseCase") RecordAuditEntryUseCase audit,
+                                            PlatformTransactionManager transactions) {
+        var service = new PublishRouteService(new JdbcRouteStore(jdbc), new JdbcPlanningSnapshotStore(jdbc, json), sellers, scopes, outbox, audit, Clock.systemUTC());
+        var transaction = new TransactionTemplate(transactions);
+        transaction.setIsolationLevel(org.springframework.transaction.TransactionDefinition.ISOLATION_SERIALIZABLE);
+        return (command, actor) -> transaction.execute(status -> service.publish(command, actor));
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "followupbussiness.outbox", name = "enabled", havingValue = "false")
+    PublishRouteUseCase unavailablePublishRouteUseCase() {
+        return (command, actor) -> { throw new PublishRouteUseCase.Unavailable(); };
     }
 }

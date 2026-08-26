@@ -19,9 +19,9 @@ public final class JdbcRouteStore implements RouteStore {
 
     @Override
     public Reservation reserveIdempotency(UUID tenant, UUID actor, UUID key, String fingerprint, Instant now) {
-        int inserted = jdbc.update("insert into route_idempotency(tenant_id,actor_id,idempotency_key,request_fingerprint,recorded_at,status) values(?,?,?,?,?,'PENDING') on conflict (tenant_id,actor_id,idempotency_key) do nothing", tenant, actor, key, fingerprint, Timestamp.from(now));
+        int inserted = jdbc.update("insert into route_idempotency(tenant_id,actor_id,operation,idempotency_key,request_fingerprint,recorded_at,status) values(?,?, 'CREATE',?,?,?,'PENDING') on conflict (tenant_id,actor_id,operation,idempotency_key) do nothing", tenant, actor, key, fingerprint, Timestamp.from(now));
         if (inserted == 1) return new Reservation(true, null, fingerprint);
-        Reservation result = jdbc.query("select route_id,request_fingerprint from route_idempotency where tenant_id=? and actor_id=? and idempotency_key=? and status='COMPLETED'", rs -> rs.next() ? new Reservation(false, rs.getObject(1, UUID.class), rs.getString(2)) : null, tenant, actor, key);
+        Reservation result = jdbc.query("select route_id,request_fingerprint from route_idempotency where tenant_id=? and actor_id=? and operation='CREATE' and idempotency_key=? and status='COMPLETED'", rs -> rs.next() ? new Reservation(false, rs.getObject(1, UUID.class), rs.getString(2)) : null, tenant, actor, key);
         if (result == null) throw new IllegalStateException("idempotency reservation is not complete");
         return result;
     }
@@ -35,7 +35,7 @@ public final class JdbcRouteStore implements RouteStore {
 
     @Override
     public void completeIdempotency(UUID tenant, UUID actor, UUID key, UUID route) {
-        jdbc.update("update route_idempotency set route_id=?,status='COMPLETED' where tenant_id=? and actor_id=? and idempotency_key=? and status='PENDING'", route, tenant, actor, key);
+        jdbc.update("update route_idempotency set route_id=?,status='COMPLETED' where tenant_id=? and actor_id=? and operation='CREATE' and idempotency_key=? and status='PENDING'", route, tenant, actor, key);
     }
 
     @Override
@@ -61,5 +61,25 @@ public final class JdbcRouteStore implements RouteStore {
         int offset=route.points().size()+1;
         jdbc.update("update route_point set sequence=sequence+? where tenant_id=? and route_id=?",offset,route.tenantId(),route.id());
         for(Route.Point point:route.points()) jdbc.update("update route_point set sequence=?,planned_arrival_at=?,planned_departure_at=? where tenant_id=? and route_id=? and id=?",point.sequence(),Timestamp.from(point.plannedArrivalAt()),Timestamp.from(point.plannedDepartureAt()),route.tenantId(),route.id(),point.id());
+    }
+
+    @Override
+    public Reservation reservePublicationIdempotency(UUID tenant, UUID actor, UUID key, String fingerprint, Instant now) {
+        int inserted = jdbc.update("insert into route_idempotency(tenant_id,actor_id,operation,idempotency_key,request_fingerprint,recorded_at,status) values(?,?, 'PUBLISH',?,?,?,'PENDING') on conflict (tenant_id,actor_id,operation,idempotency_key) do nothing", tenant, actor, key, fingerprint, Timestamp.from(now));
+        if (inserted == 1) return new Reservation(true, null, fingerprint);
+        Reservation result = jdbc.query("select route_id,request_fingerprint from route_idempotency where tenant_id=? and actor_id=? and operation='PUBLISH' and idempotency_key=? and status='COMPLETED'", rs -> rs.next() ? new Reservation(false, rs.getObject(1, UUID.class), rs.getString(2)) : null, tenant, actor, key);
+        if (result == null) throw new IllegalStateException("idempotency reservation is not complete");
+        return result;
+    }
+
+    @Override
+    public void completePublicationIdempotency(UUID tenant, UUID actor, UUID key, UUID route) {
+        jdbc.update("update route_idempotency set route_id=?,status='COMPLETED' where tenant_id=? and actor_id=? and operation='PUBLISH' and idempotency_key=? and status='PENDING'", route, tenant, actor, key);
+    }
+
+    @Override
+    public void publish(Route route, long expectedVersion) {
+        if (jdbc.update("update route set status='PUBLISHED',updated_at=?,version=? where tenant_id=? and id=? and status='DRAFT' and version=?", Timestamp.from(route.updatedAt()), route.version(), route.tenantId(), route.id(), expectedVersion) != 1)
+            throw new IllegalStateException("route state changed");
     }
 }

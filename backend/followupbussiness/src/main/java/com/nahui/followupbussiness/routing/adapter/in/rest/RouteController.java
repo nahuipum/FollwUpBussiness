@@ -4,6 +4,7 @@ import com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActo
 import com.nahui.followupbussiness.customers.domain.GeoPoint;
 import com.nahui.followupbussiness.routing.application.port.in.CreateRouteUseCase;
 import com.nahui.followupbussiness.routing.application.port.in.ReorderRoutePointsUseCase;
+import com.nahui.followupbussiness.routing.application.port.in.PublishRouteUseCase;
 import com.nahui.followupbussiness.routing.domain.Route;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,12 +22,30 @@ import org.springframework.web.bind.annotation.*;
 public final class RouteController {
     private final CreateRouteUseCase create;
     private final ReorderRoutePointsUseCase reorder;
+    private final PublishRouteUseCase publish;
     private final MeterRegistry meters;
 
-    public RouteController(CreateRouteUseCase create, ReorderRoutePointsUseCase reorder, MeterRegistry meters) {
+    public RouteController(CreateRouteUseCase create, ReorderRoutePointsUseCase reorder, PublishRouteUseCase publish, MeterRegistry meters) {
         this.create = create;
         this.reorder = reorder;
+        this.publish = publish;
         this.meters = meters;
+    }
+
+    @PostMapping("/routes/{routeId}/publish")
+    public ResponseEntity<?> publish(@PathVariable UUID routeId, @RequestHeader("If-Match") String ifMatch,
+                                     @RequestHeader("Idempotency-Key") UUID key, @RequestBody(required = false) PublishRequest request,
+                                     @AuthenticationPrincipal AuthenticatedActor actor, HttpServletRequest http) {
+        UUID correlation = correlationId(http);
+        try {
+            boolean notifySeller = request == null || request.notifySeller() == null || request.notifySeller();
+            Route route = publish.publish(new PublishRouteUseCase.Command(routeId, parseVersion(ifMatch), key, notifySeller, correlation), actor);
+            meters.counter("routes.published").increment();
+            return ResponseEntity.ok().eTag("\"" + route.version() + "\"").header("X-Correlation-Id", correlation.toString()).body(View.from(route));
+        } catch (PublishRouteUseCase.Forbidden ex) { return problem(HttpStatus.FORBIDDEN, correlation); }
+        catch (PublishRouteUseCase.Conflict ex) { return problem(HttpStatus.CONFLICT, correlation); }
+        catch (PublishRouteUseCase.Unavailable ex) { return problem(HttpStatus.SERVICE_UNAVAILABLE, correlation); }
+        catch (PublishRouteUseCase.Invalid | IllegalArgumentException ex) { return problem(HttpStatus.UNPROCESSABLE_CONTENT, correlation); }
     }
 
     @PutMapping("/routes/{routeId}/points/order")
@@ -83,11 +102,12 @@ public final class RouteController {
     public record Request(String name, LocalDate date, UUID sellerId, GeoPoint startLocation, List<UUID> customerIds) {
     }
     public record ReorderRequest(List<UUID> routePointIds) { }
+    public record PublishRequest(Boolean notifySeller) { }
 
     record View(UUID id, String name, LocalDate date, UUID sellerId, GeoPoint startLocation, String status,
                 List<Point> points, java.time.Instant createdAt, java.time.Instant updatedAt, long version) {
         static View from(Route r) {
-            return new View(r.id(), r.name(), r.date(), r.sellerId(), r.startLocation(), "DRAFT", r.points().stream().map(p -> new Point(p.id(), p.customerId(), p.sequence(), "PENDING", p.location())).toList(), r.createdAt(), r.updatedAt(), r.version());
+            return new View(r.id(), r.name(), r.date(), r.sellerId(), r.startLocation(), r.status(), r.points().stream().map(p -> new Point(p.id(), p.customerId(), p.sequence(), "PENDING", p.location())).toList(), r.createdAt(), r.updatedAt(), r.version());
         }
     }
 

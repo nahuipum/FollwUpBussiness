@@ -19,6 +19,12 @@ public interface RouteStore {
 
     void replacePointsAndVersion(Route route, long expectedVersion);
 
+    Reservation reservePublicationIdempotency(UUID tenantId, UUID actorId, UUID key, String fingerprint, Instant recordedAt);
+
+    void completePublicationIdempotency(UUID tenantId, UUID actorId, UUID key, UUID routeId);
+
+    void publish(Route route, long expectedVersion);
+
     record Reservation(boolean owner, UUID routeId, String fingerprint) {
     }
 }

@@ -29,7 +29,8 @@ Todo evento `route.*` registrado en `event-catalog.yaml` usa:
     "routeId": "uuid",
     "routeVersion": "opaque-version",
     "routeOperationalDate": "date",
-    "recipientTechnicalIds": ["uuid"]
+    "recipientTechnicalIds": ["uuid"],
+    "notifySeller": true
   }
 }
 ```
@@ -61,6 +62,12 @@ tenant/usuario. No hay nombres, dirección, cliente, contenido visible, token
 push ni enlace de identidad. Una versión incompatible exige una nueva versión
 de contrato y adaptador/migración coordinados; `v1` solo admite campos
 opcionales aditivos.
+
+`notifySeller` es opcional y, si falta, equivale a `true`. No controla la
+transición ni la emisión de `route.published`: `routing` conserva el evento y
+sus destinatarios técnicos para `mobile-sync`. Cuando es `false`, el
+consumidor `notifications` omite únicamente el push al vendedor; sigue
+aplicando sus validaciones de tenant, usuario e instalación.
 
 El productor futuro persiste el envelope en outbox con la misma transacción de
 la transición de ruta correspondiente. Solo `routing` puede publicarlo. Antes
