@@ -13,8 +13,9 @@ import java.util.UUID;
 public record Route(UUID id, UUID tenantId, String name, LocalDate date, UUID sellerId, GeoPoint startLocation,
                     List<Point> points, Instant createdAt, Instant updatedAt, long version, String status) {
     public Route {
-        if (id == null || tenantId == null || date == null || sellerId == null || points == null || points.isEmpty()
-                || points.size() > 500 || createdAt == null || updatedAt == null || version < 1 || status == null)
+        if (id == null || tenantId == null || date == null || sellerId == null || points == null
+                || points.size() > 500 || createdAt == null || updatedAt == null || version < 1 || status == null
+                || (points.isEmpty() && !"DRAFT".equals(status)))
             throw new IllegalArgumentException("invalid route");
         name = name == null || name.isBlank() ? null : name.trim();
         if (name != null && name.length() > 160) throw new IllegalArgumentException("invalid route name");

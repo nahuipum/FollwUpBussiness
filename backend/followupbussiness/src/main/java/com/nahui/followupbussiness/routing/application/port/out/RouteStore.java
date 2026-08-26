@@ -31,6 +31,10 @@ public interface RouteStore {
 
     void reassign(Route route, long expectedVersion);
 
+    Reservation reserveCopyIdempotency(UUID tenantId, UUID actorId, UUID key, String fingerprint, Instant recordedAt);
+
+    void completeCopyIdempotency(UUID tenantId, UUID actorId, UUID key, UUID routeId);
+
     record Reservation(boolean owner, UUID routeId, String fingerprint) {
     }
 }

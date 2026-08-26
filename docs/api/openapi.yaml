@@ -1663,10 +1663,10 @@ paths:
           description: Copia en borrador
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Route' }
+              schema: { $ref: '#/components/schemas/CopyRouteResponse' }
         '403': { $ref: '#/components/responses/Forbidden' }
-        '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
 
   /routes/suggested-customers:
     get:
@@ -4080,6 +4080,29 @@ components:
         date: { type: string, format: date }
         sellerId: { type: string, format: uuid }
         name: { type: string, maxLength: 160 }
+    CopyRouteResponse:
+      type: object
+      additionalProperties: false
+      required: [route, warnings]
+      properties:
+        route: { $ref: '#/components/schemas/Route' }
+        warnings:
+          type: array
+          items: { $ref: '#/components/schemas/CopyRouteWarning' }
+    CopyRouteWarning:
+      type: object
+      additionalProperties: false
+      required: [code, resourceType]
+      properties:
+        code:
+          type: string
+          enum: [SOURCE_SELLER_INACTIVE, CUSTOMER_INACTIVE, CUSTOMER_OUTSIDE_TARGET_PORTFOLIO, TERRITORY_NOT_EFFECTIVE, POINT_NOT_COPIED]
+        resourceType: { type: string, enum: [SELLER, CUSTOMER, TERRITORY, ROUTE_POINT] }
+        sourcePointId:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
     SuggestedCustomer:
       type: object
       additionalProperties: false

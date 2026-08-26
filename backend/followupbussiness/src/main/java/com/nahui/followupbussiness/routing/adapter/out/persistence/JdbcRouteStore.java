@@ -99,4 +99,16 @@ public final class JdbcRouteStore implements RouteStore {
         if (jdbc.update("update route set seller_id=?,updated_at=?,version=? where tenant_id=? and id=? and status='PUBLISHED' and version=?", route.sellerId(), Timestamp.from(route.updatedAt()), route.version(), route.tenantId(), route.id(), expectedVersion) != 1)
             throw new IllegalStateException("route state changed");
     }
+
+    @Override public Reservation reserveCopyIdempotency(UUID tenant, UUID actor, UUID key, String fingerprint, Instant now) {
+        int inserted = jdbc.update("insert into route_idempotency(tenant_id,actor_id,operation,idempotency_key,request_fingerprint,recorded_at,status) values(?,?, 'COPY',?,?,?,'PENDING') on conflict (tenant_id,actor_id,operation,idempotency_key) do nothing", tenant, actor, key, fingerprint, Timestamp.from(now));
+        if (inserted == 1) return new Reservation(true, null, fingerprint);
+        Reservation result = jdbc.query("select route_id,request_fingerprint from route_idempotency where tenant_id=? and actor_id=? and operation='COPY' and idempotency_key=? and status='COMPLETED'", rs -> rs.next() ? new Reservation(false, rs.getObject(1, UUID.class), rs.getString(2)) : null, tenant, actor, key);
+        if (result == null) throw new IllegalStateException("idempotency request pending");
+        return result;
+    }
+
+    @Override public void completeCopyIdempotency(UUID tenant, UUID actor, UUID key, UUID route) {
+        jdbc.update("update route_idempotency set route_id=?,status='COMPLETED' where tenant_id=? and actor_id=? and operation='COPY' and idempotency_key=? and status='PENDING'", route, tenant, actor, key);
+    }
 }

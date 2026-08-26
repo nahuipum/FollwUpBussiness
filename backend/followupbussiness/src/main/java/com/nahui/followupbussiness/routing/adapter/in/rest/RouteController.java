@@ -3,6 +3,7 @@ package com.nahui.followupbussiness.routing.adapter.in.rest;
 import com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor;
 import com.nahui.followupbussiness.customers.domain.GeoPoint;
 import com.nahui.followupbussiness.routing.application.port.in.CreateRouteUseCase;
+import com.nahui.followupbussiness.routing.application.port.in.CopyRouteUseCase;
 import com.nahui.followupbussiness.routing.application.port.in.ReorderRoutePointsUseCase;
 import com.nahui.followupbussiness.routing.application.port.in.PublishRouteUseCase;
 import com.nahui.followupbussiness.routing.application.port.in.ReassignRouteUseCase;
@@ -22,13 +23,15 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 public final class RouteController {
     private final CreateRouteUseCase create;
+    private final CopyRouteUseCase copy;
     private final ReorderRoutePointsUseCase reorder;
     private final PublishRouteUseCase publish;
     private final ReassignRouteUseCase reassign;
     private final MeterRegistry meters;
 
-    public RouteController(CreateRouteUseCase create, ReorderRoutePointsUseCase reorder, PublishRouteUseCase publish, ReassignRouteUseCase reassign, MeterRegistry meters) {
+    public RouteController(CreateRouteUseCase create, CopyRouteUseCase copy, ReorderRoutePointsUseCase reorder, PublishRouteUseCase publish, ReassignRouteUseCase reassign, MeterRegistry meters) {
         this.create = create;
+        this.copy = copy;
         this.reorder = reorder;
         this.publish = publish;
         this.reassign = reassign;
@@ -48,6 +51,21 @@ public final class RouteController {
         catch (ReassignRouteUseCase.Conflict ex) { return problem(HttpStatus.CONFLICT, correlation); }
         catch (ReassignRouteUseCase.Unavailable ex) { return problem(HttpStatus.SERVICE_UNAVAILABLE, correlation); }
         catch (ReassignRouteUseCase.Invalid | IllegalArgumentException ex) { return problem(HttpStatus.UNPROCESSABLE_CONTENT, correlation); }
+    }
+
+    @PostMapping("/routes/{routeId}/copy")
+    public ResponseEntity<?> copy(@PathVariable UUID routeId, @RequestHeader("Idempotency-Key") UUID key,
+                                  @RequestBody CopyRequest request, @AuthenticationPrincipal AuthenticatedActor actor,
+                                  HttpServletRequest http) {
+        UUID correlation = correlationId(http);
+        try {
+            var result = copy.copy(new CopyRouteUseCase.Command(routeId, request.date(), request.sellerId(), request.name(), key), actor);
+            meters.counter("routes.copied").increment();
+            return ResponseEntity.created(URI.create("/routes/" + result.route().id())).header("X-Correlation-Id", correlation.toString())
+                    .body(new CopyResponse(View.from(result.route()), result.warnings().stream().map(w -> new CopyWarning(w.code(), w.resourceType(), w.sourcePointId())).toList()));
+        } catch (CopyRouteUseCase.Forbidden ex) { return problem(HttpStatus.FORBIDDEN, correlation); }
+        catch (CopyRouteUseCase.Conflict ex) { return problem(HttpStatus.CONFLICT, correlation); }
+        catch (CopyRouteUseCase.Invalid | IllegalArgumentException ex) { return problem(HttpStatus.UNPROCESSABLE_CONTENT, correlation); }
     }
 
     @PostMapping("/routes/{routeId}/publish")
@@ -122,6 +140,9 @@ public final class RouteController {
     public record ReorderRequest(List<UUID> routePointIds) { }
     public record PublishRequest(Boolean notifySeller) { }
     public record ReassignRequest(UUID sellerId, String reason) { }
+    public record CopyRequest(LocalDate date, UUID sellerId, String name) { }
+    record CopyResponse(View route, List<CopyWarning> warnings) { }
+    record CopyWarning(String code, String resourceType, UUID sourcePointId) { }
 
     record View(UUID id, String name, LocalDate date, UUID sellerId, GeoPoint startLocation, String status,
                 List<Point> points, java.time.Instant createdAt, java.time.Instant updatedAt, long version) {
