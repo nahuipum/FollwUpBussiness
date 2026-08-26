@@ -1,9 +1,15 @@
 package com.nahui.followupbussiness.routing.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.nahui.followupbussiness.customers.domain.GeoPoint;
 import com.nahui.followupbussiness.routing.adapter.out.persistence.JdbcRouteStore;
+import com.nahui.followupbussiness.routing.application.port.out.RouteStore;
+import com.nahui.followupbussiness.routing.domain.Route;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterAll;
@@ -45,6 +51,17 @@ class JdbcRouteStoreIdempotencyIntegrationTest {
         assertThat(createReplay).extracting("owner", "routeId", "fingerprint").containsExactly(false, route, "create-fingerprint");
         assertThat(createCollision).extracting("owner", "routeId", "fingerprint").containsExactly(false, route, "create-fingerprint");
         assertThat(publishReplay).extracting("owner", "routeId", "fingerprint").containsExactly(false, route, "publish-fingerprint");
+    }
+
+    @Test void durablePartialIndexRejectsSecondPublishedRouteForSameSellerAndDate() {
+        UUID tenant = UUID.randomUUID(), actor = account(tenant), seller = UUID.randomUUID(), first = UUID.randomUUID(), second = UUID.randomUUID();
+        LocalDate date = LocalDate.of(2026, 9, 1);
+        jdbc.update("insert into workforce_seller(id,tenant_id,user_id,display_name,email,status,created_at,updated_at,version) values(?,?,?,'Seller','seller@example.test','ACTIVE',current_timestamp,current_timestamp,1)", seller, tenant, actor);
+        jdbc.update("insert into route(id,tenant_id,operational_date,seller_id,status,created_at,updated_at,version) values(?,?,?,?,'PUBLISHED',current_timestamp,current_timestamp,1)", first, tenant, date, seller);
+        jdbc.update("insert into route(id,tenant_id,operational_date,seller_id,status,created_at,updated_at,version) values(?,?,?,?,'DRAFT',current_timestamp,current_timestamp,1)", second, tenant, date, seller);
+        Route candidate = new Route(second, tenant, "Route", date, seller, new GeoPoint(0, 0), List.of(new Route.Point(UUID.randomUUID(), UUID.randomUUID(), 1, new GeoPoint(0, 0))), Instant.EPOCH, Instant.now(), 2, "PUBLISHED");
+
+        assertThatThrownBy(() -> new JdbcRouteStore(jdbc).publish(candidate, 1)).isInstanceOf(RouteStore.Conflict.class);
     }
 
     private UUID account(UUID tenant) {

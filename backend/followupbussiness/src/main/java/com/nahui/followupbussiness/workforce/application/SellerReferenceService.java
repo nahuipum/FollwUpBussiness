@@ -25,4 +25,6 @@ public final class SellerReferenceService implements SellerReferenceUseCase {
                 .flatMap(seller -> seller.territoryIds().stream()).filter(id -> sellers.activeTerritory(tenantId, id))
                 .collect(Collectors.toUnmodifiableSet());
     }
+    @Override public Set<UUID> activeSellerIdsForUser(UUID tenantId, UUID accountId) { return sellers.activeSellerIdsForUser(tenantId, accountId); }
+    @Override public Set<UUID> activeSellerIdsForTenant(UUID tenantId) { return sellers.activeSellerIdsForTenant(tenantId); }
 }

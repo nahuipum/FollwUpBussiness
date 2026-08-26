@@ -55,7 +55,8 @@ public class PublishRouteService implements PublishRouteUseCase {
         Instant now = clock.instant();
         Route published = new Route(route.id(), route.tenantId(), route.name(), route.date(), route.sellerId(), route.startLocation(),
                 route.points(), route.createdAt(), now, route.version() + 1, "PUBLISHED");
-        routes.publish(published, route.version());
+        try { routes.publish(published, route.version()); }
+        catch (RouteStore.Conflict ex) { throw new Conflict(); }
         if (!audit.record(new RecordAuditEntryCommand(AuditAction.CRITICAL_MUTATION, AuditResourceType.ROUTE, route.id(), AuditResult.SUCCESS,
                 Map.of("status", route.status(), "version", Long.toString(route.version())),
                 Map.of("status", published.status(), "version", Long.toString(published.version())))))

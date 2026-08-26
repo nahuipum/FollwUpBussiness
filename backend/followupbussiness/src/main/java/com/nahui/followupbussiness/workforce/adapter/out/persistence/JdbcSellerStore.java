@@ -104,6 +104,9 @@ public final class JdbcSellerStore implements SellerStore {
     public Set<UUID> activeSellerIdsForSupervisor(UUID tenant, UUID supervisorId) {
         return new LinkedHashSet<>(jdbc.queryForList("select id from workforce_seller where tenant_id=? and supervisor_id=? and status='ACTIVE'", UUID.class, tenant, supervisorId));
     }
+    @Override public Set<UUID> activeSellerIdsForTenant(UUID tenant) {
+        return new LinkedHashSet<>(jdbc.queryForList("select id from workforce_seller where tenant_id=? and status='ACTIVE'", UUID.class, tenant));
+    }
 
     public List<Seller> list(UUID tenant, UUID teamSupervisor, com.nahui.followupbussiness.workforce.domain.SellerStatus status,
                              UUID requestedSupervisor, UUID territory, String search, int offset, int limit) {

@@ -46,7 +46,8 @@ public final class ReassignRouteService implements ReassignRouteUseCase {
         if (!"PUBLISHED".equals(route.status()) || route.version() != command.expectedVersion()) throw new Conflict();
         Instant now = clock.instant();
         Route reassigned = new Route(route.id(), route.tenantId(), route.name(), route.date(), command.sellerId(), route.startLocation(), route.points(), route.createdAt(), now, route.version() + 1, route.status());
-        routes.reassign(reassigned, route.version());
+        try { routes.reassign(reassigned, route.version()); }
+        catch (RouteStore.Conflict ex) { throw new Conflict(); }
         if (!audit.record(new RecordAuditEntryCommand(AuditAction.CRITICAL_MUTATION, AuditResourceType.ROUTE, route.id(), AuditResult.SUCCESS,
                 Map.of("sellerId", route.sellerId().toString(), "status", route.status(), "version", Long.toString(route.version())),
                 Map.of("sellerId", reassigned.sellerId().toString(), "status", reassigned.status(), "version", Long.toString(reassigned.version())))))

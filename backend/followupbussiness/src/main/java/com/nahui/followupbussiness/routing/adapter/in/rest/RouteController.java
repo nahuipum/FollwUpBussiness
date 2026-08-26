@@ -8,6 +8,7 @@ import com.nahui.followupbussiness.routing.application.port.in.ReorderRoutePoint
 import com.nahui.followupbussiness.routing.application.port.in.PublishRouteUseCase;
 import com.nahui.followupbussiness.routing.application.port.in.ReassignRouteUseCase;
 import com.nahui.followupbussiness.routing.application.port.in.ListSuggestedCustomersUseCase;
+import com.nahui.followupbussiness.routing.application.port.in.ReadRoutesUseCase;
 import com.nahui.followupbussiness.customers.domain.Customer;
 import com.nahui.followupbussiness.routing.domain.Route;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -30,16 +31,47 @@ public final class RouteController {
     private final PublishRouteUseCase publish;
     private final ReassignRouteUseCase reassign;
     private final ListSuggestedCustomersUseCase suggestions;
+    private final ReadRoutesUseCase reads;
     private final MeterRegistry meters;
 
-    public RouteController(CreateRouteUseCase create, CopyRouteUseCase copy, ReorderRoutePointsUseCase reorder, PublishRouteUseCase publish, ReassignRouteUseCase reassign, ListSuggestedCustomersUseCase suggestions, MeterRegistry meters) {
+    public RouteController(CreateRouteUseCase create, CopyRouteUseCase copy, ReorderRoutePointsUseCase reorder, PublishRouteUseCase publish, ReassignRouteUseCase reassign, ListSuggestedCustomersUseCase suggestions, ReadRoutesUseCase reads, MeterRegistry meters) {
         this.create = create;
         this.copy = copy;
         this.reorder = reorder;
         this.publish = publish;
         this.reassign = reassign;
         this.suggestions = suggestions;
+        this.reads = reads;
         this.meters = meters;
+    }
+
+    @GetMapping("/routes")
+    public ResponseEntity<?> list(@RequestParam(required = false) LocalDate date, @RequestParam(required = false) UUID sellerId,
+                                  @RequestParam(required = false) String status, @RequestParam(defaultValue = "0") int page,
+                                  @RequestParam(defaultValue = "20") int pageSize, @AuthenticationPrincipal AuthenticatedActor actor, HttpServletRequest http) {
+        UUID correlation = correlationId(http);
+        try {
+            var result = reads.list(new ReadRoutesUseCase.ListQuery(date, sellerId, status, page, pageSize), actor);
+            long totalPages = result.total() == 0 ? 0 : (result.total() + pageSize - 1) / pageSize;
+            return ResponseEntity.ok().header("X-Correlation-Id", correlation.toString()).body(new RoutePage(result.items().stream().map(View::from).toList(), new PageInfo(page, pageSize, result.total(), totalPages)));
+        } catch (ReadRoutesUseCase.Forbidden ex) { return problem(HttpStatus.FORBIDDEN, correlation); }
+        catch (ReadRoutesUseCase.Invalid | IllegalArgumentException ex) { return problem(HttpStatus.BAD_REQUEST, correlation); }
+    }
+
+    @GetMapping("/routes/my-route")
+    public ResponseEntity<?> myRoute(@RequestParam LocalDate date, @AuthenticationPrincipal AuthenticatedActor actor, HttpServletRequest http) {
+        UUID correlation = correlationId(http);
+        try { return ResponseEntity.ok().header("X-Correlation-Id", correlation.toString()).body(View.from(reads.myRoute(date, actor))); }
+        catch (ReadRoutesUseCase.Conflict ex) { return problem(HttpStatus.CONFLICT, correlation); }
+        catch (ReadRoutesUseCase.NotFound ex) { return problem(HttpStatus.NOT_FOUND, correlation); }
+    }
+
+    @GetMapping("/routes/{routeId}")
+    public ResponseEntity<?> get(@PathVariable UUID routeId, @AuthenticationPrincipal AuthenticatedActor actor, HttpServletRequest http) {
+        UUID correlation = correlationId(http);
+        try { return ResponseEntity.ok().header("X-Correlation-Id", correlation.toString()).body(View.from(reads.get(routeId, actor))); }
+        catch (ReadRoutesUseCase.NotFound ex) { return problem(HttpStatus.NOT_FOUND, correlation); }
+        catch (ReadRoutesUseCase.Forbidden ex) { return problem(HttpStatus.FORBIDDEN, correlation); }
     }
 
     @GetMapping("/routes/suggested-customers")
@@ -161,6 +193,7 @@ public final class RouteController {
     record CopyResponse(View route, List<CopyWarning> warnings) { }
     record CopyWarning(String code, String resourceType, UUID sourcePointId) { }
     record SuggestedPage(List<Suggested> items, PageInfo page) { }
+    record RoutePage(List<View> items, PageInfo page) { }
     record PageInfo(int page, int pageSize, long totalElements, long totalPages) { }
     record Suggested(CustomerResponse customer, int priority, String reason, java.time.Instant lastVisitAt) {
         static Suggested from(ListSuggestedCustomersUseCase.Item item) { return new Suggested(CustomerResponse.from(item.customer()), item.priority(), item.reason(), item.lastVisitAt()); }

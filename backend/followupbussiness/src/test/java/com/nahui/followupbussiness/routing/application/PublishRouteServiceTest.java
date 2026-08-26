@@ -30,6 +30,19 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class PublishRouteServiceTest {
+    @Test void mapsDurablePublishedSellerDayConflictWithoutAuditOrEvent() {
+        Fixture f = fixture();
+        when(f.routes.findForUpdate(f.tenant, f.route.id())).thenReturn(Optional.of(f.route));
+        when(f.scopes.resolve(any())).thenReturn(new PortfolioAccessScopeUseCase.Scope(f.tenant, true, Set.of()));
+        when(f.sellers.allActive(f.tenant, Set.of(f.route.sellerId()))).thenReturn(true);
+        when(f.routes.reservePublicationIdempotency(eq(f.tenant), eq(f.actor.accountId()), any(), any(), any())).thenReturn(new RouteStore.Reservation(true, null, null));
+        when(f.snapshots.findValidForUpdate(f.tenant, f.route.id(), 1)).thenReturn(Optional.of(snapshot(f)));
+        doThrow(new RouteStore.Conflict()).when(f.routes).publish(any(), anyLong());
+
+        assertThatThrownBy(() -> f.service.publish(command(f, true), f.actor)).isInstanceOf(PublishRouteUseCase.Conflict.class);
+
+        verifyNoInteractions(f.outbox, f.audit); verify(f.routes, never()).completePublicationIdempotency(any(), any(), any(), any());
+    }
     @Test void publishesDraftWithMatchingValidSnapshotAuditAndTransactionalOutboxEvenWhenPushIsDisabled() {
         Fixture f = fixture();
         when(f.routes.findForUpdate(f.tenant, f.route.id())).thenReturn(Optional.of(f.route));

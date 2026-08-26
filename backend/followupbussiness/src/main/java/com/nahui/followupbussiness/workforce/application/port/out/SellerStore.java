@@ -63,6 +63,7 @@ public interface SellerStore {
     default Set<UUID> activeSellerIdsForSupervisor(UUID tenantId, UUID supervisorId) {
         return Set.of();
     }
+    default Set<UUID> activeSellerIdsForTenant(UUID tenantId) { return Set.of(); }
 
     record SellerReferences(Supervisor supervisor, List<Territory> territories) {
         public SellerReferences {

@@ -3,7 +3,10 @@ package com.nahui.followupbussiness.routing.application.port.out;
 import com.nahui.followupbussiness.routing.domain.Route;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public interface RouteStore {
@@ -16,6 +19,18 @@ public interface RouteStore {
     Optional<Route> find(UUID tenantId, UUID routeId);
 
     Optional<Route> findForUpdate(UUID tenantId, UUID routeId);
+
+    /** Header-only lookup; callers must authorize it before loading route points. */
+    Optional<Header> findHeader(UUID tenantId, UUID routeId);
+
+    /** Single-statement authorized detail lookup; points must not be read from a later snapshot. */
+    Optional<Route> findAuthorized(UUID tenantId, UUID routeId, Set<UUID> allowedSellerIds, String requiredStatus);
+
+    List<Route> list(UUID tenantId, Set<UUID> allowedSellerIds, LocalDate date, UUID sellerId, String status, int offset, int limit);
+
+    long count(UUID tenantId, Set<UUID> allowedSellerIds, LocalDate date, UUID sellerId, String status);
+
+    List<Route> findPublishedForSellers(UUID tenantId, Set<UUID> sellerIds, LocalDate date);
 
     void replacePointsAndVersion(Route route, long expectedVersion);
 
@@ -37,4 +52,7 @@ public interface RouteStore {
 
     record Reservation(boolean owner, UUID routeId, String fingerprint) {
     }
+    record Header(UUID id, UUID tenantId, UUID sellerId, String status) { }
+
+    final class Conflict extends RuntimeException { }
 }

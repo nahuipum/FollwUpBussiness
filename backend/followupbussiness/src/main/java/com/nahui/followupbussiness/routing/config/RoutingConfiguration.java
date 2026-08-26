@@ -23,6 +23,8 @@ import com.nahui.followupbussiness.routing.application.port.in.RouteNotification
 import com.nahui.followupbussiness.routing.application.RouteNotificationAuthorizationService;
 import com.nahui.followupbussiness.routing.application.ListSuggestedCustomersService;
 import com.nahui.followupbussiness.routing.application.port.in.ListSuggestedCustomersUseCase;
+import com.nahui.followupbussiness.routing.application.port.in.ReadRoutesUseCase;
+import com.nahui.followupbussiness.routing.application.ReadRoutesService;
 import com.nahui.followupbussiness.outbox.application.port.out.OutboxStore;
 import com.nahui.followupbussiness.journeys.application.port.in.JourneyStartedStatusUseCase;
 import com.nahui.followupbussiness.workforce.application.port.in.PortfolioAccessScopeUseCase;
@@ -42,6 +44,10 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 @Configuration(proxyBeanMethods = false)
 public class RoutingConfiguration {
+    @Bean
+    ReadRoutesUseCase readRoutesUseCase(JdbcTemplate jdbc, PortfolioAccessScopeUseCase scopes, SellerReferenceUseCase sellers) {
+        return new ReadRoutesService(new JdbcRouteStore(jdbc), scopes, sellers);
+    }
     @Bean
     ListSuggestedCustomersUseCase listSuggestedCustomersUseCase(CustomerPortfolioReadUseCase customers, SellerReferenceUseCase sellers, PortfolioAccessScopeUseCase scopes) {
         return new ListSuggestedCustomersService(customers, sellers, scopes);
