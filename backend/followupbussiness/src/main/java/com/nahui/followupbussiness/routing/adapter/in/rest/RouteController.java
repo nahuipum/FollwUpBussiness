@@ -3,6 +3,7 @@ package com.nahui.followupbussiness.routing.adapter.in.rest;
 import com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor;
 import com.nahui.followupbussiness.customers.domain.GeoPoint;
 import com.nahui.followupbussiness.routing.application.port.in.CreateRouteUseCase;
+import com.nahui.followupbussiness.routing.application.port.in.ReorderRoutePointsUseCase;
 import com.nahui.followupbussiness.routing.domain.Route;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,12 +20,29 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 public final class RouteController {
     private final CreateRouteUseCase create;
+    private final ReorderRoutePointsUseCase reorder;
     private final MeterRegistry meters;
 
-    public RouteController(CreateRouteUseCase create, MeterRegistry meters) {
+    public RouteController(CreateRouteUseCase create, ReorderRoutePointsUseCase reorder, MeterRegistry meters) {
         this.create = create;
+        this.reorder = reorder;
         this.meters = meters;
     }
+
+    @PutMapping("/routes/{routeId}/points/order")
+    public ResponseEntity<?> reorder(@PathVariable UUID routeId, @RequestHeader("If-Match") String ifMatch, @RequestBody ReorderRequest request, @AuthenticationPrincipal AuthenticatedActor actor, HttpServletRequest http) {
+        UUID correlation=correlationId(http);
+        try {
+            long version=parseVersion(ifMatch);
+            Route route=reorder.reorder(new ReorderRoutePointsUseCase.Command(routeId,version,request.routePointIds()),actor);
+            meters.counter("routes.reordered").increment();
+            return ResponseEntity.ok().eTag("\""+route.version()+"\"").header("X-Correlation-Id",correlation.toString()).body(View.from(route));
+        } catch (ReorderRoutePointsUseCase.Forbidden e) { return problem(HttpStatus.FORBIDDEN,correlation); }
+        catch (ReorderRoutePointsUseCase.Conflict e) { return problem(HttpStatus.CONFLICT,correlation); }
+        catch (ReorderRoutePointsUseCase.Invalid | IllegalArgumentException e) { return problem(HttpStatus.UNPROCESSABLE_CONTENT,correlation); }
+    }
+
+    private static long parseVersion(String raw) { try { String value=raw==null?"":raw.replace("\"",""); long version=Long.parseLong(value); if(version<1) throw new NumberFormatException(); return version; } catch(Exception e) { throw new IllegalArgumentException("invalid If-Match"); } }
 
     @PostMapping("/routes")
     public ResponseEntity<?> create(@RequestHeader("Idempotency-Key") UUID key, @RequestBody Request request, @AuthenticationPrincipal AuthenticatedActor actor, HttpServletRequest http) {
@@ -64,6 +82,7 @@ public final class RouteController {
 
     public record Request(String name, LocalDate date, UUID sellerId, GeoPoint startLocation, List<UUID> customerIds) {
     }
+    public record ReorderRequest(List<UUID> routePointIds) { }
 
     record View(UUID id, String name, LocalDate date, UUID sellerId, GeoPoint startLocation, String status,
                 List<Point> points, java.time.Instant createdAt, java.time.Instant updatedAt, long version) {

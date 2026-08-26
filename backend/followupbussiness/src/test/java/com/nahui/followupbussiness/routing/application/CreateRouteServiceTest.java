@@ -17,6 +17,15 @@ import java.util.*;
 import org.junit.jupiter.api.Test;
 
 class CreateRouteServiceTest {
+    @Test void acceptsTheContractualBoundaryOfFiveHundredCustomers() {
+        UUID tenant=UUID.randomUUID(), actorId=UUID.randomUUID(), seller=UUID.randomUUID();
+        List<UUID> customerIds=java.util.stream.Stream.generate(UUID::randomUUID).limit(500).toList();
+        RouteStore store=mock(RouteStore.class); CustomerPortfolioReadUseCase customers=mock(CustomerPortfolioReadUseCase.class); SellerReferenceUseCase sellers=mock(SellerReferenceUseCase.class); PortfolioAccessScopeUseCase scopes=mock(PortfolioAccessScopeUseCase.class); RecordAuditEntryUseCase audit=mock(RecordAuditEntryUseCase.class);
+        when(store.reserveIdempotency(eq(tenant),eq(actorId),any(),any(),any())).thenReturn(new RouteStore.Reservation(true,null,null)); when(sellers.allActive(tenant,Set.of(seller))).thenReturn(true); when(scopes.resolve(any())).thenReturn(new PortfolioAccessScopeUseCase.Scope(tenant,true,Set.of())); when(audit.record(any())).thenReturn(true);
+        when(customers.activeAssignedToSellerAt(tenant,seller,customerIds,LocalDate.of(2026,9,1))).thenReturn(customerIds.stream().map(id->new CustomerPortfolioReadUseCase.RouteCustomer(id,new GeoPoint(-12,-77),UUID.randomUUID())).toList());
+        Route route=service(store,customers,sellers,scopes,audit).create(command(seller,customerIds,UUID.randomUUID()),admin(tenant,actorId));
+        assertThat(route.points()).hasSize(500); verify(store).save(route);
+    }
     @Test void createsSequentialDraftAndRecordsOnlyInternalAudit() {
         UUID tenant=UUID.randomUUID(), actorId=UUID.randomUUID(), seller=UUID.randomUUID(), first=UUID.randomUUID(), second=UUID.randomUUID();
         RouteStore store=mock(RouteStore.class); CustomerPortfolioReadUseCase customers=mock(CustomerPortfolioReadUseCase.class); SellerReferenceUseCase sellers=mock(SellerReferenceUseCase.class); PortfolioAccessScopeUseCase scopes=mock(PortfolioAccessScopeUseCase.class); RecordAuditEntryUseCase audit=mock(RecordAuditEntryUseCase.class);

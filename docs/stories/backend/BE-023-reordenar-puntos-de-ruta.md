@@ -51,7 +51,7 @@
 ## Secuencia de entrega y trazabilidad
 
 - **Sprint objetivo:** Sprint 4 — Planificación y entrega de rutas.
-- **Predecesoras obligatorias:** `BE-021` — Crear ruta manual
+- **Predecesoras obligatorias:** `BE-021` — Crear ruta manual; `EN-022` — Definir snapshot de planificación y estimaciones de ruta
 - **Historias consecuentes que habilita:** `BE-024` — Publicar ruta; `FE-015` — Crear ruta manual; `FE-016` — Generar ruta automática; `INT-007` — Creación manual E2E; `INT-008` — Generación automática E2E
 - **Validación vertical:** `INT-007` — Creación manual E2E; `INT-008` — Generación automática E2E
 

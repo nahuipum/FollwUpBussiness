@@ -40,13 +40,26 @@ public final class JdbcRouteStore implements RouteStore {
 
     @Override
     public Optional<Route> find(UUID tenant, UUID routeId) {
-        return jdbc.query("select id,tenant_id,name,operational_date,seller_id,ST_Y(start_location),ST_X(start_location),created_at,updated_at,version,status from route where tenant_id=? and id=?", rs -> {
+        return find(tenant, routeId, false);
+    }
+
+    @Override public Optional<Route> findForUpdate(UUID tenant, UUID routeId) { return find(tenant, routeId, true); }
+
+    private Optional<Route> find(UUID tenant, UUID routeId, boolean lock) {
+        return jdbc.query("select id,tenant_id,name,operational_date,seller_id,ST_Y(start_location),ST_X(start_location),created_at,updated_at,version,status from route where tenant_id=? and id=?" + (lock ? " for update" : ""), rs -> {
             if (!rs.next()) return Optional.empty();
             UUID id = rs.getObject(1, UUID.class);
-            List<Route.Point> points = jdbc.query("select id,customer_id,sequence,ST_Y(location),ST_X(location) from route_point where tenant_id=? and route_id=? order by sequence", (p, row) -> new Route.Point(p.getObject(1, UUID.class), p.getObject(2, UUID.class), p.getInt(3), new GeoPoint(p.getDouble(4), p.getDouble(5))), tenant, id);
+            List<Route.Point> points = jdbc.query("select id,customer_id,sequence,ST_Y(location),ST_X(location),planned_arrival_at,planned_departure_at from route_point where tenant_id=? and route_id=? order by sequence", (p, row) -> new Route.Point(p.getObject(1, UUID.class), p.getObject(2, UUID.class), p.getInt(3), new GeoPoint(p.getDouble(4), p.getDouble(5)), p.getTimestamp(6)==null?null:p.getTimestamp(6).toInstant(), p.getTimestamp(7)==null?null:p.getTimestamp(7).toInstant()), tenant, id);
             Double latitude = (Double) rs.getObject(6), longitude = (Double) rs.getObject(7);
             GeoPoint start = latitude == null ? null : new GeoPoint(latitude, longitude);
             return Optional.of(new Route(id, rs.getObject(2, UUID.class), rs.getString(3), rs.getDate(4).toLocalDate(), rs.getObject(5, UUID.class), start, points, rs.getTimestamp(8).toInstant(), rs.getTimestamp(9).toInstant(), rs.getLong(10), rs.getString(11)));
         }, tenant, routeId);
+    }
+
+    @Override public void replacePointsAndVersion(Route route, long expectedVersion) {
+        if (jdbc.update("update route set updated_at=?,version=? where tenant_id=? and id=? and version=?", Timestamp.from(route.updatedAt()),route.version(),route.tenantId(),route.id(),expectedVersion)!=1) throw new IllegalStateException("route version changed");
+        int offset=route.points().size()+1;
+        jdbc.update("update route_point set sequence=sequence+? where tenant_id=? and route_id=?",offset,route.tenantId(),route.id());
+        for(Route.Point point:route.points()) jdbc.update("update route_point set sequence=?,planned_arrival_at=?,planned_departure_at=? where tenant_id=? and route_id=? and id=?",point.sequence(),Timestamp.from(point.plannedArrivalAt()),Timestamp.from(point.plannedDepartureAt()),route.tenantId(),route.id(),point.id());
     }
 }

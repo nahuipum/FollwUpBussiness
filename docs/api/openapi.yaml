@@ -1570,7 +1570,7 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
-        '409': { $ref: '#/components/responses/Conflict' }
+        '409': { $ref: '#/components/responses/RoutePlanningSnapshotConflict' }
         '422': { $ref: '#/components/responses/UnprocessableEntity' }
 
   /routes/{routeId}/publish:
@@ -3041,6 +3041,14 @@ components:
         X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
         Retry-After:
           schema: { type: integer, minimum: 1 }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    RoutePlanningSnapshotConflict:
+      description: La ruta no puede reordenarse porque su snapshot de planificación no permite un recálculo seguro o la versión ya cambió.
+      x-error-codes: [SNAPSHOT_MISSING, SNAPSHOT_INCOMPLETE, SNAPSHOT_EXPIRED, SNAPSHOT_STALE, ROUTE_VERSION_CONFLICT]
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
       content:
         application/problem+json:
           schema: { $ref: '#/components/schemas/ErrorResponse' }

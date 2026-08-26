@@ -99,11 +99,13 @@ no entra a sprint si sus predecesoras o contratos no están listos.
 | ID | Historia | Depende de | Desbloquea |
 |---|---|---|---|
 | EN-020 | Definir contrato y aislamiento multiempresa WebSocket | EN-010, EN-011, EN-013, EN-016 | BE-029, BE-030, BE-031, FE-020, INT-011 |
+| EN-022 | Definir snapshot de planificación y estimaciones de ruta | EN-018, BE-021 | BE-023, BE-064, INT-007 |
 | BE-021 | Crear ruta manual | BE-013, BE-059, BE-060 | BE-022, BE-023, BE-024, BE-026, BE-061, FE-015, INT-007 |
 | BE-022 | Generar ruta automática básica | BE-021, EN-018 | FE-016, INT-008 |
-| BE-023 | Reordenar puntos de ruta | BE-021 | BE-024, FE-015, FE-016, INT-007, INT-008 |
+| BE-023 | Reordenar puntos de ruta | BE-021, EN-022 | BE-024, FE-015, FE-016, INT-007, INT-008 |
 | BE-024 | Publicar ruta | BE-021, BE-023, BE-055 | BE-025, BE-035, BE-053, BE-061, FE-017, INT-007 |
 | BE-053 | Notificar ruta publicada o modificada | BE-024, BE-055, BE-056, EN-017 | BE-025, INT-007, INT-009, INT-027, INT-028, MOB-029 |
+| BE-064 | Editar ruta publicada antes de iniciar jornada | EN-022, BE-023, BE-024, BE-053 | BE-061, MOB-029, INT-007 |
 | BE-025 | Reasignar ruta | BE-024, BE-053 | FE-018, INT-009 |
 | BE-026 | Duplicar ruta | BE-021 | FE-014, INT-007 |
 | BE-027 | Sugerir clientes por frecuencia | BE-013, BE-060 | FE-015, INT-008 |

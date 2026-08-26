@@ -15,6 +15,10 @@ public interface RouteStore {
 
     Optional<Route> find(UUID tenantId, UUID routeId);
 
+    Optional<Route> findForUpdate(UUID tenantId, UUID routeId);
+
+    void replacePointsAndVersion(Route route, long expectedVersion);
+
     record Reservation(boolean owner, UUID routeId, String fingerprint) {
     }
 }

@@ -28,9 +28,15 @@ public record Route(UUID id, UUID tenantId, String name, LocalDate date, UUID se
         this(id, tenantId, name, date, sellerId, startLocation, points, createdAt, updatedAt, version, "DRAFT");
     }
 
-    public record Point(UUID id, UUID customerId, int sequence, GeoPoint location) {
+    public record Point(UUID id, UUID customerId, int sequence, GeoPoint location, Instant plannedArrivalAt,
+                        Instant plannedDepartureAt) {
+        public Point(UUID id, UUID customerId, int sequence, GeoPoint location) {
+            this(id, customerId, sequence, location, null, null);
+        }
         public Point {
-            if (id == null || customerId == null || sequence < 1 || location == null)
+            if (id == null || customerId == null || sequence < 1 || location == null
+                    || (plannedArrivalAt == null) != (plannedDepartureAt == null)
+                    || (plannedArrivalAt != null && !plannedArrivalAt.isBefore(plannedDepartureAt)))
                 throw new IllegalArgumentException("invalid route point");
         }
     }

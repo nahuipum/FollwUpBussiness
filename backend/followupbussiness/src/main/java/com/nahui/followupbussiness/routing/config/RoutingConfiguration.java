@@ -10,6 +10,9 @@ import com.nahui.followupbussiness.routing.application.port.out.*;
 import com.nahui.followupbussiness.routing.application.OptimizeRouteService;
 import com.nahui.followupbussiness.routing.adapter.out.persistence.JdbcRouteProposalStore;
 import com.nahui.followupbussiness.routing.adapter.out.persistence.JdbcMatrixQuota;
+import com.nahui.followupbussiness.routing.adapter.out.persistence.JdbcPlanningSnapshotStore;
+import com.nahui.followupbussiness.routing.application.ReorderRoutePointsService;
+import com.nahui.followupbussiness.routing.application.port.in.ReorderRoutePointsUseCase;
 import com.nahui.followupbussiness.workforce.application.port.in.PortfolioAccessScopeUseCase;
 import com.nahui.followupbussiness.workforce.application.port.in.SellerReferenceUseCase;
 
@@ -41,5 +44,10 @@ public class RoutingConfiguration {
     @Bean
     CreateRouteUseCase createRouteUseCase(JdbcTemplate jdbc, CustomerPortfolioReadUseCase customers, SellerReferenceUseCase sellers, PortfolioAccessScopeUseCase scopes, @Qualifier("transactionalAuditEntryUseCase") RecordAuditEntryUseCase audit) {
         return new CreateRouteService(new JdbcRouteStore(jdbc), customers, sellers, scopes, audit, Clock.systemUTC());
+    }
+
+    @Bean
+    ReorderRoutePointsUseCase reorderRoutePointsUseCase(JdbcTemplate jdbc, tools.jackson.databind.ObjectMapper json, PortfolioAccessScopeUseCase scopes, @Qualifier("transactionalAuditEntryUseCase") RecordAuditEntryUseCase audit) {
+        return new ReorderRoutePointsService(new JdbcRouteStore(jdbc), new JdbcPlanningSnapshotStore(jdbc, json), scopes, audit, Clock.systemUTC());
     }
 }
