@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import com.nahui.followupbussiness.customers.application.port.in.CustomerPortfolioReadUseCase.SuggestionCandidate;
 
 import com.nahui.followupbussiness.customers.application.port.in.CustomerPortfolioReadUseCase;
 import com.nahui.followupbussiness.customers.domain.Customer;
@@ -38,6 +39,8 @@ public interface CustomerPortfolioStore {
     default List<Customer> activeAssignedToSellerAt(UUID tenantId, UUID sellerId, List<UUID> customerIds, LocalDate operationalDate) {
         return List.of();
     }
+
+    default List<SuggestionCandidate> suggestedForSeller(UUID tenantId, UUID sellerId) { return List.of(); }
 
     long count(CustomerPortfolioReadUseCase.Query query, CustomerPortfolioReadUseCase.Scope scope);
 

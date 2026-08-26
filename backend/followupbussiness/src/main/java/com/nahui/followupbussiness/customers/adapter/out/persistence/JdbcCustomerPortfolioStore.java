@@ -12,6 +12,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.time.Instant;
 import java.time.LocalDate;
+import com.nahui.followupbussiness.customers.application.port.in.CustomerPortfolioReadUseCase.SuggestionCandidate;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -114,6 +115,11 @@ public final class JdbcCustomerPortfolioStore implements CustomerPortfolioStore 
     public List<Customer> activeAssignedToSellerAt(UUID tenantId, UUID sellerId, List<UUID> customerIds, LocalDate operationalDate) {
         if (customerIds.isEmpty()) return List.of();
         return jdbc.query("select c.id,c.tenant_id,c.name,c.document_type,c.document_number,c.phone,c.email,c.segment,c.address,ST_Y(c.location),ST_X(c.location),c.visit_frequency_days,c.territory_id,c.status,c.created_at,c.updated_at,c.version from customer c where c.tenant_id=? and c.status='ACTIVE' and c.id in (" + placeholders(customerIds.size()) + ") and exists (select 1 from customer_portfolio_assignment p where p.tenant_id=c.tenant_id and p.customer_id=c.id and p.seller_id=? and p.effective_from<=? and (p.effective_to is null or p.effective_to>?))", (rs, row) -> new Customer(rs.getObject(1, UUID.class), rs.getObject(2, UUID.class), rs.getString(3), rs.getString(4), rs.getString(5), rs.getString(6), rs.getString(7), rs.getString(8), rs.getString(9), new GeoPoint(rs.getDouble(10), rs.getDouble(11)), (Integer) rs.getObject(12), rs.getObject(13, UUID.class), rs.getString(14), rs.getTimestamp(15).toInstant(), rs.getTimestamp(16).toInstant(), rs.getLong(17)), parameters(tenantId, customerIds, sellerId, operationalDate));
+    }
+
+    @Override
+    public List<SuggestionCandidate> suggestedForSeller(UUID tenantId, UUID sellerId) {
+        return jdbc.query("select c.id,c.tenant_id,c.name,c.document_type,c.document_number,c.phone,c.email,c.segment,c.address,ST_Y(c.location),ST_X(c.location),c.visit_frequency_days,c.territory_id,c.status,c.created_at,c.updated_at,c.version,a.last_completed_visit_at from customer c left join customer_activity_fact a on a.tenant_id=c.tenant_id and a.customer_id=c.id where c.tenant_id=? and c.status='ACTIVE' and exists (select 1 from customer_portfolio_assignment p where p.tenant_id=c.tenant_id and p.customer_id=c.id and p.seller_id=? and p.effective_from<=current_date and (p.effective_to is null or p.effective_to>current_date))", (rs, row) -> new SuggestionCandidate(new Customer(rs.getObject(1, UUID.class), rs.getObject(2, UUID.class), rs.getString(3), rs.getString(4), rs.getString(5), rs.getString(6), rs.getString(7), rs.getString(8), rs.getString(9), new GeoPoint(rs.getDouble(10), rs.getDouble(11)), (Integer) rs.getObject(12), rs.getObject(13, UUID.class), rs.getString(14), rs.getTimestamp(15).toInstant(), rs.getTimestamp(16).toInstant(), rs.getLong(17)), rs.getTimestamp(18) == null ? null : rs.getTimestamp(18).toInstant()), tenantId, sellerId);
     }
 
     private Sql sql(CustomerPortfolioReadUseCase.Query q, CustomerPortfolioReadUseCase.Scope scope) {

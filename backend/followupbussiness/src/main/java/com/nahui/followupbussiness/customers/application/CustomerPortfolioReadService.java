@@ -63,4 +63,10 @@ public final class CustomerPortfolioReadService implements CustomerPortfolioRead
         return store.activeAssignedToSellerAt(tenantId, sellerId, customerIds, operationalDate).stream()
                 .map(customer -> new RouteCustomer(customer.id(), customer.location(), customer.territoryId())).toList();
     }
+
+    @Override
+    public List<SuggestionCandidate> suggestedForSeller(UUID tenantId, UUID sellerId) {
+        if (tenantId == null || sellerId == null) return List.of();
+        return store.suggestedForSeller(tenantId, sellerId);
+    }
 }

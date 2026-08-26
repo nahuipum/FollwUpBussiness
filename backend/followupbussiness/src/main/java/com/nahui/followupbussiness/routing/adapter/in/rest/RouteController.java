@@ -7,6 +7,8 @@ import com.nahui.followupbussiness.routing.application.port.in.CopyRouteUseCase;
 import com.nahui.followupbussiness.routing.application.port.in.ReorderRoutePointsUseCase;
 import com.nahui.followupbussiness.routing.application.port.in.PublishRouteUseCase;
 import com.nahui.followupbussiness.routing.application.port.in.ReassignRouteUseCase;
+import com.nahui.followupbussiness.routing.application.port.in.ListSuggestedCustomersUseCase;
+import com.nahui.followupbussiness.customers.domain.Customer;
 import com.nahui.followupbussiness.routing.domain.Route;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.servlet.http.HttpServletRequest;
@@ -27,15 +29,30 @@ public final class RouteController {
     private final ReorderRoutePointsUseCase reorder;
     private final PublishRouteUseCase publish;
     private final ReassignRouteUseCase reassign;
+    private final ListSuggestedCustomersUseCase suggestions;
     private final MeterRegistry meters;
 
-    public RouteController(CreateRouteUseCase create, CopyRouteUseCase copy, ReorderRoutePointsUseCase reorder, PublishRouteUseCase publish, ReassignRouteUseCase reassign, MeterRegistry meters) {
+    public RouteController(CreateRouteUseCase create, CopyRouteUseCase copy, ReorderRoutePointsUseCase reorder, PublishRouteUseCase publish, ReassignRouteUseCase reassign, ListSuggestedCustomersUseCase suggestions, MeterRegistry meters) {
         this.create = create;
         this.copy = copy;
         this.reorder = reorder;
         this.publish = publish;
         this.reassign = reassign;
+        this.suggestions = suggestions;
         this.meters = meters;
+    }
+
+    @GetMapping("/routes/suggested-customers")
+    public ResponseEntity<?> suggestedCustomers(@RequestParam UUID sellerId, @RequestParam LocalDate date,
+                                                @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int pageSize,
+                                                @AuthenticationPrincipal AuthenticatedActor actor, HttpServletRequest http) {
+        UUID correlation = correlationId(http);
+        try {
+            var result = suggestions.list(new ListSuggestedCustomersUseCase.Query(sellerId, date, page, pageSize), actor);
+            int totalPages = result.total() == 0 ? 0 : (int) ((result.total() + pageSize - 1) / pageSize);
+            return ResponseEntity.ok().header("X-Correlation-Id", correlation.toString()).body(new SuggestedPage(result.items().stream().map(Suggested::from).toList(), new PageInfo(page, pageSize, result.total(), totalPages)));
+        } catch (ListSuggestedCustomersUseCase.Forbidden ex) { return problem(HttpStatus.FORBIDDEN, correlation); }
+        catch (ListSuggestedCustomersUseCase.Invalid | IllegalArgumentException ex) { return problem(HttpStatus.BAD_REQUEST, correlation); }
     }
 
     @PostMapping("/routes/{routeId}/reassign")
@@ -143,6 +160,14 @@ public final class RouteController {
     public record CopyRequest(LocalDate date, UUID sellerId, String name) { }
     record CopyResponse(View route, List<CopyWarning> warnings) { }
     record CopyWarning(String code, String resourceType, UUID sourcePointId) { }
+    record SuggestedPage(List<Suggested> items, PageInfo page) { }
+    record PageInfo(int page, int pageSize, long totalElements, long totalPages) { }
+    record Suggested(CustomerResponse customer, int priority, String reason, java.time.Instant lastVisitAt) {
+        static Suggested from(ListSuggestedCustomersUseCase.Item item) { return new Suggested(CustomerResponse.from(item.customer()), item.priority(), item.reason(), item.lastVisitAt()); }
+    }
+    record CustomerResponse(UUID id, String name, String documentType, String documentNumber, String phone, String email, String segment, String address, GeoPoint location, Integer visitFrequencyDays, UUID territoryId, List<UUID> assignedSellerIds, String status, java.time.Instant createdAt, java.time.Instant updatedAt, long version) {
+        static CustomerResponse from(Customer c) { return new CustomerResponse(c.id(), c.name(), c.documentType(), c.documentNumber(), c.phone(), c.email(), c.segment(), c.address(), c.location(), c.visitFrequencyDays(), c.territoryId(), List.of(), c.status(), c.createdAt(), c.updatedAt(), c.version()); }
+    }
 
     record View(UUID id, String name, LocalDate date, UUID sellerId, GeoPoint startLocation, String status,
                 List<Point> points, java.time.Instant createdAt, java.time.Instant updatedAt, long version) {

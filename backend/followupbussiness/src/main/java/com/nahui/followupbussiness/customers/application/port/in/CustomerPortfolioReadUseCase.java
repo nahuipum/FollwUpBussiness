@@ -3,6 +3,7 @@ package com.nahui.followupbussiness.customers.application.port.in;
 import com.nahui.followupbussiness.customers.domain.Customer;
 
 import java.time.LocalDate;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -19,6 +20,9 @@ public interface CustomerPortfolioReadUseCase {
 
     /** Route-planning reference resolved at the requested operational date. */
     List<RouteCustomer> activeAssignedToSellerAt(UUID tenantId, UUID sellerId, List<UUID> customerIds, LocalDate operationalDate);
+
+    /** Tenant-scoped, current-portfolio candidates for read-only route suggestions. */
+    List<SuggestionCandidate> suggestedForSeller(UUID tenantId, UUID sellerId);
 
     /**
      * Resolved from the authenticated actor by workforce before this port is called.
@@ -38,6 +42,8 @@ public interface CustomerPortfolioReadUseCase {
 
     /** Minimal, tenant-scoped planning reference; no personal data is exposed. */
     record RouteCustomer(UUID id, GeoPoint location, UUID territoryId) { }
+
+    record SuggestionCandidate(Customer customer, Instant lastCompletedVisitAt) { }
 
     final class Forbidden extends RuntimeException {
     }

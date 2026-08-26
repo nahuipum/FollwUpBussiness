@@ -7,4 +7,5 @@ import java.util.UUID;
 public interface SellerReferenceUseCase {
     boolean allActive(UUID tenantId, Set<UUID> sellerIds);
     default boolean activeAssignedToTerritory(UUID tenantId, UUID sellerId, UUID territoryId) { return false; }
+    default Set<UUID> activeTerritoriesAssignedTo(UUID tenantId, UUID sellerId) { return Set.of(); }
 }

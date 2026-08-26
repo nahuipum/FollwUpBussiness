@@ -4,6 +4,7 @@ import com.nahui.followupbussiness.workforce.application.port.in.SellerReference
 import com.nahui.followupbussiness.workforce.application.port.out.SellerStore;
 import com.nahui.followupbussiness.workforce.domain.SellerStatus;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.UUID;
 
 public final class SellerReferenceService implements SellerReferenceUseCase {
@@ -17,5 +18,11 @@ public final class SellerReferenceService implements SellerReferenceUseCase {
     @Override public boolean activeAssignedToTerritory(UUID tenantId, UUID sellerId, UUID territoryId) {
         return tenantId != null && sellerId != null && territoryId != null && sellers.find(tenantId, sellerId)
                 .map(seller -> seller.status() == SellerStatus.ACTIVE && seller.territoryIds().contains(territoryId)).orElse(false);
+    }
+    @Override public Set<UUID> activeTerritoriesAssignedTo(UUID tenantId, UUID sellerId) {
+        if (tenantId == null || sellerId == null) return Set.of();
+        return sellers.find(tenantId, sellerId).filter(seller -> seller.status() == SellerStatus.ACTIVE).stream()
+                .flatMap(seller -> seller.territoryIds().stream()).filter(id -> sellers.activeTerritory(tenantId, id))
+                .collect(Collectors.toUnmodifiableSet());
     }
 }
