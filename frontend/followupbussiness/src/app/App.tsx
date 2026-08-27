@@ -20,6 +20,7 @@ import { CompanyClientImportPage } from "../features/company-client-import/Compa
 import { CompanyClientImportResultPage } from "../features/company-client-import/CompanyClientImportResultPage";
 import { SupervisorDashboardPage } from "../features/supervisor-dashboard/SupervisorDashboardPage";
 import { CompanySettingsPage } from "../features/company-settings/CompanySettingsPage";
+import { CompanyRoutesPage } from "../features/company-routes/CompanyRoutesPage";
 import { CompanyWorkspaceLayout } from "./components/CompanyWorkspaceLayout";
 import { PlatformWorkspaceLayout } from "./components/PlatformWorkspaceLayout";
 
@@ -111,6 +112,8 @@ export function App() {
       return <CompanyWorkspaceLayout workspace="company" activeSection="sellers"><CompanySellersPage /></CompanyWorkspaceLayout>;
     if (path === "/company/territories")
       return <CompanyWorkspaceLayout workspace="company" activeSection="territories"><CompanyTerritoriesPage /></CompanyWorkspaceLayout>;
+    if (path === "/company/routes")
+      return <CompanyWorkspaceLayout workspace="company" activeSection="routes"><CompanyRoutesPage /></CompanyWorkspaceLayout>;
     if (path === "/supervisor/territories")
       return <CompanyWorkspaceLayout workspace="supervisor" activeSection="territories"><CompanyTerritoriesPage /></CompanyWorkspaceLayout>;
     if (path === "/supervisor/dashboard")
@@ -125,6 +128,8 @@ export function App() {
       return <CompanyWorkspaceLayout workspace="supervisor" activeSection="clients"><CompanyClientsMapPage /></CompanyWorkspaceLayout>;
     if (path === "/supervisor/sellers")
       return <CompanyWorkspaceLayout workspace="supervisor" activeSection="sellers"><CompanySellersPage /></CompanyWorkspaceLayout>;
+    if (path === "/supervisor/routes")
+      return <CompanyWorkspaceLayout workspace="supervisor" activeSection="routes"><CompanyRoutesPage /></CompanyWorkspaceLayout>;
     if (path === "/company/administrators-supervisors")
       return <CompanyWorkspaceLayout workspace="company" activeSection="administrators-supervisors"><CompanyUsersPageRoute /></CompanyWorkspaceLayout>;
     return (

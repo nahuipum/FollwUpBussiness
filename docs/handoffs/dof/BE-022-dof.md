@@ -1,8 +1,6 @@
 # BE-022 — Definition of Finished
 
-**Veredicto:** `PASS`  
-**Candidate-ID:** `db27cc3+4ec4aabeae61`
+**Veredicto:** `PASS`
+**Candidate-ID:** `9e030b7+704024ea0bf7`
 
-Development está en `READY_FOR_HANDOFF`, QA en `PASS` y Seguridad en `PASS`, todos trazables al mismo candidato. La evidencia de CI declarada para ese candidato incluye pruebas focalizadas y `mvn -q clean verify` en `PASS`; Seguridad reprodujo el abuso aplicable en `PASS`. No hay hallazgos abiertos.
-
-El estado de Git coincide con el diff no indexado que identifica el candidato y `git diff --check` finaliza sin errores.
+Development está en `READY_FOR_HANDOFF`, QA en `PASS` y Seguridad en `PASS`, con el mismo candidato. El paquete y el handoff Development trazan Directions, contrato OpenAPI y validación CI declarada en `PASS`; QA y Seguridad aportan sus evidencias aplicables sin hallazgos abiertos. `git diff --check` finaliza sin errores.

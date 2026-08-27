@@ -28,6 +28,13 @@ public final class JdbcCustomerStore implements CustomerStore {
         return jdbc.query("select id,tenant_id,name,document_type,document_number,phone,email,segment,address,ST_Y(location),ST_X(location),visit_frequency_days,territory_id,status,created_at,updated_at,version from customer where tenant_id=? and id=?", (rs, row) -> new Customer(UUID.fromString(rs.getString(1)), UUID.fromString(rs.getString(2)), rs.getString(3), rs.getString(4), rs.getString(5), rs.getString(6), rs.getString(7), rs.getString(8), rs.getString(9), new com.nahui.followupbussiness.customers.domain.GeoPoint(rs.getDouble(10), rs.getDouble(11)), (Integer) rs.getObject(12), rs.getObject(13, UUID.class), rs.getString(14), rs.getTimestamp(15).toInstant(), rs.getTimestamp(16).toInstant(), rs.getLong(17)), tenantId, customerId).stream().findFirst();
     }
 
+    @Override
+    public List<NameReference> findNameReferences(UUID tenantId, List<UUID> customerIds) {
+        if (customerIds.isEmpty()) return List.of();
+        return jdbc.query("select id,name from customer where tenant_id=? and id in (" + placeholders(customerIds.size()) + ")",
+                (rs, row) -> new NameReference(rs.getObject(1, UUID.class), rs.getString(2)), parameters(tenantId, customerIds));
+    }
+
     public boolean update(Customer c, long expectedVersion) {
         return jdbc.update("update customer set name=?,document_type=?,document_number=?,phone=?,email=?,segment=?,address=?,location=ST_SetSRID(ST_MakePoint(?,?),4326),visit_frequency_days=?,territory_id=?,status=?,updated_at=?,version=? where tenant_id=? and id=? and version=?", c.name(), c.documentType(), c.documentNumber(), c.phone(), c.email(), c.segment(), c.address(), c.location().longitude(), c.location().latitude(), c.visitFrequencyDays(), c.territoryId(), c.status(), Timestamp.from(c.updatedAt()), c.version(), c.tenantId(), c.id(), expectedVersion) == 1;
     }
@@ -63,5 +70,16 @@ public final class JdbcCustomerStore implements CustomerStore {
             if (rs.getBoolean(22)) fields.add(MatchedField.LOCATION);
             return new DuplicateMatch(customer, Set.copyOf(fields));
         }, parameters);
+    }
+
+    private static String placeholders(int count) {
+        return String.join(",", java.util.Collections.nCopies(count, "?"));
+    }
+
+    private static Object[] parameters(UUID tenantId, List<UUID> customerIds) {
+        java.util.ArrayList<Object> parameters = new java.util.ArrayList<>();
+        parameters.add(tenantId);
+        parameters.addAll(customerIds);
+        return parameters.toArray();
     }
 }

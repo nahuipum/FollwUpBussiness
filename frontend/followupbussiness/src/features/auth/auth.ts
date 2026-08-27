@@ -380,11 +380,13 @@ export function canAccessPath(path: string): boolean {
     "/company/customer-assignments": "COMPANY_ADMIN",
     "/company/sellers": "COMPANY_ADMIN",
     "/company/territories": "COMPANY_ADMIN",
+    "/company/routes": "COMPANY_ADMIN",
     "/supervisor/dashboard": "SUPERVISOR",
     "/supervisor/clients": "SUPERVISOR",
     "/supervisor/clients/map": "SUPERVISOR",
     "/supervisor/sellers": "SUPERVISOR",
     "/supervisor/territories": "SUPERVISOR",
+    "/supervisor/routes": "SUPERVISOR",
     "/seller/dashboard": "SELLER",
   };
   const role = requiredRole[path];

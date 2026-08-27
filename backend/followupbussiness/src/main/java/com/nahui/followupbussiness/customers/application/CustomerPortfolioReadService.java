@@ -11,6 +11,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.LinkedHashSet;
 import java.util.UUID;
 
 /**
@@ -54,6 +55,14 @@ public final class CustomerPortfolioReadService implements CustomerPortfolioRead
                 return Optional.empty();
             return Optional.of(new Detail(customer, assignedSellerIds));
         });
+    }
+
+    @Override
+    public List<RouteCustomerName> routeCustomerNames(UUID tenantId, List<UUID> customerIds) {
+        if (tenantId == null || customerIds == null || customerIds.stream().anyMatch(java.util.Objects::isNull)) return List.of();
+        List<UUID> distinctIds = new java.util.ArrayList<>(new LinkedHashSet<>(customerIds));
+        return customers.findNameReferences(tenantId, distinctIds).stream()
+                .map(reference -> new RouteCustomerName(reference.id(), reference.name())).toList();
     }
 
     @Override

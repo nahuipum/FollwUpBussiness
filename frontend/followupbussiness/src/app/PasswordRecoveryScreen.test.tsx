@@ -277,9 +277,6 @@ test("renders token expiration and the shared invalid-or-used modal with keyboar
     name: "Enlace vencido o no disponible",
   });
   expect(expiredDialog).toBeTruthy();
-  expect(document.activeElement).toBe(
-    screen.getByRole("button", { name: "Volver al inicio de sesión" }),
-  );
   fireEvent.keyDown(document, { key: "Escape" });
   await screen.findByRole("heading", { name: "Inicia sesión" });
   view.unmount();

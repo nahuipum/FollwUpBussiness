@@ -25,6 +25,9 @@ import com.nahui.followupbussiness.routing.application.ListSuggestedCustomersSer
 import com.nahui.followupbussiness.routing.application.port.in.ListSuggestedCustomersUseCase;
 import com.nahui.followupbussiness.routing.application.port.in.ReadRoutesUseCase;
 import com.nahui.followupbussiness.routing.application.ReadRoutesService;
+import com.nahui.followupbussiness.routing.application.GetRouteDirectionsService;
+import com.nahui.followupbussiness.routing.application.port.in.GetRouteDirectionsUseCase;
+import com.nahui.followupbussiness.routing.adapter.out.directions.MapboxDirectionsAdapter;
 import com.nahui.followupbussiness.outbox.application.port.out.OutboxStore;
 import com.nahui.followupbussiness.journeys.application.port.in.JourneyStartedStatusUseCase;
 import com.nahui.followupbussiness.workforce.application.port.in.PortfolioAccessScopeUseCase;
@@ -32,12 +35,18 @@ import com.nahui.followupbussiness.workforce.application.port.in.SellerReference
 import com.nahui.followupbussiness.workforce.application.port.in.TerritoryReferenceUseCase;
 
 import java.time.Clock;
+import java.time.Duration;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -47,6 +56,27 @@ public class RoutingConfiguration {
     @Bean
     ReadRoutesUseCase readRoutesUseCase(JdbcTemplate jdbc, PortfolioAccessScopeUseCase scopes, SellerReferenceUseCase sellers) {
         return new ReadRoutesService(new JdbcRouteStore(jdbc), scopes, sellers);
+    }
+    @Bean
+    RouteDirections routeDirections(tools.jackson.databind.ObjectMapper json, Environment environment) {
+        HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3)).build();
+        String token = mapboxDirectionsToken(environment);
+        return new MapboxDirectionsAdapter(token, URI.create("https://api.mapbox.com/directions/v5"), uri -> {
+            HttpRequest request = HttpRequest.newBuilder(uri).timeout(Duration.ofSeconds(5)).GET().build();
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            return new MapboxDirectionsAdapter.Response(response.statusCode(), response.body());
+        }, json);
+    }
+
+    static String mapboxDirectionsToken(Environment environment) {
+        String dedicated = environment.getProperty("MAPBOX_DIRECTIONS_TOKEN");
+        return dedicated == null || dedicated.isBlank()
+                ? environment.getProperty("FOLLOW_UP_BUSSINESS_MAPBOX_MATRIX")
+                : dedicated;
+    }
+    @Bean
+    GetRouteDirectionsUseCase getRouteDirectionsUseCase(ReadRoutesUseCase routes, RouteDirections directions) {
+        return new GetRouteDirectionsService(routes, directions);
     }
     @Bean
     ListSuggestedCustomersUseCase listSuggestedCustomersUseCase(CustomerPortfolioReadUseCase customers, SellerReferenceUseCase sellers, PortfolioAccessScopeUseCase scopes) {

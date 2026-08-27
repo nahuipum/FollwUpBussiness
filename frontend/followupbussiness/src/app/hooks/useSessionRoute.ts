@@ -21,6 +21,7 @@ function isProtectedPath(path: string): boolean {
     path === "/company/clients/map" ||
     path === "/company/sellers" ||
     path === "/company/territories" ||
+    path === "/company/routes" ||
     path === "/company/administrators-supervisors" ||
     path === "/supervisor/dashboard" ||
     path === "/supervisor/settings" ||
@@ -28,6 +29,7 @@ function isProtectedPath(path: string): boolean {
     path === "/supervisor/clients/map" ||
     path === "/supervisor/sellers" ||
     path === "/supervisor/territories" ||
+    path === "/supervisor/routes" ||
     path === "/seller/dashboard" ||
     path === "/seller/settings"
   );

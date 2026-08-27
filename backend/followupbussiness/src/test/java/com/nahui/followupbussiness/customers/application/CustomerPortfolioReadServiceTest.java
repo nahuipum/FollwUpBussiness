@@ -3,6 +3,7 @@ package com.nahui.followupbussiness.customers.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -60,6 +61,22 @@ class CustomerPortfolioReadServiceTest {
         var service = new CustomerPortfolioReadService(store, mock(CustomerActivityStore.class), customers);
 
         assertThat(service.get(customerId, scope)).isEmpty();
+    }
+
+    @Test
+    void resolvesRouteCustomerNamesInOneTenantScopedBatch() {
+        CustomerStore customers = mock(CustomerStore.class);
+        UUID tenant = UUID.randomUUID(), firstId = UUID.randomUUID(), secondId = UUID.randomUUID();
+        when(customers.findNameReferences(tenant, List.of(firstId, secondId))).thenReturn(List.of(
+                new CustomerStore.NameReference(firstId, "Alpha"), new CustomerStore.NameReference(secondId, "Bravo")));
+
+        var names = new CustomerPortfolioReadService(mock(CustomerPortfolioStore.class), mock(CustomerActivityStore.class), customers)
+                .routeCustomerNames(tenant, List.of(firstId, secondId, firstId));
+
+        assertThat(names).containsExactly(new CustomerPortfolioReadUseCase.RouteCustomerName(firstId, "Alpha"),
+                new CustomerPortfolioReadUseCase.RouteCustomerName(secondId, "Bravo"));
+        verify(customers).findNameReferences(tenant, List.of(firstId, secondId));
+        verifyNoMoreInteractions(customers);
     }
 
     private Customer customer(UUID id, UUID tenant, String name) {

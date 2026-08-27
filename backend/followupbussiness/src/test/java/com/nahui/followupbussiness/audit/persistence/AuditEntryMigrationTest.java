@@ -84,6 +84,17 @@ class AuditEntryMigrationTest {
     }
 
     @Test
+    void persistsBoundedRouteReorderingEvidence() {
+        AuditEntry entry = new AuditEntry(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), AuditAction.CRITICAL_MUTATION,
+                "ROUTE", UUID.randomUUID(), AuditResult.SUCCESS, UUID.randomUUID(), "AUTHORIZED_RESOURCE",
+                Map.of("version", "1"), Map.of("version", "2", "pointCount", "6"), Instant.now());
+
+        assertThat(store.append(entry)).isTrue();
+        assertThat(jdbc.queryForObject("SELECT after_state->>'pointCount' FROM audit_entry WHERE id = ?", String.class, entry.id()))
+                .isEqualTo("6");
+    }
+
+    @Test
     void concurrentRetriesOfTheSameAuditIdCreateOnlyOneEntry() throws Exception {
         AuditEntry entry = entry(Instant.parse("2026-08-04T12:00:00Z"));
         try (ExecutorService executor = Executors.newFixedThreadPool(2)) {

@@ -5,10 +5,10 @@ import "./multi-select.css";
 
 export type MultiSelectOption = Readonly<{ value: string; label: string; disabled?: boolean }>;
 
-export function MultiSelect({ label, ariaLabel, value, options, onChange }: { label: string; ariaLabel: string; value: readonly string[]; options: readonly MultiSelectOption[]; onChange: (value: readonly string[]) => void }) {
+export function MultiSelect({ label, ariaLabel, value, options, onChange, placeholder = "Selecciona opciones" }: { label: string; ariaLabel: string; value: readonly string[]; options: readonly MultiSelectOption[]; onChange: (value: readonly string[]) => void; placeholder?: string }) {
   const [open, setOpen] = useState(false); const [active, setActive] = useState(0); const root = useRef<HTMLDivElement>(null); const trigger = useRef<HTMLButtonElement>(null); const menu = useRef<HTMLDivElement>(null); const listboxId = useId(); const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
   const selected = options.filter(option => value.includes(option.value));
-  const summary = selected.length === 0 ? "Selecciona vendedores" : selected.length === 1 ? selected[0]?.label ?? "1 vendedor" : `${selected.length} vendedores seleccionados`;
+  const summary = selected.length === 0 ? placeholder : selected.length === 1 ? selected[0]?.label ?? "1 opción" : `${selected.length} opciones seleccionadas`;
   const toggle = (option: MultiSelectOption) => { if (option.disabled) return; onChange(value.includes(option.value) ? value.filter(id => id !== option.value) : [...value, option.value]); };
   const openMenu = () => { setActive(Math.max(0, options.findIndex(option => !option.disabled))); setOpen(true); };
   useEffect(() => { const close = (event: PointerEvent) => { if (event.target instanceof Node && !root.current?.contains(event.target) && !menu.current?.contains(event.target)) setOpen(false); }; document.addEventListener("pointerdown", close); return () => document.removeEventListener("pointerdown", close); }, []);

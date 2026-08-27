@@ -10,5 +10,8 @@ public interface ReorderRoutePointsUseCase {
     record Command(UUID routeId, long baseRouteVersion, List<UUID> routePointIds, UUID correlationId) { }
     final class Forbidden extends RuntimeException { }
     final class Conflict extends RuntimeException { public Conflict() {} public Conflict(String message) { super(message); } }
-    final class Invalid extends RuntimeException { }
+    final class Invalid extends RuntimeException {
+        public Invalid() { super("INVALID_REORDER_REQUEST"); }
+        public Invalid(String code) { super(code); }
+    }
 }

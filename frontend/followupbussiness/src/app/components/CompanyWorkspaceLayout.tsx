@@ -1,12 +1,12 @@
-import { ClipboardList, ContactRound, LayoutDashboard, ListFilter, Map, MapPinned, Settings, UserRound, Users } from "lucide-react";
+import { ClipboardList, ContactRound, LayoutDashboard, ListFilter, Map, MapPinned, Route, Settings, UserRound, Users } from "lucide-react";
 import type { ReactNode } from "react";
 import { DashboardLayout, type DashboardNavigationItem } from "../../shared/layout/DashboardLayout";
 import { getSessionCompanyLabel, getSessionIdentity, logout } from "../../features/auth/auth";
 import { PasswordRecoveryBrandMark } from "../../features/auth/components/BrandPanel";
 import { navigate } from "../navigation";
 
-export type CompanySection = "dashboard" | "administrators-supervisors" | "sellers" | "territories" | "clients" | "customer-assignments" | "settings";
-export type SupervisorSection = "dashboard" | "sellers" | "territories" | "clients" | "settings";
+export type CompanySection = "dashboard" | "administrators-supervisors" | "sellers" | "territories" | "clients" | "routes" | "customer-assignments" | "settings";
+export type SupervisorSection = "dashboard" | "sellers" | "territories" | "clients" | "routes" | "settings";
 export type SellerSection = "settings";
 
 type Props = {
@@ -21,6 +21,7 @@ const companySections: Record<CompanySection, string> = {
   sellers: "Vendedores",
   territories: "Zonas",
   clients: "Clientes",
+  routes: "Rutas",
   "customer-assignments": "Asignar cartera",
   settings: "Configuración",
 };
@@ -30,6 +31,7 @@ const supervisorSections: Record<SupervisorSection, string> = {
   sellers: "Vendedores",
   territories: "Zonas",
   clients: "Clientes",
+  routes: "Rutas",
   settings: "Configuración",
 };
 
@@ -70,6 +72,7 @@ function companyNavigation(activeSection: CompanySection, canManage: boolean): D
     ...(canManage ? [item("territories", "Zonas", <MapPinned />, activeSection, "/company/territories")] : []),
     clientGroup(activeSection, "/company/clients", "/company/clients/map", canManage),
     ...(canManage ? [item("customer-assignments", "Asignar cartera", <ContactRound />, activeSection, "/company/customer-assignments")] : []),
+    item("routes", "Rutas", <Route />, activeSection, "/company/routes"),
     { id: "audit", label: "Auditoría", icon: <ClipboardList /> },
     item("settings", "Configuración", <Settings />, activeSection, "/company/settings"),
   ];
@@ -81,6 +84,7 @@ function supervisorNavigation(activeSection: SupervisorSection): DashboardNaviga
     item("sellers", "Vendedores", <UserRound />, activeSection, "/supervisor/sellers"),
     item("territories", "Zonas", <MapPinned />, activeSection, "/supervisor/territories"),
     clientGroup(activeSection, "/supervisor/clients", "/supervisor/clients/map", false),
+    item("routes", "Rutas", <Route />, activeSection, "/supervisor/routes"),
     item("settings", "Configuración", <Settings />, activeSection, "/supervisor/settings"),
   ];
 }

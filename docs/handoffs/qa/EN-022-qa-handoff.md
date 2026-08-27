@@ -1,6 +1,14 @@
-# EN-022 — Handoff QA
+# EN-022 — Handoff QA Backend
 
 **Estado:** `PASS`  
-**Candidate-ID:** `HEAD+ff8fac1 EN022-docs-e8d11a6b3684`
+**Candidate-ID:** `9e030b7 + route-create-max-50`
 
-Revisión independiente del ADR-023, política, OpenAPI y EN-022. Límite coherente: 50 puntos, 52 nodos y 2,652 pares dirigidos distintos; el contrato rechaza 51. La revisión inmutable `VALID` se crea atómicamente para la nueva `Route.version`, sin proveedor; la anterior queda `SUPERSEDED`. Diagonal excluida y cualquier par distinto no enrutable deja `INCOMPLETE`. Se trazan `If-Match`, `409` neutral, aislamiento, rollback/outbox y matriz de pruebas. `git diff --check` pasó; sin suites por alcance documental.
+| Criterio | Implementación | Prueba/evidencia | Resultado |
+|---|---|---|---|
+| Crear hasta 50 clientes | `CreateRouteService.validate` acepta `size() == 50`. | `acceptsTheContractualBoundaryOfFiftyCustomers`: crea y persiste 50 puntos. | PASS |
+| Rechazar 51 sin efectos | Validación `size() > 50` antes de fingerprint y reserva idempotente. | `rejectsMoreThanFiftyCustomersBeforeAnyWrite`: `Invalid` y cero interacciones con store, puertos de referencias, alcance y auditoría. | PASS |
+| Contrato público | `CreateRouteRequest.customerIds.maxItems: 50`. | Diff de `docs/api/openapi.yaml`; coincide con runtime. | PASS |
+
+Evidencia: `mvn -q '-Dmaven.repo.local=C:\\Users\\LUIS\\.m2\\repository' '-Dtest=CreateRouteServiceTest' test` — PASS (6 pruebas, 0 fallos); `git diff --check` — PASS.
+
+Hallazgos: ninguno. Migraciones, permisos, tenant y arquitectura no cambian; la validación conservó sus controles existentes. Riesgo residual: no se ejecutó la suite completa, proporcional al cambio local de límite.

@@ -3,18 +3,19 @@ import "./modal-async-state.css";
 
 type Action = Readonly<{ label: string; onClick: () => void }>;
 
-export function ModalAsyncState({ state, title, message, primaryAction, secondaryAction, correlationId }: {
+export function ModalAsyncState({ state, title, message, primaryAction, secondaryAction, correlationId, className }: {
   state: "loading" | "error";
   title: string;
   message: string;
   primaryAction?: Action;
   secondaryAction?: Action;
   correlationId?: string | null;
+  className?: string;
 }) {
   const Icon = state === "loading" ? LoaderCircle : CircleAlert;
   return (
     <section
-      className={`modal-async-state modal-async-state--${state}`}
+      className={`modal-async-state modal-async-state--${state}${className ? ` ${className}` : ""}`}
       role={state === "error" ? "alert" : "status"}
       aria-busy={state === "loading"}
     >

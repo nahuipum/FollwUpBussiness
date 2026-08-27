@@ -54,7 +54,7 @@ public class CreateRouteService implements CreateRouteUseCase {
         Map<UUID, com.nahui.followupbussiness.customers.domain.GeoPoint> locations = new HashMap<>();
         references.forEach(reference -> locations.put(reference.id(), reference.location()));
         UUID id = UUID.randomUUID();
-        Route route = new Route(id, actor.tenantId(), command.name(), command.date(), command.sellerId(), command.startLocation(),
+        Route route = new Route(id, actor.tenantId(), routeName(command), command.date(), command.sellerId(), command.startLocation(),
                 java.util.stream.IntStream.range(0, command.customerIds().size()).mapToObj(index -> new Route.Point(UUID.randomUUID(), command.customerIds().get(index), index + 1, locations.get(command.customerIds().get(index)))).toList(), clock.instant(), clock.instant(), 1);
         routes.save(route);
         if (!audit.record(new RecordAuditEntryCommand(AuditAction.CRITICAL_MUTATION, AuditResourceType.ROUTE, id, AuditResult.SUCCESS, Map.of(), Map.of("status", "DRAFT"))))
@@ -83,7 +83,7 @@ public class CreateRouteService implements CreateRouteUseCase {
     private static void validate(Command c, AuthenticatedActor a) {
         if (a == null || a.tenantId() == null || a.accountId() == null || (a.role() != BaseRole.COMPANY_ADMIN && a.role() != BaseRole.SUPERVISOR))
             throw new Forbidden();
-        if (c == null || c.date() == null || c.sellerId() == null || c.idempotencyKey() == null || c.customerIds() == null || c.customerIds().isEmpty() || c.customerIds().size() > 500 || new HashSet<>(c.customerIds()).size() != c.customerIds().size() || c.customerIds().stream().anyMatch(Objects::isNull))
+        if (c == null || c.date() == null || c.sellerId() == null || c.idempotencyKey() == null || c.customerIds() == null || c.customerIds().isEmpty() || c.customerIds().size() > 50 || new HashSet<>(c.customerIds()).size() != c.customerIds().size() || c.customerIds().stream().anyMatch(Objects::isNull))
             throw new Invalid();
     }
 
@@ -95,5 +95,10 @@ public class CreateRouteService implements CreateRouteUseCase {
         } catch (java.security.NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
         }
+    }
+
+    private static String routeName(Command command) {
+        if (command.name() != null && !command.name().isBlank()) return command.name().trim();
+        return "Ruta del " + command.date();
     }
 }

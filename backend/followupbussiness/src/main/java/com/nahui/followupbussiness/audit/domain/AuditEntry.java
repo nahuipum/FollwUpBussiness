@@ -24,7 +24,8 @@ public record AuditEntry(
         String reason,
         Instant occurredAt) {
 
-    private static final Set<String> ALLOWED_CHANGE_FIELDS = Set.of("status", "territoryIds", "supervisorId", "operation", "reason");
+    private static final Set<String> ALLOWED_CHANGE_FIELDS = Set.of(
+            "status", "territoryIds", "supervisorId", "sellerId", "operation", "reason", "version", "pointCount");
     private static final Set<String> ALLOWED_SCOPES = Set.of(
             AuditScope.AUTHORIZED_RESOURCE.name(),
             AuditScope.PLATFORM.name(),
@@ -86,7 +87,9 @@ public record AuditEntry(
     private static boolean validChange(String field, String value) {
         if (value == null) return false;
         if ("status".equals(field) || "operation".equals(field) || "reason".equals(field)) return value.matches("[A-Z_]{1,64}");
-        if ("supervisorId".equals(field)) return "NONE".equals(value) || uuid(value);
+        if ("supervisorId".equals(field) || "sellerId".equals(field)) return "NONE".equals(value) || uuid(value);
+        if ("version".equals(field)) return positiveLong(value);
+        if ("pointCount".equals(field)) return positiveIntAtMost(value, 50);
         if (!"territoryIds".equals(field)) return false;
         if ("NONE".equals(value)) return true;
         String[] ids = value.split(",", -1);
@@ -98,6 +101,23 @@ public record AuditEntry(
             UUID.fromString(value);
             return true;
         } catch (IllegalArgumentException exception) {
+            return false;
+        }
+    }
+
+    private static boolean positiveLong(String value) {
+        try {
+            return Long.parseLong(value) > 0;
+        } catch (NumberFormatException exception) {
+            return false;
+        }
+    }
+
+    private static boolean positiveIntAtMost(String value, int maximum) {
+        try {
+            int number = Integer.parseInt(value);
+            return number > 0 && number <= maximum;
+        } catch (NumberFormatException exception) {
             return false;
         }
     }

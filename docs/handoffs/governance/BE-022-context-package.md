@@ -1,7 +1,7 @@
 # Paquete de contexto — BE-022
 
 **Estado:** `READY_FOR_HANDOFF`  
-**Candidate-ID:** `db27cc3+4ec4aabeae61` (recalculado sobre el diff vigente; los archivos nuevos siguen sin indexar).
+**Candidate-ID:** `9e030b7+704024ea0bf7`.
 
 ## Alcance
 
@@ -69,3 +69,11 @@ Se añadieron tratamiento de jornada/ventanas duras con `unassignedVisits`, vali
 ## Delta Development (Seguridad durable)
 
 `READY_FOR_HANDOFF` sobre `db27cc3+4ec4aabeae61`: `JdbcMatrixQuota` recibe el transaction manager y reserva con propagación `REQUIRES_NEW` antes de Matrix; un fallo de Matrix/solver/propuesta en la transacción exterior no revierte el cupo. La integración Testcontainers fuerza 35 `Unavailable` posteriores dentro de transacciones exteriores, confirma `used_matrices=35`, cero propuestas y exactamente 35 llamadas Matrix; la llamada 36 se rechaza `RateLimited` antes de Matrix. `mvn -q -Dtest=JdbcMatrixQuotaIntegrationTest,OptimizeRouteServiceTest,RouteOptimizationControllerTest,JdbcRouteProposalStoreConcurrencyTest test`, `mvn -q clean verify` y `git diff --check`: PASS. Requiere QA y revalidación Seguridad; no iniciar DoF.
+
+## Delta Development (detalle vial manual)
+
+Decisión explícita posterior: `GET /routes/{routeId}/directions` obtiene detalle vial efímero de la ruta autorizada (inicio y puntos ordenados), sin persistir ni modificar la ruta. El contrato neutral contiene geometría, tramos, distancia, duración e indicaciones; el puerto no expone Mapbox y admite un adaptador Google posterior. Mapbox recibe solo lon/lat. Configuración server-side `MAPBOX_DIRECTIONS_TOKEN`, sin leer ni depender de `.env`; sin token falla cerrada. El adaptador divide hasta 51 coordenadas en solicitudes solapadas de máximo 25 y ensambla la respuesta. Caché local por `routeId`+versión; al reordenar cambia la versión y se recalcula. Los fallos devuelven `503 DIRECTIONS_UNAVAILABLE`, sin alterar la ruta.
+
+## Delta Development (remediación Seguridad detalle vial)
+
+`READY_FOR_HANDOFF` sobre `9e030b7+704024ea0bf7`: el token ya no se enlaza como propiedad Spring ni puede originarse en el import opcional `.env`; `RoutingConfiguration` lo toma exclusivamente del entorno del proceso (`MAPBOX_DIRECTIONS_TOKEN`) y mantiene fail-closed si está ausente. El adaptador ahora rechaza un `200` sin ruta utilizable: exige distancia/duración numéricas no negativas, al menos dos coordenadas válidas y un tramo por cada par de coordenadas, con pasos válidos cuando existan. Cualquier incumplimiento se tipa `DirectionsUnavailable` y el REST devuelve `503` seguro. Pruebas focales cubren `{"routes":[{}]}`, token ausente, rechazo HTTP y fragmentación/ensamble.

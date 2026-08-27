@@ -20,14 +20,15 @@ export function CompanySettingsPage() {
   } | null>(null);
   useEffect(() => {
     if (data.snapshot)
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- el formulario controlado debe reflejar el snapshot y su ETag vigentes.
       setForm({
-        etag: data.snapshot.etag,
-        generation: data.sessionGeneration,
-        values: {
-          currency: data.snapshot.settings.currency,
-          saleEditWindowMinutes: data.snapshot.settings.saleEditWindowMinutes,
-        },
-      });
+          etag: data.snapshot.etag,
+          generation: data.sessionGeneration,
+          values: {
+            currency: data.snapshot.settings.currency,
+            saleEditWindowMinutes: data.snapshot.settings.saleEditWindowMinutes,
+          },
+        });
   }, [data.sessionGeneration, data.snapshot]);
   if (data.loading && !data.snapshot)
     return <TableLoadingIndicator label="Cargando configuración" />;

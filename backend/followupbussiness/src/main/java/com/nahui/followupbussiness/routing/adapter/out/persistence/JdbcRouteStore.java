@@ -118,8 +118,10 @@ public final class JdbcRouteStore implements RouteStore {
         if (jdbc.update("update route set updated_at=?,version=? where tenant_id=? and id=? and version=?", Timestamp.from(route.updatedAt()),route.version(),route.tenantId(),route.id(),expectedVersion)!=1) throw new IllegalStateException("route version changed");
         int offset=route.points().size()+1;
         jdbc.update("update route_point set sequence=sequence+? where tenant_id=? and route_id=?",offset,route.tenantId(),route.id());
-        for(Route.Point point:route.points()) jdbc.update("update route_point set sequence=?,planned_arrival_at=?,planned_departure_at=? where tenant_id=? and route_id=? and id=?",point.sequence(),Timestamp.from(point.plannedArrivalAt()),Timestamp.from(point.plannedDepartureAt()),route.tenantId(),route.id(),point.id());
+        for(Route.Point point:route.points()) jdbc.update("update route_point set sequence=?,planned_arrival_at=?,planned_departure_at=? where tenant_id=? and route_id=? and id=?",point.sequence(),timestamp(point.plannedArrivalAt()),timestamp(point.plannedDepartureAt()),route.tenantId(),route.id(),point.id());
     }
+
+    private static Timestamp timestamp(Instant value) { return value == null ? null : Timestamp.from(value); }
 
     @Override
     public Reservation reservePublicationIdempotency(UUID tenant, UUID actor, UUID key, String fingerprint, Instant now) {

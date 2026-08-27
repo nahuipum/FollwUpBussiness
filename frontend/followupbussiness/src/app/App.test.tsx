@@ -526,7 +526,7 @@ test("ubica Clientes entre usuarios y auditoría en dashboard de empresa", async
 
   await waitFor(() => expect(screen.getByRole("navigation")).toBeTruthy());
   const items = Array.from(screen.getByRole("navigation").querySelectorAll("button")).map((item) => item.textContent);
-  expect(items).toEqual(["Resumen", "Administradores y supervisores", "Vendedores", "Zonas", "Clientes", "Asignar cartera", "Auditoría", "Configuración"]);
+  expect(items).toEqual(["Resumen", "Administradores y supervisores", "Vendedores", "Zonas", "Clientes", "Asignar cartera", "Rutas", "Auditoría", "Configuración"]);
   fireEvent.click(screen.getByRole("button", { name: "Vendedores" }));
   expect(window.location.pathname).toBe("/company/sellers");
   expect(screen.getByRole("button", { name: "Vendedores" }).className).toContain("dashboard-nav__item--active");
@@ -555,6 +555,8 @@ test("muestra el listado contractual al supervisor sin abrir navegación adminis
         ? customerPageResponse()
       : url.includes("/territories?")
         ? clientReferencePageResponse()
+      : url.includes("/routes?")
+        ? new Response(JSON.stringify({ items: [], page: { page: 0, pageSize: 10, totalElements: 0, totalPages: 0 } }), { status: 200 })
       : new Response(JSON.stringify(webResponse("SUPERVISOR")), { status: 200 }),
   ));
   vi.stubGlobal("fetch", fetchMock);
@@ -581,6 +583,10 @@ test("muestra el listado contractual al supervisor sin abrir navegación adminis
   await screen.findByRole("heading", { name: "Mapa general de clientes" });
   expect(window.location.pathname).toBe("/supervisor/clients/map");
   expect(fetchMock.mock.calls.some(([url]) => String(url).includes("/customers?"))).toBe(true);
+  fireEvent.click(screen.getByRole("button", { name: "Rutas" }));
+  await screen.findByRole("heading", { name: "Rutas" });
+  expect(window.location.pathname).toBe("/supervisor/routes");
+  expect(screen.getByRole("button", { name: "Rutas" }).className).toContain("dashboard-nav__item--active");
 });
 
 test("restringe el mapa general a administración y consulta sólo clientes", async () => {
@@ -741,7 +747,7 @@ test("clears one active session and shows the expired-session flow after an API 
   );
   expect(screen.getByText("Correlation ID: 00000000-0000-4000-8000-000000000401")).toBeTruthy();
   expect(hasSession()).toBe(false);
-  expect(window.location.pathname).toBe("/");
+  await waitFor(() => expect(window.location.pathname).toBe("/"));
   expect(fetchMock).toHaveBeenCalledTimes(3);
 });
 

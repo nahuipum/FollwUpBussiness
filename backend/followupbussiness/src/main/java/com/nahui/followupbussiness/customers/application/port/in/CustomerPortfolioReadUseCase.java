@@ -18,6 +18,9 @@ public interface CustomerPortfolioReadUseCase {
 
     Optional<Detail> get(UUID customerId, Scope scope);
 
+    /** Names for points from a route whose access has already been authorized by Routing. */
+    List<RouteCustomerName> routeCustomerNames(UUID tenantId, List<UUID> customerIds);
+
     /** Route-planning reference resolved at the requested operational date. */
     List<RouteCustomer> activeAssignedToSellerAt(UUID tenantId, UUID sellerId, List<UUID> customerIds, LocalDate operationalDate);
 
@@ -42,6 +45,8 @@ public interface CustomerPortfolioReadUseCase {
 
     /** Minimal, tenant-scoped planning reference; no personal data is exposed. */
     record RouteCustomer(UUID id, GeoPoint location, UUID territoryId) { }
+
+    record RouteCustomerName(UUID id, String name) { }
 
     record SuggestionCandidate(Customer customer, Instant lastCompletedVisitAt) { }
 

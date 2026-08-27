@@ -58,8 +58,14 @@ public class ReorderRoutePointsService implements ReorderRoutePointsUseCase {
                 throw new Conflict("JOURNEY_ALREADY_STARTED");
             }
         }
-        if (!samePermutation(route.points(), command.routePointIds())) throw new Invalid();
-        PlanningSnapshot snapshot = snapshots.findValidForUpdate(actor.tenantId(), route.id(), route.version()).orElseThrow(() -> new Conflict("SNAPSHOT_MISSING"));
+        if (!samePermutation(route.points(), command.routePointIds())) throw new Invalid("ROUTE_POINT_IDS_MISMATCH");
+        PlanningSnapshot snapshot = snapshots.findValidForUpdate(actor.tenantId(), route.id(), route.version()).orElse(null);
+        // A manually created draft has no planning snapshot: it can still be safely
+        // resequenced, but must not acquire invented arrival/departure times.
+        if (snapshot == null) {
+            if (published) throw new Conflict("SNAPSHOT_MISSING");
+            return persistDraftReorder(route, command, actor);
+        }
         if (!snapshot.validUntil().isAfter(clock.instant())) throw new Conflict("SNAPSHOT_EXPIRED");
         Map<UUID, PlanningSnapshot.Visit> visits = new HashMap<>();
         snapshot.visits().forEach(v -> visits.put(v.pointId(), v));
@@ -96,11 +102,31 @@ public class ReorderRoutePointsService implements ReorderRoutePointsUseCase {
         return updated;
     }
 
+    private Route persistDraftReorder(Route route, Command command, AuthenticatedActor actor) {
+        Map<UUID, Route.Point> existing = new HashMap<>();
+        route.points().forEach(point -> existing.put(point.id(), point));
+        List<Route.Point> reordered = new ArrayList<>();
+        for (int index = 0; index < command.routePointIds().size(); index++) {
+            Route.Point point = existing.get(command.routePointIds().get(index));
+            if (point == null) throw new Invalid("ROUTE_POINT_IDS_MISMATCH");
+            reordered.add(new Route.Point(point.id(), point.customerId(), index + 1, point.location(),
+                    point.plannedArrivalAt(), point.plannedDepartureAt()));
+        }
+        Route updated = new Route(route.id(), route.tenantId(), route.name(), route.date(), route.sellerId(),
+                route.startLocation(), reordered, route.createdAt(), clock.instant(), route.version() + 1, route.status());
+        routes.replacePointsAndVersion(updated, route.version());
+        if (!audit.record(new RecordAuditEntryCommand(AuditAction.CRITICAL_MUTATION, AuditResourceType.ROUTE, route.id(),
+                AuditResult.SUCCESS, Map.of("version", Long.toString(route.version())),
+                Map.of("version", Long.toString(updated.version()), "pointCount", Integer.toString(reordered.size())))))
+            throw new IllegalStateException("audit persistence failed");
+        return updated;
+    }
+
     private static void validate(Command c, AuthenticatedActor a) {
         if (a == null || a.accountId() == null || a.tenantId() == null || (a.role() != BaseRole.COMPANY_ADMIN && a.role() != BaseRole.SUPERVISOR))
             throw new Forbidden();
         if (c == null || c.routeId() == null || c.correlationId() == null || c.baseRouteVersion() < 1 || c.routePointIds() == null || c.routePointIds().isEmpty() || c.routePointIds().size() > 50 || c.routePointIds().stream().anyMatch(Objects::isNull) || new HashSet<>(c.routePointIds()).size() != c.routePointIds().size())
-            throw new Invalid();
+            throw new Invalid("INVALID_REORDER_REQUEST");
     }
 
     private void authorize(AuthenticatedActor actor, Route route) {

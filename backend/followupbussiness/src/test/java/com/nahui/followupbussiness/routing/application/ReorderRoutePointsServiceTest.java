@@ -14,6 +14,22 @@ import com.nahui.followupbussiness.workforce.application.port.in.PortfolioAccess
 import java.time.*; import java.util.*; import org.junit.jupiter.api.Test;
 
 class ReorderRoutePointsServiceTest {
+ @Test void reordersManualDraftWithoutSnapshotAndPreservesUnsetPlanningTimes() {
+  UUID tenant=UUID.randomUUID(), routeId=UUID.randomUUID(), seller=UUID.randomUUID(), first=UUID.randomUUID(), second=UUID.randomUUID();
+  Route route=new Route(routeId,tenant,"manual",LocalDate.of(2026,8,25),seller,null,List.of(new Route.Point(first,UUID.randomUUID(),1,new GeoPoint(1,1)),new Route.Point(second,UUID.randomUUID(),2,new GeoPoint(2,2))),Instant.EPOCH,Instant.EPOCH,1,"DRAFT");
+  RouteStore routes=mock(RouteStore.class); PlanningSnapshotStore snapshots=mock(PlanningSnapshotStore.class); PortfolioAccessScopeUseCase scopes=mock(PortfolioAccessScopeUseCase.class); RecordAuditEntryUseCase audit=mock(RecordAuditEntryUseCase.class); JourneyStartedStatusUseCase journeys=mock(JourneyStartedStatusUseCase.class); OutboxStore outbox=mock(OutboxStore.class);
+  AuthenticatedActor actor=new AuthenticatedActor(UUID.randomUUID(),tenant,BaseRole.COMPANY_ADMIN);
+  when(routes.findForUpdate(tenant,routeId)).thenReturn(Optional.of(route)); when(scopes.resolve(actor)).thenReturn(new PortfolioAccessScopeUseCase.Scope(tenant,true,Set.of())); when(audit.record(any())).thenReturn(true);
+
+  Route updated=new ReorderRoutePointsService(routes,snapshots,scopes,audit,journeys,outbox,Clock.fixed(Instant.parse("2026-08-25T12:00:00Z"),ZoneOffset.UTC)).reorder(new ReorderRoutePointsUseCase.Command(routeId,1,List.of(second,first),UUID.randomUUID()),actor);
+
+  assertThat(updated.points()).extracting(Route.Point::id).containsExactly(second,first);
+  assertThat(updated.points()).extracting(Route.Point::sequence).containsExactly(1,2);
+  assertThat(updated.points()).allSatisfy(point -> { assertThat(point.plannedArrivalAt()).isNull(); assertThat(point.plannedDepartureAt()).isNull(); });
+  assertThat(updated.version()).isEqualTo(2);
+  verify(routes).replacePointsAndVersion(updated,1); verify(audit).record(any()); verify(snapshots,never()).supersedeAndCopy(any(),anyLong()); verifyNoInteractions(journeys,outbox);
+ }
+
  @Test void reordersCompletePermutationFromSnapshotWithoutMatrixCallAndCreatesRevision() {
   UUID tenant=UUID.randomUUID(), actor=UUID.randomUUID(), routeId=UUID.randomUUID(), seller=UUID.randomUUID(), first=UUID.randomUUID(), second=UUID.randomUUID();
   Route route=new Route(routeId,tenant,"r",LocalDate.of(2026,8,25),seller,new GeoPoint(0,0),List.of(new Route.Point(first,UUID.randomUUID(),1,new GeoPoint(1,1)),new Route.Point(second,UUID.randomUUID(),2,new GeoPoint(2,2))),Instant.EPOCH,Instant.EPOCH,1,"DRAFT");

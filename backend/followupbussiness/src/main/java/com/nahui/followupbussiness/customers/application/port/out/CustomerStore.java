@@ -12,6 +12,11 @@ public interface CustomerStore {
 
     Optional<Customer> find(UUID tenantId, UUID customerId);
 
+    /** Minimal tenant-scoped projection for already-authorized route points. */
+    default List<NameReference> findNameReferences(UUID tenantId, List<UUID> customerIds) {
+        return List.of();
+    }
+
     boolean update(Customer customer, long expectedVersion);
 
     List<DuplicateMatch> findDuplicateMatches(UUID tenantId, DuplicateCriteria criteria);
@@ -24,4 +29,7 @@ public interface CustomerStore {
     }
 
     enum MatchedField {DOCUMENT, PHONE, NAME, ADDRESS, LOCATION}
+
+    record NameReference(UUID id, String name) {
+    }
 }

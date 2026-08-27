@@ -17,14 +17,21 @@ import java.util.*;
 import org.junit.jupiter.api.Test;
 
 class CreateRouteServiceTest {
-    @Test void acceptsTheContractualBoundaryOfFiveHundredCustomers() {
+    @Test void acceptsTheContractualBoundaryOfFiftyCustomers() {
         UUID tenant=UUID.randomUUID(), actorId=UUID.randomUUID(), seller=UUID.randomUUID();
-        List<UUID> customerIds=java.util.stream.Stream.generate(UUID::randomUUID).limit(500).toList();
+        List<UUID> customerIds=java.util.stream.Stream.generate(UUID::randomUUID).limit(50).toList();
         RouteStore store=mock(RouteStore.class); CustomerPortfolioReadUseCase customers=mock(CustomerPortfolioReadUseCase.class); SellerReferenceUseCase sellers=mock(SellerReferenceUseCase.class); PortfolioAccessScopeUseCase scopes=mock(PortfolioAccessScopeUseCase.class); RecordAuditEntryUseCase audit=mock(RecordAuditEntryUseCase.class);
         when(store.reserveIdempotency(eq(tenant),eq(actorId),any(),any(),any())).thenReturn(new RouteStore.Reservation(true,null,null)); when(sellers.allActive(tenant,Set.of(seller))).thenReturn(true); when(scopes.resolve(any())).thenReturn(new PortfolioAccessScopeUseCase.Scope(tenant,true,Set.of())); when(audit.record(any())).thenReturn(true);
         when(customers.activeAssignedToSellerAt(tenant,seller,customerIds,LocalDate.of(2026,9,1))).thenReturn(customerIds.stream().map(id->new CustomerPortfolioReadUseCase.RouteCustomer(id,new GeoPoint(-12,-77),UUID.randomUUID())).toList());
         Route route=service(store,customers,sellers,scopes,audit).create(command(seller,customerIds,UUID.randomUUID()),admin(tenant,actorId));
-        assertThat(route.points()).hasSize(500); verify(store).save(route);
+        assertThat(route.points()).hasSize(50); verify(store).save(route);
+    }
+    @Test void rejectsMoreThanFiftyCustomersBeforeAnyWrite() {
+        UUID tenant=UUID.randomUUID(), actorId=UUID.randomUUID(), seller=UUID.randomUUID();
+        List<UUID> customerIds=java.util.stream.Stream.generate(UUID::randomUUID).limit(51).toList();
+        RouteStore store=mock(RouteStore.class); CustomerPortfolioReadUseCase customers=mock(CustomerPortfolioReadUseCase.class); SellerReferenceUseCase sellers=mock(SellerReferenceUseCase.class); PortfolioAccessScopeUseCase scopes=mock(PortfolioAccessScopeUseCase.class); RecordAuditEntryUseCase audit=mock(RecordAuditEntryUseCase.class);
+        assertThatThrownBy(()->service(store,customers,sellers,scopes,audit).create(command(seller,customerIds,UUID.randomUUID()),admin(tenant,actorId))).isInstanceOf(CreateRouteUseCase.Invalid.class);
+        verifyNoInteractions(store, customers, sellers, scopes, audit);
     }
     @Test void createsSequentialDraftAndRecordsOnlyInternalAudit() {
         UUID tenant=UUID.randomUUID(), actorId=UUID.randomUUID(), seller=UUID.randomUUID(), first=UUID.randomUUID(), second=UUID.randomUUID();
@@ -33,7 +40,7 @@ class CreateRouteServiceTest {
         when(sellers.allActive(tenant,Set.of(seller))).thenReturn(true); when(scopes.resolve(any())).thenReturn(new PortfolioAccessScopeUseCase.Scope(tenant,true,Set.of()));
         when(customers.activeAssignedToSellerAt(tenant,seller,List.of(first,second),LocalDate.of(2026,9,1))).thenReturn(List.of(new CustomerPortfolioReadUseCase.RouteCustomer(first,new GeoPoint(-12,-77), UUID.randomUUID()),new CustomerPortfolioReadUseCase.RouteCustomer(second,new GeoPoint(-13,-76), UUID.randomUUID()))); when(audit.record(any())).thenReturn(true);
         Route result=service(store,customers,sellers,scopes,audit).create(command(seller,List.of(first,second),UUID.randomUUID()),admin(tenant,actorId));
-        assertThat(result.points()).extracting(Route.Point::sequence).containsExactly(1,2); assertThat(result.points()).extracting(Route.Point::customerId).containsExactly(first,second); assertThat(result.startLocation()).isEqualTo(new GeoPoint(-11,-75)); assertThat(result.version()).isEqualTo(1);
+        assertThat(result.name()).isEqualTo("Ruta del 2026-09-01"); assertThat(result.points()).extracting(Route.Point::sequence).containsExactly(1,2); assertThat(result.points()).extracting(Route.Point::customerId).containsExactly(first,second); assertThat(result.startLocation()).isEqualTo(new GeoPoint(-11,-75)); assertThat(result.version()).isEqualTo(1);
         verify(store).save(result); verify(audit).record(argThat(a -> a.resourceType().name().equals("ROUTE") && a.after().equals(Map.of("status","DRAFT")))); verify(store).completeIdempotency(eq(tenant),eq(actorId),any(),eq(result.id()));
     }
     @Test void exactReplayReturnsOriginalAndChangedPayloadConflictsWithoutWrites() {

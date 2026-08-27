@@ -40,6 +40,18 @@ class AuditEntryTest {
     }
 
     @Test
+    void acceptsBoundedRouteReorderingEvidenceWithoutCustomerData() {
+        UUID seller = UUID.randomUUID();
+        entry(Map.of("version", "1"), Map.of("version", "2", "pointCount", "4", "sellerId", seller.toString()));
+        assertThatThrownBy(() -> entry(Map.of("version", "0"), Map.of()))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> entry(Map.of(), Map.of("pointCount", "51")))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> entry(Map.of(), Map.of("sellerId", "customer-name")))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void rejectsUnknownScopesWithAndWithoutTenantAndAcceptsClosedScopeMatrix() {
         assertThatThrownBy(() -> entry(UUID.randomUUID(), "UNRECOGNIZED_SCOPE"))
                 .isInstanceOf(IllegalArgumentException.class);
