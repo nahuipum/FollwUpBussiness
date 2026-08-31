@@ -17,7 +17,11 @@ public final class SellerReferenceService implements SellerReferenceUseCase {
     }
     @Override public boolean activeAssignedToTerritory(UUID tenantId, UUID sellerId, UUID territoryId) {
         return tenantId != null && sellerId != null && territoryId != null && sellers.find(tenantId, sellerId)
-                .map(seller -> seller.status() == SellerStatus.ACTIVE && seller.territoryIds().contains(territoryId)).orElse(false);
+                .map(seller -> seller.status() == SellerStatus.ACTIVE && seller.territoryIds().contains(territoryId)
+                        && activeTerritory(tenantId, territoryId)).orElse(false);
+    }
+    @Override public boolean activeTerritory(UUID tenantId, UUID territoryId) {
+        return tenantId != null && territoryId != null && sellers.activeTerritory(tenantId, territoryId);
     }
     @Override public Set<UUID> activeTerritoriesAssignedTo(UUID tenantId, UUID sellerId) {
         if (tenantId == null || sellerId == null) return Set.of();

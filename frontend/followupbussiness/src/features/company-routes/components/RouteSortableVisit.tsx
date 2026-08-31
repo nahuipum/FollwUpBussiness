@@ -1,13 +1,14 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { ArrowDown, ArrowUp, GripVertical } from "lucide-react";
+import { routeDragOriginStyle } from "../route-ordering";
 import type { RoutePoint } from "../types";
 
 export function RouteSortableVisit({ sortableId, point, index, total, saving, onMove }: { sortableId: string; point: RoutePoint; index: number; total: number; saving: boolean; onMove: (index: number, direction: -1 | 1) => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: sortableId, disabled: saving });
   const name = point.customerName ?? "Cliente no disponible";
   const role = total === 1 ? "Inicio y final" : index === 0 ? "Inicio" : index === total - 1 ? "Final" : null;
-  return <li ref={setNodeRef} className={`route-sortable-visit${isDragging ? " route-sortable-visit--dragging" : ""}`} style={{ transform: CSS.Transform.toString(transform), transition }}>
+  return <li ref={setNodeRef} data-dragging={isDragging || undefined} className={`route-sortable-visit${isDragging ? " route-sortable-visit--dragging" : ""}`} style={routeDragOriginStyle(isDragging, CSS.Transform.toString(transform), transition)}>
     <strong aria-hidden="true">{point.sequence}</strong>
     <span className="route-order-editor__visit-name">{name}</span>
     {role && <span className="route-order-editor__visit-role">{role}</span>}

@@ -67,3 +67,51 @@ test("rejects invalid correlation IDs from the header and body", async () => {
 
   expect(error?.correlationId).toBeNull();
 });
+
+test("preserva solo el código público de ubicación de extremos", async () => {
+  const error = await normalizeApiError(
+    new Response(JSON.stringify({
+      code: "ROUTE_ENDPOINT_LOCATION_REQUIRED",
+      detail: "coordenadas internas: -12.0464,-77.0428",
+    }), { status: 422 }),
+  );
+
+  expect(error?.code).toBe("ROUTE_ENDPOINT_LOCATION_REQUIRED");
+  expect(error).not.toHaveProperty("detail");
+});
+
+test("preserva solo el código público de visitas de territorios distintos", async () => {
+  const error = await normalizeApiError(
+    new Response(JSON.stringify({
+      code: "MULTIPLE_VISIT_TERRITORIES_NOT_SUPPORTED",
+      detail: "territorios internos: a, b",
+    }), { status: 422 }),
+  );
+
+  expect(error?.code).toBe("MULTIPLE_VISIT_TERRITORIES_NOT_SUPPORTED");
+  expect(error).not.toHaveProperty("detail");
+});
+
+test("preserva el código público de visita sin territorio", async () => {
+  const error = await normalizeApiError(
+    new Response(JSON.stringify({
+      code: "VISIT_TERRITORY_REQUIRED",
+      detail: "territorio interno: 89b78325-2e4d-4f0c-ac46-d0ed8a0be695",
+    }), { status: 422 }),
+  );
+
+  expect(error?.code).toBe("VISIT_TERRITORY_REQUIRED");
+  expect(error).not.toHaveProperty("detail");
+});
+
+test("preserva el código público de visita fuera de los territorios del vendedor", async () => {
+  const error = await normalizeApiError(
+    new Response(JSON.stringify({
+      code: "VISIT_TERRITORY_NOT_ASSIGNED_TO_SELLER",
+      detail: "territorio interno: 89b78325-2e4d-4f0c-ac46-d0ed8a0be695",
+    }), { status: 422 }),
+  );
+
+  expect(error?.code).toBe("VISIT_TERRITORY_NOT_ASSIGNED_TO_SELLER");
+  expect(error).not.toHaveProperty("detail");
+});

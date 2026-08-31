@@ -1,5 +1,5 @@
 import { beforeEach, expect, test, vi } from "vitest";
-import { createRoute, getRoute, getRouteDirections, listRouteCustomers, listRouteSellerOptions, listRoutes, listSuggestedRouteCustomers, previewRouteDirections, reorderRoutePoints } from "./api";
+import { createRoute, getRoute, getRouteDirections, listRouteCustomers, listRouteSellerOptions, listRoutes, listSuggestedRouteCustomers, optimizeRoute, previewRouteDirections, reorderRoutePoints } from "./api";
 
 const state = vi.hoisted(() => ({ request: vi.fn() }));
 vi.mock("../../lib/api", () => ({ apiRequest: state.request }));
@@ -8,12 +8,12 @@ vi.mock("../auth/auth", () => ({ getSessionAuthorization: () => ({ Authorization
 const route = { id: "route-1", name: "Norte", date: "2026-08-26", sellerId: "seller-1", status: "PUBLISHED", points: [{ id: "point-1", customerId: "customer-1", customerName: "Comercial Norte", sequence: 1, status: "PENDING", location: { latitude: -12.04, longitude: -77.03 } }], createdAt: "2026-08-26T10:00:00Z", updatedAt: "2026-08-26T11:00:00Z", version: 1 };
 beforeEach(() => state.request.mockReset());
 
-test("envía únicamente los filtros de rutas contractuales y conserva la ubicación efímera para el mapa", async () => {
+test("conserva identificadores y ubicación efímeros para el detalle sin exponerlos en el contrato de optimización", async () => {
   state.request.mockResolvedValue(new Response(JSON.stringify({ items: [route], page: { page: 2, pageSize: 10, totalElements: 21, totalPages: 3 } }), { status: 200 }));
   const result = await listRoutes({ page: 2, pageSize: 10, date: "2026-08-26", sellerId: "seller-1", status: "PUBLISHED" });
   expect(state.request).toHaveBeenCalledWith("/routes?page=2&pageSize=10&date=2026-08-26&sellerId=seller-1&status=PUBLISHED", expect.anything(), { publishErrors: false });
   expect(result.page?.items[0]).toMatchObject({ id: "route-1", points: [{ sequence: 1, customerName: "Comercial Norte" }] });
-  expect(result.page?.items[0]?.points[0]).not.toHaveProperty("customerId");
+  expect(result.page?.items[0]?.points[0]).toHaveProperty("customerId", "customer-1");
   expect(result.page?.items[0]?.points[0]).toMatchObject({ location: { latitude: -12.04, longitude: -77.03 } });
 });
 
@@ -42,17 +42,24 @@ test("previsualiza Directions sin persistir el orden ni enviar datos de clientes
   expect(state.request).toHaveBeenCalledWith("/routes/route%2F1/directions/preview", expect.objectContaining({ method: "POST", body: JSON.stringify({ baseRouteVersion: 3, routePointIds: ["point-2", "point-1"] }) }), { publishErrors: false });
 });
 
-test("carga vendedores paginados una sola vez para etiquetar filtros", async () => {
-  state.request.mockResolvedValueOnce(new Response(JSON.stringify({ items: [{ id: "seller-1", displayName: "Ana" }], page: { page: 0, pageSize: 100, totalElements: 2, totalPages: 2 } }), { status: 200 })).mockResolvedValueOnce(new Response(JSON.stringify({ items: [{ id: "seller-2", displayName: "Luis" }], page: { page: 1, pageSize: 100, totalElements: 2, totalPages: 2 } }), { status: 200 }));
-  await expect(listRouteSellerOptions()).resolves.toMatchObject({ sellers: [{ label: "Ana" }, { label: "Luis" }] });
+test("carga vendedores paginados con sus territorios asignados para filtrar candidatos", async () => {
+  state.request.mockResolvedValueOnce(new Response(JSON.stringify({ items: [{ id: "seller-1", displayName: "Ana", territoryIds: ["territory-1"] }], page: { page: 0, pageSize: 100, totalElements: 2, totalPages: 2 } }), { status: 200 })).mockResolvedValueOnce(new Response(JSON.stringify({ items: [{ id: "seller-2", displayName: "Luis", territoryIds: [] }], page: { page: 1, pageSize: 100, totalElements: 2, totalPages: 2 } }), { status: 200 }));
+  await expect(listRouteSellerOptions()).resolves.toMatchObject({ sellers: [{ label: "Ana", territoryIds: ["territory-1"] }, { label: "Luis", territoryIds: [] }] });
   expect(state.request).toHaveBeenNthCalledWith(1, "/sellers?page=0&pageSize=100", expect.anything(), { publishErrors: false });
   expect(state.request).toHaveBeenNthCalledWith(2, "/sellers?page=1&pageSize=100", expect.anything(), { publishErrors: false });
 });
 
-test("consulta cartera completa y sugerencias como fuentes separadas, sin datos personales", async () => {
-  state.request.mockResolvedValueOnce(new Response(JSON.stringify({ items: [{ id: "customer-1", name: "Comercial Norte", phone: "secreto" }], page: { page: 0, pageSize: 100, totalElements: 1, totalPages: 1 } }), { status: 200 })).mockResolvedValueOnce(new Response(JSON.stringify({ items: [{ customer: { id: "customer-2", name: "Comercial Sur", address: "secreto" }, priority: 1, reason: "Vencido" }], page: { page: 0, pageSize: 100, totalElements: 1, totalPages: 1 } }), { status: 200 }));
-  await expect(listRouteCustomers("seller-1", 0)).resolves.toMatchObject({ page: { items: [{ id: "customer-1", label: "Comercial Norte", suggested: false }] } });
-  await expect(listSuggestedRouteCustomers("seller-1", "2026-08-26", 0)).resolves.toMatchObject({ page: { items: [{ id: "customer-2", label: "Comercial Sur", suggested: true }] } });
+test("envía windows vacío cuando una visita no tiene restricción, deriva el territorio y conserva su versión para el orden posterior", async () => {
+  state.request.mockResolvedValue(new Response(JSON.stringify({ routeId: "route-1", proposalVersion: 3, baseRouteVersion: 1, published: false, orderedVisits: [{ customerId: "customer-1", sequence: 1, plannedArrivalAt: "2026-08-26T09:00:00Z", plannedDepartureAt: "2026-08-26T09:30:00Z" }], unassignedVisits: [], totalTravelSeconds: 1, totalServiceSeconds: 1, totalDistanceMeters: 1, optimality: "OPTIMAL", generatedAt: "2026-08-26T08:00:00Z" }), { status: 200 }));
+  await expect(optimizeRoute({ routeId: "route-1", availability: { start: "2026-08-26T08:00:00Z", end: "2026-08-26T17:00:00Z" }, baseRouteVersion: 1, visits: [{ customerId: "customer-1", serviceDurationSeconds: 1800, priority: 2, windows: [] }] })).resolves.toMatchObject({ proposal: { proposalVersion: 3, orderedVisits: [{ customerId: "customer-1", sequence: 1 }] } });
+  expect(JSON.parse(state.request.mock.calls[0]?.[1].body as string)).toMatchObject({ visits: [{ customerId: "customer-1", windows: [] }] });
+  expect(state.request).toHaveBeenCalledWith("/routes/optimize", expect.objectContaining({ method: "POST", body: expect.not.stringContaining("territoryId") }), { publishErrors: false });
+});
+
+test("consulta cartera completa y sugerencias como fuentes separadas, conservando solo el territorio necesario", async () => {
+  state.request.mockResolvedValueOnce(new Response(JSON.stringify({ items: [{ id: "customer-1", name: "Comercial Norte", territoryId: "territory-1", phone: "secreto" }], page: { page: 0, pageSize: 100, totalElements: 1, totalPages: 1 } }), { status: 200 })).mockResolvedValueOnce(new Response(JSON.stringify({ items: [{ customer: { id: "customer-2", name: "Comercial Sur", territoryId: "territory-1", address: "secreto" }, priority: 1, reason: "Vencido" }], page: { page: 0, pageSize: 100, totalElements: 1, totalPages: 1 } }), { status: 200 }));
+  await expect(listRouteCustomers("seller-1", 0)).resolves.toMatchObject({ page: { items: [{ id: "customer-1", label: "Comercial Norte", territoryId: "territory-1", suggested: false }] } });
+  await expect(listSuggestedRouteCustomers("seller-1", "2026-08-26", 0)).resolves.toMatchObject({ page: { items: [{ id: "customer-2", label: "Comercial Sur", territoryId: "territory-1", suggested: true }] } });
   expect(state.request).toHaveBeenNthCalledWith(1, "/customers?sellerId=seller-1&page=0&pageSize=100", expect.anything(), { publishErrors: false });
   expect(state.request).toHaveBeenNthCalledWith(2, "/routes/suggested-customers?sellerId=seller-1&date=2026-08-26&page=0&pageSize=100", expect.anything(), { publishErrors: false });
 });

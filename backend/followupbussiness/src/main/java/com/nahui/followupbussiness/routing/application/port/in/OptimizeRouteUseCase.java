@@ -1,6 +1,5 @@
 package com.nahui.followupbussiness.routing.application.port.in;
 
-import com.nahui.followupbussiness.customers.domain.GeoPoint;
 import com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor;
 
 import java.time.*;
@@ -12,8 +11,7 @@ import java.util.*;
 public interface OptimizeRouteUseCase {
     Result optimize(Command command, AuthenticatedActor actor);
 
-    record Command(UUID routeId, LocalDate date, UUID sellerId, UUID territoryId, GeoPoint start, GeoPoint end,
-                   Window availability, long baseRouteVersion, List<Visit> visits) {
+    record Command(UUID routeId, Window availability, long baseRouteVersion, List<Visit> visits) {
     }
 
     record Window(Instant start, Instant end) {
@@ -36,15 +34,21 @@ public interface OptimizeRouteUseCase {
     }
 
     final class Forbidden extends RuntimeException {
+        public Forbidden() { this("OPTIMIZE_FORBIDDEN"); }
+        public Forbidden(String reason) { super(reason); }
     }
 
     public final class Conflict extends RuntimeException {
     }
 
     final class Invalid extends RuntimeException {
+        public Invalid() { this("INVALID_OPTIMIZE_REQUEST"); }
+        public Invalid(String code) { super(code); }
     }
 
     public final class Unavailable extends RuntimeException {
+        public Unavailable() { this("PROVIDER_UNAVAILABLE"); }
+        public Unavailable(String reason) { super(reason); }
     }
 
     final class RateLimited extends RuntimeException {

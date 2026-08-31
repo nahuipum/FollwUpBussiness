@@ -184,7 +184,7 @@ public final class RouteController {
         }
         try {
             if (request == null) return reorderProblem("INVALID_REORDER_REQUEST", correlation);
-            Route route=reorder.reorder(new ReorderRoutePointsUseCase.Command(routeId,version,request.routePointIds(),correlation),actor);
+            Route route=reorder.reorder(new ReorderRoutePointsUseCase.Command(routeId,version,request.proposalVersion(),request.routePointIds(),correlation),actor);
             meters.counter("routes.reordered").increment();
             return ResponseEntity.ok().eTag("\""+route.version()+"\"").header("X-Correlation-Id",correlation.toString()).body(view(route, actor));
         } catch (ReorderRoutePointsUseCase.Forbidden e) { return problem(HttpStatus.FORBIDDEN,correlation); }
@@ -261,7 +261,7 @@ public final class RouteController {
 
     public record Request(String name, LocalDate date, UUID sellerId, GeoPoint startLocation, List<UUID> customerIds) {
     }
-    public record ReorderRequest(List<UUID> routePointIds) { }
+    public record ReorderRequest(Long proposalVersion, List<UUID> routePointIds) { }
     public record DirectionsPreviewRequest(long baseRouteVersion, List<UUID> routePointIds) { }
     public record PublishRequest(Boolean notifySeller) { }
     public record ReassignRequest(UUID sellerId, String reason) { }

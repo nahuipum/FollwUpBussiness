@@ -5,11 +5,11 @@ import "./multi-select.css";
 
 export type MultiSelectOption = Readonly<{ value: string; label: string; disabled?: boolean }>;
 
-export function MultiSelect({ label, ariaLabel, value, options, onChange, placeholder = "Selecciona opciones" }: { label: string; ariaLabel: string; value: readonly string[]; options: readonly MultiSelectOption[]; onChange: (value: readonly string[]) => void; placeholder?: string }) {
+export function MultiSelect({ label, ariaLabel, value, options, onChange, placeholder = "Selecciona opciones", closeOnSelect = false }: { label: string; ariaLabel: string; value: readonly string[]; options: readonly MultiSelectOption[]; onChange: (value: readonly string[]) => void; placeholder?: string; closeOnSelect?: boolean }) {
   const [open, setOpen] = useState(false); const [active, setActive] = useState(0); const root = useRef<HTMLDivElement>(null); const trigger = useRef<HTMLButtonElement>(null); const menu = useRef<HTMLDivElement>(null); const listboxId = useId(); const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
   const selected = options.filter(option => value.includes(option.value));
   const summary = selected.length === 0 ? placeholder : selected.length === 1 ? selected[0]?.label ?? "1 opción" : `${selected.length} opciones seleccionadas`;
-  const toggle = (option: MultiSelectOption) => { if (option.disabled) return; onChange(value.includes(option.value) ? value.filter(id => id !== option.value) : [...value, option.value]); };
+  const toggle = (option: MultiSelectOption) => { if (option.disabled) return; onChange(value.includes(option.value) ? value.filter(id => id !== option.value) : [...value, option.value]); if (closeOnSelect) { setOpen(false); trigger.current?.focus(); } };
   const openMenu = () => { setActive(Math.max(0, options.findIndex(option => !option.disabled))); setOpen(true); };
   useEffect(() => { const close = (event: PointerEvent) => { if (event.target instanceof Node && !root.current?.contains(event.target) && !menu.current?.contains(event.target)) setOpen(false); }; document.addEventListener("pointerdown", close); return () => document.removeEventListener("pointerdown", close); }, []);
   useLayoutEffect(() => { if (!open || !trigger.current) return; const update = () => { const bounds = trigger.current?.getBoundingClientRect(); if (!bounds) return; const width = Math.max(bounds.width, 240); setPosition({ top: bounds.bottom + 6, left: Math.max(12, Math.min(bounds.left, window.innerWidth - width - 12)), width }); }; update(); window.addEventListener("resize", update); window.addEventListener("scroll", update, true); return () => { window.removeEventListener("resize", update); window.removeEventListener("scroll", update, true); }; }, [open]);

@@ -19,4 +19,9 @@ class RoutingConfigurationTest {
 
         assertThat(RoutingConfiguration.mapboxDirectionsToken(environment)).isEqualTo("directions-token");
     }
+
+    @Test void matrixUsesItsDedicatedTokenThenTheExistingMatrixEnvironmentVariable() {
+        assertThat(RoutingConfiguration.mapboxMatrixToken(new MockEnvironment().withProperty("FOLLOW_UP_BUSSINESS_MAPBOX_MATRIX", "shared"))).isEqualTo("shared");
+        assertThat(RoutingConfiguration.mapboxMatrixToken(new MockEnvironment().withProperty("FOLLOW_UP_BUSSINESS_MAPBOX_MATRIX", "shared").withProperty("MAPBOX_MATRIX_TOKEN", "dedicated"))).isEqualTo("dedicated");
+    }
 }

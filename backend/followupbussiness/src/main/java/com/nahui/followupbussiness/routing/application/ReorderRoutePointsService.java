@@ -24,6 +24,7 @@ public class ReorderRoutePointsService implements ReorderRoutePointsUseCase {
     private final RecordAuditEntryUseCase audit;
     private final JourneyStartedStatusUseCase journeys;
     private final OutboxStore outbox;
+    private final RouteProposalRevisionStore proposalRevisions;
     private final Clock clock;
 
     public ReorderRoutePointsService(RouteStore routes, PlanningSnapshotStore snapshots, PortfolioAccessScopeUseCase scopes,
@@ -34,6 +35,20 @@ public class ReorderRoutePointsService implements ReorderRoutePointsUseCase {
         this.audit = audit;
         this.journeys = journeys;
         this.outbox = outbox;
+        this.clock = clock;
+        this.proposalRevisions = null;
+    }
+
+    public ReorderRoutePointsService(RouteStore routes, PlanningSnapshotStore snapshots, PortfolioAccessScopeUseCase scopes,
+                                    RecordAuditEntryUseCase audit, JourneyStartedStatusUseCase journeys, OutboxStore outbox,
+                                    RouteProposalRevisionStore proposalRevisions, Clock clock) {
+        this.routes = routes;
+        this.snapshots = snapshots;
+        this.scopes = scopes;
+        this.audit = audit;
+        this.journeys = journeys;
+        this.outbox = outbox;
+        this.proposalRevisions = proposalRevisions;
         this.clock = clock;
     }
 
@@ -46,6 +61,9 @@ public class ReorderRoutePointsService implements ReorderRoutePointsUseCase {
         boolean published = "PUBLISHED".equals(route.status());
         if ((!"DRAFT".equals(route.status()) && !published) || route.version() != command.baseRouteVersion())
             throw new Conflict("ROUTE_VERSION_CONFLICT");
+        if (command.proposalVersion() != null && (published || proposalRevisions == null ||
+                !proposalRevisions.isCurrentProposalForUpdate(actor.tenantId(), route.id(), command.proposalVersion(), route.version())) )
+            throw new Conflict("PROPOSAL_VERSION_CONFLICT");
         if (published) {
             if (outbox == null) throw new Conflict("ROUTE_NOTIFICATION_UNAVAILABLE");
             JourneyStartedStatusUseCase.State journeyState;
@@ -92,6 +110,7 @@ public class ReorderRoutePointsService implements ReorderRoutePointsUseCase {
         Route updated = new Route(route.id(), route.tenantId(), route.name(), route.date(), route.sellerId(), route.startLocation(), reordered, route.createdAt(), clock.instant(), route.version() + 1, route.status());
         routes.replacePointsAndVersion(updated, route.version());
         snapshots.supersedeAndCopy(snapshot, updated.version());
+        recordManualEditIfRequested(command, actor, updated);
         if (!audit.record(new RecordAuditEntryCommand(AuditAction.CRITICAL_MUTATION, AuditResourceType.ROUTE, route.id(), AuditResult.SUCCESS, Map.of("version", Long.toString(route.version())), Map.of("version", Long.toString(updated.version()), "pointCount", Integer.toString(reordered.size())))))
             throw new IllegalStateException("audit persistence failed");
         if (published) {
@@ -115,6 +134,7 @@ public class ReorderRoutePointsService implements ReorderRoutePointsUseCase {
         Route updated = new Route(route.id(), route.tenantId(), route.name(), route.date(), route.sellerId(),
                 route.startLocation(), reordered, route.createdAt(), clock.instant(), route.version() + 1, route.status());
         routes.replacePointsAndVersion(updated, route.version());
+        recordManualEditIfRequested(command, actor, updated);
         if (!audit.record(new RecordAuditEntryCommand(AuditAction.CRITICAL_MUTATION, AuditResourceType.ROUTE, route.id(),
                 AuditResult.SUCCESS, Map.of("version", Long.toString(route.version())),
                 Map.of("version", Long.toString(updated.version()), "pointCount", Integer.toString(reordered.size())))))
@@ -125,8 +145,14 @@ public class ReorderRoutePointsService implements ReorderRoutePointsUseCase {
     private static void validate(Command c, AuthenticatedActor a) {
         if (a == null || a.accountId() == null || a.tenantId() == null || (a.role() != BaseRole.COMPANY_ADMIN && a.role() != BaseRole.SUPERVISOR))
             throw new Forbidden();
-        if (c == null || c.routeId() == null || c.correlationId() == null || c.baseRouteVersion() < 1 || c.routePointIds() == null || c.routePointIds().isEmpty() || c.routePointIds().size() > 50 || c.routePointIds().stream().anyMatch(Objects::isNull) || new HashSet<>(c.routePointIds()).size() != c.routePointIds().size())
+        if (c == null || c.routeId() == null || c.correlationId() == null || c.baseRouteVersion() < 1 || (c.proposalVersion() != null && c.proposalVersion() < 1) || c.routePointIds() == null || c.routePointIds().isEmpty() || c.routePointIds().size() > 50 || c.routePointIds().stream().anyMatch(Objects::isNull) || new HashSet<>(c.routePointIds()).size() != c.routePointIds().size())
             throw new Invalid("INVALID_REORDER_REQUEST");
+    }
+
+    private void recordManualEditIfRequested(Command command, AuthenticatedActor actor, Route updated) {
+        if (command.proposalVersion() != null)
+            proposalRevisions.recordManualEdit(actor.tenantId(), updated.id(), command.proposalVersion(), command.baseRouteVersion(),
+                    updated.version(), actor.accountId(), command.routePointIds(), clock.instant());
     }
 
     private void authorize(AuthenticatedActor actor, Route route) {

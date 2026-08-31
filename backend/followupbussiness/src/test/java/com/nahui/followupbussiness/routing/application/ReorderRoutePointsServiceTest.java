@@ -81,4 +81,24 @@ class ReorderRoutePointsServiceTest {
   assertThatThrownBy(()->new ReorderRoutePointsService(routes,snapshots,scopes,audit,journeys,outbox,Clock.fixed(Instant.parse("2026-08-25T12:00:00Z"),ZoneOffset.UTC)).reorder(new ReorderRoutePointsUseCase.Command(routeId,1,List.of(second,first),UUID.randomUUID()),actor)).isInstanceOf(IllegalStateException.class);
   verifyNoInteractions(outbox);
  }
+
+ @Test void manualProposalEditLinksTheCurrentProposalWithoutChangingTheBe023Path() {
+  UUID tenant=UUID.randomUUID(), actorId=UUID.randomUUID(), routeId=UUID.randomUUID(), seller=UUID.randomUUID(), first=UUID.randomUUID(), second=UUID.randomUUID();
+  Route route=new Route(routeId,tenant,"r",LocalDate.now(),seller,null,List.of(new Route.Point(first,UUID.randomUUID(),1,new GeoPoint(1,1)),new Route.Point(second,UUID.randomUUID(),2,new GeoPoint(2,2))),Instant.EPOCH,Instant.EPOCH,1,"DRAFT");
+  RouteStore routes=mock(RouteStore.class); PlanningSnapshotStore snapshots=mock(PlanningSnapshotStore.class); PortfolioAccessScopeUseCase scopes=mock(PortfolioAccessScopeUseCase.class); RecordAuditEntryUseCase audit=mock(RecordAuditEntryUseCase.class); JourneyStartedStatusUseCase journeys=mock(JourneyStartedStatusUseCase.class); OutboxStore outbox=mock(OutboxStore.class); RouteProposalRevisionStore revisions=mock(RouteProposalRevisionStore.class);
+  AuthenticatedActor actor=new AuthenticatedActor(actorId,tenant,BaseRole.COMPANY_ADMIN);
+  when(routes.findForUpdate(tenant,routeId)).thenReturn(Optional.of(route)); when(scopes.resolve(actor)).thenReturn(new PortfolioAccessScopeUseCase.Scope(tenant,true,Set.of())); when(revisions.isCurrentProposalForUpdate(tenant,routeId,3,1)).thenReturn(true); when(audit.record(any())).thenReturn(true);
+  Route updated=new ReorderRoutePointsService(routes,snapshots,scopes,audit,journeys,outbox,revisions,Clock.systemUTC()).reorder(new ReorderRoutePointsUseCase.Command(routeId,1,3L,List.of(second,first),UUID.randomUUID()),actor);
+  assertThat(updated.version()).isEqualTo(2);
+  verify(revisions).recordManualEdit(eq(tenant),eq(routeId),eq(3L),eq(1L),eq(2L),eq(actorId),eq(List.of(second,first)),any());
+ }
+
+ @Test void staleProposalDoesNotWriteRouteRevisionOrAudit() {
+  UUID tenant=UUID.randomUUID(), routeId=UUID.randomUUID(), point=UUID.randomUUID();
+  Route route=new Route(routeId,tenant,"r",LocalDate.now(),UUID.randomUUID(),null,List.of(new Route.Point(point,UUID.randomUUID(),1,new GeoPoint(1,1))),Instant.EPOCH,Instant.EPOCH,1,"DRAFT");
+  RouteStore routes=mock(RouteStore.class); PlanningSnapshotStore snapshots=mock(PlanningSnapshotStore.class); PortfolioAccessScopeUseCase scopes=mock(PortfolioAccessScopeUseCase.class); RecordAuditEntryUseCase audit=mock(RecordAuditEntryUseCase.class); JourneyStartedStatusUseCase journeys=mock(JourneyStartedStatusUseCase.class); RouteProposalRevisionStore revisions=mock(RouteProposalRevisionStore.class); AuthenticatedActor actor=new AuthenticatedActor(UUID.randomUUID(),tenant,BaseRole.COMPANY_ADMIN);
+  when(routes.findForUpdate(tenant,routeId)).thenReturn(Optional.of(route)); when(scopes.resolve(actor)).thenReturn(new PortfolioAccessScopeUseCase.Scope(tenant,true,Set.of())); when(revisions.isCurrentProposalForUpdate(tenant,routeId,2,1)).thenReturn(false);
+  assertThatThrownBy(()->new ReorderRoutePointsService(routes,snapshots,scopes,audit,journeys,mock(OutboxStore.class),revisions,Clock.systemUTC()).reorder(new ReorderRoutePointsUseCase.Command(routeId,1,2L,List.of(point),UUID.randomUUID()),actor)).isInstanceOf(ReorderRoutePointsUseCase.Conflict.class);
+  verify(routes,never()).replacePointsAndVersion(any(),anyLong()); verifyNoInteractions(snapshots,audit); verify(revisions,never()).recordManualEdit(any(),any(),anyLong(),anyLong(),anyLong(),any(),anyList(),any());
+ }
 }

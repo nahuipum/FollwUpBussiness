@@ -39,28 +39,31 @@ public final class OptimizeRouteService implements OptimizeRouteUseCase {
     }
 
     public Result optimize(Command command, AuthenticatedActor actor) {
-        if (actor == null || actor.tenantId() == null || (actor.role() != BaseRole.COMPANY_ADMIN && actor.role() != BaseRole.SUPERVISOR))
-            throw new Forbidden();
+        if (actor == null || actor.accountId() == null || actor.tenantId() == null || (actor.role() != BaseRole.COMPANY_ADMIN && actor.role() != BaseRole.SUPERVISOR))
+            throw new Forbidden("ACTOR_NOT_AUTHORIZED_FOR_OPTIMIZATION");
         validate(command);
+        Route route = routes.find(actor.tenantId(), command.routeId()).orElseThrow(() -> new Forbidden("ROUTE_NOT_FOUND_IN_TENANT"));
         var scope = scopes.resolve(actor);
-        if (!scope.allCurrentPortfolios() && !scope.sellerIds().contains(command.sellerId())) throw new Forbidden();
-        Route route = routes.find(actor.tenantId(), command.routeId()).orElseThrow(Forbidden::new);
+        if (!scope.allCurrentPortfolios() && !scope.sellerIds().contains(route.sellerId())) throw new Forbidden("ROUTE_OUTSIDE_ACTOR_PORTFOLIO");
         if (!"DRAFT".equals(route.status()) || route.version() != command.baseRouteVersion()) throw new Conflict();
-        if (!route.sellerId().equals(command.sellerId()) || !route.date().equals(command.date())) throw new Forbidden();
-        if (!sellers.activeAssignedToTerritory(actor.tenantId(), command.sellerId(), command.territoryId()))
-            throw new Forbidden();
-        var refs = customers.activeAssignedToSellerAt(actor.tenantId(), command.sellerId(), command.visits().stream().map(Visit::customerId).toList(), command.date());
-        if (refs.size() != command.visits().size() || refs.stream().anyMatch(v -> !command.territoryId().equals(v.territoryId())))
-            throw new Forbidden();
+        List<GeoPoint> endpoints = endpoints(route);
+        var refs = customers.activeAssignedToSellerAt(actor.tenantId(), route.sellerId(), command.visits().stream().map(Visit::customerId).toList(), route.date());
+        if (refs.size() != command.visits().size())
+            throw new Forbidden("VISIT_OUTSIDE_ACTIVE_SELLER_PORTFOLIO");
+        UUID territoryId = territory(refs);
+        if (!sellers.activeTerritory(actor.tenantId(), territoryId))
+            throw new Invalid("VISIT_TERRITORY_INACTIVE");
+        if (!sellers.activeAssignedToTerritory(actor.tenantId(), route.sellerId(), territoryId))
+            throw new Invalid("VISIT_TERRITORY_NOT_ASSIGNED_TO_SELLER");
         Map<UUID, GeoPoint> locations = new HashMap<>();
         refs.forEach(v -> locations.put(v.id(), v.location()));
         if (locations.size() != command.visits().size() || command.visits().stream().anyMatch(v -> !locations.containsKey(v.customerId())))
-            throw new Forbidden();
+            throw new Forbidden("VISIT_LOCATION_UNAVAILABLE");
         var nodes = new ArrayList<GeoPoint>();
-        nodes.add(command.start());
+        nodes.add(endpoints.getFirst());
         command.visits().forEach(v -> nodes.add(locations.get(v.customerId())));
-        nodes.add(command.end());
-        if (!quota.reserve(actor.tenantId(), actor.accountId(), command.date())) throw new RateLimited();
+        nodes.add(endpoints.getLast());
+        if (!quota.reserve(actor.tenantId(), actor.accountId(), route.date())) throw new RateLimited();
         TravelMatrix.Matrix travel = calculate(nodes);
         var ordered = new ArrayList<IndexedVisit>();
         for (int i = 0; i < command.visits().size(); i++) ordered.add(new IndexedVisit(i + 1, command.visits().get(i)));
@@ -96,21 +99,49 @@ public final class OptimizeRouteService implements OptimizeRouteUseCase {
             distanceMeters += distance(travel.meters(), from, endNode);
         }
         var result = new Result(command.routeId(), proposals.nextVersion(actor.tenantId(), command.routeId()), command.baseRouteVersion(), false, planned, unassigned, travelSeconds, serviceSeconds, distanceMeters, "FEASIBLE", clock.instant());
-        proposals.save(actor.tenantId(), command.routeId(), actor.accountId(), command.territoryId(), result, "", "");
+        proposals.save(actor.tenantId(), command.routeId(), actor.accountId(), territoryId, result, "", "");
         return result;
     }
 
     private static void validate(Command c) {
-        if (c == null || c.routeId() == null || c.date() == null || c.sellerId() == null || c.territoryId() == null || c.start() == null || c.end() == null || !valid(c.availability()) || c.baseRouteVersion() < 1 || c.visits() == null || c.visits().isEmpty() || c.visits().size() > 9)
-            throw new Invalid();
+        if (c == null) throw new Invalid("OPTIMIZE_REQUEST_REQUIRED");
+        if (c.routeId() == null) throw new Invalid("ROUTE_ID_REQUIRED");
+        if (c.baseRouteVersion() < 1) throw new Invalid("ROUTE_VERSION_REQUIRED");
+        if (c.visits() == null || c.visits().isEmpty()) throw new Invalid("VISITS_REQUIRED");
+        if (c.visits().size() > 9) throw new Invalid("VISIT_LIMIT_EXCEEDED");
+        if (!valid(c.availability())) throw new Invalid("AVAILABILITY_END_MUST_BE_AFTER_START");
         var ids = new HashSet<UUID>();
-        for (var v : c.visits())
-            if (v == null || v.customerId() == null || !ids.add(v.customerId()) || v.serviceDurationSeconds() <= 0 || v.priority() <= 0 || v.windows() == null || v.windows().stream().anyMatch(w -> !valid(w)))
-                throw new Invalid();
+        for (var v : c.visits()) {
+            if (v == null) throw new Invalid("VISIT_REQUIRED");
+            if (v.customerId() == null) throw new Invalid("VISIT_CUSTOMER_REQUIRED");
+            if (!ids.add(v.customerId())) throw new Invalid("DUPLICATE_VISIT_CUSTOMER");
+            if (v.serviceDurationSeconds() <= 0) throw new Invalid("VISIT_DURATION_REQUIRED");
+            if (v.priority() <= 0) throw new Invalid("VISIT_PRIORITY_REQUIRED");
+            if (v.windows() == null) throw new Invalid("VISIT_WINDOWS_REQUIRED");
+            if (v.windows().stream().anyMatch(w -> !valid(w))) throw new Invalid("VISIT_WINDOW_END_MUST_BE_AFTER_START");
+        }
+    }
+
+    private static UUID territory(List<CustomerPortfolioReadUseCase.RouteCustomer> refs) {
+        Set<UUID> territoryIds = new HashSet<>();
+        for (var ref : refs) {
+            if (ref == null || ref.territoryId() == null) throw new Invalid("VISIT_TERRITORY_REQUIRED");
+            territoryIds.add(ref.territoryId());
+        }
+        if (territoryIds.size() != 1) throw new Invalid("MULTIPLE_VISIT_TERRITORIES_NOT_SUPPORTED");
+        return territoryIds.iterator().next();
     }
 
     private static boolean valid(Window w) {
         return w != null && w.start() != null && w.end() != null && w.start().isBefore(w.end());
+    }
+
+    private static List<GeoPoint> endpoints(Route route) {
+        if (route.points().isEmpty()) throw new Invalid("ROUTE_ENDPOINT_LOCATION_REQUIRED");
+        GeoPoint origin = route.points().getFirst().location();
+        GeoPoint destination = route.points().getLast().location();
+        if (origin == null || destination == null) throw new Invalid("ROUTE_ENDPOINT_LOCATION_REQUIRED");
+        return List.of(origin, destination);
     }
 
     private TravelMatrix.Matrix calculate(List<GeoPoint> nodes) {

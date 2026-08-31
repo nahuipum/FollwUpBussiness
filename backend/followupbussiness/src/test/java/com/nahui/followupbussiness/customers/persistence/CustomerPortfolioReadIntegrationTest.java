@@ -118,6 +118,20 @@ class CustomerPortfolioReadIntegrationTest {
     }
 
     @Test
+    void sellerFilteredCandidatesRequireTheSellersActiveTerritoryAndKeepPaginationCount() {
+        UUID assignedTerritory = territory(tenantA, "Assigned");
+        UUID foreignTerritory = territory(tenantA, "Foreign");
+        jdbc.update("insert into workforce_seller_territory(seller_id,territory_id) values(?,?)", sellerA, assignedTerritory);
+        jdbc.update("update customer set territory_id=? where id=?", assignedTerritory, customerA);
+        jdbc.update("update customer set territory_id=? where id=?", foreignTerritory, customerOther);
+        CustomerPortfolioReadService read = read();
+        var page = read.read(query(sellerA, 0, 1), new CustomerPortfolioReadUseCase.Scope(tenantA, true, Set.of()));
+
+        assertThat(page.total()).isEqualTo(1);
+        assertThat(page.items()).extracting(detail -> detail.customer().id()).containsExactly(customerA).doesNotContain(customerOther);
+    }
+
+    @Test
     void getsOnlyTheSelectedCustomerReachableByTenantAndPortfolio() {
         CustomerPortfolioReadService read = read();
         PortfolioAccessScopeService scopes = scopes();
@@ -315,6 +329,12 @@ class CustomerPortfolioReadIntegrationTest {
     private UUID customer(UUID tenant, String name) {
         UUID id = UUID.randomUUID();
         jdbc.update("insert into customer(id,tenant_id,name,segment,address,location,status,created_at,updated_at,version) values(?,?,?,'STANDARD','Address',ST_SetSRID(ST_MakePoint(-77.1,-12.1),4326),'ACTIVE',current_timestamp,current_timestamp,1)", id, tenant, name);
+        return id;
+    }
+
+    private UUID territory(UUID tenant, String name) {
+        UUID id = UUID.randomUUID();
+        jdbc.update("insert into workforce_territory(id,tenant_id,name,status,created_at,updated_at,version) values(?,?,?,'ACTIVE',current_timestamp,current_timestamp,1)", id, tenant, name);
         return id;
     }
 

@@ -1,6 +1,6 @@
 import { apiRequest } from "../../lib/api";
 import { getSessionAuthorization, getSessionMutationAuthorization } from "../auth/auth";
-import type { Route, RouteCustomerOption, RouteCustomerPage, RouteDirections, RouteFilters, RoutePage, RoutePoint, RouteSellerOption, RouteStatus } from "./types";
+import type { Route, RouteCustomerOption, RouteCustomerPage, RouteDirections, RouteFilters, RouteOptimizationInput, RoutePage, RoutePoint, RouteProposal, RouteSellerOption, RouteStatus } from "./types";
 
 const statuses = new Set<RouteStatus>(["DRAFT", "PUBLISHED", "IN_PROGRESS", "COMPLETED", "CANCELLED"]);
 const nonNegativeInteger = (value: unknown): value is number => typeof value === "number" && Number.isInteger(value) && value >= 0;
@@ -16,7 +16,7 @@ function parsePoint(value: unknown): RoutePoint | null {
   const validLocation = coordinates && typeof coordinates.latitude === "number" && Number.isFinite(coordinates.latitude) && typeof coordinates.longitude === "number" && Number.isFinite(coordinates.longitude)
     ? { latitude: coordinates.latitude, longitude: coordinates.longitude }
     : undefined;
-  return { routePointId: point.id, sequence: point.sequence, customerName: point.customerName ?? null, ...(validLocation ? { location: validLocation } : {}) };
+  return { routePointId: point.id, customerId: point.customerId, sequence: point.sequence, customerName: point.customerName ?? null, ...(validLocation ? { location: validLocation } : {}) };
 }
 
 function parseRoute(value: unknown): Route | null {
@@ -104,7 +104,10 @@ function parseCustomerPage(value: unknown, suggested: boolean): RouteCustomerPag
     const candidate = suggested && typeof entry === "object" && entry !== null ? (entry as Record<string, unknown>).customer : entry;
     if (typeof candidate !== "object" || candidate === null) return null;
     const customer = candidate as Record<string, unknown>;
-    return typeof customer.id === "string" && typeof customer.name === "string" ? { id: customer.id, label: customer.name, suggested } : null;
+    const territoryId = customer.territoryId;
+    return typeof customer.id === "string" && typeof customer.name === "string" && (typeof territoryId === "string" || territoryId === null || territoryId === undefined)
+      ? { id: customer.id, label: customer.name, territoryId: typeof territoryId === "string" ? territoryId : null, suggested }
+      : null;
   });
   return items.some((item) => item === null) ? null : { items: items as RouteCustomerOption[], page: info as RoutePage["page"] };
 }
@@ -124,17 +127,35 @@ export async function createRoute(input: { date: string; sellerId: string; custo
   const response = await apiRequest("/routes", { method: "POST", headers: mutationHeaders({ "Idempotency-Key": idempotencyKey }), body: JSON.stringify(input) }, { publishErrors: false });
   return { response, route: response.status === 201 ? parseRoute(await response.json().catch(() => null)) : null };
 }
-export async function reorderRoutePoints(route: Route, points: readonly RoutePoint[]): Promise<{ response: Response; route: Route | null }> {
+export async function reorderRoutePoints(route: Route, points: readonly RoutePoint[], proposalVersion?: number): Promise<{ response: Response; route: Route | null }> {
   const routePointIds = points.map((point) => point.routePointId);
   if (routePointIds.some((id) => !id)) throw new Error("Route points lack opaque IDs");
-  const response = await apiRequest(`/routes/${encodeURIComponent(route.id)}/points/order`, { method: "PUT", headers: mutationHeaders({ "If-Match": `"${route.version}"` }), body: JSON.stringify({ routePointIds }) }, { publishErrors: false });
+  const response = await apiRequest(`/routes/${encodeURIComponent(route.id)}/points/order`, { method: "PUT", headers: mutationHeaders({ "If-Match": `"${route.version}"` }), body: JSON.stringify({ routePointIds, ...(proposalVersion === undefined ? {} : { proposalVersion }) }) }, { publishErrors: false });
   return { response, route: response.status === 200 ? parseRoute(await response.json().catch(() => null)) : null };
 }
 
 function parseSeller(value: unknown): RouteSellerOption | null {
   if (typeof value !== "object" || value === null) return null;
   const seller = value as Record<string, unknown>;
-  return typeof seller.id === "string" && typeof seller.displayName === "string" ? { id: seller.id, label: seller.displayName } : null;
+  const territoryIds = seller.territoryIds;
+  return typeof seller.id === "string" && typeof seller.displayName === "string" && Array.isArray(territoryIds) && territoryIds.every((id) => typeof id === "string")
+    ? { id: seller.id, label: seller.displayName, territoryIds }
+    : null;
+}
+
+function parseProposal(value: unknown): RouteProposal | null {
+  if (typeof value !== "object" || value === null) return null;
+  const proposal = value as Record<string, unknown>;
+  const optimality = proposal.optimality;
+  if (typeof proposal.routeId !== "string" || !nonNegativeInteger(proposal.proposalVersion) || proposal.proposalVersion < 1 || !nonNegativeInteger(proposal.baseRouteVersion) || proposal.baseRouteVersion < 1 || proposal.published !== false || !["FEASIBLE", "OPTIMAL", "TIME_LIMIT"].includes(String(optimality)) || !Array.isArray(proposal.orderedVisits) || !Array.isArray(proposal.unassignedVisits)) return null;
+  const orderedVisits = proposal.orderedVisits.map((entry): { customerId: string; sequence: number } | null => typeof entry === "object" && entry !== null && typeof (entry as Record<string, unknown>).customerId === "string" && nonNegativeInteger((entry as Record<string, unknown>).sequence) && Number((entry as Record<string, unknown>).sequence) > 0 ? { customerId: (entry as Record<string, unknown>).customerId as string, sequence: (entry as Record<string, unknown>).sequence as number } : null);
+  const unassignedVisits = proposal.unassignedVisits.map((entry): RouteProposal["unassignedVisits"][number] | null => { const item = entry as Record<string, unknown>; return item && typeof item.customerId === "string" && ["OUTSIDE_SHIFT", "TIME_WINDOW_CONFLICT", "UNREACHABLE", "LIMIT_EXCEEDED"].includes(String(item.reason)) ? { customerId: item.customerId, reason: item.reason as RouteProposal["unassignedVisits"][number]["reason"] } : null; });
+  return orderedVisits.some((entry) => entry === null) || unassignedVisits.some((entry) => entry === null) ? null : { proposalVersion: proposal.proposalVersion, baseRouteVersion: proposal.baseRouteVersion, orderedVisits: orderedVisits as { customerId: string; sequence: number }[], unassignedVisits: unassignedVisits as RouteProposal["unassignedVisits"], optimality: optimality as RouteProposal["optimality"] };
+}
+
+export async function optimizeRoute(input: RouteOptimizationInput): Promise<{ response: Response; proposal: RouteProposal | null }> {
+  const response = await apiRequest("/routes/optimize", { method: "POST", headers: mutationHeaders(), body: JSON.stringify(input) }, { publishErrors: false });
+  return { response, proposal: response.status === 200 ? parseProposal(await response.json().catch(() => null)) : null };
 }
 
 export async function listRouteSellerOptions(): Promise<{ response: Response; sellers: readonly RouteSellerOption[] | null }> {

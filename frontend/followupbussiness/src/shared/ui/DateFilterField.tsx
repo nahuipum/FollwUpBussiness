@@ -69,16 +69,35 @@ function formatMonth(date: Date) {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
+function normalizeTime(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 4);
+  return digits.length > 2 ? `${digits.slice(0, 2)}:${digits.slice(2)}` : digits;
+}
+
+function isValidTime(value: string) {
+  const match = /^(\d{2}):(\d{2})$/.exec(value);
+  return Boolean(match && Number(match[1]) < 24 && Number(match[2]) < 60);
+}
+
 export function DateFilterField({
   label,
   value,
   onValueChange,
+  disabled = false,
+  withTime = false,
+  required = false,
 }: {
   label: string;
   value: string;
   onValueChange: (value: string) => void;
+  disabled?: boolean;
+  /** Combines the shared calendar with a local hour selector under one field label. */
+  withTime?: boolean;
+  required?: boolean;
 }) {
-  const selected = parseIsoDate(value);
+  const dateValue = withTime ? value.slice(0, 10) : value;
+  const timeValue = withTime ? value.slice(11, 16) : "";
+  const selected = parseIsoDate(dateValue);
   const today = new Date();
   const [open, setOpen] = useState(false);
   const [visibleMonth, setVisibleMonth] = useState(
@@ -87,6 +106,8 @@ export function DateFilterField({
   const [focusedDate, setFocusedDate] = useState(() =>
     toIsoDate(selected ?? today),
   );
+  const [pendingDate, setPendingDate] = useState(dateValue);
+  const [pendingTime, setPendingTime] = useState(timeValue);
   const [position, setPosition] = useState({ top: 0, left: 0 });
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -122,7 +143,7 @@ export function DateFilterField({
       const bounds = triggerRef.current?.getBoundingClientRect();
       if (!bounds) return;
       const width = Math.min(calendarWidth, window.innerWidth - 24);
-      const estimatedHeight = 354;
+      const estimatedHeight = withTime ? 424 : 354;
       const below = bounds.bottom + 8;
       const top =
         below + estimatedHeight <= window.innerHeight
@@ -143,17 +164,32 @@ export function DateFilterField({
       window.removeEventListener("resize", update);
       window.removeEventListener("scroll", update, true);
     };
-  }, [open]);
+  }, [open, withTime]);
 
   const openCalendar = () => {
     const initial = selected ?? today;
     setVisibleMonth(new Date(initial.getFullYear(), initial.getMonth(), 1));
     setFocusedDate(toIsoDate(initial));
+    setPendingDate(dateValue);
+    setPendingTime(timeValue);
     setOpen(true);
   };
 
   const choose = (date: Date) => {
-    onValueChange(toIsoDate(date));
+    const nextDate = toIsoDate(date);
+    if (withTime) {
+      setFocusedDate(nextDate);
+      setPendingDate(nextDate);
+      return;
+    }
+    onValueChange(nextDate);
+    setOpen(false);
+    triggerRef.current?.focus();
+  };
+
+  const applyDateTime = () => {
+    if (!pendingDate || !isValidTime(pendingTime)) return;
+    onValueChange(`${pendingDate}T${pendingTime}`);
     setOpen(false);
     triggerRef.current?.focus();
   };
@@ -186,11 +222,11 @@ export function DateFilterField({
   };
 
   const days = calendarDays(visibleMonth);
-  const selectedIso = selected ? toIsoDate(selected) : null;
+  const selectedIso = withTime && open ? pendingDate || null : selected ? toIsoDate(selected) : null;
   const todayIso = toIsoDate(today);
 
   return (
-    <div className="filter-field date-filter">
+    <div className={`filter-field date-filter${withTime ? " date-filter--with-time" : ""}`}>
       <span id={labelId}>{label}</span>
       <button
         ref={triggerRef}
@@ -200,10 +236,15 @@ export function DateFilterField({
         aria-haspopup="dialog"
         aria-controls={dialogId}
         aria-expanded={open}
+        disabled={disabled}
         onClick={() => (open ? setOpen(false) : openCalendar())}
       >
         <span className={selected ? "" : "date-filter__placeholder"}>
-          {selected ? valueFormatter.format(selected) : "dd/mm/aaaa"}
+          {selected
+            ? `${valueFormatter.format(selected)}${withTime ? ` · ${timeValue || "--:--"}` : ""}`
+            : withTime
+              ? "dd/mm/aaaa · hh:mm"
+              : "dd/mm/aaaa"}
         </span>
         <CalendarDays aria-hidden="true" />
       </button>
@@ -246,7 +287,9 @@ export function DateFilterField({
             <div className="date-filter__weekdays" aria-hidden="true">
               {weekdays.map((weekday) => <span key={weekday}>{weekday}</span>)}
             </div>
-            <div className="date-filter__days">
+            <div
+              className={`date-filter__days${selectedIso ? " date-filter__days--has-selection" : ""}`}
+            >
               {days.map((date) => {
                 const iso = toIsoDate(date);
                 const outside = date.getMonth() !== visibleMonth.getMonth();
@@ -269,6 +312,21 @@ export function DateFilterField({
                 );
               })}
             </div>
+            {withTime && (
+              <label className="date-filter__time-picker">
+                Hora
+                <input
+                  type="text"
+                  value={pendingTime}
+                  required={required}
+                  inputMode="numeric"
+                  autoComplete="off"
+                  aria-invalid={pendingTime.length > 0 && !isValidTime(pendingTime)}
+                  placeholder="HH:MM"
+                  onChange={(event) => setPendingTime(normalizeTime(event.target.value))}
+                />
+              </label>
+            )}
             <footer className="date-filter__footer">
               <button
                 type="button"
@@ -282,6 +340,7 @@ export function DateFilterField({
                 Borrar
               </button>
               <button type="button" onClick={() => choose(today)}>Hoy</button>
+              {withTime && <button type="button" className="date-filter__apply" disabled={!pendingDate || !isValidTime(pendingTime)} onClick={applyDateTime}>Aplicar</button>}
             </footer>
           </div>,
           document.body,

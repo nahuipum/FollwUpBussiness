@@ -59,6 +59,9 @@ class RouteEngineDecisionPolicyTest {
                 .contains("no se hace last-write-wins")
                 .contains("cache/rate limit/locks segregados por tenant")
                 .contains("cross-tenant", "correlationId");
+        assertThat(adr)
+                .contains("protocolo MVP", "primer y último `Route.Point`", "ROUTE_ENDPOINT_LOCATION_REQUIRED", "MULTIPLE_VISIT_TERRITORIES_NOT_SUPPORTED")
+                .doesNotContain("RETURN_TO_START", "ROUTE_START_LOCATION_REQUIRED");
     }
 
     @Test
@@ -85,7 +88,7 @@ class RouteEngineDecisionPolicyTest {
                 .contains("- routeId", "routeId: { type: string, format: uuid }");
         assertThat(schemas)
                 .contains("OptimizeRouteRequest:", "TimeWindow:", "OptimizeRouteVisitRequest:")
-                .contains("- routeId", "- territoryId", "- startLocation", "- endLocation")
+                .contains("- routeId", "- availability", "- baseRouteVersion", "- visits")
                 .contains("routeId: { type: string, format: uuid }")
                 .contains("- availability", "- baseRouteVersion", "- visits")
                 .contains("maxItems: 9", "serviceDurationSeconds", "minimum: 1")
@@ -95,7 +98,7 @@ class RouteEngineDecisionPolicyTest {
                 .contains("totalTravelSeconds", "totalServiceSeconds", "totalDistanceMeters")
                 .contains("enum: [FEASIBLE, OPTIMAL, TIME_LIMIT]")
                 .contains("enum: [OUTSIDE_SHIFT, TIME_WINDOW_CONFLICT, UNREACHABLE, LIMIT_EXCEEDED]")
-                .doesNotContain("customerIds:", "maxItems: 500");
+                .doesNotContain("customerIds:", "maxItems: 500", "startLocation:", "endLocation:", "sellerId:", "date:", "territoryId:");
     }
 
     @Test

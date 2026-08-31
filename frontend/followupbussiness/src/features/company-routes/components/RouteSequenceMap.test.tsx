@@ -2,11 +2,11 @@ import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { RouteSequenceMap } from "./RouteSequenceMap";
 
-const maps: Array<{ listeners: Record<string, () => void>; addSource: ReturnType<typeof vi.fn>; addLayer: ReturnType<typeof vi.fn>; remove: ReturnType<typeof vi.fn> }> = [];
+const maps: Array<{ listeners: Record<string, () => void>; addSource: ReturnType<typeof vi.fn>; addLayer: ReturnType<typeof vi.fn>; resize: ReturnType<typeof vi.fn>; remove: ReturnType<typeof vi.fn> }> = [];
 const markers: HTMLElement[] = [];
 vi.mock("maplibre-gl", () => ({
   setWorkerUrl: vi.fn(),
-  Map: class { readonly listeners: Record<string, () => void> = {}; readonly addSource = vi.fn(); readonly addLayer = vi.fn(); readonly remove = vi.fn(); constructor() { maps.push(this); } on(event: string, listener: () => void) { this.listeners[event] = listener; } setMissingStyleImageResolver() {} hasImage() { return false; } addImage() {} },
+  Map: class { readonly listeners: Record<string, () => void> = {}; readonly addSource = vi.fn(); readonly addLayer = vi.fn(); readonly resize = vi.fn(); readonly remove = vi.fn(); constructor() { maps.push(this); } on(event: string, listener: () => void) { this.listeners[event] = listener; } setMissingStyleImageResolver() {} hasImage() { return false; } addImage() {} },
   Marker: class { constructor({ element }: { element: HTMLElement }) { markers.push(element); } setLngLat() { return this; } addTo() { return this; } },
 }));
 vi.mock("maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url", () => ({ default: "/assets/maplibre-worker.js" }));
@@ -39,6 +39,14 @@ test("renderiza la geometría vial recibida en lugar de la línea aproximada", a
   act(() => maps[0]?.listeners.load?.());
   expect(maps[0]?.addSource).toHaveBeenCalledWith("route-sequence", expect.objectContaining({ data: expect.objectContaining({ geometry: expect.objectContaining({ coordinates: [[-77.01, -12.01], [-77.02, -12.02], [-77.03, -12.03]] }) }) }));
   expect(screen.getByText("Detalle vial")).toBeTruthy();
+});
+
+test("recalcula el mapa cuando el modal termina de asignar su tamaño", async () => {
+  vi.stubEnv("VITE_GEOAPIFY_TILE_KEY", "test-key");
+  render(<RouteSequenceMap points={[{ sequence: 1, customerName: "Norte", location: { latitude: -12.04, longitude: -77.03 } }]} />);
+  await waitFor(() => expect(maps).toHaveLength(1));
+  act(() => maps[0]?.listeners.load?.());
+  await waitFor(() => expect(maps[0]?.resize).toHaveBeenCalled());
 });
 
 test("ante 503 muestra el respaldo aproximado en una alerta inline y permite reintentar", () => {

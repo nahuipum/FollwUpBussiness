@@ -1522,9 +1522,12 @@ paths:
       operationId: optimizeRoute
       summary: Generar propuesta de ruta automática básica
       description: |
-        Genera una propuesta versionada y no publicada para un vendedor, fecha
-        y territorio del tenant autenticado. El proveedor de matriz recibe solo
-        coordenadas; no recibe tenant, vendedor, territorio ni clientes.
+        Genera una propuesta versionada y no publicada para una ruta `DRAFT`
+        autorizada. Backend deriva fecha, vendedor y territorio de las visitas
+        autorizadas; todas deben pertenecer a un único territorio activo asignado
+        al vendedor. Los endpoints MVP son la
+        ubicación del primer y último `Route.Point` persistidos. El proveedor de matriz recibe solo coordenadas;
+        no recibe tenant, vendedor, territorio ni clientes.
       x-required-roles: [COMPANY_ADMIN, SUPERVISOR]
       x-story-ids: [EN-018, BE-022, FE-016, INT-008]
       requestBody:
@@ -1541,7 +1544,9 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '409': { $ref: '#/components/responses/Conflict' }
-        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+        '422':
+          description: Problema recuperable con `application/problem+json`, detalle genérico y `correlationId`. Los códigos públicos incluyen `AVAILABILITY_END_MUST_BE_AFTER_START`, `VISIT_WINDOW_END_MUST_BE_AFTER_START`, `VISIT_TERRITORY_REQUIRED`, `VISIT_TERRITORY_INACTIVE`, `VISIT_TERRITORY_NOT_ASSIGNED_TO_SELLER`, `ROUTE_ENDPOINT_LOCATION_REQUIRED` y `MULTIPLE_VISIT_TERRITORIES_NOT_SUPPORTED`; nunca contiene trazas ni detalles internos.
+          $ref: '#/components/responses/UnprocessableEntity'
         '503': { $ref: '#/components/responses/RouteOptimizationUnavailable' }
 
   /routes/{routeId}/directions:
@@ -4023,24 +4028,11 @@ components:
       additionalProperties: false
       required:
         - routeId
-        - date
-        - sellerId
-        - territoryId
-        - startLocation
-        - endLocation
         - availability
         - baseRouteVersion
         - visits
       properties:
         routeId: { type: string, format: uuid }
-        date: { type: string, format: date }
-        sellerId: { type: string, format: uuid }
-        territoryId:
-          type: string
-          format: uuid
-          description: Zona autorizada; debe pertenecer al tenant autenticado.
-        startLocation: { $ref: '#/components/schemas/GeoPoint' }
-        endLocation: { $ref: '#/components/schemas/GeoPoint' }
         availability: { $ref: '#/components/schemas/TimeWindow' }
         baseRouteVersion:
           type: integer
@@ -4068,7 +4060,7 @@ components:
     OptimizeRouteVisitRequest:
       type: object
       additionalProperties: false
-      required: [customerId, serviceDurationSeconds, priority]
+      required: [customerId, serviceDurationSeconds, priority, windows]
       properties:
         customerId: { type: string, format: uuid }
         serviceDurationSeconds:
@@ -4080,9 +4072,8 @@ components:
           description: Una prioridad mayor aplica mayor penalización por no atender.
         windows:
           type: array
-          minItems: 1
           uniqueItems: true
-          description: Ventanas duras; no se relajan silenciosamente.
+          description: Ventanas duras; no se relajan silenciosamente. Una lista vacía significa que la visita no tiene restricción horaria.
           items: { $ref: '#/components/schemas/TimeWindow' }
     OptimizeRouteResponse:
       type: object
@@ -4144,6 +4135,10 @@ components:
       additionalProperties: false
       required: [routePointIds]
       properties:
+        proposalVersion:
+          type: integer
+          minimum: 1
+          description: Referencia opcional a la propuesta vigente que origina esta edición manual. Si se informa, debe pertenecer a la ruta y a la versión indicada por `If-Match`.
         routePointIds:
           type: array
           minItems: 1

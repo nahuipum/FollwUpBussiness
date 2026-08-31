@@ -85,6 +85,17 @@ El MVP utilizará:
 - **renderer/geocoder:** sin cambios, según ADR-013;
 - **geospatial authority:** PostGIS SRID 4326;
 - **fallback:** planificación y reordenamiento manual, nunca proveedor oculto.
+- **protocolo MVP:** `POST /routes/optimize` recibe `routeId` y restricciones
+  operativas; Backend deriva fecha, vendedor y territorio desde las visitas
+  autorizadas. Todas deben pertenecer al mismo territorio no nulo, activo y
+  asignado al vendedor; una visita sin territorio devuelve
+  `422 VISIT_TERRITORY_REQUIRED`; si el territorio está inactivo devuelve
+  `422 VISIT_TERRITORY_INACTIVE`; si no está asignado al vendedor devuelve
+  `422 VISIT_TERRITORY_NOT_ASSIGNED_TO_SELLER`, y más de uno devuelve
+  `422 MULTIPLE_VISIT_TERRITORIES_NOT_SUPPORTED`. Los endpoints son
+  las ubicaciones del primer y último `Route.Point` persistidos, incluso cuando
+  esos puntos también fueron seleccionados como visitas. Una fuente futura de
+  origen será la ubicación server-side del trabajador, sin cambiar el contrato.
 
 No se usará `mapbox/driving-traffic`, `depart_at` ni una promesa de tráfico en
 tiempo real. La matriz contiene duración en segundos y distancia en metros. Las
@@ -97,7 +108,7 @@ nombres, direcciones, documentos, teléfonos, observaciones ni prioridad.
 |---|---|
 | Vendedores por optimización | 1 |
 | Clientes | máximo 9 |
-| Inicio/final | explícitos; pueden ser distintos |
+| Inicio/final | primer/último `Route.Point` persistido; sin retorno al origen |
 | Nodos de matriz | máximo 11 |
 | Horario del vendedor | una ventana operativa obligatoria |
 | Duración de visita | por cliente, en segundos/minutos normalizados |
@@ -113,8 +124,10 @@ asignados con motivo estructurado. No relaja silenciosamente ventanas ni usa
 distancia en línea recta cuando la matriz contiene `null`.
 
 La aplicación debe rechazar antes de llamar al proveedor más de 9 clientes,
-coordenadas fuera de rango, inicio/final ausentes, ventanas invertidas,
-duraciones no positivas o una jornada inválida.
+ruta sin puntos o endpoint de punto ausente, ventanas invertidas, duraciones no
+positivas o una jornada inválida. Ese caso devuelve
+`422 ROUTE_ENDPOINT_LOCATION_REQUIRED` sin fallback geográfico; la ruta manual
+debe configurarse antes de generar.
 
 ## Cuota y costo del piloto
 

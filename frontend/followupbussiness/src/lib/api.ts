@@ -16,7 +16,7 @@ export type ApiError = Readonly<{
   status: ApiErrorStatus;
   correlationId: string | null;
   fieldErrors: readonly ApiFieldError[];
-  code?: "CORRELATION_ID_INVALID";
+  code?: "CORRELATION_ID_INVALID" | "ROUTE_ENDPOINT_LOCATION_REQUIRED" | "MULTIPLE_VISIT_TERRITORIES_NOT_SUPPORTED" | "VISIT_TERRITORY_REQUIRED" | "VISIT_TERRITORY_NOT_ASSIGNED_TO_SELLER";
 }>;
 
 export class ApiRequestObsoleteError extends Error {
@@ -89,8 +89,12 @@ export async function normalizeApiError(response: Response): Promise<ApiError | 
   const correlationId =
     safeCorrelationId(response.headers.get("X-Correlation-Id")) ??
     safeCorrelationId(problem?.correlationId);
-  const code = problem?.code === "CORRELATION_ID_INVALID"
-    ? "CORRELATION_ID_INVALID" as const
+  const code = problem?.code === "CORRELATION_ID_INVALID" ||
+      problem?.code === "ROUTE_ENDPOINT_LOCATION_REQUIRED" ||
+      problem?.code === "MULTIPLE_VISIT_TERRITORIES_NOT_SUPPORTED" ||
+      problem?.code === "VISIT_TERRITORY_REQUIRED" ||
+      problem?.code === "VISIT_TERRITORY_NOT_ASSIGNED_TO_SELLER"
+    ? problem.code
     : undefined;
   return {
     status: response.status as ApiErrorStatus,

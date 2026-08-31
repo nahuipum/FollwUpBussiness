@@ -11,6 +11,7 @@ import com.nahui.followupbussiness.routing.application.port.in.OptimizeRouteUseC
 import com.nahui.followupbussiness.routing.application.port.out.*;
 import com.nahui.followupbussiness.routing.application.OptimizeRouteService;
 import com.nahui.followupbussiness.routing.adapter.out.persistence.JdbcRouteProposalStore;
+import com.nahui.followupbussiness.routing.adapter.out.persistence.JdbcRouteProposalRevisionStore;
 import com.nahui.followupbussiness.routing.adapter.out.persistence.JdbcMatrixQuota;
 import com.nahui.followupbussiness.routing.adapter.out.persistence.JdbcPlanningSnapshotStore;
 import com.nahui.followupbussiness.routing.application.ReorderRoutePointsService;
@@ -28,6 +29,7 @@ import com.nahui.followupbussiness.routing.application.ReadRoutesService;
 import com.nahui.followupbussiness.routing.application.GetRouteDirectionsService;
 import com.nahui.followupbussiness.routing.application.port.in.GetRouteDirectionsUseCase;
 import com.nahui.followupbussiness.routing.adapter.out.directions.MapboxDirectionsAdapter;
+import com.nahui.followupbussiness.routing.adapter.out.matrix.MapboxMatrixAdapter;
 import com.nahui.followupbussiness.outbox.application.port.out.OutboxStore;
 import com.nahui.followupbussiness.journeys.application.port.in.JourneyStartedStatusUseCase;
 import com.nahui.followupbussiness.workforce.application.port.in.PortfolioAccessScopeUseCase;
@@ -87,10 +89,18 @@ public class RoutingConfiguration {
         return new RouteNotificationAuthorizationService(new JdbcRouteStore(jdbc));
     }
     @Bean
-    TravelMatrix travelMatrix() {
-        return coordinates -> {
-            throw new OptimizeRouteUseCase.Unavailable();
-        };
+    TravelMatrix travelMatrix(tools.jackson.databind.ObjectMapper json, Environment environment) {
+        HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3)).build();
+        return new MapboxMatrixAdapter(mapboxMatrixToken(environment), URI.create("https://api.mapbox.com/directions-matrix/v1"), uri -> {
+            HttpRequest request = HttpRequest.newBuilder(uri).timeout(Duration.ofSeconds(5)).GET().build();
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            return new MapboxMatrixAdapter.Response(response.statusCode(), response.body());
+        }, json);
+    }
+
+    static String mapboxMatrixToken(Environment environment) {
+        String dedicated = environment.getProperty("MAPBOX_MATRIX_TOKEN");
+        return dedicated == null || dedicated.isBlank() ? environment.getProperty("FOLLOW_UP_BUSSINESS_MAPBOX_MATRIX") : dedicated;
     }
 
     @Bean
@@ -121,7 +131,7 @@ public class RoutingConfiguration {
                                                          @Qualifier("transactionalAuditEntryUseCase") RecordAuditEntryUseCase audit,
                                                          JourneyStartedStatusUseCase journeys, ObjectProvider<OutboxStore> outbox,
                                                          PlatformTransactionManager transactions) {
-        var service = new ReorderRoutePointsService(new JdbcRouteStore(jdbc), new JdbcPlanningSnapshotStore(jdbc, json), scopes, audit, journeys, outbox.getIfAvailable(), Clock.systemUTC());
+        var service = new ReorderRoutePointsService(new JdbcRouteStore(jdbc), new JdbcPlanningSnapshotStore(jdbc, json), scopes, audit, journeys, outbox.getIfAvailable(), new JdbcRouteProposalRevisionStore(jdbc), Clock.systemUTC());
         var transaction = new TransactionTemplate(transactions);
         transaction.setIsolationLevel(org.springframework.transaction.TransactionDefinition.ISOLATION_SERIALIZABLE);
         return (command, actor) -> transaction.execute(status -> service.reorder(command, actor));

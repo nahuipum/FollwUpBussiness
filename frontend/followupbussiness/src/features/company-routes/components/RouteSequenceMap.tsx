@@ -48,6 +48,7 @@ export function RouteSequenceMap({ points, directions = null, loading = false, e
     const key = import.meta.env.VITE_GEOAPIFY_TILE_KEY;
     if (!key || !container.current || viewport.length === 0) { setState("DISABLED"); return; }
     let disposed = false;
+    let observer: ResizeObserver | null = null;
     setState("LOADING");
     void Promise.all([import("maplibre-gl"), import("maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url")])
       .then(([{ Map, Marker, setWorkerUrl }, { default: workerUrl }]) => {
@@ -57,6 +58,12 @@ export function RouteSequenceMap({ points, directions = null, loading = false, e
         const instance = new Map({ container: container.current, center: [first.longitude, first.latitude], zoom: 12, style: `https://maps.geoapify.com/v1/styles/osm-bright/style.json?apiKey=${encodeURIComponent(key)}` });
         map.current = instance;
         handleMissingStyleImages(instance);
+        // The modal and responsive grid may settle after MapLibre has initialized.
+        // Observe actual dimensions instead of relying on one animation frame.
+        if (typeof ResizeObserver !== "undefined" && container.current) {
+          observer = new ResizeObserver(() => { if (!disposed) instance.resize?.(); });
+          observer.observe(container.current);
+        }
         instance.on("load", () => {
           if (disposed) return;
           if (roadGeometry) {
@@ -70,11 +77,13 @@ export function RouteSequenceMap({ points, directions = null, loading = false, e
             element.setAttribute("aria-hidden", "true");
             markers.current.push(new Marker({ element }).setLngLat([point.location.longitude, point.location.latitude]).addTo(instance));
           });
+          // Modal/grid layout may settle after MapLibre initializes; resize once so tiles and markers are not painted into a zero-sized canvas.
+          requestAnimationFrame(() => { if (!disposed) instance.resize?.(); });
           setState("ACTIVE");
         });
         instance.on("error", () => !disposed && setState("LIMITED"));
       }).catch(() => !disposed && setState("LIMITED"));
-    return () => { disposed = true; markers.current = []; map.current?.remove(); map.current = null; };
+    return () => { disposed = true; observer?.disconnect(); markers.current = []; map.current?.remove(); map.current = null; };
   }, [located, retry, roadGeometry, viewport]);
 
   const unavailableMessage = !configured
