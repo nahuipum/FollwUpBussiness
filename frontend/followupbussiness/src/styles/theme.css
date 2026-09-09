@@ -96,11 +96,14 @@
   background: rgb(16 29 45 / 96%);
 }
 
-:root[data-theme="dark"] :is(.dashboard-context-chip, .dashboard-menu-button) {
+:root[data-theme="dark"] .dashboard-menu-button {
   border-color: var(--theme-border);
   color: var(--theme-text-form);
   background: var(--theme-surface-raised);
 }
+
+:root[data-theme="dark"] .dashboard-theme-toggle { color: var(--theme-text-form); }
+:root[data-theme="dark"] .dashboard-theme-toggle:hover { background: var(--theme-surface-hover); }
 
 :root[data-theme="dark"] .dashboard-breadcrumbs { color: var(--theme-text-muted); }
 :root[data-theme="dark"] .dashboard-breadcrumbs span + span::before { color: #64768a; }
@@ -124,7 +127,7 @@
   background: var(--theme-surface-hover);
 }
 :root[data-theme="dark"] .dashboard-theme-switch { background: #526579; }
-:root[data-theme="dark"] .dashboard-profile-menu [aria-checked="true"] .dashboard-theme-switch { background: #43aeb4; }
+:root[data-theme="dark"] .dashboard-theme-toggle[aria-checked="true"] .dashboard-theme-switch { background: #43aeb4; }
 
 /* Shared content surfaces */
 :root[data-theme="dark"] :is(

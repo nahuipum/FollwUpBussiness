@@ -37,12 +37,11 @@ type DashboardLayoutProps = {
   navigation: DashboardNavigationItem[];
   profile: DashboardProfile;
   breadcrumbs: string[];
-  topbarContext?: ReactNode;
   onLogout?: () => void;
   children: ReactNode;
 };
 
-export function DashboardLayout({ brand, contextLabel, navigationLabel, navigation, profile, breadcrumbs, topbarContext, onLogout, children }: DashboardLayoutProps) {
+export function DashboardLayout({ brand, contextLabel, navigationLabel, navigation, profile, breadcrumbs, onLogout, children }: DashboardLayoutProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [theme, setTheme] = useState<AppTheme>(getStoredTheme);
@@ -117,7 +116,11 @@ export function DashboardLayout({ brand, contextLabel, navigationLabel, navigati
           <button className="dashboard-menu-button" type="button" aria-label={isMenuOpen ? "Cerrar menú" : "Abrir menú"} onClick={() => setIsMenuOpen((value) => !value)}>{isMenuOpen ? <X /> : <Menu />}</button>
           <div className="dashboard-breadcrumbs">{breadcrumbs.map((breadcrumb, index) => <span key={breadcrumb} className={index === breadcrumbs.length - 1 ? "dashboard-breadcrumbs__current" : ""}>{breadcrumb}</span>)}</div>
           <div className="dashboard-top-actions">
-            {topbarContext && <span className="dashboard-context-chip">{topbarContext}</span>}
+            <button className="dashboard-theme-toggle" type="button" role="switch" aria-checked={theme === "dark"} aria-label="Modo oscuro" onClick={toggleTheme}>
+              {theme === "dark" ? <Sun aria-hidden="true" /> : <Moon aria-hidden="true" />}
+              <span className="dashboard-theme-toggle__label">Modo oscuro</span>
+              <span className="dashboard-theme-switch" aria-hidden="true"><span /></span>
+            </button>
             <div ref={profileMenuRef} className="dashboard-top-profile-menu">
               <button
                 ref={profileButtonRef}
@@ -141,11 +144,6 @@ export function DashboardLayout({ brand, contextLabel, navigationLabel, navigati
                     if (event.key === "Escape") closeProfileMenu();
                   }}
                 >
-                  <button type="button" role="menuitemcheckbox" aria-checked={theme === "dark"} onClick={toggleTheme}>
-                    {theme === "dark" ? <Sun aria-hidden="true" /> : <Moon aria-hidden="true" />}
-                    <span>Modo oscuro<small>{theme === "dark" ? "Activado" : "Desactivado"}</small></span>
-                    <span className="dashboard-theme-switch" aria-hidden="true"><span /></span>
-                  </button>
                   {onLogout && <button type="button" role="menuitem" onClick={onLogout}><LogOut aria-hidden="true" />Cerrar sesión</button>}
                 </div>
               )}

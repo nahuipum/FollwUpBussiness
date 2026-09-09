@@ -1,72 +1,23 @@
 package com.nahui.followupbussiness.routing.application;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
-
 import com.nahui.followupbussiness.audit.application.port.in.RecordAuditEntryUseCase;
 import com.nahui.followupbussiness.customers.application.port.in.CustomerPortfolioReadUseCase;
 import com.nahui.followupbussiness.customers.domain.GeoPoint;
 import com.nahui.followupbussiness.identityaccess.domain.model.*;
 import com.nahui.followupbussiness.routing.application.port.in.CreateRouteUseCase;
-import com.nahui.followupbussiness.routing.application.port.out.RouteStore;
+import com.nahui.followupbussiness.routing.application.port.out.*;
 import com.nahui.followupbussiness.routing.domain.Route;
+import com.nahui.followupbussiness.tenancy.application.port.in.CurrentCompanyQuery;
+import com.nahui.followupbussiness.tenancy.domain.model.*;
 import com.nahui.followupbussiness.workforce.application.port.in.*;
-import java.time.*;
-import java.util.*;
-import org.junit.jupiter.api.Test;
-
+import java.time.*;import java.util.*;import org.junit.jupiter.api.Test;
 class CreateRouteServiceTest {
-    @Test void acceptsTheContractualBoundaryOfFiftyCustomers() {
-        UUID tenant=UUID.randomUUID(), actorId=UUID.randomUUID(), seller=UUID.randomUUID();
-        List<UUID> customerIds=java.util.stream.Stream.generate(UUID::randomUUID).limit(50).toList();
-        RouteStore store=mock(RouteStore.class); CustomerPortfolioReadUseCase customers=mock(CustomerPortfolioReadUseCase.class); SellerReferenceUseCase sellers=mock(SellerReferenceUseCase.class); PortfolioAccessScopeUseCase scopes=mock(PortfolioAccessScopeUseCase.class); RecordAuditEntryUseCase audit=mock(RecordAuditEntryUseCase.class);
-        when(store.reserveIdempotency(eq(tenant),eq(actorId),any(),any(),any())).thenReturn(new RouteStore.Reservation(true,null,null)); when(sellers.allActive(tenant,Set.of(seller))).thenReturn(true); when(scopes.resolve(any())).thenReturn(new PortfolioAccessScopeUseCase.Scope(tenant,true,Set.of())); when(audit.record(any())).thenReturn(true);
-        when(customers.activeAssignedToSellerAt(tenant,seller,customerIds,LocalDate.of(2026,9,1))).thenReturn(customerIds.stream().map(id->new CustomerPortfolioReadUseCase.RouteCustomer(id,new GeoPoint(-12,-77),UUID.randomUUID())).toList());
-        Route route=service(store,customers,sellers,scopes,audit).create(command(seller,customerIds,UUID.randomUUID()),admin(tenant,actorId));
-        assertThat(route.points()).hasSize(50); verify(store).save(route);
-    }
-    @Test void rejectsMoreThanFiftyCustomersBeforeAnyWrite() {
-        UUID tenant=UUID.randomUUID(), actorId=UUID.randomUUID(), seller=UUID.randomUUID();
-        List<UUID> customerIds=java.util.stream.Stream.generate(UUID::randomUUID).limit(51).toList();
-        RouteStore store=mock(RouteStore.class); CustomerPortfolioReadUseCase customers=mock(CustomerPortfolioReadUseCase.class); SellerReferenceUseCase sellers=mock(SellerReferenceUseCase.class); PortfolioAccessScopeUseCase scopes=mock(PortfolioAccessScopeUseCase.class); RecordAuditEntryUseCase audit=mock(RecordAuditEntryUseCase.class);
-        assertThatThrownBy(()->service(store,customers,sellers,scopes,audit).create(command(seller,customerIds,UUID.randomUUID()),admin(tenant,actorId))).isInstanceOf(CreateRouteUseCase.Invalid.class);
-        verifyNoInteractions(store, customers, sellers, scopes, audit);
-    }
-    @Test void createsSequentialDraftAndRecordsOnlyInternalAudit() {
-        UUID tenant=UUID.randomUUID(), actorId=UUID.randomUUID(), seller=UUID.randomUUID(), first=UUID.randomUUID(), second=UUID.randomUUID();
-        RouteStore store=mock(RouteStore.class); CustomerPortfolioReadUseCase customers=mock(CustomerPortfolioReadUseCase.class); SellerReferenceUseCase sellers=mock(SellerReferenceUseCase.class); PortfolioAccessScopeUseCase scopes=mock(PortfolioAccessScopeUseCase.class); RecordAuditEntryUseCase audit=mock(RecordAuditEntryUseCase.class);
-        when(store.reserveIdempotency(eq(tenant),eq(actorId),any(),any(),any())).thenReturn(new RouteStore.Reservation(true,null,null));
-        when(sellers.allActive(tenant,Set.of(seller))).thenReturn(true); when(scopes.resolve(any())).thenReturn(new PortfolioAccessScopeUseCase.Scope(tenant,true,Set.of()));
-        when(customers.activeAssignedToSellerAt(tenant,seller,List.of(first,second),LocalDate.of(2026,9,1))).thenReturn(List.of(new CustomerPortfolioReadUseCase.RouteCustomer(first,new GeoPoint(-12,-77), UUID.randomUUID()),new CustomerPortfolioReadUseCase.RouteCustomer(second,new GeoPoint(-13,-76), UUID.randomUUID()))); when(audit.record(any())).thenReturn(true);
-        Route result=service(store,customers,sellers,scopes,audit).create(command(seller,List.of(first,second),UUID.randomUUID()),admin(tenant,actorId));
-        assertThat(result.name()).isEqualTo("Ruta del 2026-09-01"); assertThat(result.points()).extracting(Route.Point::sequence).containsExactly(1,2); assertThat(result.points()).extracting(Route.Point::customerId).containsExactly(first,second); assertThat(result.startLocation()).isEqualTo(new GeoPoint(-11,-75)); assertThat(result.version()).isEqualTo(1);
-        verify(store).save(result); verify(audit).record(argThat(a -> a.resourceType().name().equals("ROUTE") && a.after().equals(Map.of("status","DRAFT")))); verify(store).completeIdempotency(eq(tenant),eq(actorId),any(),eq(result.id()));
-    }
-    @Test void exactReplayReturnsOriginalAndChangedPayloadConflictsWithoutWrites() {
-        UUID tenant=UUID.randomUUID(), actorId=UUID.randomUUID(), routeId=UUID.randomUUID(), seller=UUID.randomUUID(), customer=UUID.randomUUID(), key=UUID.randomUUID();
-        RouteStore store=mock(RouteStore.class); CustomerPortfolioReadUseCase customers=mock(CustomerPortfolioReadUseCase.class); SellerReferenceUseCase sellers=mock(SellerReferenceUseCase.class); PortfolioAccessScopeUseCase scopes=mock(PortfolioAccessScopeUseCase.class); Route original=new Route(routeId,tenant,null,LocalDate.of(2026,9,1),seller,null,List.of(new Route.Point(UUID.randomUUID(),customer,1,new GeoPoint(-12,-77))),Instant.EPOCH,Instant.EPOCH,1);
-        when(store.reserveIdempotency(eq(tenant),eq(actorId),eq(key),any(),any())).thenAnswer(i -> new RouteStore.Reservation(false,routeId,(String)i.getArgument(3))); when(store.find(tenant,routeId)).thenReturn(Optional.of(original));
-        when(sellers.allActive(tenant,Set.of(seller))).thenReturn(true); when(scopes.resolve(any())).thenReturn(new PortfolioAccessScopeUseCase.Scope(tenant,true,Set.of())); when(customers.activeAssignedToSellerAt(tenant,seller,List.of(customer),LocalDate.of(2026,9,1))).thenReturn(List.of(new CustomerPortfolioReadUseCase.RouteCustomer(customer,new GeoPoint(-12,-77), UUID.randomUUID())));
-        CreateRouteService service=service(store,customers,sellers,scopes,mock(RecordAuditEntryUseCase.class));
-        assertThat(service.create(command(seller,List.of(customer),key),admin(tenant,actorId))).isEqualTo(original);
-        when(store.reserveIdempotency(eq(tenant),eq(actorId),eq(key),any(),any())).thenReturn(new RouteStore.Reservation(false,routeId,"other"));
-        assertThatThrownBy(()->service.create(command(seller,List.of(customer),key),admin(tenant,actorId))).isInstanceOf(CreateRouteUseCase.Conflict.class); verify(store,never()).save(any());
-    }
-    @Test void rejectsCustomerOutsideSellerPortfolioBeforeRouteWrite() {
-        UUID tenant=UUID.randomUUID(), actorId=UUID.randomUUID(), seller=UUID.randomUUID(), customer=UUID.randomUUID(); RouteStore store=mock(RouteStore.class); CustomerPortfolioReadUseCase customers=mock(CustomerPortfolioReadUseCase.class); SellerReferenceUseCase sellers=mock(SellerReferenceUseCase.class); PortfolioAccessScopeUseCase scopes=mock(PortfolioAccessScopeUseCase.class);
-        when(store.reserveIdempotency(eq(tenant),eq(actorId),any(),any(),any())).thenReturn(new RouteStore.Reservation(true,null,null)); when(sellers.allActive(tenant,Set.of(seller))).thenReturn(true); when(scopes.resolve(any())).thenReturn(new PortfolioAccessScopeUseCase.Scope(tenant,true,Set.of())); when(customers.activeAssignedToSellerAt(any(),any(),any(),any())).thenReturn(List.of());
-        assertThatThrownBy(()->service(store,customers,sellers,scopes,mock(RecordAuditEntryUseCase.class)).create(command(seller,List.of(customer),UUID.randomUUID()),admin(tenant,actorId))).isInstanceOf(CreateRouteUseCase.Forbidden.class); verify(store,never()).save(any()); verify(store,never()).completeIdempotency(any(),any(),any(),any());
-    }
-    @Test void deniesExactReplayAfterSupervisorLosesSellerScopeWithoutReadingRoute() {
-        UUID tenant=UUID.randomUUID(), actorId=UUID.randomUUID(), routeId=UUID.randomUUID(), seller=UUID.randomUUID(), customer=UUID.randomUUID(), key=UUID.randomUUID();
-        RouteStore store=mock(RouteStore.class); CustomerPortfolioReadUseCase customers=mock(CustomerPortfolioReadUseCase.class); SellerReferenceUseCase sellers=mock(SellerReferenceUseCase.class); PortfolioAccessScopeUseCase scopes=mock(PortfolioAccessScopeUseCase.class); RecordAuditEntryUseCase audit=mock(RecordAuditEntryUseCase.class);
-        when(store.reserveIdempotency(eq(tenant),eq(actorId),eq(key),any(),any())).thenAnswer(i -> new RouteStore.Reservation(false,routeId,(String)i.getArgument(3)));
-        when(sellers.allActive(tenant,Set.of(seller))).thenReturn(true); when(scopes.resolve(any())).thenReturn(new PortfolioAccessScopeUseCase.Scope(tenant,false,Set.of()));
-        assertThatThrownBy(()->service(store,customers,sellers,scopes,audit).create(command(seller,List.of(customer),key),new AuthenticatedActor(actorId,tenant,BaseRole.SUPERVISOR))).isInstanceOf(CreateRouteUseCase.Forbidden.class);
-        verify(store,never()).find(any(),any()); verify(store,never()).save(any()); verify(audit,never()).record(any());
-    }
-    private static CreateRouteService service(RouteStore s,CustomerPortfolioReadUseCase c,SellerReferenceUseCase sellers,PortfolioAccessScopeUseCase scopes,RecordAuditEntryUseCase audit){return new CreateRouteService(s,c,sellers,scopes,audit,Clock.fixed(Instant.parse("2026-08-25T00:00:00Z"),ZoneOffset.UTC));}
-    private static CreateRouteUseCase.Command command(UUID seller,List<UUID> customers,UUID key){return new CreateRouteUseCase.Command(null,LocalDate.of(2026,9,1),seller,new GeoPoint(-11,-75),customers,key);}
-    private static AuthenticatedActor admin(UUID tenant,UUID actor){return new AuthenticatedActor(actor,tenant,BaseRole.COMPANY_ADMIN);}
+ @Test void rejectsNonPositiveDurationBeforeEffects(){Fixture f=new Fixture(null);assertThatThrownBy(()->f.service.create(f.command(0),f.actor)).isInstanceOf(CreateRouteUseCase.Invalid.class);verifyNoInteractions(f.routes,f.snapshots,f.matrix);}
+ @Test void missingCompanyPlanningDayCreatesDraftWithoutValidSnapshot(){Fixture f=new Fixture(new CompanySettings("America/Lima","PEN",100,60,90,null));when(f.companies.findById(f.tenant)).thenReturn(Optional.of(f.company));f.stubAccess();Route route=f.service.create(f.command(60),f.actor);assertThat(route.status()).isEqualTo("DRAFT");verify(f.snapshots).saveIncomplete(eq(f.tenant),eq(route.id()),eq(1L),any());verify(f.snapshots,never()).saveValid(any());}
+ @Test void incompleteMatrixCreatesDraftAndNeverValidSnapshot(){Fixture f=new Fixture(new CompanySettings("America/Lima","PEN",100,60,90,null,LocalTime.of(8,0),LocalTime.of(18,0)));UUID secondCustomer=UUID.randomUUID();when(f.companies.findById(f.tenant)).thenReturn(Optional.of(f.company));when(f.routes.reserveIdempotency(eq(f.tenant),eq(f.actorId),any(),any(),any())).thenReturn(new RouteStore.Reservation(true,null,null));when(f.sellers.allActive(f.tenant,Set.of(f.seller))).thenReturn(true);when(f.scopes.resolve(f.actor)).thenReturn(new PortfolioAccessScopeUseCase.Scope(f.tenant,true,Set.of()));when(f.customers.activeAssignedToSellerAt(eq(f.tenant),eq(f.seller),anyList(),any())).thenReturn(List.of(new CustomerPortfolioReadUseCase.RouteCustomer(f.customer,new GeoPoint(-12,-77),UUID.randomUUID()),new CustomerPortfolioReadUseCase.RouteCustomer(secondCustomer,new GeoPoint(-12.1,-77.1),UUID.randomUUID())));when(f.audit.record(any())).thenReturn(true);when(f.matrix.calculate(any())).thenReturn(new TravelMatrix.Matrix(new long[][]{{0,1},{1,0}},new long[][]{{0,1}}));Route route=f.service.create(new CreateRouteUseCase.Command(null,LocalDate.of(2026,9,1),f.seller,List.of(new CreateRouteUseCase.Visit(f.customer,60),new CreateRouteUseCase.Visit(secondCustomer,60)),UUID.randomUUID()),f.actor);verify(f.snapshots).saveIncomplete(eq(f.tenant),eq(route.id()),eq(1L),any());verify(f.snapshots,never()).saveValid(any());}
+ @Test void capturesSingleVisitWithoutAnyMatrixLeg(){Fixture f=new Fixture(new CompanySettings("America/Lima","PEN",100,60,90,null,LocalTime.of(8,0),LocalTime.of(18,0)));when(f.companies.findById(f.tenant)).thenReturn(Optional.of(f.company));f.stubAccess();f.service.create(f.command(60),f.actor);verify(f.snapshots).saveValid(argThat(s->s.tenantId().equals(f.tenant)&&s.visits().getFirst().serviceSeconds()==60&&s.legs().isEmpty()&&s.shiftStart().equals(Instant.parse("2026-09-01T13:00:00Z"))));verifyNoInteractions(f.matrix);}
+ @Test void capturesFiftyVisitsWithOnlyDistinctCustomerPairs(){Fixture f=new Fixture(new CompanySettings("America/Lima","PEN",100,60,90,null,LocalTime.of(8,0),LocalTime.of(18,0)));List<UUID> ids=java.util.stream.Stream.generate(UUID::randomUUID).limit(50).toList();when(f.companies.findById(f.tenant)).thenReturn(Optional.of(f.company));when(f.routes.reserveIdempotency(eq(f.tenant),eq(f.actorId),any(),any(),any())).thenReturn(new RouteStore.Reservation(true,null,null));when(f.sellers.allActive(f.tenant,Set.of(f.seller))).thenReturn(true);when(f.scopes.resolve(f.actor)).thenReturn(new PortfolioAccessScopeUseCase.Scope(f.tenant,true,Set.of()));when(f.customers.activeAssignedToSellerAt(eq(f.tenant),eq(f.seller),anyList(),any())).thenReturn(ids.stream().map(id->new CustomerPortfolioReadUseCase.RouteCustomer(id,new GeoPoint(-12,-77),UUID.randomUUID())).toList());when(f.audit.record(any())).thenReturn(true);when(f.matrix.calculate(any())).thenAnswer(i->{int n=((List<?>)i.getArgument(0)).size();long[][] v=new long[n][n];for(int x=0;x<n;x++)for(int y=0;y<n;y++)if(x!=y)v[x][y]=1;return new TravelMatrix.Matrix(v,v);});f.service.create(new CreateRouteUseCase.Command(null,LocalDate.of(2026,9,1),f.seller,ids.stream().map(id->new CreateRouteUseCase.Visit(id,60)).toList(),UUID.randomUUID()),f.actor);verify(f.matrix,times(55)).calculate(argThat(nodes->nodes.size()<=10));verify(f.snapshots).saveValid(argThat(s->s.visits().size()==50&&s.legs().size()==2450));}
+ private static class Fixture {UUID tenant=UUID.randomUUID(),actorId=UUID.randomUUID(),seller=UUID.randomUUID(),customer=UUID.randomUUID();AuthenticatedActor actor=new AuthenticatedActor(actorId,tenant,BaseRole.COMPANY_ADMIN);RouteStore routes=mock(RouteStore.class);PlanningSnapshotStore snapshots=mock(PlanningSnapshotStore.class);TravelMatrix matrix=mock(TravelMatrix.class);CurrentCompanyQuery companies=mock(CurrentCompanyQuery.class);CustomerPortfolioReadUseCase customers=mock(CustomerPortfolioReadUseCase.class);SellerReferenceUseCase sellers=mock(SellerReferenceUseCase.class);PortfolioAccessScopeUseCase scopes=mock(PortfolioAccessScopeUseCase.class);RecordAuditEntryUseCase audit=mock(RecordAuditEntryUseCase.class);Company company;CreateRouteService service;Fixture(CompanySettings settings){company=settings==null?null:new Company(tenant,"c",null,"c",null,CompanyStatus.ACTIVE,settings,Instant.EPOCH,Instant.EPOCH,1);service=new CreateRouteService(routes,snapshots,matrix,companies,customers,sellers,scopes,audit,Clock.fixed(Instant.parse("2026-09-01T12:00:00Z"),ZoneOffset.UTC));}void stubAccess(){when(routes.reserveIdempotency(eq(tenant),eq(actorId),any(),any(),any())).thenReturn(new RouteStore.Reservation(true,null,null));when(sellers.allActive(tenant,Set.of(seller))).thenReturn(true);when(scopes.resolve(actor)).thenReturn(new PortfolioAccessScopeUseCase.Scope(tenant,true,Set.of()));when(customers.activeAssignedToSellerAt(eq(tenant),eq(seller),anyList(),any())).thenReturn(List.of(new CustomerPortfolioReadUseCase.RouteCustomer(customer,new GeoPoint(-12,-77),UUID.randomUUID())));when(audit.record(any())).thenReturn(true);}CreateRouteUseCase.Command command(int seconds){return new CreateRouteUseCase.Command(null,LocalDate.of(2026,9,1),seller,List.of(new CreateRouteUseCase.Visit(customer,seconds)),UUID.randomUUID());}}
 }

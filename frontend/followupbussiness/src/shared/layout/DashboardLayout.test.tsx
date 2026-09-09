@@ -26,11 +26,10 @@ afterEach(() => {
   document.documentElement.style.removeProperty("color-scheme");
 });
 
-test("activa y desactiva el modo oscuro desde las opciones del perfil", () => {
+test("activa y desactiva el modo oscuro desde el encabezado", () => {
   renderLayout();
 
-  fireEvent.click(screen.getByRole("button", { name: "Abrir opciones del perfil de Luis Pérez" }));
-  const themeOption = screen.getByRole("menuitemcheckbox", { name: /Modo oscuro/ });
+  const themeOption = screen.getByRole("switch", { name: /Modo oscuro/ });
 
   expect(themeOption.getAttribute("aria-checked")).toBe("false");
   fireEvent.click(themeOption);
@@ -45,17 +44,18 @@ test("activa y desactiva el modo oscuro desde las opciones del perfil", () => {
   expect(window.localStorage.getItem(themeStorageKey)).toBe("light");
 });
 
-test("restaura la preferencia guardada y cierra el menú con Escape", () => {
+test("restaura la preferencia guardada y cierra el menú de perfil con Escape", () => {
   window.localStorage.setItem(themeStorageKey, "dark");
   renderLayout();
 
-  const profileButton = screen.getByRole("button", { name: "Abrir opciones del perfil de Luis Pérez" });
-  fireEvent.click(profileButton);
-  const themeOption = screen.getByRole("menuitemcheckbox", { name: /Modo oscuro/ });
+  const themeOption = screen.getByRole("switch", { name: /Modo oscuro/ });
   expect(themeOption.getAttribute("aria-checked")).toBe("true");
   expect(document.documentElement.dataset.theme).toBe("dark");
 
-  fireEvent.keyDown(themeOption, { key: "Escape" });
+  const profileButton = screen.getByRole("button", { name: "Abrir opciones del perfil de Luis Pérez" });
+  fireEvent.click(profileButton);
+
+  fireEvent.keyDown(screen.getByRole("menuitem", { name: "Cerrar sesión" }), { key: "Escape" });
   expect(screen.queryByRole("menu")).toBeNull();
   expect(document.activeElement).toBe(profileButton);
 });

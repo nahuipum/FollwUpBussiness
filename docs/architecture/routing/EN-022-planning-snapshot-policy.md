@@ -13,13 +13,13 @@ Una ruta manual tiene 1..50 puntos. `PlanningSnapshot` es un agregado interno de
 | tenant/ruta | `tenantId`, `routeId` y `baseRouteVersion` obligatorios |
 | cálculo | perfil estático, proveedor/versiones, `capturedAt`, hash de contenido |
 | tiempo | zona IANA, fecha operativa, `validUntil`, estado y timestamps UTC |
-| nodos | inicio, 1..50 puntos autorizados y fin; referencias y orden canónico |
+| nodos | 1..50 puntos autorizados; el primero es inicio y el último es fin |
 | desplazamiento | matriz dirigida completa de pares entre nodos distintos, segundos/meters positivos |
 | restricciones | duración positiva de servicio, ventanas duras y jornada/disponibilidad autorizada |
 
 Estados: `CAPTURING`, `VALID`, `INCOMPLETE`, `FAILED`, `INVALIDATED`, `SUPERSEDED`, `EXPIRED`, `PURGED`. Solo `VALID` permite recálculo. La diagonal no se almacena ni calcula: los puntos son únicos y una pierna nunca conecta un nodo consigo mismo. Un `null` de proveedor para cualquier par distinto deja el snapshot `INCOMPLETE`; nunca se convierte en distancia lineal, cero ni valor por defecto.
 
-La matriz máxima comprende 52 nodos y 2,652 pares dirigidos entre nodos distintos. Su captura se fragmenta solo durante creación/regeneración, conforme al límite del proveedor. Reordenar no reserva cuota ni llama a proveedor externo.
+La matriz máxima comprende 50 nodos y 2,450 pares dirigidos entre clientes distintos. La primera visita comienza en la jornada y la última termina tras su servicio; no se consulta nodo externo ni diagonal. Su captura se fragmenta solo durante creación/regeneración, conforme al límite del proveedor. Reordenar no reserva cuota ni llama a proveedor externo.
 
 ## Fuentes autorizadas de ETA
 
@@ -27,7 +27,7 @@ El caso de uso deriva tenant, actor, rol y equipo de sesión. Cada fuente es un 
 
 | Entrada | Propietario/fuente pública | Unidad/zona | Captura y ausencia |
 |---|---|---|---|
-| ruta, versión, fecha, puntos, inicio y fin | `routing` / comando y lectura autorizados | UUID; fecha; WGS84 | al crear snapshot; inicio/fin explícitos; ausencia bloquea captura |
+| ruta, versión, fecha y puntos | `routing` / comando y lectura autorizados | UUID; fecha; WGS84 | al crear snapshot; primer cliente inicia y último finaliza |
 | coordenada del punto | `customers` / hecho de planificación autorizado | WGS84 SRID 4326 | al capturar; ausente/fuera de rango bloquea captura |
 | duración y ventanas | `customers` / hecho de visita planificable autorizado | segundos positivos; ventanas en zona IANA | al capturar; ausencia o ventana inválida bloquea captura |
 | vendedor, territorio y equipo | `workforce` / referencia y alcance vigentes | UUID técnicos | al autorizar/capturar; ausencia o fuera de alcance bloquea |
@@ -43,7 +43,7 @@ Antes de mutar una ruta `PUBLISHED`, `routing` llama al puerto público de aplic
 
 ## Ciclo de vida, acceso y retención
 
-La creación/regeneración autorizada captura fuentes, construye la matriz y persiste `VALID` de manera atómica. Un fallo deja la ruta `DRAFT` sin estimaciones confirmadas y snapshot `FAILED`/`INCOMPLETE`; reordenar responde sin efectos. Cambiar puntos, inicio/fin, vendedor, territorio, fecha, jornada, ventanas, duración, zona o perfil invalida el snapshot y exige otro. Un reordenamiento que solo cambia la secuencia crea, en su misma transacción, una revisión `VALID` ligada a la nueva `Route.version`, con matriz y restricciones inmutables del snapshot previo; el previo pasa a `SUPERSEDED`. Publicar requiere uno `VALID`; una ruta publicada no puede usar uno de otra versión.
+La creación/regeneración autorizada captura fuentes, construye la matriz y persiste `VALID` de manera atómica. Un fallo deja la ruta `DRAFT` sin estimaciones confirmadas y snapshot `FAILED`/`INCOMPLETE`; reordenar responde sin efectos. Cambiar puntos, vendedor, territorio, fecha, jornada, ventanas, duración, zona o perfil invalida el snapshot y exige otro. Un reordenamiento que solo cambia la secuencia crea, en su misma transacción, una revisión `VALID` ligada a la nueva `Route.version`, con matriz y restricciones inmutables del snapshot previo; el previo pasa a `SUPERSEDED`. Publicar requiere uno `VALID`; una ruta publicada no puede usar uno de otra versión.
 
 `validUntil` es el fin de la fecha operativa en la zona IANA. Al vencer cambia a `EXPIRED`. Un snapshot invalidado, reemplazado o vencido se conserva 30 días y luego se purga físicamente de PostgreSQL, cache y copias; la restauración se mantiene en cuarentena y purga antes de exponer datos. La auditoría conserva 365 días únicamente acción, resultado, referencias técnicas, versión, hash y `correlationId`; nunca coordenadas ni matriz.
 
@@ -64,7 +64,7 @@ Logs, métricas, auditoría, errores y evidencia omiten coordenadas, direcciones
 | Riesgo/caso | Evidencia futura mínima |
 |---|---|
 | determinismo | misma matriz/entradas/permutación → mismos ETA |
-| capacidad | 50 puntos/52 nodos y rechazo de 51 |
+| capacidad | 50 puntos/50 nodos y rechazo de 51 |
 | aislamiento/BOLA | A→B, B→A, routeId/snapshotId/sellerId manipulados |
 | concurrencia | `If-Match` obsoleto y cambio simultáneo; sin partial write |
 | rollback | fallo de ETA/auditoría/outbox revierte todo |

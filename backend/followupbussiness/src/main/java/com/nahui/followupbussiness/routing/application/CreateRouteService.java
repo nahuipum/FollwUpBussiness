@@ -2,103 +2,31 @@ package com.nahui.followupbussiness.routing.application;
 
 import com.nahui.followupbussiness.audit.application.RecordAuditEntryCommand;
 import com.nahui.followupbussiness.audit.application.port.in.RecordAuditEntryUseCase;
-import com.nahui.followupbussiness.audit.domain.AuditAction;
-import com.nahui.followupbussiness.audit.domain.AuditResourceType;
-import com.nahui.followupbussiness.audit.domain.AuditResult;
+import com.nahui.followupbussiness.audit.domain.*;
 import com.nahui.followupbussiness.customers.application.port.in.CustomerPortfolioReadUseCase;
-import com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor;
-import com.nahui.followupbussiness.identityaccess.domain.model.BaseRole;
+import com.nahui.followupbussiness.customers.domain.GeoPoint;
+import com.nahui.followupbussiness.identityaccess.domain.model.*;
 import com.nahui.followupbussiness.routing.application.port.in.CreateRouteUseCase;
-import com.nahui.followupbussiness.routing.application.port.out.RouteStore;
-import com.nahui.followupbussiness.routing.domain.Route;
-import com.nahui.followupbussiness.workforce.application.port.in.PortfolioAccessScopeUseCase;
-import com.nahui.followupbussiness.workforce.application.port.in.SellerReferenceUseCase;
-
+import com.nahui.followupbussiness.routing.application.port.out.*;
+import com.nahui.followupbussiness.routing.domain.*;
+import com.nahui.followupbussiness.tenancy.application.port.in.CurrentCompanyQuery;
+import com.nahui.followupbussiness.workforce.application.port.in.*;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.time.Clock;
+import java.time.*;
 import java.util.*;
 
-import org.springframework.transaction.annotation.Isolation;
-import org.springframework.transaction.annotation.Transactional;
-
 public class CreateRouteService implements CreateRouteUseCase {
-    private final RouteStore routes;
-    private final CustomerPortfolioReadUseCase customers;
-    private final SellerReferenceUseCase sellers;
-    private final PortfolioAccessScopeUseCase scopes;
-    private final RecordAuditEntryUseCase audit;
-    private final Clock clock;
-
-    public CreateRouteService(RouteStore routes, CustomerPortfolioReadUseCase customers, SellerReferenceUseCase sellers, PortfolioAccessScopeUseCase scopes, RecordAuditEntryUseCase audit, Clock clock) {
-        this.routes = routes;
-        this.customers = customers;
-        this.sellers = sellers;
-        this.scopes = scopes;
-        this.audit = audit;
-        this.clock = clock;
-    }
-
-    @Override
-    @Transactional(isolation = Isolation.SERIALIZABLE)
-    public Route create(Command command, AuthenticatedActor actor) {
-        validate(command, actor);
-        String fingerprint = fingerprint(command);
-        var reservation = routes.reserveIdempotency(actor.tenantId(), actor.accountId(), command.idempotencyKey(), fingerprint, clock.instant());
-        if (!reservation.owner()) {
-            if (!fingerprint.equals(reservation.fingerprint())) throw new Conflict();
-            authorizeCurrentAccess(command, actor);
-            return routes.find(actor.tenantId(), reservation.routeId()).orElseThrow(Conflict::new);
-        }
-        var references = authorizeCurrentAccess(command, actor);
-        Map<UUID, com.nahui.followupbussiness.customers.domain.GeoPoint> locations = new HashMap<>();
-        references.forEach(reference -> locations.put(reference.id(), reference.location()));
-        UUID id = UUID.randomUUID();
-        Route route = new Route(id, actor.tenantId(), routeName(command), command.date(), command.sellerId(), command.startLocation(),
-                java.util.stream.IntStream.range(0, command.customerIds().size()).mapToObj(index -> new Route.Point(UUID.randomUUID(), command.customerIds().get(index), index + 1, locations.get(command.customerIds().get(index)))).toList(), clock.instant(), clock.instant(), 1);
-        routes.save(route);
-        if (!audit.record(new RecordAuditEntryCommand(AuditAction.CRITICAL_MUTATION, AuditResourceType.ROUTE, id, AuditResult.SUCCESS, Map.of(), Map.of("status", "DRAFT"))))
-            throw new IllegalStateException("audit persistence failed");
-        routes.completeIdempotency(actor.tenantId(), actor.accountId(), command.idempotencyKey(), id);
-        return route;
-    }
-
-    private void authorizeResources(Command c, AuthenticatedActor actor) {
-        if (!sellers.allActive(actor.tenantId(), Set.of(c.sellerId()))) throw new Forbidden();
-        try {
-            var scope = scopes.resolve(actor);
-            if (!scope.allCurrentPortfolios() && !scope.sellerIds().contains(c.sellerId())) throw new Forbidden();
-        } catch (PortfolioAccessScopeUseCase.Forbidden ex) {
-            throw new Forbidden();
-        }
-    }
-
-    private List<CustomerPortfolioReadUseCase.RouteCustomer> authorizeCurrentAccess(Command command, AuthenticatedActor actor) {
-        authorizeResources(command, actor);
-        var references = customers.activeAssignedToSellerAt(actor.tenantId(), command.sellerId(), command.customerIds(), command.date());
-        if (references.size() != command.customerIds().size()) throw new Forbidden();
-        return references;
-    }
-
-    private static void validate(Command c, AuthenticatedActor a) {
-        if (a == null || a.tenantId() == null || a.accountId() == null || (a.role() != BaseRole.COMPANY_ADMIN && a.role() != BaseRole.SUPERVISOR))
-            throw new Forbidden();
-        if (c == null || c.date() == null || c.sellerId() == null || c.idempotencyKey() == null || c.customerIds() == null || c.customerIds().isEmpty() || c.customerIds().size() > 50 || new HashSet<>(c.customerIds()).size() != c.customerIds().size() || c.customerIds().stream().anyMatch(Objects::isNull))
-            throw new Invalid();
-    }
-
-    private static String fingerprint(Command c) {
-        try {
-            String location = c.startLocation() == null ? "" : c.startLocation().latitude() + "," + c.startLocation().longitude();
-            String canonical = (c.name() == null ? "" : c.name().trim()) + "|" + c.date() + "|" + c.sellerId() + "|" + location + "|" + String.join(",", c.customerIds().stream().map(UUID::toString).toList());
-            return java.util.HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(canonical.getBytes(StandardCharsets.UTF_8)));
-        } catch (java.security.NoSuchAlgorithmException e) {
-            throw new IllegalStateException(e);
-        }
-    }
-
-    private static String routeName(Command command) {
-        if (command.name() != null && !command.name().isBlank()) return command.name().trim();
-        return "Ruta del " + command.date();
-    }
+ private final RouteStore routes; private final PlanningSnapshotStore snapshots; private final TravelMatrix matrix; private final CurrentCompanyQuery companies; private final CustomerPortfolioReadUseCase customers; private final SellerReferenceUseCase sellers; private final PortfolioAccessScopeUseCase scopes; private final RecordAuditEntryUseCase audit; private final Clock clock;
+ public CreateRouteService(RouteStore routes, PlanningSnapshotStore snapshots, TravelMatrix matrix, CurrentCompanyQuery companies, CustomerPortfolioReadUseCase customers, SellerReferenceUseCase sellers, PortfolioAccessScopeUseCase scopes, RecordAuditEntryUseCase audit, Clock clock){this.routes=routes;this.snapshots=snapshots;this.matrix=matrix;this.companies=companies;this.customers=customers;this.sellers=sellers;this.scopes=scopes;this.audit=audit;this.clock=clock;}
+ @Override public Route create(Command c,AuthenticatedActor actor){validate(c,actor);String fingerprint=fingerprint(c);var reservation=routes.reserveIdempotency(actor.tenantId(),actor.accountId(),c.idempotencyKey(),fingerprint,clock.instant());if(!reservation.owner()){if(!fingerprint.equals(reservation.fingerprint()))throw new Conflict();authorizeCurrentAccess(c,actor);return routes.find(actor.tenantId(),reservation.routeId()).orElseThrow(Conflict::new);}var refs=authorizeCurrentAccess(c,actor);Map<UUID,GeoPoint> locations=new HashMap<>();refs.forEach(x->locations.put(x.id(),x.location()));List<Route.Point> points=java.util.stream.IntStream.range(0,c.visits().size()).mapToObj(i->new Route.Point(UUID.randomUUID(),c.visits().get(i).customerId(),i+1,locations.get(c.visits().get(i).customerId()))).toList();UUID id=UUID.randomUUID();Route route=new Route(id,actor.tenantId(),routeName(c),c.date(),c.sellerId(),points.getFirst().location(),points,clock.instant(),clock.instant(),1);routes.save(route);captureOrMarkIncomplete(route,c);if(!audit.record(new RecordAuditEntryCommand(AuditAction.CRITICAL_MUTATION,AuditResourceType.ROUTE,id,AuditResult.SUCCESS,Map.of(),Map.of("status","DRAFT"))))throw new IllegalStateException("audit persistence failed");routes.completeIdempotency(actor.tenantId(),actor.accountId(),c.idempotencyKey(),id);return route;}
+ private void captureOrMarkIncomplete(Route route,Command c){Instant fallback=clock.instant();try{var company=companies.findById(route.tenantId()).orElse(null);if(company==null||company.settings().planningDayStart()==null||company.settings().planningDayEnd()==null){snapshots.saveIncomplete(route.tenantId(),route.id(),route.version(),fallback);return;}ZoneId zone=ZoneId.of(company.settings().timezone());Instant start=route.date().atTime(company.settings().planningDayStart()).atZone(zone).toInstant();Instant end=route.date().atTime(company.settings().planningDayEnd()).atZone(zone).toInstant();Instant validUntil=route.date().plusDays(1).atStartOfDay(zone).toInstant();List<GeoPoint> coordinates=route.points().stream().map(Route.Point::location).toList();Map<String,PlanningSnapshot.Leg> legs=completeLegs(captureCompleteMatrix(coordinates),route.points());if(companies.findById(route.tenantId()).map(current->current.version()==company.version()).orElse(false)==false)throw new IllegalStateException("planning settings changed");List<PlanningSnapshot.Visit> visits=java.util.stream.IntStream.range(0,route.points().size()).mapToObj(i->new PlanningSnapshot.Visit(route.points().get(i).id(),c.visits().get(i).serviceDurationSeconds(),start,end)).toList();snapshots.saveValid(new PlanningSnapshot(UUID.randomUUID(),route.tenantId(),route.id(),route.version(),validUntil,start,end,visits,legs));}catch(RuntimeException e){snapshots.saveIncomplete(route.tenantId(),route.id(),route.version(),fallback);}}
+ private TravelMatrix.Matrix captureCompleteMatrix(List<GeoPoint> points){int n=points.size(),blockSize=n%5==1?4:5;long[][] seconds=new long[n][n],meters=new long[n][n];if(n==1)return new TravelMatrix.Matrix(seconds,meters);for(int fromBlock=0;fromBlock<n;fromBlock+=blockSize){int fromEnd=Math.min(n,fromBlock+blockSize);for(int toBlock=fromBlock;toBlock<n;toBlock+=blockSize){int toEnd=Math.min(n,toBlock+blockSize);List<GeoPoint> request=new ArrayList<>(points.subList(fromBlock,fromEnd));if(toBlock!=fromBlock)request.addAll(points.subList(toBlock,toEnd));TravelMatrix.Matrix part=matrix.calculate(List.copyOf(request));validatePart(part,request.size());for(int from=fromBlock;from<fromEnd;from++)for(int to=toBlock;to<toEnd;to++)if(from!=to){seconds[from][to]=part.seconds()[from-fromBlock][to-toBlock+(toBlock==fromBlock?0:fromEnd-fromBlock)];meters[from][to]=part.meters()[from-fromBlock][to-toBlock+(toBlock==fromBlock?0:fromEnd-fromBlock)];if(toBlock!=fromBlock){seconds[to][from]=part.seconds()[to-toBlock+fromEnd-fromBlock][from-fromBlock];meters[to][from]=part.meters()[to-toBlock+fromEnd-fromBlock][from-fromBlock];}}}}return new TravelMatrix.Matrix(seconds,meters);}
+ private static void validatePart(TravelMatrix.Matrix part,int size){if(part==null||part.seconds()==null||part.meters()==null||part.seconds().length!=size||part.meters().length!=size)throw new IllegalArgumentException("incomplete matrix");for(int i=0;i<size;i++){if(part.seconds()[i]==null||part.meters()[i]==null||part.seconds()[i].length!=size||part.meters()[i].length!=size)throw new IllegalArgumentException("incomplete matrix");for(int j=0;j<size;j++)if(i!=j&&(part.seconds()[i][j]<=0||part.meters()[i][j]<=0))throw new IllegalArgumentException("incomplete matrix");}}
+ private static Map<String,PlanningSnapshot.Leg> completeLegs(TravelMatrix.Matrix matrix,List<Route.Point> points){int n=points.size();if(matrix==null||matrix.seconds()==null||matrix.meters()==null||matrix.seconds().length!=n||matrix.meters().length!=n)throw new IllegalArgumentException("incomplete matrix");Map<String,PlanningSnapshot.Leg> legs=new HashMap<>();for(int from=0;from<n;from++){if(matrix.seconds()[from]==null||matrix.meters()[from]==null||matrix.seconds()[from].length!=n||matrix.meters()[from].length!=n)throw new IllegalArgumentException("incomplete matrix");for(int to=0;to<n;to++)if(from!=to)legs.put(points.get(from).id()+":"+points.get(to).id(),new PlanningSnapshot.Leg(matrix.seconds()[from][to],matrix.meters()[from][to]));}return legs;}
+ private void authorizeResources(Command c,AuthenticatedActor a){if(!sellers.allActive(a.tenantId(),Set.of(c.sellerId())))throw new Forbidden();try{var scope=scopes.resolve(a);if(!scope.allCurrentPortfolios()&&!scope.sellerIds().contains(c.sellerId()))throw new Forbidden();}catch(PortfolioAccessScopeUseCase.Forbidden e){throw new Forbidden();}}
+ private List<CustomerPortfolioReadUseCase.RouteCustomer> authorizeCurrentAccess(Command c,AuthenticatedActor a){authorizeResources(c,a);List<UUID> ids=c.visits().stream().map(Visit::customerId).toList();var refs=customers.activeAssignedToSellerAt(a.tenantId(),c.sellerId(),ids,c.date());if(refs.size()!=ids.size())throw new Forbidden();return refs;}
+ private static void validate(Command c,AuthenticatedActor a){if(a==null||a.tenantId()==null||a.accountId()==null||(a.role()!=BaseRole.COMPANY_ADMIN&&a.role()!=BaseRole.SUPERVISOR))throw new Forbidden();if(c==null||c.date()==null||c.sellerId()==null||c.idempotencyKey()==null||c.visits()==null||c.visits().isEmpty()||c.visits().size()>50||c.visits().stream().anyMatch(v->v==null||v.customerId()==null||v.serviceDurationSeconds()<=0)||c.visits().stream().map(Visit::customerId).distinct().count()!=c.visits().size())throw new Invalid();}
+ private static String fingerprint(Command c){try{String visits=String.join(",",c.visits().stream().map(v->v.customerId()+":"+v.serviceDurationSeconds()).toList());String raw=(c.name()==null?"":c.name().trim())+"|"+c.date()+"|"+c.sellerId()+"|"+visits;return java.util.HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(raw.getBytes(StandardCharsets.UTF_8)));}catch(Exception e){throw new IllegalStateException(e);}}
+ private static String routeName(Command c){return c.name()!=null&&!c.name().isBlank()?c.name().trim():"Ruta del "+c.date();}
 }

@@ -102,6 +102,18 @@ class PublishRouteServiceTest {
         verify(f.routes, never()).publish(any(), anyLong());
     }
 
+    @Test void rejectsExpiredSnapshotWithoutPublishAuditOrOutbox() {
+        Fixture f = fixture();
+        when(f.routes.findForUpdate(f.tenant, f.route.id())).thenReturn(Optional.of(f.route));
+        when(f.scopes.resolve(any())).thenReturn(new PortfolioAccessScopeUseCase.Scope(f.tenant, true, Set.of()));
+        when(f.sellers.allActive(f.tenant, Set.of(f.route.sellerId()))).thenReturn(true);
+        when(f.routes.reservePublicationIdempotency(any(), any(), any(), any(), any())).thenReturn(new RouteStore.Reservation(true, null, null));
+        PlanningSnapshot expired = new PlanningSnapshot(UUID.randomUUID(), f.tenant, f.route.id(), 1, Instant.parse("2026-09-01T11:59:59Z"), Instant.parse("2026-09-01T08:00:00Z"), Instant.parse("2026-09-01T18:00:00Z"), List.of(new PlanningSnapshot.Visit(f.route.points().getFirst().id(), 60, null, null)), Map.of());
+        when(f.snapshots.findValidForUpdate(f.tenant, f.route.id(), 1)).thenReturn(Optional.of(expired));
+        assertThatThrownBy(() -> f.service.publish(command(f, true), f.actor)).isInstanceOf(PublishRouteUseCase.Conflict.class);
+        verify(f.routes, never()).publish(any(), anyLong()); verifyNoInteractions(f.outbox, f.audit);
+    }
+
     @Test void deniesSupervisorOutsideCurrentSellerScopeBeforeIdempotencyOrWrites() {
         Fixture f = fixture();
         AuthenticatedActor supervisor = new AuthenticatedActor(f.actor.accountId(), f.tenant, BaseRole.SUPERVISOR);
@@ -116,7 +128,7 @@ class PublishRouteServiceTest {
 
     private static PlanningSnapshot snapshot(Fixture f) {
         UUID point = f.route.points().getFirst().id();
-        return new PlanningSnapshot(UUID.randomUUID(), f.tenant, f.route.id(), 1, Instant.parse("2026-09-02T00:00:00Z"), Instant.parse("2026-09-01T08:00:00Z"), Instant.parse("2026-09-01T18:00:00Z"), List.of(new PlanningSnapshot.Visit(point, 60, null, null)), Map.of("START:" + point, new PlanningSnapshot.Leg(60, 100)));
+        return new PlanningSnapshot(UUID.randomUUID(), f.tenant, f.route.id(), 1, Instant.parse("2026-09-02T00:00:00Z"), Instant.parse("2026-09-01T08:00:00Z"), Instant.parse("2026-09-01T18:00:00Z"), List.of(new PlanningSnapshot.Visit(point, 60, null, null)), Map.of());
     }
 
     private static PublishRouteUseCase.Command command(Fixture f, boolean notifySeller) {

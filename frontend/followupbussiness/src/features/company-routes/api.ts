@@ -1,6 +1,6 @@
 import { apiRequest } from "../../lib/api";
 import { getSessionAuthorization, getSessionMutationAuthorization } from "../auth/auth";
-import type { Route, RouteCustomerOption, RouteCustomerPage, RouteDirections, RouteFilters, RouteOptimizationInput, RoutePage, RoutePoint, RouteProposal, RouteSellerOption, RouteStatus } from "./types";
+import type { CreateRouteInput, Route, RouteCustomerOption, RouteCustomerPage, RouteDirections, RouteFilters, RouteOptimizationInput, RoutePage, RoutePoint, RouteProposal, RouteSellerOption, RouteStatus } from "./types";
 
 const statuses = new Set<RouteStatus>(["DRAFT", "PUBLISHED", "IN_PROGRESS", "COMPLETED", "CANCELLED"]);
 const nonNegativeInteger = (value: unknown): value is number => typeof value === "number" && Number.isInteger(value) && value >= 0;
@@ -123,7 +123,7 @@ export async function listSuggestedRouteCustomers(sellerId: string, date: string
 }
 
 const mutationHeaders = (extra: HeadersInit = {}): HeadersInit => ({ "Content-Type": "application/json", ...getSessionMutationAuthorization(), ...extra });
-export async function createRoute(input: { date: string; sellerId: string; customerIds: readonly string[] }, idempotencyKey: string): Promise<{ response: Response; route: Route | null }> {
+export async function createRoute(input: CreateRouteInput, idempotencyKey: string): Promise<{ response: Response; route: Route | null }> {
   const response = await apiRequest("/routes", { method: "POST", headers: mutationHeaders({ "Idempotency-Key": idempotencyKey }), body: JSON.stringify(input) }, { publishErrors: false });
   return { response, route: response.status === 201 ? parseRoute(await response.json().catch(() => null)) : null };
 }
@@ -134,12 +134,21 @@ export async function reorderRoutePoints(route: Route, points: readonly RoutePoi
   return { response, route: response.status === 200 ? parseRoute(await response.json().catch(() => null)) : null };
 }
 
+export async function publishRoute(route: Route, notifySeller: boolean, idempotencyKey: string, correlationId: string): Promise<{ response: Response; route: Route | null }> {
+  const response = await apiRequest(`/routes/${encodeURIComponent(route.id)}/publish`, {
+    method: "POST",
+    headers: mutationHeaders({ "X-Correlation-Id": correlationId, "Idempotency-Key": idempotencyKey, "If-Match": `"${route.version}"` }),
+    body: JSON.stringify({ notifySeller }),
+  }, { publishErrors: false });
+  return { response, route: response.status === 200 ? parseRoute(await response.json().catch(() => null)) : null };
+}
+
 function parseSeller(value: unknown): RouteSellerOption | null {
   if (typeof value !== "object" || value === null) return null;
   const seller = value as Record<string, unknown>;
   const territoryIds = seller.territoryIds;
-  return typeof seller.id === "string" && typeof seller.displayName === "string" && Array.isArray(territoryIds) && territoryIds.every((id) => typeof id === "string")
-    ? { id: seller.id, label: seller.displayName, territoryIds }
+  return typeof seller.id === "string" && typeof seller.displayName === "string" && (seller.status === "INVITED" || seller.status === "ACTIVE" || seller.status === "INACTIVE") && Array.isArray(territoryIds) && territoryIds.every((id) => typeof id === "string")
+    ? { id: seller.id, label: seller.displayName, status: seller.status, territoryIds }
     : null;
 }
 

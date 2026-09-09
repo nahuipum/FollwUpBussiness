@@ -4,15 +4,21 @@ import { AsyncStateCard } from "../../shared/ui/AsyncStateCard";
 import { InlineAlert } from "../../shared/ui/error-ui/components";
 import { ReadOnlyNotice } from "../../shared/ui/ReadOnlyNotice";
 import { TableLoadingIndicator } from "../../shared/ui/TableLoadingIndicator";
+import { TimeField } from "../../shared/ui/TimeField";
 import { useCompanySettings } from "./hooks/useCompanySettings";
 import type { UpdateCompanySettingsInput } from "./types";
 import "./styles/company-settings.css";
 import "./styles/company-settings-standard.css";
 
 export function CompanySettingsPage() {
+  const roles = getSessionIdentity()?.roles ?? [];
+  if (!roles.includes("COMPANY_ADMIN") && !roles.includes("SUPERVISOR"))
+    return <AsyncStateCard tone="error" title="No tienes permisos" description="No tienes permiso para consultar la configuración de la empresa." />;
+  return <CompanySettingsContent canManage={roles.includes("COMPANY_ADMIN")} />;
+}
+
+function CompanySettingsContent({ canManage }: { canManage: boolean }) {
   const data = useCompanySettings();
-  const canManage =
-    getSessionIdentity()?.roles.includes("COMPANY_ADMIN") ?? false;
   const [form, setForm] = useState<{
     etag: string;
     generation: number;
@@ -27,6 +33,8 @@ export function CompanySettingsPage() {
           values: {
             currency: data.snapshot.settings.currency,
             saleEditWindowMinutes: data.snapshot.settings.saleEditWindowMinutes,
+            planningDayStart: data.snapshot.settings.planningDayStart,
+            planningDayEnd: data.snapshot.settings.planningDayEnd,
           },
         });
   }, [data.sessionGeneration, data.snapshot]);
@@ -73,7 +81,9 @@ export function CompanySettingsPage() {
       (values.saleEditWindowMinutes === null ||
         (Number.isInteger(values.saleEditWindowMinutes) &&
           values.saleEditWindowMinutes >= 0 &&
-          values.saleEditWindowMinutes <= 10080))
+          values.saleEditWindowMinutes <= 10080)) &&
+      ((values.planningDayStart === null && values.planningDayEnd === null) ||
+        (values.planningDayStart !== null && values.planningDayEnd !== null && values.planningDayStart < values.planningDayEnd))
     )
       void data.save(values);
   };
@@ -133,6 +143,14 @@ export function CompanySettingsPage() {
               disabled
             />
           </label>
+          <fieldset className="company-settings__planning-day" disabled={!canManage || data.saving}>
+            <legend>Jornada de planificación</legend>
+            <p>Define el horario local de la empresa para planificar rutas. No hay una jornada predeterminada.</p>
+            <TimeField label="Inicio de la jornada de planificación" value={values.planningDayStart ?? ""} required={false} onValueChange={(planningDayStart) => setForm({ ...form, values: { ...values, planningDayStart: planningDayStart || null } })} />
+            <TimeField label="Fin de la jornada de planificación" value={values.planningDayEnd ?? ""} required={false} onValueChange={(planningDayEnd) => setForm({ ...form, values: { ...values, planningDayEnd: planningDayEnd || null } })} />
+            {((values.planningDayStart === null) !== (values.planningDayEnd === null)) && <p className="company-settings__field-error" role="alert">Completa el inicio y el fin de la jornada.</p>}
+            {values.planningDayStart !== null && values.planningDayEnd !== null && values.planningDayStart >= values.planningDayEnd && <p className="company-settings__field-error" role="alert">El inicio de la jornada debe ser anterior al fin.</p>}
+          </fieldset>
           <label>
             Moneda
             <input

@@ -1,11 +1,17 @@
 package com.nahui.followupbussiness.tenancy.domain.model;
 
 import java.time.ZoneId;
+import java.time.LocalTime;
 import java.util.Currency;
 import java.util.Objects;
 
 public record CompanySettings(String timezone, String currency, int geofenceRadiusMeters, int trackingIntervalSeconds,
-                              int locationRetentionDays, Integer saleEditWindowMinutes) {
+                              int locationRetentionDays, Integer saleEditWindowMinutes, LocalTime planningDayStart,
+                              LocalTime planningDayEnd) {
+    public CompanySettings(String timezone, String currency, int geofenceRadiusMeters, int trackingIntervalSeconds,
+                           int locationRetentionDays, Integer saleEditWindowMinutes) {
+        this(timezone, currency, geofenceRadiusMeters, trackingIntervalSeconds, locationRetentionDays, saleEditWindowMinutes, null, null);
+    }
     public CompanySettings {
         timezone = required(timezone, "timezone", 100);
         currency = required(currency, "currency", 3);
@@ -24,6 +30,9 @@ public record CompanySettings(String timezone, String currency, int geofenceRadi
             throw new IllegalArgumentException("MVP tracking and retention settings are fixed");
         if (saleEditWindowMinutes != null && (saleEditWindowMinutes < 0 || saleEditWindowMinutes > 10080))
             throw new IllegalArgumentException("saleEditWindowMinutes is invalid");
+        if ((planningDayStart == null) != (planningDayEnd == null)
+                || (planningDayStart != null && !planningDayStart.isBefore(planningDayEnd)))
+            throw new IllegalArgumentException("planning day is invalid");
     }
 
     private static String required(String value, String field, int max) {

@@ -7,7 +7,10 @@
 .dashboard-sidebar__brand .brand-mark svg { width: 22px; height: 22px; }
 .dashboard-sidebar__context { width: fit-content; margin-top: 19px; padding: 8px 10px; border: 1px solid rgb(125 211 215 / 28%); border-radius: 999px; color: #ddf6f7; background: rgb(255 255 255 / 7%); font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
 .dashboard-sidebar__label { margin: 31px 0 0; font-size: 14px; font-weight: 700; }
-.dashboard-nav { display: grid; gap: 8px; margin-top: 15px; }
+.dashboard-nav { display: grid; min-height: 0; flex: 1 1 auto; gap: 8px; margin-top: 15px; padding: 0 2px 12px 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+.dashboard-nav::-webkit-scrollbar { width: 6px; }
+.dashboard-nav::-webkit-scrollbar-thumb { border-radius: 999px; background: rgb(221 246 247 / 35%); }
+.dashboard-nav::-webkit-scrollbar-track { background: transparent; }
 .dashboard-nav__item { display: flex; gap: 12px; align-items: center; width: 100%; padding: 13px 14px; border: 1px solid transparent; border-radius: 12px; color: rgb(255 255 255 / 90%); background: transparent; cursor: pointer; text-align: left; }
 .dashboard-nav__item:hover, .dashboard-nav__item--active { border-color: rgb(125 211 215 / 28%); background: rgb(23 109 119 / 93%); }
 .dashboard-nav__item svg { width: 19px; height: 19px; }.dashboard-nav__item strong, .dashboard-nav__item small, .dashboard-profile strong, .dashboard-profile small, .dashboard-top-profile strong, .dashboard-top-profile small { display: block; }.dashboard-nav__item small, .dashboard-profile small, .dashboard-top-profile small { margin-top: 2px; color: rgb(255 255 255 / 65%); font-size: 10.5px; }
@@ -25,14 +28,17 @@
 .dashboard-nav__child:hover:not(:disabled), .dashboard-nav__child--active { color: #fff; border-color: rgb(125 211 215 / 20%); background: rgb(255 255 255 / 10%); }
 .dashboard-nav__child:disabled { cursor: not-allowed; opacity: .48; }
 .dashboard-nav__item:focus-visible, .dashboard-nav__child:focus-visible { outline: 3px solid rgb(125 211 215 / 55%); outline-offset: 2px; }
-.dashboard-profile { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 11px; align-items: center; margin-top: auto; padding: 14px; border: 1px solid rgb(125 211 215 / 18%); border-radius: 16px; background: rgb(255 255 255 / 8%); }.dashboard-profile p { grid-column: 1 / -1; margin: 0; padding-top: 10px; border-top: 1px solid rgb(255 255 255 / 12%); font-size: 11px; }
+.dashboard-profile { display: grid; flex: 0 0 auto; grid-template-columns: auto minmax(0, 1fr); gap: 11px; align-items: center; margin-top: auto; padding: 14px; border: 1px solid rgb(125 211 215 / 18%); border-radius: 16px; background: rgb(255 255 255 / 8%); }.dashboard-profile p { grid-column: 1 / -1; margin: 0; padding-top: 10px; border-top: 1px solid rgb(255 255 255 / 12%); font-size: 11px; }
 .dashboard-sidebar__logout { display: inline-flex; grid-column: 1 / -1; gap: 7px; align-items: center; justify-content: center; width: 100%; min-height: 34px; margin-top: 1px; border: 1px solid rgb(255 255 255 / 20%); border-radius: 9px; color: #fff; background: rgb(16 42 67 / 23%); cursor: pointer; font: inherit; font-size: 11px; font-weight: 700; }.dashboard-sidebar__logout:hover { background: rgb(16 42 67 / 42%); }.dashboard-sidebar__logout svg { width: 15px; height: 15px; }
 .dashboard-avatar { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 50%; color: #fff; background: linear-gradient(145deg, #7aa8b4, #176d77); font-size: 11px; font-weight: 800; }.dashboard-workspace { min-width: 0; }.dashboard-topbar { display: flex; min-height: 72px; align-items: center; justify-content: space-between; gap: 20px; padding: 0 28px; border-bottom: 1px solid rgb(20 33 61 / 8%); background: rgb(255 255 255 / 96%); }.dashboard-breadcrumbs { display: flex; gap: 9px; color: #67778a; font-size: 13.5px; }.dashboard-breadcrumbs span + span::before { margin-right: 9px; color: #a5b1bd; content: "/"; }.dashboard-breadcrumbs__current { color: var(--teal); font-weight: 700; }.dashboard-top-profile-menu { position: relative; }.dashboard-top-profile { display: flex; gap: 9px; align-items: center; padding: 4px; border: 1px solid transparent; border-radius: 12px; color: var(--navy); background: transparent; cursor: pointer; font: inherit; font-size: 12px; text-align: left; }.dashboard-top-profile:hover, .dashboard-top-profile[aria-expanded="true"] { border-color: #d7e4e9; background: #f5fafb; }.dashboard-top-profile small { color: #67778a; }.dashboard-profile-menu { position: absolute; z-index: 10; top: calc(100% + 8px); right: 0; min-width: 156px; padding: 6px; border: 1px solid #dce5ed; border-radius: 12px; background: #fff; box-shadow: 0 12px 28px rgb(16 42 67 / 15%); }.dashboard-profile-menu button { display: flex; gap: 8px; align-items: center; width: 100%; min-height: 36px; padding: 0 9px; border: 0; border-radius: 8px; color: #26384a; background: transparent; cursor: pointer; font: inherit; font-size: 12px; font-weight: 700; text-align: left; }.dashboard-profile-menu button:hover { color: #176d77; background: #f2fbfc; }.dashboard-profile-menu svg { width: 16px; height: 16px; }.dashboard-menu-button, .dashboard-backdrop { display: none; }.dashboard-content { width: 100%; max-width: 1440px; margin: 0 auto; padding: 26px 28px 38px; }
 @media (max-width: 760px) { .dashboard-shell { display: block; }.dashboard-sidebar { position: fixed; z-index: 20; width: min(82vw, 300px); transform: translateX(-105%); transition: transform .2s ease; }.dashboard-sidebar--open { transform: translateX(0); }.dashboard-backdrop { position: fixed; z-index: 10; inset: 0; display: block; border: 0; background: rgb(16 42 67 / 52%); }.dashboard-menu-button { display: grid; width: 42px; height: 42px; place-items: center; border: 1px solid #cfd9e4; border-radius: 10px; color: #102a43; background: #fff; }.dashboard-menu-button svg { width: 20px; }.dashboard-top-profile { display: none; }.dashboard-topbar { padding: 0 16px; }.dashboard-breadcrumbs { overflow: hidden; white-space: nowrap; font-size: 12px; }.dashboard-content { padding: 20px 16px 30px; } }
 
 .dashboard-top-actions { display: flex; align-items: center; gap: 11px; }
-.dashboard-context-chip { display: inline-flex; min-height: 38px; align-items: center; padding: 0 12px; border: 1px solid #cfd9e4; border-radius: 11px; color: #26384a; background: #fff; font-size: 13px; font-weight: 700; }
-@media (max-width: 760px) { .dashboard-context-chip { min-height: 36px; padding: 0 10px; font-size: 12px; } }
+.dashboard-theme-toggle { display: inline-flex; min-height: 38px; gap: 8px; align-items: center; padding: 0 4px; border: 0; border-radius: 8px; color: #26384a; background: transparent; cursor: pointer; font: inherit; font-size: 12px; font-weight: 700; }
+.dashboard-theme-toggle:hover { background: #f1f6f8; }
+.dashboard-theme-toggle:focus-visible { outline: 3px solid rgb(23 109 119 / 38%); outline-offset: 2px; }
+.dashboard-theme-toggle > svg { width: 16px; height: 16px; }
+@media (max-width: 760px) { .dashboard-theme-toggle { width: 42px; min-height: 36px; justify-content: center; padding: 0; }.dashboard-theme-toggle__label, .dashboard-theme-toggle .dashboard-theme-switch { display: none; } }
 
 .dashboard-profile-menu { min-width: 210px; }
 .dashboard-profile-menu button + button { margin-top: 3px; border-top: 1px solid var(--theme-border-soft); border-radius: 0 0 8px 8px; }
@@ -40,8 +46,8 @@
 .dashboard-profile-menu button small { display: block; margin-top: 2px; color: #738396; font-size: 10px; font-weight: 600; }
 .dashboard-theme-switch { position: relative; width: 32px; height: 18px; flex: 0 0 auto; margin-left: auto; border-radius: 999px; background: #c7d2dc; transition: background .18s ease; }
 .dashboard-theme-switch > span { position: absolute; top: 3px; left: 3px; width: 12px; height: 12px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgb(16 42 67 / 25%); transition: transform .18s ease; }
-.dashboard-profile-menu [aria-checked="true"] .dashboard-theme-switch { background: #176d77; }
-.dashboard-profile-menu [aria-checked="true"] .dashboard-theme-switch > span { transform: translateX(14px); }
+.dashboard-theme-toggle[aria-checked="true"] .dashboard-theme-switch { background: #176d77; }
+.dashboard-theme-toggle[aria-checked="true"] .dashboard-theme-switch > span { transform: translateX(14px); }
 
 @media (max-width: 760px) {
   .dashboard-top-profile { display: grid; width: 42px; height: 42px; padding: 2px; place-items: center; }

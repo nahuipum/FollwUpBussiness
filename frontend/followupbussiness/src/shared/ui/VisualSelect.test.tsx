@@ -81,3 +81,27 @@ test("abre con Espacio y permite elegir con flecha y Espacio", () => {
   expect(trigger.textContent).toContain("Tercera");
   expect(screen.queryByRole("listbox")).toBeNull();
 });
+
+test("abre hacia arriba cuando no hay espacio debajo del selector", () => {
+  render(<SelectExample />);
+  const trigger = screen.getByRole("button", { name: "Opción de prueba" });
+  Object.defineProperty(window, "innerHeight", { configurable: true, value: 900 });
+  Object.defineProperty(window, "innerWidth", { configurable: true, value: 1200 });
+  trigger.getBoundingClientRect = () => ({
+    bottom: 854,
+    height: 34,
+    left: 900,
+    right: 974,
+    top: 820,
+    width: 74,
+    x: 900,
+    y: 820,
+    toJSON: () => ({}),
+  });
+
+  fireEvent.click(trigger);
+
+  const menu = screen.getByRole("listbox", { name: "Opción de prueba" });
+  expect(menu.style.top).toBe("694px");
+  expect(menu.style.maxHeight).toBe("120px");
+});

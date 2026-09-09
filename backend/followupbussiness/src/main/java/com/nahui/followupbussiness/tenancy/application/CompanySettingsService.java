@@ -11,6 +11,7 @@ import com.nahui.followupbussiness.tenancy.application.port.in.CompanySettingsUs
 import com.nahui.followupbussiness.tenancy.application.port.out.CompanySettingsStore;
 import com.nahui.followupbussiness.tenancy.domain.model.Company;
 import com.nahui.followupbussiness.tenancy.domain.model.CompanySettings;
+import com.nahui.followupbussiness.routing.application.port.in.InvalidatePlanningSnapshotsUseCase;
 import io.micrometer.core.instrument.Counter;
 import java.time.Clock;
 import java.util.Map;
@@ -24,11 +25,16 @@ public final class CompanySettingsService implements CompanySettingsUseCase {
     private final Counter rejected;
     private final Counter conflicts;
     private final Clock clock;
+    private final InvalidatePlanningSnapshotsUseCase snapshots;
 
     public CompanySettingsService(CompanySettingsStore store, RecordAuditEntryUseCase audit, Counter updated,
                                   Counter rejected, Counter conflicts, Clock clock) {
+        this(store, audit, updated, rejected, conflicts, clock, null);
+    }
+    public CompanySettingsService(CompanySettingsStore store, RecordAuditEntryUseCase audit, Counter updated,
+                                  Counter rejected, Counter conflicts, Clock clock, InvalidatePlanningSnapshotsUseCase snapshots) {
         this.store = store; this.audit = audit; this.updated = updated; this.rejected = rejected;
-        this.conflicts = conflicts; this.clock = clock;
+        this.conflicts = conflicts; this.clock = clock; this.snapshots = snapshots;
     }
 
     @Override public Optional<Company> get(AuthenticatedActor actor) {
@@ -46,6 +52,11 @@ public final class CompanySettingsService implements CompanySettingsUseCase {
             rejected.increment();
             throw new InvalidUpdateException();
         }
+        if (command.planningDayStartPresent() != command.planningDayEndPresent()
+                || (command.planningDayStartPresent() && (command.planningDayStart() == null || command.planningDayEnd() == null))) {
+            rejected.increment();
+            throw new InvalidUpdateException();
+        }
         Company before = store.findActiveByTenantId(tenantId).orElseThrow(NotFoundException::new);
         if (command.expectedVersion() != before.version()) {
             conflicts.increment();
@@ -56,7 +67,9 @@ public final class CompanySettingsService implements CompanySettingsUseCase {
         try {
             next = new CompanySettings(value(command.timezone(), previous.timezone()), value(command.currency(), previous.currency()),
                     previous.geofenceRadiusMeters(), previous.trackingIntervalSeconds(), previous.locationRetentionDays(),
-                    command.saleEditWindowMinutes() == null ? previous.saleEditWindowMinutes() : command.saleEditWindowMinutes());
+                    command.saleEditWindowMinutes() == null ? previous.saleEditWindowMinutes() : command.saleEditWindowMinutes(),
+                    command.planningDayStartPresent() ? command.planningDayStart() : previous.planningDayStart(),
+                    command.planningDayEndPresent() ? command.planningDayEnd() : previous.planningDayEnd());
         } catch (IllegalArgumentException exception) {
             rejected.increment();
             throw new InvalidUpdateException();
@@ -65,6 +78,9 @@ public final class CompanySettingsService implements CompanySettingsUseCase {
         Company after = store.update(tenantId, next, command.expectedVersion(), clock.instant()).orElseThrow(() -> {
             conflicts.increment(); return new ConflictException();
         });
+        if (( !next.timezone().equals(previous.timezone()) || !java.util.Objects.equals(next.planningDayStart(), previous.planningDayStart())
+                || !java.util.Objects.equals(next.planningDayEnd(), previous.planningDayEnd())) && snapshots != null)
+            snapshots.invalidateForTenant(tenantId);
         if (!audit.record(new RecordAuditEntryCommand(AuditAction.CRITICAL_MUTATION, AuditResourceType.COMPANY, after.id(),
                 AuditResult.SUCCESS, Map.of("operation", "COMPANY_SETTINGS_UPDATED"), Map.of("operation", "COMPANY_SETTINGS_UPDATED")))) {
             throw new IllegalStateException("audit persistence failed");

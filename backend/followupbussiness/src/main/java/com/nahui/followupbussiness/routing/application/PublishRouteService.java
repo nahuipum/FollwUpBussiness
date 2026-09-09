@@ -51,7 +51,8 @@ public class PublishRouteService implements PublishRouteUseCase {
             return route;
         }
         if (!"DRAFT".equals(route.status()) || route.version() != command.expectedVersion()) throw new Conflict();
-        snapshots.findValidForUpdate(actor.tenantId(), route.id(), route.version()).orElseThrow(Conflict::new);
+        var snapshot = snapshots.findValidForUpdate(actor.tenantId(), route.id(), route.version()).orElseThrow(Conflict::new);
+        if (!snapshot.validUntil().isAfter(clock.instant())) throw new Conflict();
         Instant now = clock.instant();
         Route published = new Route(route.id(), route.tenantId(), route.name(), route.date(), route.sellerId(), route.startLocation(),
                 route.points(), route.createdAt(), now, route.version() + 1, "PUBLISHED");

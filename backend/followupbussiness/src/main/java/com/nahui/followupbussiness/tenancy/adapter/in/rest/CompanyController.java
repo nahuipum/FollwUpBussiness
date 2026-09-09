@@ -138,7 +138,7 @@ public class CompanyController {
         try {
             var result = service.execute(new CreateCompanyCommand(request.legalName(), request.tradeName(), request.taxId(),
                     new CompanySettings(request.settings().timezone(), request.settings().currency(), request.settings().geofenceRadiusMeters(),
-                            request.settings().trackingIntervalSeconds(), 90, request.settings().saleEditWindowMinutes())), actor);
+                            request.settings().trackingIntervalSeconds(), 90, request.settings().saleEditWindowMinutes(), request.settings().planningDayStart(), request.settings().planningDayEnd())), actor);
             if (result.conflict()) return problem(HttpStatus.CONFLICT, correlation);
             Company company = result.company();
             return ResponseEntity.created(URI.create("/platform/companies/" + company.id()))
@@ -204,7 +204,8 @@ public class CompanyController {
     record SettingsRequest(@NotBlank @Size(max = 100) String timezone,
                            @NotBlank @Pattern(regexp = "[A-Z]{3}") String currency,
                            @Min(100) @Max(100) int geofenceRadiusMeters, @Min(60) @Max(60) int trackingIntervalSeconds,
-                           @Min(0) @Max(10080) Integer saleEditWindowMinutes) {
+                           @Min(0) @Max(10080) Integer saleEditWindowMinutes, java.time.LocalTime planningDayStart,
+                           java.time.LocalTime planningDayEnd) {
     }
 
     record CompanyResponse(UUID id, String legalName, String tradeName, String code, String taxId, String status,
@@ -213,12 +214,13 @@ public class CompanyController {
             return new CompanyResponse(company.id(), company.legalName(), company.tradeName(), company.code(),
                     company.taxId(), company.status().name(), new SettingsResponse(company.settings().timezone(), company.settings().currency(),
                     company.settings().geofenceRadiusMeters(), company.settings().trackingIntervalSeconds(), company.settings().locationRetentionDays(),
-                    company.settings().saleEditWindowMinutes()), company.createdAt(), company.updatedAt(), company.version());
+                    company.settings().saleEditWindowMinutes(), company.settings().planningDayStart(), company.settings().planningDayEnd()), company.createdAt(), company.updatedAt(), company.version());
         }
     }
 
     record SettingsResponse(String timezone, String currency, int geofenceRadiusMeters, int trackingIntervalSeconds,
-                            int locationRetentionDays, Integer saleEditWindowMinutes) {
+                            int locationRetentionDays, Integer saleEditWindowMinutes, java.time.LocalTime planningDayStart,
+                            java.time.LocalTime planningDayEnd) {
     }
 
     record CompanyPageResponse(java.util.List<CompanyResponse> items, PageInfoResponse page) {

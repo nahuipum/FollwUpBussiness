@@ -17,5 +17,4 @@ public record PlanningSnapshot(UUID id, UUID tenantId, UUID routeId, long baseRo
     }
     public record Leg(long seconds, long meters) { public Leg { if (seconds <= 0 || meters <= 0) throw new IllegalArgumentException("invalid snapshot leg"); } }
     public Leg leg(UUID from, UUID to) { var value = legs.get(from + ":" + to); if (value == null) throw new IllegalStateException("incomplete snapshot"); return value; }
-    public Leg startLeg(UUID to) { var value = legs.get("START:" + to); if (value == null) throw new IllegalStateException("incomplete snapshot"); return value; }
 }

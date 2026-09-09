@@ -5,17 +5,16 @@ import com.nahui.followupbussiness.routing.domain.Route;
 
 import java.time.LocalDate;
 
-import com.nahui.followupbussiness.customers.domain.GeoPoint;
-
 import java.util.List;
 import java.util.UUID;
 
 public interface CreateRouteUseCase {
     Route create(Command command, AuthenticatedActor actor);
 
-    record Command(String name, LocalDate date, UUID sellerId, GeoPoint startLocation, List<UUID> customerIds,
+    record Command(String name, LocalDate date, UUID sellerId, List<Visit> visits,
                    UUID idempotencyKey) {
     }
+    record Visit(UUID customerId, int serviceDurationSeconds) { }
 
     final class Forbidden extends RuntimeException {
     }

@@ -95,7 +95,7 @@ public class ReorderRoutePointsService implements ReorderRoutePointsUseCase {
         for (int index = 0; index < command.routePointIds().size(); index++) {
             UUID pointId = command.routePointIds().get(index);
             PlanningSnapshot.Visit visit = visits.get(pointId);
-            current = current.plusSeconds(previous == null ? snapshot.startLeg(pointId).seconds() : snapshot.leg(previous, pointId).seconds());
+            if (previous != null) current = current.plusSeconds(snapshot.leg(previous, pointId).seconds());
             Instant arrival = current;
             if (visit.windowStart() != null && current.isBefore(visit.windowStart())) current = visit.windowStart();
             if (visit.windowEnd() != null && current.isAfter(visit.windowEnd()))

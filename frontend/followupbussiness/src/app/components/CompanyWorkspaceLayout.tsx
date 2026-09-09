@@ -55,7 +55,6 @@ export function CompanyWorkspaceLayout({ activeSection, workspace, children }: P
         scopeLabel: companyName,
       }}
       breadcrumbs={[companyName, isSeller ? "Configuración" : isSupervisor ? supervisorSections[activeSection as SupervisorSection] : companySections[activeSection as CompanySection]]}
-      topbarContext={companyName}
       onLogout={() => { void logout(); navigate("/", { replace: true }); }}
       navigation={navigation}
     >

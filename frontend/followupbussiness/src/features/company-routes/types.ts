@@ -37,10 +37,14 @@ export type RouteFilters = Readonly<{
 }>;
 
 /** Territory IDs are used only to keep route candidates within the selected seller's assignment. */
-export type RouteSellerOption = Readonly<{ id: string; label: string; territoryIds: readonly string[] }>;
+export type RouteSellerStatus = "INVITED" | "ACTIVE" | "INACTIVE";
+/** Kept with the bulk seller list so publishing never needs a seller request per route. */
+export type RouteSellerOption = Readonly<{ id: string; label: string; status?: RouteSellerStatus; territoryIds: readonly string[] }>;
 /** The territory ID is kept in memory solely to filter candidates; it is never rendered or submitted. */
 export type RouteCustomerOption = Readonly<{ id: string; label: string; territoryId: string | null; suggested: boolean }>;
 export type RouteCustomerPage = Readonly<{ items: readonly RouteCustomerOption[]; page: RoutePage["page"] }>;
+export type CreateRouteVisit = Readonly<{ customerId: string; serviceDurationSeconds: number }>;
+export type CreateRouteInput = Readonly<{ date: string; sellerId: string; visits: readonly CreateRouteVisit[] }>;
 
 /** Server-calculated road geometry. It stays in memory and is never rendered as text. */
 export type RouteDirections = Readonly<{

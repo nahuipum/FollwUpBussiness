@@ -7,4 +7,5 @@ import java.util.UUID;
 /** Public cross-module query for the authenticated tenant's contractual company projection. */
 public interface CurrentCompanyQuery {
     Optional<Company> findById(UUID companyId);
+    Optional<Company> findByIdForUpdate(UUID companyId);
 }

@@ -1,5 +1,5 @@
 import { beforeEach, expect, test, vi } from "vitest";
-import { createRoute, getRoute, getRouteDirections, listRouteCustomers, listRouteSellerOptions, listRoutes, listSuggestedRouteCustomers, optimizeRoute, previewRouteDirections, reorderRoutePoints } from "./api";
+import { createRoute, getRoute, getRouteDirections, listRouteCustomers, listRouteSellerOptions, listRoutes, listSuggestedRouteCustomers, optimizeRoute, previewRouteDirections, publishRoute, reorderRoutePoints } from "./api";
 
 const state = vi.hoisted(() => ({ request: vi.fn() }));
 vi.mock("../../lib/api", () => ({ apiRequest: state.request }));
@@ -42,9 +42,9 @@ test("previsualiza Directions sin persistir el orden ni enviar datos de clientes
   expect(state.request).toHaveBeenCalledWith("/routes/route%2F1/directions/preview", expect.objectContaining({ method: "POST", body: JSON.stringify({ baseRouteVersion: 3, routePointIds: ["point-2", "point-1"] }) }), { publishErrors: false });
 });
 
-test("carga vendedores paginados con sus territorios asignados para filtrar candidatos", async () => {
-  state.request.mockResolvedValueOnce(new Response(JSON.stringify({ items: [{ id: "seller-1", displayName: "Ana", territoryIds: ["territory-1"] }], page: { page: 0, pageSize: 100, totalElements: 2, totalPages: 2 } }), { status: 200 })).mockResolvedValueOnce(new Response(JSON.stringify({ items: [{ id: "seller-2", displayName: "Luis", territoryIds: [] }], page: { page: 1, pageSize: 100, totalElements: 2, totalPages: 2 } }), { status: 200 }));
-  await expect(listRouteSellerOptions()).resolves.toMatchObject({ sellers: [{ label: "Ana", territoryIds: ["territory-1"] }, { label: "Luis", territoryIds: [] }] });
+test("carga vendedores paginados con su disponibilidad y territorios, sin consultas por ruta", async () => {
+  state.request.mockResolvedValueOnce(new Response(JSON.stringify({ items: [{ id: "seller-1", displayName: "Ana", status: "ACTIVE", territoryIds: ["territory-1"] }], page: { page: 0, pageSize: 100, totalElements: 2, totalPages: 2 } }), { status: 200 })).mockResolvedValueOnce(new Response(JSON.stringify({ items: [{ id: "seller-2", displayName: "Luis", status: "INACTIVE", territoryIds: [] }], page: { page: 1, pageSize: 100, totalElements: 2, totalPages: 2 } }), { status: 200 }));
+  await expect(listRouteSellerOptions()).resolves.toMatchObject({ sellers: [{ label: "Ana", status: "ACTIVE", territoryIds: ["territory-1"] }, { label: "Luis", status: "INACTIVE", territoryIds: [] }] });
   expect(state.request).toHaveBeenNthCalledWith(1, "/sellers?page=0&pageSize=100", expect.anything(), { publishErrors: false });
   expect(state.request).toHaveBeenNthCalledWith(2, "/sellers?page=1&pageSize=100", expect.anything(), { publishErrors: false });
 });
@@ -64,10 +64,17 @@ test("consulta cartera completa y sugerencias como fuentes separadas, conservand
   expect(state.request).toHaveBeenNthCalledWith(2, "/routes/suggested-customers?sellerId=seller-1&date=2026-08-26&page=0&pageSize=100", expect.anything(), { publishErrors: false });
 });
 
-test("crea con clave idempotente y reordena con versión y solo IDs opacos de puntos", async () => {
+test("crea con visitas ordenadas, sin startLocation, y reordena con versión y solo IDs opacos de puntos", async () => {
   state.request.mockResolvedValueOnce(new Response(JSON.stringify(route), { status: 201 })).mockResolvedValueOnce(new Response(JSON.stringify(route), { status: 200 }));
-  await createRoute({ date: "2026-08-26", sellerId: "seller-1", customerIds: ["customer-1"] }, "00000000-0000-4000-8000-000000000001");
+  await createRoute({ date: "2026-08-26", sellerId: "seller-1", visits: [{ customerId: "customer-1", serviceDurationSeconds: 1800 }] }, "00000000-0000-4000-8000-000000000001");
   await reorderRoutePoints({ ...route, status: "PUBLISHED" as const, points: [{ routePointId: "point-1", sequence: 1, customerName: "Comercial Norte" }] }, [{ routePointId: "point-1", sequence: 1, customerName: "Comercial Norte" }]);
-  expect(state.request).toHaveBeenNthCalledWith(1, "/routes", expect.objectContaining({ method: "POST", headers: expect.objectContaining({ "Idempotency-Key": "00000000-0000-4000-8000-000000000001" }), body: JSON.stringify({ date: "2026-08-26", sellerId: "seller-1", customerIds: ["customer-1"] }) }), { publishErrors: false });
+  expect(state.request).toHaveBeenNthCalledWith(1, "/routes", expect.objectContaining({ method: "POST", headers: expect.objectContaining({ "Idempotency-Key": "00000000-0000-4000-8000-000000000001" }), body: JSON.stringify({ date: "2026-08-26", sellerId: "seller-1", visits: [{ customerId: "customer-1", serviceDurationSeconds: 1800 }] }) }), { publishErrors: false });
+  expect(JSON.parse(state.request.mock.calls[0]?.[1].body as string)).not.toHaveProperty("startLocation");
   expect(state.request).toHaveBeenNthCalledWith(2, "/routes/route-1/points/order", expect.objectContaining({ method: "PUT", headers: expect.objectContaining({ "If-Match": "\"1\"" }), body: JSON.stringify({ routePointIds: ["point-1"] }) }), { publishErrors: false });
+});
+
+test("publica con correlación, idempotencia y la versión vigente", async () => {
+  state.request.mockResolvedValue(new Response(JSON.stringify({ ...route, status: "PUBLISHED", version: 2 }), { status: 200 }));
+  await expect(publishRoute({ ...route, status: "DRAFT" }, false, "00000000-0000-4000-8000-000000000001", "00000000-0000-4000-8000-000000000002")).resolves.toMatchObject({ route: { status: "PUBLISHED", version: 2 } });
+  expect(state.request).toHaveBeenCalledWith("/routes/route-1/publish", expect.objectContaining({ method: "POST", headers: expect.objectContaining({ "X-Correlation-Id": "00000000-0000-4000-8000-000000000002", "Idempotency-Key": "00000000-0000-4000-8000-000000000001", "If-Match": "\"1\"", "X-CSRF-Token": "csrf" }), body: JSON.stringify({ notifySeller: false }) }), { publishErrors: false });
 });

@@ -23,7 +23,6 @@ export function PlatformWorkspaceLayout({ activeSection, children }: { activeSec
       navigationLabel="Plataforma"
       profile={{ initials: displayName.slice(0, 2).toUpperCase(), name: displayName, role: "Superadministrador", scopeLabel: "Acceso de plataforma" }}
       breadcrumbs={["Plataforma", activeSection === "dashboard" ? "Resumen" : "Gestión de empresas"]}
-      topbarContext="Plataforma"
       onLogout={() => { void logout(); navigate("/", { replace: true }); }}
       navigation={navigation}
     >

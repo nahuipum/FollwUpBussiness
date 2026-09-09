@@ -31,5 +31,5 @@ export function useRouteDetail() {
     setError(null);
     setLoading(false);
   }), []);
-  return { target, route, loading, error, open: (next: Route) => { setTarget(next); setRoute(null); setError(null); setLoading(true); retryKey.current += 1; }, retry: load, close: () => { retryKey.current += 1; setTarget(null); setRoute(null); setError(null); setLoading(false); } };
+  return { target, route, loading, error, open: (next: Route) => { setTarget(next); setRoute(null); setError(null); setLoading(true); retryKey.current += 1; }, replace: (next: Route) => { if (target?.id === next.id) { setTarget(next); setRoute(next); setError(null); } }, retry: load, close: () => { retryKey.current += 1; setTarget(null); setRoute(null); setError(null); setLoading(false); } };
 }

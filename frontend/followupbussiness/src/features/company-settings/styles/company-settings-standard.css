@@ -41,6 +41,10 @@
 .company-settings dt { font-size: 12px; font-weight: 700; }
 .company-settings dd { font-size: 16px; font-weight: 750; }
 .company-settings__card p { margin: 2px 0 0; font-size: 13px; }
+.company-settings__planning-day { display: grid; gap: 12px; margin: 0; padding: 14px; border: 1px solid #d7e4e9; border-radius: 12px; }
+.company-settings__planning-day legend { padding: 0 4px; color: #26384a; font-size: 13px; font-weight: 700; }
+.company-settings__planning-day p { margin: 0; }
+.company-settings__field-error { color: #b42318; font-weight: 700; }
 
 @media (max-width: 760px) {
   .company-settings__card { padding: 18px; }

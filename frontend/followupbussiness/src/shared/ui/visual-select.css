@@ -49,12 +49,15 @@
   display: grid;
   max-height: min(320px, calc(100dvh - 24px));
   overflow-y: auto;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
   padding: 6px;
   border: 1px solid #dce5ed;
   border-radius: 12px;
   background: #fff;
   box-shadow: 0 12px 28px rgb(16 42 67 / 15%);
 }
+.visual-select__menu::-webkit-scrollbar { display: none; width: 0; }
 .visual-select__menu button {
   min-height: 36px;
   padding: 0 10px;

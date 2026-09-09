@@ -37,7 +37,7 @@ export function VisualSelect<T extends string>({
   const menuRef = useRef<HTMLDivElement>(null);
   const listboxId = useId();
   const [activeIndex, setActiveIndex] = useState(-1);
-  const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
+  const [position, setPosition] = useState({ top: 0, left: 0, width: 0, maxHeight: 320 });
   const selected =
     options.find((option) => option.value === value) ?? options[0];
 
@@ -91,11 +91,21 @@ export function VisualSelect<T extends string>({
     const update = () => {
       const bounds = triggerRef.current?.getBoundingClientRect();
       if (!bounds) return;
+      const viewportPadding = 12;
+      const menuGap = 6;
       const width = Math.max(bounds.width, 112);
+      const menuHeight = Math.min(320, options.length * 36 + 12);
+      const spaceBelow = window.innerHeight - bounds.bottom - menuGap - viewportPadding;
+      const spaceAbove = bounds.top - menuGap - viewportPadding;
+      const opensUpward = spaceBelow < menuHeight && spaceAbove > spaceBelow;
+      const availableSpace = Math.max(0, opensUpward ? spaceAbove : spaceBelow);
       setPosition({
-        top: bounds.bottom + 6,
-        left: Math.max(12, Math.min(bounds.left, window.innerWidth - width - 12)),
+        top: opensUpward
+          ? Math.max(viewportPadding, bounds.top - menuGap - Math.min(menuHeight, availableSpace))
+          : bounds.bottom + menuGap,
+        left: Math.max(viewportPadding, Math.min(bounds.left, window.innerWidth - width - viewportPadding)),
         width,
+        maxHeight: Math.min(menuHeight, availableSpace),
       });
     };
     update();

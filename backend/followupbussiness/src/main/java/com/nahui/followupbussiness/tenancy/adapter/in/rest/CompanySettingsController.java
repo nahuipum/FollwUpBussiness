@@ -6,6 +6,7 @@ import com.nahui.followupbussiness.tenancy.application.port.in.CompanySettingsUs
 import com.nahui.followupbussiness.tenancy.domain.model.CompanySettings;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.UUID;
+import java.time.LocalTime;
 import tools.jackson.databind.JsonNode;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -60,7 +61,9 @@ public final class CompanySettingsController {
                     integer(request, "geofenceRadiusMeters"), request.has("geofenceRadiusMeters"),
                     integer(request, "trackingIntervalSeconds"), request.has("trackingIntervalSeconds"),
                     integer(request, "locationRetentionDays"), request.has("locationRetentionDays"),
-                    integer(request, "saleEditWindowMinutes"), request.has("saleEditWindowMinutes"), version), actor);
+                    integer(request, "saleEditWindowMinutes"), request.has("saleEditWindowMinutes"),
+                    time(request, "planningDayStart"), request.has("planningDayStart"),
+                    time(request, "planningDayEnd"), request.has("planningDayEnd"), version), actor);
             return ResponseEntity.ok().eTag(Long.toString(company.version())).header("X-Correlation-Id", correlation.toString())
                     .body(Response.from(company.settings()));
         } catch (NumberFormatException | CompanySettingsService.InvalidUpdateException exception) {
@@ -75,9 +78,9 @@ public final class CompanySettingsController {
     }
 
     record Response(String timezone, String currency, int geofenceRadiusMeters, int trackingIntervalSeconds,
-                    int locationRetentionDays, Integer saleEditWindowMinutes) {
+                    int locationRetentionDays, Integer saleEditWindowMinutes, LocalTime planningDayStart, LocalTime planningDayEnd) {
         static Response from(CompanySettings settings) { return new Response(settings.timezone(), settings.currency(),
-                settings.geofenceRadiusMeters(), settings.trackingIntervalSeconds(), settings.locationRetentionDays(), settings.saleEditWindowMinutes()); }
+                settings.geofenceRadiusMeters(), settings.trackingIntervalSeconds(), settings.locationRetentionDays(), settings.saleEditWindowMinutes(), settings.planningDayStart(), settings.planningDayEnd()); }
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
@@ -96,6 +99,10 @@ public final class CompanySettingsController {
     private static Integer integer(JsonNode request, String field) {
         JsonNode value = request.get(field);
         return value == null || value.isNull() || !value.canConvertToInt() ? null : value.intValue();
+    }
+    private static LocalTime time(JsonNode request, String field) {
+        String value = text(request, field);
+        try { return value == null ? null : LocalTime.parse(value); } catch (Exception ex) { throw new CompanySettingsService.InvalidUpdateException(); }
     }
     private static boolean validSaleEditWindow(JsonNode request) {
         if (!request.has("saleEditWindowMinutes")) return true;

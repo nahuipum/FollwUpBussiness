@@ -1,31 +1,40 @@
 # BE-024 — Desarrollo Backend
 
-**Estado:** `READY_FOR_HANDOFF`  
-**Candidate-ID:** `538b07a + 005b1cc458c4`
+**Estado:** `BLOCKED`
+**Candidate-ID:** `a189f4d + sin diff Backend BE-024 (bloqueado antes de implementación)`
 
-## Alcance y decisiones
+## Alcance y bloqueo
 
-Implementado `POST /routes/{routeId}/publish`: actor/tenant de sesión, `COMPANY_ADMIN` o `SUPERVISOR` con equipo vigente, vendedor activo, `DRAFT` + `If-Match`, snapshot `VALID` de la misma versión, incremento de versión y transición atómica a `PUBLISHED`.
+La remediación solicitada no puede capturar un `PlanningSnapshot` `VALID` para
+una ruta manual sin inventar reglas. Se abrió `docs/architecture/routing/EN-022-planning-snapshot-policy.md`, líneas 24–46, porque el paquete no identificaba
+los contratos públicos de las restricciones requeridas.
 
-La repetición exacta con `Idempotency-Key` retorna la ruta sin segundo write/auditoría/outbox; una solicitud incompatible genera conflicto. `notifySeller` se conserva como booleano opcional del payload de `route.published` v1, incluidos siempre el evento y el destinatario técnico. No se implementó push/BE-053/Mobile.
+Evidencia: `CustomerPortfolioReadUseCase.RouteCustomer` expone solo
+`id`, `location` y `territoryId`; `JourneyStartedStatusUseCase` expone solo
+estado de inicio; `CreateRouteUseCase.Command` no incluye duración, ventanas ni
+disponibilidad. EN-022 exige duración positiva, ventanas duras, jornada,
+zona IANA y matriz completa para `VALID`. La matriz existente no cubre las
+restricciones ausentes.
 
-**Delta QA:** las reservas legacy de CREATE ahora insertan, consultan y completan con `operation='CREATE'`, compatible con la PK de V46 y separada de PUBLISH.
+## Remediación mínima
 
-**Delta Security:** con `followupbussiness.outbox.enabled=false` se registra un caso de uso de publicación de fallo seguro (503) sin requerir `OutboxStore`; con outbox habilitado, `TransactionTemplate` SERIALIZABLE envuelve ruta, auditoría, outbox e idempotencia sin depender de proxy AOP sobre el servicio.
+Exponer puertos públicos tenant-scoped para hechos planificables de `customers`
+(duración/ventanas), disponibilidad de `journeys` y zona IANA de `tenancy`;
+autorizarlos y cablearlos en una transacción de `routing` con `TravelMatrix`.
+Entonces persistir `VALID` solo si todas las fuentes y pares son válidos, o
+`INCOMPLETE`/`FAILED` sin publicar ni emitir efectos en caso contrario.
 
-## Archivos
+## Archivos y verificación
 
-- Caso/puertos/adaptador/configuración: `backend/followupbussiness/src/main/java/com/nahui/followupbussiness/routing/`.
-- Migración: `backend/followupbussiness/src/main/resources/db/migration/V46__separate_route_publish_idempotency.sql`; separa las claves de creación y publicación.
-- Pruebas: `backend/followupbussiness/src/test/java/com/nahui/followupbussiness/routing/application/PublishRouteServiceTest.java` y `backend/followupbussiness/src/test/java/com/nahui/followupbussiness/routing/persistence/JdbcRouteStoreIdempotencyIntegrationTest.java`.
+Solo se actualizaron este handoff y
+`docs/handoffs/governance/BE-024-context-package.md`; no hay cambios Backend,
+contratos REST, eventos ni migraciones. No se ejecutó Maven ni `clean verify`:
+no existe diff de código verificable. `git diff --check` — PASS.
 
-## Verificación
+## Criterio, riesgo y reproducción
 
-- `mvn -q '-Dtest=JdbcRouteStoreIdempotencyIntegrationTest,CreateRouteServiceTest,PublishRouteServiceTest' test` — PASS; Flyway aplica V46 y confirma CREATE/PUBLISH con la misma clave, replay y colisión CREATE.
-- `mvn -q '-Dtest=FollowupbussinessApplicationTests,PublishRouteServiceTest' test` — PASS; el contexto inicia sin `OutboxStore` cuando el flag está deshabilitado.
-- Evidencia previa aún válida: `mvn -q clean verify` — PASS; Flyway aplicó V46 sobre PostgreSQL Testcontainers.
-- `git diff --check` — PASS.
-
-## Criterios y riesgos
-
-Cubiertos éxito, denegación de alcance/vendedor, snapshot ausente, replay idempotente, auditoría y outbox sin PII/coordenadas, coexistencia de clave CREATE/PUBLISH y arranque sin outbox. Riesgo residual: la entrega y el push son responsabilidad posterior de BE-053; reproducir con una ruta DRAFT, snapshot VALID de su versión, vendedor activo y `If-Match` vigente.
+Permanece sin cubrir la creación publicable porque el sistema carece de las
+fuentes autorizadas. Reproducir: crear una ruta manual y publicar con vendedor
+activo e `If-Match` vigente; `PublishRouteService` no encontrará snapshot
+`VALID` y responde conflicto. Riesgo: fijar valores por defecto produciría ETA
+y restricciones falsas y violaría EN-022.

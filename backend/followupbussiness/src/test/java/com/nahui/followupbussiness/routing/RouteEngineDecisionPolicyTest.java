@@ -102,6 +102,14 @@ class RouteEngineDecisionPolicyTest {
     }
 
     @Test
+    void openApiManualRouteVisitsMatchRuntimeInput() throws IOException {
+        String schema = section(read("docs/api/openapi.yaml"), "    CreateRouteRequest:", "    UpdateRouteRequest:");
+        assertThat(schema).contains("required: [date, sellerId, visits]", "customerId: { type: string, format: uuid }",
+                "serviceDurationSeconds: { type: integer, minimum: 1 }")
+                .doesNotContain("customerIds:", "items: { type: string, format: uuid }");
+    }
+
+    @Test
     void publishedEventAndMobileVersionRemainCompatible() throws IOException {
         String eventCatalog = read("docs/events/event-catalog.yaml");
         String openApi = read("docs/api/openapi.yaml");

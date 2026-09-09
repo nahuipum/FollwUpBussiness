@@ -198,7 +198,7 @@ public final class RouteController {
     public ResponseEntity<?> create(@RequestHeader("Idempotency-Key") UUID key, @RequestBody Request request, @AuthenticationPrincipal AuthenticatedActor actor, HttpServletRequest http) {
         UUID correlation = correlationId(http);
         try {
-            Route route = create.create(new CreateRouteUseCase.Command(request.name(), request.date(), request.sellerId(), request.startLocation(), request.customerIds(), key), actor);
+            Route route = create.create(new CreateRouteUseCase.Command(request.name(), request.date(), request.sellerId(), request.visits(), key), actor);
             meters.counter("routes.created").increment();
             return ResponseEntity.created(URI.create("/routes/" + route.id())).header("X-Correlation-Id", correlation.toString()).body(view(route, actor));
         } catch (CreateRouteUseCase.Forbidden ex) {
@@ -259,7 +259,7 @@ public final class RouteController {
                 .collect(java.util.stream.Collectors.toMap(CustomerPortfolioReadUseCase.RouteCustomerName::id, CustomerPortfolioReadUseCase.RouteCustomerName::name));
     }
 
-    public record Request(String name, LocalDate date, UUID sellerId, GeoPoint startLocation, List<UUID> customerIds) {
+    public record Request(String name, LocalDate date, UUID sellerId, List<CreateRouteUseCase.Visit> visits) {
     }
     public record ReorderRequest(Long proposalVersion, List<UUID> routePointIds) { }
     public record DirectionsPreviewRequest(long baseRouteVersion, List<UUID> routePointIds) { }

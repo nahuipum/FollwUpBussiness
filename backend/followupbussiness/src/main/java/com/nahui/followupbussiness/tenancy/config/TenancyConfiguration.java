@@ -53,10 +53,10 @@ public class TenancyConfiguration {
     @Bean
     CompanySettingsUseCase companySettingsUseCase(JdbcTemplate jdbcTemplate, PlatformTransactionManager transactionManager,
                                                   @Qualifier("transactionalAuditEntryUseCase") RecordAuditEntryUseCase audit,
-                                                  MeterRegistry meters) {
+                                                  MeterRegistry meters, com.nahui.followupbussiness.routing.application.port.in.InvalidatePlanningSnapshotsUseCase snapshots) {
         var service = new CompanySettingsService(new JdbcCompanySettingsStore(jdbcTemplate), audit,
                 meters.counter("company.settings.updated"), meters.counter("company.settings.rejected"),
-                meters.counter("company.settings.conflicts"), Clock.systemUTC());
+                meters.counter("company.settings.conflicts"), Clock.systemUTC(), snapshots);
         var transaction = new TransactionTemplate(transactionManager);
         return new CompanySettingsUseCase() {
             @Override public java.util.Optional<com.nahui.followupbussiness.tenancy.domain.model.Company> get(
