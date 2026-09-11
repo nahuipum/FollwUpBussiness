@@ -1,15 +1,20 @@
-# FE-004 — QA independiente (revalidación)
+# FE-004 — Handoff QA
 
 **Estado:** PASS  
-**Candidate-ID:** `HEAD+71a31cc / FE-004-95444c0a9a91`
+**Candidate-ID:** `ceb2c20+8af0333a` (HEAD `ceb2c20`; firma de worktree revisada).
 
-| Criterio | Implementación | Evidencia |
+## Delta verificado
+
+| Criterio | Implementación | Prueba/evidencia |
 |---|---|---|
-| Foco inicial | `StatusConfirmation` pasa su `dialogRef` a `useFocusTrap` | Prueba focalizada: foco en «Cancelar» al abrir |
-| Tab / Shift+Tab | Hook compartido cicla último→primero y primero→último | Rama `event.shiftKey` revisada; prueba focalizada confirma Tab |
-| Escape y retorno | Hook cierra mediante `onClose` y su limpieza restaura el disparador guardado | Prueba focalizada confirma cierre y foco en «Más acciones» |
-| Bloquear/reactivar e integración | El mismo `StatusConfirmation` atiende ambos estados; solo se añadieron hook, ref y prueba | Sin cambios a API, mutaciones, permisos, rutas, CSS o `DashboardLayout` |
+| Contraste peligroso light/dark | `--visual-on-danger: #ffffff` en ambos temas; botón golden de bloqueo lo consume | Aserción Playwright de color computado `rgb(255, 255, 255)`; visuales pasan sin actualización |
+| Confirmaciones de bloqueo | Desktop, móvil y dark conservan composición, foco inicial y CTA peligroso blanco | Cuatro baselines canónicos inspeccionados antes de ejecutar; foco en «Cancelar» confirmado |
+| Reactivación | Conserva CTA de marca y foco inicial aprobado | Baseline desktop inspeccionado y prueba visual aprobada |
 
-**Reproducción:** como `COMPANY_ADMIN`, abrir «Más acciones» y elegir bloquear (o reactivar). El foco inicia en «Cancelar»; `Tab` y `Shift+Tab` permanecen entre acciones; `Escape` cierra y devuelve el foco al botón que abrió el menú.
+## Evidencia
 
-**Validación:** `npm test -- src/features/company-users/CompanyUsersPageRoute.test.tsx` correcto (4/4). Se reutiliza `npm run typecheck` correcto del handoff de Desarrollo para este Candidate-ID. Riesgo residual heredado, no alterado por esta remediación: faltan pruebas focalizadas de 403/409/422, vacío/error y logout durante mutación.
+- `npm run test -- src/features/company-users/CompanyUsersPageRoute.test.tsx src/shared/ui/ConfirmationDialog.test.tsx` — 25/25.
+- `npm run test:visual -- tests/visual/company-users.visual.spec.ts --grep 'FE-004 confirm'` — 5/5 sin `--update` (incluye geometría móvil 360).
+- `git diff --check` — correcto.
+
+No se modificó producción ni snapshots durante QA. Riesgo residual bajo: los baselines son Win32; el delta queda acotado al color de texto de la acción peligrosa.

@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>followUp Business · Golden resumen de empresa</title>
+  <link rel="stylesheet" href="assets/golden-system.css">
+  <script src="assets/golden-icons.js" defer></script>
+  <style>
+    /* Extensiones de composición: consumen exclusivamente tokens del sistema golden. */
+    .company-sidebar { overflow: hidden; }
+    .sidebar-nav-region { min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+    .company-sidebar .sidebar-brand { flex: 0 0 auto; }
+    .company-sidebar .sidebar-context { margin-top: -14px; }
+    .company-sidebar .nav { gap: var(--space-1); }
+    .company-sidebar .nav-item,
+    .company-sidebar .nav-group-trigger {
+      width: 100%;
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 9px 11px;
+      border: 0;
+      border-radius: 9px;
+      color: var(--text-soft);
+      background: transparent;
+      font-weight: 600;
+      text-align: left;
+      text-decoration: none;
+    }
+    .company-sidebar .nav-item:hover,
+    .company-sidebar .nav-group-trigger:hover { color: var(--text-strong); background: var(--surface-subtle); }
+    .company-sidebar .nav-item.active { color: var(--brand-strong); background: var(--brand-soft); }
+    .company-sidebar .nav-item[aria-disabled="true"] { color: var(--text-muted); cursor: default; opacity: .72; }
+    .company-sidebar .nav-item[aria-disabled="true"]:hover { background: transparent; }
+    .nav-group-trigger .nav-chevron { width: 16px; height: 16px; margin-left: auto; transition: transform .16s ease; }
+    .nav-group-trigger[aria-expanded="true"] { color: var(--text-strong); background: var(--surface-subtle); }
+    .nav-group-trigger[aria-expanded="true"] .nav-chevron { transform: rotate(180deg); }
+    .nav-children { display: grid; gap: 2px; margin: 3px 0 5px 18px; padding-left: 12px; border-left: 1px solid var(--border); }
+    .nav-children .nav-item { min-height: 40px; padding: 8px 10px; font-size: 13px; }
+    .nav-children .icon { width: 18px; height: 18px; }
+
+    .dashboard-profile-card {
+      position: relative;
+      display: grid;
+      flex: 0 0 auto;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 4px 10px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      background: var(--surface-subtle);
+    }
+    .dashboard-profile-card .avatar { grid-row: 1 / span 2; }
+    .dashboard-profile-card strong,
+    .dashboard-profile-card small { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dashboard-profile-card strong { color: var(--text-strong); font-size: 13px; }
+    .dashboard-profile-card small { color: var(--text-muted); font-size: 12px; }
+    .dashboard-profile-card p { grid-column: 1 / -1; margin: 8px 0 0; padding-top: 9px; color: var(--text-muted); border-top: 1px solid var(--border); font-size: 12px; }
+    .sidebar-logout { grid-column: 1 / -1; width: 100%; margin-top: 5px; }
+
+    .top-profile-wrap { position: relative; }
+    .top-profile-trigger {
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 4px 7px;
+      border: 0;
+      border-radius: 10px;
+      background: transparent;
+    }
+    .top-profile-trigger:hover { background: var(--surface-subtle); }
+    .top-profile-trigger .nav-chevron { width: 16px; height: 16px; color: var(--text-muted); transition: transform .16s ease; }
+    .top-profile-trigger[aria-expanded="true"] .nav-chevron { transform: rotate(180deg); }
+    .profile-menu {
+      position: absolute;
+      z-index: 45;
+      top: calc(100% + 8px);
+      right: 0;
+      width: 224px;
+      padding: 7px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      background: var(--surface-raised);
+      box-shadow: var(--shadow-md);
+    }
+    .profile-menu-head { padding: 9px 10px 11px; border-bottom: 1px solid var(--border); }
+    .profile-menu-head strong,
+    .profile-menu-head span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .profile-menu-head strong { color: var(--text-strong); font-size: 13px; }
+    .profile-menu-head span { margin-top: 2px; color: var(--text-muted); font-size: 12px; }
+    .profile-menu button { width: 100%; margin-top: 6px; justify-content: flex-start; border-color: transparent; background: transparent; }
+
+    .dashboard-intro { margin-bottom: var(--space-6); }
+    .dashboard-intro .welcome { max-width: 760px; margin-top: 10px; color: var(--text-soft); font-size: 15px; line-height: 22px; }
+    .section-heading { margin-bottom: var(--space-4); }
+    .section-heading h2 { margin-bottom: 3px; font-size: 18px; line-height: 26px; }
+    .section-heading p { margin-bottom: 0; color: var(--text-muted); font-size: 13px; }
+
+    .quick-access-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .quick-access-card {
+      position: relative;
+      min-width: 0;
+      min-height: 132px;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      grid-template-rows: auto 1fr;
+      align-items: start;
+      gap: 10px 12px;
+      padding: 17px 18px;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      background: var(--surface);
+      box-shadow: var(--shadow-sm);
+      text-decoration: none;
+      transition: border-color .16s ease, background-color .16s ease, box-shadow .16s ease, transform .16s ease;
+    }
+    .quick-access-card:hover {
+      border-color: var(--brand-border);
+      background: color-mix(in srgb, var(--surface) 78%, var(--brand-soft));
+      box-shadow: var(--shadow-md);
+      transform: translateY(-1px);
+    }
+    .quick-access-card:active { transform: translateY(0); }
+    .quick-access-icon {
+      width: 40px;
+      height: 40px;
+      display: grid;
+      grid-row: 1 / span 2;
+      place-items: center;
+      color: var(--brand-strong);
+      border-radius: 11px;
+      background: var(--brand-soft);
+    }
+    .quick-access-copy { min-width: 0; }
+    .quick-access-copy h3 { margin: 1px 0 4px; font-size: 15px; line-height: 20px; }
+    .quick-access-copy p { margin: 0; color: var(--text-muted); font-size: 12px; line-height: 17px; }
+    .quick-access-arrow { width: 18px; height: 18px; margin-top: 2px; color: var(--text-muted); }
+    .quick-access-card:hover .quick-access-arrow { color: var(--brand-strong); transform: translateX(2px); }
+
+    .future-summary {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-3);
+      margin-top: var(--space-5);
+      padding: 14px 16px;
+      color: var(--text-soft);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      background: var(--surface-subtle);
+    }
+    .future-summary .state-icon { width: 36px; height: 36px; flex: 0 0 auto; margin: 0; border-radius: 10px; }
+    .future-summary strong { display: block; margin-bottom: 2px; color: var(--text-strong); }
+    .future-summary p { margin: 0; color: var(--text-muted); font-size: 13px; line-height: 18px; }
+    body[data-state="future-summary"] .future-summary { border-color: var(--brand-border); background: var(--brand-soft); box-shadow: var(--ring); }
+
+    .mobile-backdrop { display: none; }
+
+    @media (max-width: 1060px) {
+      .company-sidebar { overflow-y: auto; }
+      .sidebar-nav-region { overflow: visible; }
+      .company-sidebar .nav-item,
+      .company-sidebar .nav-group-trigger { min-height: 44px; }
+      .company-sidebar .sidebar-logout { min-height: 44px; }
+      .quick-access-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      body[data-nav="open"] .mobile-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 29;
+        display: block;
+        border: 0;
+        background: var(--overlay);
+      }
+    }
+
+    @media (max-width: 620px) {
+      .topbar { gap: var(--space-2); }
+      .top-left { flex: 1 1 auto; overflow: hidden; }
+      .crumb { flex: 1 1 auto; overflow: hidden; }
+      .crumb strong { display: block; min-width: 0; }
+      .top-profile-trigger { width: 44px; padding: 4px; }
+      .top-profile-trigger .nav-chevron { display: none; }
+      .profile-menu { position: fixed; top: 62px; right: 14px; }
+      .app-main { padding-top: 28px; }
+      .dashboard-intro { margin-bottom: var(--space-5); }
+      .dashboard-intro .welcome { font-size: 14px; line-height: 20px; }
+      .quick-access-grid { grid-template-columns: 1fr; gap: 10px; }
+      .quick-access-card { min-height: 112px; padding: 15px; }
+      .future-summary { margin-top: var(--space-4); padding: 13px 14px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .quick-access-card,
+      .quick-access-arrow,
+      .nav-chevron { transition: none !important; }
+    }
+  </style>
+</head>
+<body data-states="ready profile-open clients-expanded mobile-menu-open future-summary">
+  <!--
+    Mockup presentacional del inicio del workspace de empresa.
+    Estados: ?state=ready|profile-open|clients-expanded|mobile-menu-open|future-summary
+    Agregar &theme=dark activa el tema oscuro; &guide=1 muestra el selector.
+    Los accesos representan rutas ya existentes para COMPANY_ADMIN. La autorización pertenece al código productivo.
+    El resumen operativo futuro no representa métricas, consultas ni comportamiento de FE-030.
+  -->
+  <div class="app-shell">
+    <aside id="company-sidebar" class="sidebar company-sidebar" aria-label="Navegación principal">
+      <a class="sidebar-brand brand-plate" href="/company/dashboard" aria-label="followUp Business, ir al resumen">
+        <img class="brand-logo" src="assets/brand/followup-logo.png" alt="">
+      </a>
+      <span class="sidebar-context">Comercial Andina</span>
+
+      <div class="sidebar-nav-region">
+        <p class="nav-label">Empresa</p>
+        <nav class="nav" aria-label="Secciones de la empresa">
+          <a class="nav-item active" href="/company/dashboard" aria-current="page"><svg class="icon"><use href="#i-grid"></use></svg>Resumen</a>
+          <a class="nav-item" href="/company/administrators-supervisors"><svg class="icon"><use href="#i-users"></use></svg>Administradores y supervisores</a>
+          <a class="nav-item" href="/company/sellers"><svg class="icon"><use href="#i-users"></use></svg>Vendedores</a>
+          <a class="nav-item" href="/company/territories"><svg class="icon"><use href="#i-pin"></use></svg>Zonas</a>
+
+          <section class="nav-group" aria-labelledby="clients-group-label">
+            <button id="clients-group-label" class="nav-group-trigger" type="button" aria-expanded="false" aria-controls="clients-navigation" data-clients-toggle>
+              <svg class="icon"><use href="#i-client"></use></svg>
+              <span>Clientes</span>
+              <svg class="icon nav-chevron"><use href="#i-chevron"></use></svg>
+            </button>
+            <div id="clients-navigation" class="nav-children" role="group" aria-label="Opciones de Clientes" hidden>
+              <a class="nav-item" href="/company/clients"><svg class="icon"><use href="#i-client"></use></svg>Gestión de clientes</a>
+              <a class="nav-item" href="/company/clients/map"><svg class="icon"><use href="#i-map"></use></svg>Mapa general</a>
+              <a class="nav-item" href="/company/customer-imports"><svg class="icon"><use href="#i-empty"></use></svg>Carga de clientes</a>
+            </div>
+          </section>
+
+          <a class="nav-item" href="/company/customer-assignments"><svg class="icon"><use href="#i-client"></use></svg>Asignar cartera</a>
+          <a class="nav-item" href="/company/routes"><svg class="icon"><use href="#i-route"></use></svg>Rutas</a>
+          <span class="nav-item" aria-disabled="true" title="Sin ruta disponible"><svg class="icon"><use href="#i-report"></use></svg>Auditoría</span>
+          <a class="nav-item" href="/company/settings"><svg class="icon"><use href="#i-settings"></use></svg>Configuración</a>
+        </nav>
+      </div>
+
+      <section class="dashboard-profile-card" aria-label="Contexto de usuario">
+        <span class="avatar">AM</span>
+        <span><strong>Ana Morales</strong><small>Administradora de empresa</small></span>
+        <p>Comercial Andina</p>
+        <button class="btn btn-compact sidebar-logout" type="button"><svg class="icon icon-sm"><use href="#i-arrow"></use></svg>Cerrar sesión</button>
+      </section>
+    </aside>
+
+    <header class="topbar">
+      <div class="top-left">
+        <button class="menu-control" type="button" data-nav-toggle aria-label="Abrir menú" aria-expanded="false" aria-controls="company-sidebar"><svg class="icon"><use href="#i-menu"></use></svg></button>
+        <nav class="crumb" aria-label="Breadcrumbs"><span>Comercial Andina</span><span aria-hidden="true">/</span><strong aria-current="page">Resumen</strong></nav>
+      </div>
+      <div class="top-actions">
+        <button class="theme-control" type="button" role="switch" aria-checked="false" data-theme-toggle aria-label="Activar modo oscuro"><svg class="icon"><use href="#i-moon"></use></svg></button>
+        <div class="top-profile-wrap">
+          <button class="top-profile-trigger" type="button" aria-label="Abrir opciones del perfil de Ana Morales" aria-haspopup="menu" aria-expanded="false" aria-controls="profile-menu" data-profile-toggle>
+            <span class="avatar">AM</span>
+            <span class="person-copy"><strong>Ana Morales</strong><span>Administradora</span></span>
+            <svg class="icon nav-chevron"><use href="#i-chevron"></use></svg>
+          </button>
+          <div id="profile-menu" class="profile-menu" role="menu" hidden>
+            <div class="profile-menu-head"><strong>Ana Morales</strong><span>Comercial Andina</span></div>
+            <button class="btn" type="button" role="menuitem"><svg class="icon icon-sm"><use href="#i-arrow"></use></svg>Cerrar sesión</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="app-main" id="main-content">
+      <div class="page">
+        <header class="page-head dashboard-intro">
+          <div>
+            <span class="eyebrow">Workspace de empresa</span>
+            <h1>Resumen</h1>
+            <p class="welcome">Bienvenida a Comercial Andina. Desde aquí puedes acceder a las áreas disponibles para organizar tu equipo, clientes, territorios y rutas.</p>
+          </div>
+        </header>
+
+        <section aria-labelledby="quick-access-title">
+          <header class="section-heading">
+            <h2 id="quick-access-title">Accesos rápidos</h2>
+            <p>Continúa con una de las tareas habituales del workspace.</p>
+          </header>
+          <div class="quick-access-grid">
+            <a class="quick-access-card" href="/company/administrators-supervisors">
+              <span class="quick-access-icon"><svg class="icon"><use href="#i-users"></use></svg></span>
+              <div class="quick-access-copy"><h3>Administradores y supervisores</h3><p>Consulta y gestiona a quienes coordinan la operación.</p></div>
+              <svg class="icon quick-access-arrow"><use href="#i-arrow"></use></svg>
+            </a>
+            <a class="quick-access-card" href="/company/sellers">
+              <span class="quick-access-icon"><svg class="icon"><use href="#i-users"></use></svg></span>
+              <div class="quick-access-copy"><h3>Vendedores</h3><p>Accede al equipo comercial de la empresa.</p></div>
+              <svg class="icon quick-access-arrow"><use href="#i-arrow"></use></svg>
+            </a>
+            <a class="quick-access-card" href="/company/territories">
+              <span class="quick-access-icon"><svg class="icon"><use href="#i-pin"></use></svg></span>
+              <div class="quick-access-copy"><h3>Zonas</h3><p>Organiza los territorios disponibles para la operación.</p></div>
+              <svg class="icon quick-access-arrow"><use href="#i-arrow"></use></svg>
+            </a>
+            <a class="quick-access-card" href="/company/clients">
+              <span class="quick-access-icon"><svg class="icon"><use href="#i-client"></use></svg></span>
+              <div class="quick-access-copy"><h3>Gestión de clientes</h3><p>Consulta y organiza la cartera de clientes.</p></div>
+              <svg class="icon quick-access-arrow"><use href="#i-arrow"></use></svg>
+            </a>
+            <a class="quick-access-card" href="/company/clients/map">
+              <span class="quick-access-icon"><svg class="icon"><use href="#i-map"></use></svg></span>
+              <div class="quick-access-copy"><h3>Mapa de clientes</h3><p>Ubica visualmente los clientes de la empresa.</p></div>
+              <svg class="icon quick-access-arrow"><use href="#i-arrow"></use></svg>
+            </a>
+            <a class="quick-access-card" href="/company/customer-imports">
+              <span class="quick-access-icon"><svg class="icon"><use href="#i-empty"></use></svg></span>
+              <div class="quick-access-copy"><h3>Carga de clientes</h3><p>Accede al flujo disponible para importar clientes.</p></div>
+              <svg class="icon quick-access-arrow"><use href="#i-arrow"></use></svg>
+            </a>
+            <a class="quick-access-card" href="/company/customer-assignments">
+              <span class="quick-access-icon"><svg class="icon"><use href="#i-client"></use></svg></span>
+              <div class="quick-access-copy"><h3>Asignar cartera</h3><p>Distribuye clientes entre los vendedores disponibles.</p></div>
+              <svg class="icon quick-access-arrow"><use href="#i-arrow"></use></svg>
+            </a>
+            <a class="quick-access-card" href="/company/routes">
+              <span class="quick-access-icon"><svg class="icon"><use href="#i-route"></use></svg></span>
+              <div class="quick-access-copy"><h3>Rutas</h3><p>Consulta y organiza la planificación de recorridos.</p></div>
+              <svg class="icon quick-access-arrow"><use href="#i-arrow"></use></svg>
+            </a>
+            <a class="quick-access-card" href="/company/settings">
+              <span class="quick-access-icon"><svg class="icon"><use href="#i-settings"></use></svg></span>
+              <div class="quick-access-copy"><h3>Configuración</h3><p>Revisa las opciones disponibles del workspace.</p></div>
+              <svg class="icon quick-access-arrow"><use href="#i-arrow"></use></svg>
+            </a>
+          </div>
+        </section>
+
+        <aside class="future-summary" aria-labelledby="future-summary-title">
+          <span class="state-icon"><svg class="icon"><use href="#i-info"></use></svg></span>
+          <div><strong id="future-summary-title">Resumen operativo</strong><p>Tu resumen operativo aparecerá aquí cuando la información diaria esté disponible.</p></div>
+        </aside>
+      </div>
+    </main>
+
+    <button class="mobile-backdrop" type="button" data-nav-close aria-label="Cerrar menú"></button>
+  </div>
+
+  <aside class="mockup-guide" aria-label="Controles del mockup">
+    <label for="state">Estado</label>
+    <select id="state" data-state-selector></select>
+    <button class="btn btn-icon btn-compact" type="button" data-theme-toggle aria-label="Cambiar tema"><svg class="icon"><use href="#i-moon"></use></svg></button>
+  </aside>
+
+  <script src="assets/golden-states.js"></script>
+  <script>
+    (function () {
+      "use strict";
+
+      const body = document.body;
+      const menuButton = document.querySelector("[data-nav-toggle]");
+      const closeButton = document.querySelector("[data-nav-close]");
+      const clientsButton = document.querySelector("[data-clients-toggle]");
+      const clientsNavigation = document.querySelector("#clients-navigation");
+      const profileButton = document.querySelector("[data-profile-toggle]");
+      const profileMenu = document.querySelector("#profile-menu");
+
+      function setNavigation(open, restoreFocus) {
+        body.dataset.nav = open ? "open" : "closed";
+        menuButton?.setAttribute("aria-expanded", String(open));
+        menuButton?.setAttribute("aria-label", open ? "Cerrar menú" : "Abrir menú");
+        if (!open && restoreFocus && menuButton instanceof HTMLElement) menuButton.focus();
+      }
+
+      function setClientsExpanded(expanded) {
+        clientsButton?.setAttribute("aria-expanded", String(expanded));
+        if (clientsNavigation instanceof HTMLElement) clientsNavigation.hidden = !expanded;
+      }
+
+      function setProfileOpen(open, restoreFocus) {
+        profileButton?.setAttribute("aria-expanded", String(open));
+        if (profileMenu instanceof HTMLElement) profileMenu.hidden = !open;
+        if (!open && restoreFocus && profileButton instanceof HTMLElement) profileButton.focus();
+      }
+
+      const initialState = body.dataset.state || "ready";
+      setNavigation(initialState === "mobile-menu-open", false);
+      setClientsExpanded(initialState === "clients-expanded");
+      setProfileOpen(initialState === "profile-open", false);
+
+      menuButton?.addEventListener("click", function () {
+        const open = body.dataset.nav === "open";
+        menuButton.setAttribute("aria-expanded", String(open));
+        menuButton.setAttribute("aria-label", open ? "Cerrar menú" : "Abrir menú");
+      });
+      closeButton?.addEventListener("click", function () { setNavigation(false, true); });
+      clientsButton?.addEventListener("click", function () {
+        setClientsExpanded(clientsButton.getAttribute("aria-expanded") !== "true");
+      });
+      profileButton?.addEventListener("click", function () {
+        setProfileOpen(profileButton.getAttribute("aria-expanded") !== "true", false);
+      });
+
+      document.addEventListener("click", function (event) {
+        if (!(event.target instanceof Node)) return;
+        if (profileMenu instanceof HTMLElement && !profileMenu.hidden && !profileMenu.contains(event.target) && !profileButton?.contains(event.target)) setProfileOpen(false, false);
+      });
+      document.addEventListener("keydown", function (event) {
+        if (event.key !== "Escape") return;
+        if (profileMenu instanceof HTMLElement && !profileMenu.hidden) setProfileOpen(false, true);
+        else if (body.dataset.nav === "open") setNavigation(false, true);
+      });
+
+      document.querySelectorAll("[data-theme-toggle]").forEach(function (control) {
+        function syncThemeControl() {
+          const dark = body.dataset.theme === "dark";
+          control.setAttribute("aria-checked", String(dark));
+          if (control === document.querySelector(".theme-control")) control.setAttribute("aria-label", dark ? "Activar modo claro" : "Activar modo oscuro");
+        }
+        syncThemeControl();
+        control.addEventListener("click", syncThemeControl);
+      });
+    })();
+  </script>
+</body>
+</html>

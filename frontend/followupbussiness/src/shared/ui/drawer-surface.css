@@ -1,0 +1,8 @@
+.drawer-surface-layer { position: fixed; z-index: 60; inset: 0; }
+.drawer-surface__scrim { position: absolute; inset: 0; background: var(--visual-overlay, rgb(15 33 55 / 56%)); }
+.drawer-surface { position: absolute; inset: 0 0 0 auto; width: min(500px, 100%); display: grid; grid-template-rows: auto minmax(0, 1fr) auto; overflow: hidden; border-left: 1px solid var(--visual-border); color: var(--visual-text); background: var(--visual-surface-raised); box-shadow: var(--visual-shadow-lg); }
+.drawer-surface__header { min-width: 0; }
+.drawer-surface__body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.drawer-surface__footer { display: flex; justify-content: flex-end; gap: var(--visual-space-2); padding: var(--visual-space-4) var(--visual-space-5); border-top: 1px solid var(--visual-border); background: var(--visual-surface-subtle); }
+@media (max-width: 620px) { .drawer-surface { width: 100%; border-left: 0; }.drawer-surface__footer { padding: 14px 18px; }.drawer-surface__footer > button { flex: 1; } }
+@media (prefers-reduced-motion: reduce) { .drawer-surface, .drawer-surface * { transition: none !important; } }

@@ -1,3 +1,12 @@
-export function CompanyDashboardPage() {
-  return <div aria-label="Contenido del panel de empresa" />;
-}
+import { ClipboardList, ContactRound, Map, MapPinned, Route, Settings, Users } from "lucide-react";
+import { navigate } from "../../app/navigation";
+import { InformationalState, PageContainer, PageHeader, QuickAccessCard, QuickAccessGrid } from "../../shared/ui/dashboard-primitives";
+import { getSessionCompanyLabel, getSessionIdentity } from "../auth/auth";
+import "./company-dashboard.css";
+
+type QuickAccess = { label: string; description: string; path: string; icon: typeof Users };
+const administratorAccess: readonly QuickAccess[] = [
+  { label: "Administradores y supervisores", description: "Consulta y gestiona a quienes coordinan la operación.", path: "/company/administrators-supervisors", icon: Users }, { label: "Vendedores", description: "Accede al equipo comercial de la empresa.", path: "/company/sellers", icon: Users }, { label: "Zonas", description: "Organiza los territorios disponibles para la operación.", path: "/company/territories", icon: MapPinned }, { label: "Gestión de clientes", description: "Consulta y organiza la cartera de clientes.", path: "/company/clients", icon: ContactRound }, { label: "Mapa de clientes", description: "Ubica visualmente los clientes de la empresa.", path: "/company/clients/map", icon: Map }, { label: "Carga de clientes", description: "Accede al flujo disponible para importar clientes.", path: "/company/customer-imports", icon: ClipboardList }, { label: "Asignar cartera", description: "Distribuye clientes entre los vendedores disponibles.", path: "/company/customer-assignments", icon: ContactRound }, { label: "Rutas", description: "Consulta y organiza la planificación de recorridos.", path: "/company/routes", icon: Route }, { label: "Configuración", description: "Revisa las opciones disponibles del workspace.", path: "/company/settings", icon: Settings },
+];
+const memberAccess = administratorAccess.filter(({ path }) => !["/company/territories", "/company/customer-imports", "/company/customer-assignments"].includes(path));
+export function CompanyDashboardPage() { const companyName = getSessionCompanyLabel() ?? "Empresa"; const quickAccess = getSessionIdentity()?.roles.includes("COMPANY_ADMIN") ? administratorAccess : memberAccess; return <PageContainer><PageHeader eyebrow="Workspace de empresa" title="Resumen">Bienvenida a {companyName}. Desde aquí puedes acceder a las áreas disponibles para organizar tu equipo, clientes, territorios y rutas.</PageHeader><QuickAccessGrid title="Accesos rápidos" description="Continúa con una de las tareas habituales del workspace.">{quickAccess.map(({ label, description, path, icon }) => <QuickAccessCard key={path} label={label} description={description} icon={icon} onSelect={() => navigate(path)} />)}</QuickAccessGrid><InformationalState title="Resumen operativo">Tu resumen operativo aparecerá aquí cuando la información diaria esté disponible.</InformationalState></PageContainer>; }

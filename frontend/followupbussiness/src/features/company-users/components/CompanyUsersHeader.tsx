@@ -15,6 +15,7 @@ export function CompanyUsersHeader({
   return (
     <header className="company-users__heading">
       <div>
+        <span className="company-users__eyebrow">Equipo y accesos</span>
         <h1 id="company-users-title">Administradores y supervisores</h1>
         <p>Administra accesos de administradores y supervisores.</p>
       </div>

@@ -165,7 +165,7 @@ test("blocks recovery resubmission during a 429 cooldown and shows 503 as unavai
   );
   await waitFor(() =>
     expect(
-      screen.getByRole("button", { name: "Enviar enlace de recuperación" }),
+      screen.getByRole("button", { name: "Espera 30 s" }),
     ).toHaveProperty("disabled", true),
   );
   expect(screen.getByRole("status").textContent).toContain(
@@ -330,8 +330,8 @@ test("uses a decorative Lucide lock icon in the shared brand footer", () => {
   expect(
     screen.getByText("Plataforma de uso interno · Flujo protegido"),
   ).toBeTruthy();
-  expect(document.querySelector(".brand-foot-icon svg")).toBeTruthy();
-  expect(document.querySelector(".brand-foot")?.textContent).not.toContain("◌");
+  expect(document.querySelector(".login-golden__brand-footer svg")).toBeTruthy();
+  expect(document.querySelector(".login-golden__brand-footer")?.textContent).not.toContain("◌");
 });
 
 test("shows an expired token state and clears the URL token after reset success", async () => {

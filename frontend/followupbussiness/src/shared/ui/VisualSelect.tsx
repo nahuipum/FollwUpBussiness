@@ -17,6 +17,7 @@ type Props<T extends string> = {
   ariaLabel: string;
   disabled?: boolean;
   invalid?: boolean;
+  variant?: "default" | "golden";
 };
 
 function getOptionId(listboxId: string, index: number) {
@@ -30,6 +31,7 @@ export function VisualSelect<T extends string>({
   ariaLabel,
   disabled = false,
   invalid = false,
+  variant = "default",
 }: Props<T>) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -115,7 +117,7 @@ export function VisualSelect<T extends string>({
       window.removeEventListener("resize", update);
       window.removeEventListener("scroll", update, true);
     };
-  }, [open]);
+  }, [open, options.length]);
 
   useEffect(() => {
     if (!open || activeIndex < 0) return;
@@ -132,7 +134,7 @@ export function VisualSelect<T extends string>({
   };
 
   return (
-    <div ref={rootRef} className="visual-select">
+    <div ref={rootRef} className={`visual-select visual-select--${variant}`}>
       <button
         ref={triggerRef}
         type="button"
@@ -193,7 +195,7 @@ export function VisualSelect<T extends string>({
         <div
           ref={menuRef}
           id={listboxId}
-          className="visual-select__menu"
+          className={`visual-select__menu visual-select__menu--${variant}`}
           role="listbox"
           aria-label={ariaLabel}
           style={position}

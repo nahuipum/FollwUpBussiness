@@ -1,0 +1,832 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>followUp Business · FE-004 Administradores y supervisores</title>
+  <link rel="stylesheet" href="assets/golden-system.css">
+  <script src="assets/golden-icons.js" defer></script>
+  <style>
+    /* Extensiones locales de composición: solo consumen tokens del sistema golden. */
+    .company-sidebar { overflow: hidden; }
+    .sidebar-nav-region { min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+    .company-sidebar .sidebar-brand { flex: 0 0 auto; }
+    .company-sidebar .sidebar-context { margin-top: -14px; }
+    .company-sidebar .nav { gap: var(--space-1); }
+    .company-sidebar .nav-item,
+    .company-sidebar .nav-group-trigger {
+      width: 100%;
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 9px 11px;
+      border: 0;
+      border-radius: 9px;
+      color: var(--text-soft);
+      background: transparent;
+      font-weight: 600;
+      text-align: left;
+      text-decoration: none;
+    }
+    .company-sidebar .nav-item:hover,
+    .company-sidebar .nav-group-trigger:hover { color: var(--text-strong); background: var(--surface-subtle); }
+    .company-sidebar .nav-item.active { color: var(--brand-strong); background: var(--brand-soft); }
+    .company-sidebar .nav-item[aria-disabled="true"] { color: var(--text-muted); cursor: default; opacity: .72; }
+    .company-sidebar .nav-item[aria-disabled="true"]:hover { background: transparent; }
+    .nav-group-trigger .nav-chevron { width: 16px; height: 16px; margin-left: auto; transition: transform .16s ease; }
+    .nav-group-trigger[aria-expanded="true"] { color: var(--text-strong); background: var(--surface-subtle); }
+    .nav-group-trigger[aria-expanded="true"] .nav-chevron { transform: rotate(180deg); }
+    .nav-children { display: grid; gap: 2px; margin: 3px 0 5px 18px; padding-left: 12px; border-left: 1px solid var(--border); }
+    .nav-children .nav-item { min-height: 40px; padding: 8px 10px; font-size: 13px; }
+    .nav-children .icon { width: 18px; height: 18px; }
+
+    .dashboard-profile-card {
+      position: relative;
+      display: grid;
+      flex: 0 0 auto;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 4px 10px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      background: var(--surface-subtle);
+    }
+    .dashboard-profile-card .avatar { grid-row: 1 / span 2; }
+    .dashboard-profile-card strong,
+    .dashboard-profile-card small { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dashboard-profile-card strong { color: var(--text-strong); font-size: 13px; }
+    .dashboard-profile-card small { color: var(--text-muted); font-size: 12px; }
+    .dashboard-profile-card p { grid-column: 1 / -1; margin: 8px 0 0; padding-top: 9px; color: var(--text-muted); border-top: 1px solid var(--border); font-size: 12px; }
+    .sidebar-logout { grid-column: 1 / -1; width: 100%; margin-top: 5px; }
+
+    .top-profile-wrap { position: relative; }
+    .top-profile-trigger {
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 4px 7px;
+      border: 0;
+      border-radius: 10px;
+      background: transparent;
+    }
+    .top-profile-trigger:hover { background: var(--surface-subtle); }
+    .top-profile-trigger .nav-chevron { width: 16px; height: 16px; color: var(--text-muted); transition: transform .16s ease; }
+    .top-profile-trigger[aria-expanded="true"] .nav-chevron { transform: rotate(180deg); }
+    .profile-menu {
+      position: absolute;
+      z-index: 45;
+      top: calc(100% + 8px);
+      right: 0;
+      width: 224px;
+      padding: 7px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      background: var(--surface-raised);
+      box-shadow: var(--shadow-md);
+    }
+    .profile-menu-head { padding: 9px 10px 11px; border-bottom: 1px solid var(--border); }
+    .profile-menu-head strong,
+    .profile-menu-head span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .profile-menu-head strong { color: var(--text-strong); font-size: 13px; }
+    .profile-menu-head span { margin-top: 2px; color: var(--text-muted); font-size: 12px; }
+    .profile-menu button { width: 100%; margin-top: 6px; justify-content: flex-start; border-color: transparent; background: transparent; }
+    .mobile-backdrop { display: none; }
+
+    .users-page-head { margin-bottom: 20px; }
+    .users-page-head p { max-width: 640px; }
+    .users-table-shell { position: relative; overflow: visible; }
+    .users-filterbar { grid-template-columns: minmax(300px, 1.55fr) repeat(2, minmax(180px, .72fr)); }
+    /* AppSelect aún no está exportado por golden-system.css; se replica exactamente
+       desde el catálogo aprobado para mantener el patrón registrado. */
+    .app-select { position: relative; min-width: 0; }
+    .app-select[open] .select-trigger { border-color: var(--brand); box-shadow: var(--ring); }
+    .app-select[open] .select-trigger .icon { transform: rotate(180deg); }
+    .select-trigger .icon { transition: transform .16s ease; }
+    .select-menu {
+      position: absolute;
+      z-index: 12;
+      top: calc(100% + 7px);
+      right: 0;
+      left: 0;
+      display: grid;
+      gap: 3px;
+      padding: 6px;
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      background: var(--surface-raised);
+      box-shadow: var(--shadow-md);
+    }
+    .select-option {
+      width: 100%;
+      min-height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 9px;
+      border: 0;
+      border-radius: var(--radius-sm);
+      color: var(--text-soft);
+      background: transparent;
+      text-align: left;
+    }
+    .select-option:hover,
+    .select-option:focus-visible { color: var(--text-strong); background: var(--surface-muted); }
+    .select-option[aria-selected="true"] { color: var(--brand-strong); background: var(--brand-soft); font-weight: 700; }
+    .select-option[aria-selected="true"]::after { content: "✓"; font-weight: 800; }
+
+    .read-only-notice {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-3);
+      margin: 18px 18px 0;
+      padding: 12px 14px;
+      color: var(--info);
+      border: 1px solid var(--brand-border);
+      border-radius: var(--radius-md);
+      background: var(--info-bg);
+    }
+    .read-only-notice strong { display: block; margin-bottom: 2px; }
+    .read-only-notice p { margin: 0; font-size: 13px; }
+
+    .users-table-shell > .alert { margin-top: 2px; }
+    .users-table-shell .table-scroll { overflow-y: visible; }
+    .users-table { min-width: 820px; }
+    .users-table th:nth-child(1) { width: 36%; }
+    .users-table th:nth-child(2) { width: 16%; }
+    .users-table th:nth-child(3) { width: 19%; }
+    .users-table th:nth-child(4) { width: 22%; }
+    .users-table th:last-child { width: 72px; text-align: center; }
+    .users-table td:last-child { position: relative; overflow: visible; }
+    .users-table .more { margin: 0 auto; }
+    .table-updating { display: inline-flex; align-items: center; gap: 7px; color: var(--info); font-size: 12px; font-weight: 700; }
+    .table-updating .spinner { width: 14px; height: 14px; }
+
+    .action-menu {
+      position: absolute;
+      z-index: 80;
+      top: calc(50% + 20px);
+      right: 14px;
+      width: max-content;
+      min-width: 238px;
+      max-width: min(310px, calc(100vw - 28px));
+      display: grid;
+      gap: 2px;
+      padding: 6px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      background: var(--surface-raised);
+      box-shadow: var(--shadow-md);
+    }
+    .action-menu button {
+      min-height: 40px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border: 0;
+      border-radius: var(--radius-sm);
+      color: var(--text-soft);
+      background: transparent;
+      text-align: left;
+      white-space: normal;
+    }
+    .action-menu button:hover,
+    .action-menu button:focus-visible { color: var(--text-strong); background: var(--surface-muted); }
+    .action-menu button.danger { color: var(--danger); }
+    .action-menu button.danger:hover,
+    .action-menu button.danger:focus-visible { background: var(--danger-bg); }
+    .action-menu .icon { width: 18px; height: 18px; }
+
+    .users-pagination { align-items: flex-end; }
+    .pagination-meta { display: grid; gap: 2px; }
+    .pagination-meta strong { color: var(--text-soft); font-size: 12px; }
+    .pagination-meta time { color: var(--text-muted); font-size: 11px; }
+    .pagination-tools { display: flex; align-items: flex-end; gap: var(--space-3); }
+    .page-size { min-width: 154px; }
+    .page-size .select-trigger { min-height: 36px; }
+    .page-size .select-menu { top: auto; bottom: calc(100% + 6px); }
+    .page-prev .icon { transform: rotate(90deg); }
+    .page-next .icon { transform: rotate(-90deg); }
+
+    .error-without-data { min-height: 430px; }
+    .state-card .btn + .btn { margin-left: var(--space-2); }
+    .empty-admin-cta { margin-top: var(--space-1); }
+
+    .form-stack { display: grid; gap: var(--space-4); }
+    .form-context { margin-bottom: var(--space-4); }
+    .role-picker { display: grid; gap: 7px; margin: 0; padding: 0; border: 0; }
+    .role-picker legend { margin-bottom: 7px; color: var(--text-soft); font-size: 12px; line-height: 16px; font-weight: 700; }
+    .role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+    .role-option {
+      position: relative;
+      min-height: 102px;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      grid-template-rows: auto 1fr;
+      align-content: start;
+      gap: 4px 10px;
+      padding: 13px;
+      border: 1px solid var(--control);
+      border-radius: var(--radius-md);
+      background: var(--surface);
+    }
+    .role-option:hover { border-color: var(--brand-border); background: color-mix(in srgb, var(--surface) 82%, var(--brand-soft)); }
+    .role-option.selected { border-color: var(--brand); background: var(--brand-soft); box-shadow: var(--ring); }
+    .role-option input { position: absolute; opacity: 0; pointer-events: none; }
+    .role-radio { width: 18px; height: 18px; display: grid; grid-row: 1 / span 2; place-items: center; margin-top: 1px; border: 1px solid var(--control); border-radius: 50%; background: var(--surface); }
+    .selected .role-radio { border: 5px solid var(--brand); }
+    .role-option strong { color: var(--text-strong); font-size: 13px; }
+    .role-option small { color: var(--text-muted); font-size: 12px; line-height: 16px; }
+    .role-option.selected strong { color: var(--brand-deep); }
+    .role-option.selected small { color: var(--brand-strong); }
+    .drawer-status {
+      min-height: 100%;
+      display: grid;
+      place-items: center;
+      padding: var(--space-5);
+      text-align: center;
+    }
+    .drawer-status > div { max-width: 390px; }
+    .drawer-status .state-icon { margin-bottom: var(--space-3); }
+    .drawer-status h3 { margin-bottom: var(--space-2); }
+    .drawer-status p { margin-bottom: var(--space-4); color: var(--text-muted); }
+    .detail-identity { display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-5); }
+    .detail-identity .identity-mark { width: 44px; height: 44px; border-radius: var(--radius-md); font-size: 13px; }
+    .detail-identity strong,
+    .detail-identity span { display: block; }
+    .detail-identity strong { color: var(--text-strong); }
+    .detail-identity span { margin-top: 2px; color: var(--text-muted); font-size: 12px; }
+    .confirmation-copy { margin-bottom: 0; color: var(--text-muted); font-size: 13px; }
+    .confirm-icon { width: 48px; height: 48px; display: grid; place-items: center; margin-bottom: var(--space-4); color: var(--danger); border-radius: 14px; background: var(--danger-bg); }
+    .confirm-icon.info { color: var(--brand-strong); background: var(--brand-soft); }
+    .confirm-user { display: block; margin-top: var(--space-2); color: var(--text-strong); }
+    .confirm-note { display: flex; gap: var(--space-2); margin: var(--space-4) 0 0; padding: var(--space-3); color: var(--text-soft); border-radius: var(--radius-md); background: var(--surface-subtle); font-size: 13px; }
+    .confirm-note .icon { color: var(--danger); }
+    .confirm-error { margin-top: var(--space-4); }
+    .field-error-summary { margin-bottom: 0; }
+
+    @media (max-width: 1060px) {
+      .company-sidebar { overflow-y: auto; }
+      .sidebar-nav-region { overflow: visible; }
+      .company-sidebar .nav-item,
+      .company-sidebar .nav-group-trigger,
+      .company-sidebar .sidebar-logout { min-height: 44px; }
+      body[data-nav="open"] .mobile-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 29;
+        display: block;
+        border: 0;
+        background: var(--overlay);
+      }
+      .users-filterbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .users-filterbar .search { grid-column: 1 / -1; }
+      .table-scroll { overflow-x: auto; }
+    }
+
+    @media (max-width: 620px) {
+      .topbar { gap: var(--space-2); }
+      .top-left { flex: 1 1 auto; overflow: hidden; }
+      .menu-control,
+      .drawer-head .btn-icon,
+      .dialog-head .btn-icon { flex: 0 0 44px; }
+      .crumb { flex: 1 1 auto; overflow: hidden; }
+      .crumb strong { display: block; min-width: 0; }
+      .top-profile-trigger { width: 44px; padding: 4px; }
+      .top-profile-trigger .nav-chevron { display: none; }
+      .profile-menu { position: fixed; top: 62px; right: 14px; }
+      .app-main { padding-top: 28px; }
+      .users-page-head h1 { font-size: 27px; line-height: 34px; }
+      .users-filterbar { grid-template-columns: 1fr; }
+      .users-filterbar .search { grid-column: auto; }
+      .read-only-notice { margin: 14px 14px 0; }
+      .users-table { min-width: 0; }
+      .users-table tbody { padding-bottom: 18px; }
+      .users-table tbody tr { padding-right: 52px; }
+      .users-table td:first-child { display: block; text-align: left; }
+      .users-table td:first-child .identity { width: 100%; }
+      .users-table td:last-child { position: absolute; top: 8px; right: 4px; width: auto; padding: 0; }
+      .users-table .more { width: 44px; height: 44px; }
+      .action-menu { position: absolute; top: 42px; right: 0; min-width: min(274px, calc(100vw - 48px)); }
+      .action-menu button { min-height: 44px; }
+      .users-pagination { align-items: stretch; }
+      .pagination-tools { width: 100%; display: grid; grid-template-columns: 1fr; }
+      .pagination-tools .pages { width: 100%; }
+      .select-option,
+      .page-btn { min-height: 44px; }
+      .page-btn { height: 44px; }
+      .page-size { width: 100%; }
+      .page-size .select-trigger { min-height: 44px; }
+      .state-card { min-height: 330px; padding: var(--space-5) var(--space-4); }
+      .state-card .btn + .btn { margin: var(--space-2) 0 0; }
+      .role-grid { grid-template-columns: 1fr; }
+      .role-option { min-height: 88px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .nav-chevron,
+      .select-trigger .icon { transition: none !important; }
+    }
+  </style>
+</head>
+<body data-states="ready-admin loading empty no-results error forbidden readonly-supervisor menu-active menu-invited menu-blocked invite invite-validation invite-saving invite-error edit edit-saving edit-error resend resend-saving resend-error detail-loading detail-ready detail-error confirm-block confirm-block-saving confirm-block-error confirm-reactivate confirm-reactivate-saving confirm-reactivate-error mobile-ready mobile-menu-open">
+  <!--
+    Mockup estático aprobado para FE-004. Datos completamente ficticios (.example).
+    Estados: ?state=<estado>. Tema oscuro: &theme=dark. Guía: &guide=1.
+    Variantes de error: &error=401|403|404|409|422|500|503.
+    Error de listado sin datos utilizables: ?state=error&data=none.
+    FE-004-users-roles-mockup.html es una referencia histórica supersedida, no una fuente visual.
+    Accesibilidad representada: landmarks y encabezados, labels visibles, tabla semántica,
+    menús con roles/teclado/Escape/retorno de foco y diálogos con aria-modal, trap de foco,
+    Escape y retorno de foco. Reduced motion se hereda del sistema golden.
+  -->
+  <div class="app-shell">
+    <aside id="company-sidebar" class="sidebar company-sidebar" aria-label="Navegación principal">
+      <a class="sidebar-brand brand-plate" href="/company/dashboard" aria-label="followUp Business, ir al resumen">
+        <img class="brand-logo" src="assets/brand/followup-logo.png" alt="">
+      </a>
+      <span class="sidebar-context">Comercial Andina</span>
+
+      <div class="sidebar-nav-region">
+        <p class="nav-label">Empresa</p>
+        <nav class="nav" aria-label="Secciones de la empresa">
+          <a class="nav-item" href="/company/dashboard"><svg class="icon"><use href="#i-grid"></use></svg>Resumen</a>
+          <a class="nav-item active" href="/company/administrators-supervisors" aria-current="page"><svg class="icon"><use href="#i-users"></use></svg>Administradores y supervisores</a>
+          <a class="nav-item" href="/company/sellers"><svg class="icon"><use href="#i-users"></use></svg>Vendedores</a>
+          <a class="nav-item" href="/company/territories"><svg class="icon"><use href="#i-pin"></use></svg>Zonas</a>
+
+          <section class="nav-group" aria-labelledby="clients-group-label">
+            <button id="clients-group-label" class="nav-group-trigger" type="button" aria-expanded="false" aria-controls="clients-navigation" data-clients-toggle>
+              <svg class="icon"><use href="#i-client"></use></svg>
+              <span>Clientes</span>
+              <svg class="icon nav-chevron"><use href="#i-chevron"></use></svg>
+            </button>
+            <div id="clients-navigation" class="nav-children" role="group" aria-label="Opciones de Clientes" hidden>
+              <a class="nav-item" href="/company/clients"><svg class="icon"><use href="#i-client"></use></svg>Gestión de clientes</a>
+              <a class="nav-item" href="/company/clients/map"><svg class="icon"><use href="#i-map"></use></svg>Mapa general</a>
+              <a class="nav-item" href="/company/customer-imports"><svg class="icon"><use href="#i-empty"></use></svg>Carga de clientes</a>
+            </div>
+          </section>
+
+          <a class="nav-item" href="/company/customer-assignments"><svg class="icon"><use href="#i-client"></use></svg>Asignar cartera</a>
+          <a class="nav-item" href="/company/routes"><svg class="icon"><use href="#i-route"></use></svg>Rutas</a>
+          <span class="nav-item" aria-disabled="true" title="Sin ruta disponible"><svg class="icon"><use href="#i-report"></use></svg>Auditoría</span>
+          <a class="nav-item" href="/company/settings"><svg class="icon"><use href="#i-settings"></use></svg>Configuración</a>
+        </nav>
+      </div>
+
+      <section class="dashboard-profile-card" aria-label="Contexto de usuario">
+        <span class="avatar">AM</span>
+        <span><strong>Alex Medina</strong><small data-profile-role>Administración de empresa</small></span>
+        <p>Comercial Andina</p>
+        <button class="btn btn-compact sidebar-logout" type="button"><svg class="icon icon-sm"><use href="#i-arrow"></use></svg>Cerrar sesión</button>
+      </section>
+    </aside>
+
+    <header class="topbar">
+      <div class="top-left">
+        <button class="menu-control" type="button" data-nav-toggle aria-label="Abrir menú" aria-expanded="false" aria-controls="company-sidebar"><svg class="icon"><use href="#i-menu"></use></svg></button>
+        <nav class="crumb" aria-label="Breadcrumbs"><span>Comercial Andina</span><span aria-hidden="true">/</span><strong aria-current="page">Administradores y supervisores</strong></nav>
+      </div>
+      <div class="top-actions">
+        <button class="theme-control" type="button" role="switch" aria-checked="false" data-theme-toggle aria-label="Activar modo oscuro"><svg class="icon"><use href="#i-moon"></use></svg></button>
+        <div class="top-profile-wrap">
+          <button class="top-profile-trigger" type="button" aria-label="Abrir opciones del perfil de Alex Medina" aria-haspopup="menu" aria-expanded="false" aria-controls="profile-menu" data-profile-toggle>
+            <span class="avatar">AM</span>
+            <span class="person-copy"><strong>Alex Medina</strong><span data-profile-role>Administración</span></span>
+            <svg class="icon nav-chevron"><use href="#i-chevron"></use></svg>
+          </button>
+          <div id="profile-menu" class="profile-menu" role="menu" hidden>
+            <div class="profile-menu-head"><strong>Alex Medina</strong><span>Comercial Andina</span></div>
+            <button class="btn" type="button" role="menuitem"><svg class="icon icon-sm"><use href="#i-arrow"></use></svg>Cerrar sesión</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="app-main" id="main-content">
+      <div class="page">
+        <header class="page-head users-page-head">
+          <div>
+            <span class="eyebrow">Equipo y accesos</span>
+            <h1>Administradores y supervisores</h1>
+            <p>Administra accesos de administradores y supervisores.</p>
+          </div>
+          <button class="btn btn-primary" type="button" data-dialog-trigger="invite" data-show="ready-admin loading empty no-results error menu-active menu-invited menu-blocked invite invite-validation invite-saving invite-error edit resend detail-loading detail-ready detail-error confirm-block confirm-block-saving confirm-block-error confirm-reactivate mobile-ready mobile-menu-open">
+            <svg class="icon icon-sm"><use href="#i-plus"></use></svg>Invitar administrador o supervisor
+          </button>
+        </header>
+
+        <section class="panel table-shell users-table-shell" aria-label="Listado de administradores y supervisores" data-show="ready-admin loading empty no-results error readonly-supervisor menu-active menu-invited menu-blocked invite invite-validation invite-saving invite-error edit edit-saving edit-error resend resend-saving resend-error detail-loading detail-ready detail-error confirm-block confirm-block-saving confirm-block-error confirm-reactivate confirm-reactivate-saving confirm-reactivate-error mobile-ready mobile-menu-open">
+          <aside class="read-only-notice" role="status" data-show="readonly-supervisor">
+            <svg class="icon"><use href="#i-eye"></use></svg>
+            <div><strong>Vista de solo lectura</strong><p>Puedes consultar el listado, aplicar filtros y cambiar de página. La gestión de accesos corresponde a una persona administradora.</p></div>
+          </aside>
+
+          <div class="filterbar users-filterbar">
+            <div class="field search">
+              <label for="user-search">Buscar por nombre o correo</label>
+              <div class="control"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input id="user-search" type="search" placeholder="Nombre o correo" data-state-value data-value-no-results="sin.coincidencias@ejemplo.invalid"></div>
+            </div>
+            <div class="field">
+              <span id="role-filter-label">Rol</span>
+              <details class="app-select"><summary class="select-trigger" aria-labelledby="role-filter-label">Todos<svg class="icon icon-sm"><use href="#i-chevron"></use></svg></summary><div class="select-menu" role="listbox" aria-label="Rol"><button class="select-option" type="button" role="option" aria-selected="true">Todos</button><button class="select-option" type="button" role="option" aria-selected="false">Administrador</button><button class="select-option" type="button" role="option" aria-selected="false">Supervisor</button></div></details>
+            </div>
+            <div class="field">
+              <span id="status-filter-label">Estado</span>
+              <details class="app-select"><summary class="select-trigger" aria-labelledby="status-filter-label">Todos<svg class="icon icon-sm"><use href="#i-chevron"></use></svg></summary><div class="select-menu" role="listbox" aria-label="Estado"><button class="select-option" type="button" role="option" aria-selected="true">Todos</button><button class="select-option" type="button" role="option" aria-selected="false">Invitación pendiente</button><button class="select-option" type="button" role="option" aria-selected="false">Activo</button><button class="select-option" type="button" role="option" aria-selected="false">Inactivo</button><button class="select-option" type="button" role="option" aria-selected="false">Bloqueado</button></div></details>
+            </div>
+          </div>
+
+          <div class="alert alert-danger" role="alert" data-show="error" data-error-mode="stale">
+            <svg class="icon"><use href="#i-alert"></use></svg>
+            <div><strong data-api-error-title>Ocurrió un problema temporal</strong><p data-api-error-message>No pudimos actualizar los usuarios. Los datos mostrados pueden no estar vigentes.</p><div class="alert-actions"><button class="alert-link" type="button" data-api-error-action>Reintentar</button></div></div>
+          </div>
+
+          <div data-show="ready-admin error readonly-supervisor menu-active menu-invited menu-blocked invite invite-validation invite-saving invite-error edit edit-saving edit-error resend resend-saving resend-error detail-loading detail-ready detail-error confirm-block confirm-block-saving confirm-block-error confirm-reactivate confirm-reactivate-saving confirm-reactivate-error mobile-ready mobile-menu-open" data-stale-in="error" data-error-mode="stale-ready">
+            <header class="table-title">
+              <div><strong>Resultados</strong><span>128 administradores y supervisores</span></div>
+              <span class="table-updating" data-show="error"><span class="spinner" aria-hidden="true"></span>Actualización pendiente</span>
+            </header>
+            <div class="table-scroll">
+              <table class="users-table" aria-label="Administradores y supervisores">
+                <thead><tr><th scope="col">Usuario</th><th scope="col">Rol</th><th scope="col">Estado</th><th scope="col">Última actualización</th><th scope="col" data-show="ready-admin error menu-active menu-invited menu-blocked invite invite-validation invite-saving invite-error edit resend detail-loading detail-ready detail-error confirm-block confirm-block-saving confirm-block-error confirm-reactivate mobile-ready mobile-menu-open"><span class="sr-only">Acciones</span></th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td data-label="Usuario"><span class="identity"><span class="identity-mark">MT</span><span><strong>Marina Torres</strong><small>marina.torres@comercialandina.example</small></span></span></td>
+                    <td data-label="Rol">Administradora</td>
+                    <td data-label="Estado"><span class="badge success">Activo</span></td>
+                    <td data-label="Última actualización"><time datetime="2026-09-10T10:38:00-05:00">Hoy, 10:38</time></td>
+                    <td data-label="Acciones" data-show="ready-admin error menu-active menu-invited menu-blocked invite invite-validation invite-saving invite-error edit resend detail-loading detail-ready detail-error confirm-block confirm-block-saving confirm-block-error confirm-reactivate mobile-ready mobile-menu-open"><button class="more" type="button" aria-label="Más acciones para Marina Torres" aria-haspopup="menu" aria-expanded="false" data-menu-trigger="menu-active"><svg class="icon"><use href="#i-more"></use></svg></button><div class="action-menu" role="menu" aria-label="Acciones de Marina Torres" data-show="menu-active"><button type="button" role="menuitem" data-go-state="detail-ready"><svg class="icon"><use href="#i-eye"></use></svg>Ver detalle</button><button type="button" role="menuitem" data-go-state="edit"><svg class="icon"><use href="#i-settings"></use></svg>Editar usuario</button><button class="danger" type="button" role="menuitem" data-go-state="confirm-block"><svg class="icon"><use href="#i-lock"></use></svg>Bloquear usuario</button></div></td>
+                  </tr>
+                  <tr>
+                    <td data-label="Usuario"><span class="identity"><span class="identity-mark">JQ</span><span><strong>Julián Quispe</strong><small>julian.quispe@comercialandina.example</small></span></span></td>
+                    <td data-label="Rol">Supervisor</td>
+                    <td data-label="Estado"><span class="badge success">Activo</span></td>
+                    <td data-label="Última actualización"><time datetime="2026-09-10T09:22:00-05:00">Hoy, 09:22</time></td>
+                    <td data-label="Acciones" data-show="ready-admin error menu-active menu-invited menu-blocked invite invite-validation invite-saving invite-error edit resend detail-loading detail-ready detail-error confirm-block confirm-block-saving confirm-block-error confirm-reactivate mobile-ready mobile-menu-open"><button class="more" type="button" aria-label="Más acciones para Julián Quispe" aria-haspopup="menu" aria-expanded="false"><svg class="icon"><use href="#i-more"></use></svg></button></td>
+                  </tr>
+                  <tr>
+                    <td data-label="Usuario"><span class="identity"><span class="identity-mark">CV</span><span><strong>Camila Vega</strong><small>camila.vega@comercialandina.example</small></span></span></td>
+                    <td data-label="Rol">Supervisora</td>
+                    <td data-label="Estado"><span class="badge warning">Invitación pendiente</span></td>
+                    <td data-label="Última actualización"><time datetime="2026-09-09T16:15:00-05:00">Ayer, 16:15</time></td>
+                    <td data-label="Acciones" data-show="ready-admin error menu-active menu-invited menu-blocked invite invite-validation invite-saving invite-error edit resend detail-loading detail-ready detail-error confirm-block confirm-block-saving confirm-block-error confirm-reactivate mobile-ready mobile-menu-open"><button class="more" type="button" aria-label="Más acciones para Camila Vega" aria-haspopup="menu" aria-expanded="false" data-menu-trigger="menu-invited"><svg class="icon"><use href="#i-more"></use></svg></button><div class="action-menu" role="menu" aria-label="Acciones de Camila Vega" data-show="menu-invited"><button type="button" role="menuitem" data-go-state="detail-ready"><svg class="icon"><use href="#i-eye"></use></svg>Ver detalle</button><button type="button" role="menuitem" data-go-state="resend"><svg class="icon"><use href="#i-mail"></use></svg>Corregir y reenviar invitación</button></div></td>
+                  </tr>
+                  <tr>
+                    <td data-label="Usuario"><span class="identity"><span class="identity-mark">DS</span><span><strong>Diego Salas</strong><small>diego.salas@comercialandina.example</small></span></span></td>
+                    <td data-label="Rol">Administrador</td>
+                    <td data-label="Estado"><span class="badge danger">Bloqueado</span></td>
+                    <td data-label="Última actualización"><time datetime="2026-09-08T18:40:00-05:00">8 sep, 18:40</time></td>
+                    <td data-label="Acciones" data-show="ready-admin error menu-active menu-invited menu-blocked invite invite-validation invite-saving invite-error edit resend detail-loading detail-ready detail-error confirm-block confirm-block-saving confirm-block-error confirm-reactivate mobile-ready mobile-menu-open"><button class="more" type="button" aria-label="Más acciones para Diego Salas" aria-haspopup="menu" aria-expanded="false" data-menu-trigger="menu-blocked"><svg class="icon"><use href="#i-more"></use></svg></button><div class="action-menu" role="menu" aria-label="Acciones de Diego Salas" data-show="menu-blocked"><button type="button" role="menuitem" data-go-state="detail-ready"><svg class="icon"><use href="#i-eye"></use></svg>Ver detalle</button><button type="button" role="menuitem" data-go-state="edit"><svg class="icon"><use href="#i-settings"></use></svg>Editar usuario</button><button type="button" role="menuitem" data-go-state="confirm-reactivate"><svg class="icon"><use href="#i-arrow"></use></svg>Reactivar usuario</button></div></td>
+                  </tr>
+                  <tr>
+                    <td data-label="Usuario"><span class="identity"><span class="identity-mark">RP</span><span><strong>Renata Ponce</strong><small>renata.ponce@comercialandina.example</small></span></span></td>
+                    <td data-label="Rol">Supervisora</td>
+                    <td data-label="Estado"><span class="badge neutral">Inactivo</span></td>
+                    <td data-label="Última actualización"><time datetime="2026-09-05T14:08:00-05:00">5 sep, 14:08</time></td>
+                    <td data-label="Acciones" data-show="ready-admin error menu-active menu-invited menu-blocked invite invite-validation invite-saving invite-error edit resend detail-loading detail-ready detail-error confirm-block confirm-block-saving confirm-block-error confirm-reactivate mobile-ready mobile-menu-open"><button class="more" type="button" aria-label="Más acciones para Renata Ponce" aria-haspopup="menu" aria-expanded="false"><svg class="icon"><use href="#i-more"></use></svg></button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <footer class="pagination users-pagination">
+              <div class="pagination-meta"><strong>Mostrando 1–5 de 128 usuarios</strong><time datetime="2026-09-10T10:42:00-05:00" role="status">Actualizado hoy, 10:42</time></div>
+              <div class="pagination-tools">
+                <div class="field page-size"><span id="page-size-label">Registros por página</span><details class="app-select"><summary class="select-trigger" aria-labelledby="page-size-label">5<svg class="icon icon-sm"><use href="#i-chevron"></use></svg></summary><div class="select-menu" role="listbox" aria-label="Registros por página"><button class="select-option" type="button" role="option" aria-selected="true">5</button><button class="select-option" type="button" role="option" aria-selected="false">10</button><button class="select-option" type="button" role="option" aria-selected="false">15</button><button class="select-option" type="button" role="option" aria-selected="false">20</button></div></details></div>
+                <nav class="pages" aria-label="Paginación de administradores y supervisores"><button class="page-btn page-prev" type="button" aria-label="Página anterior" disabled><svg class="icon icon-sm"><use href="#i-chevron"></use></svg></button><button class="page-btn current" type="button" aria-label="Página 1" aria-current="page">1</button><span class="page-ellipsis" aria-hidden="true">…</span><button class="page-btn" type="button" aria-label="Página 26">26</button><button class="page-btn page-next" type="button" aria-label="Página siguiente"><svg class="icon icon-sm"><use href="#i-chevron"></use></svg></button></nav>
+              </div>
+            </footer>
+          </div>
+
+          <div data-show="loading">
+            <header class="table-title"><div><strong>Resultados</strong><span>Cargando usuarios</span></div></header>
+            <div class="skeleton-list" aria-busy="true"><div class="skeleton-row"><i class="skeleton block"></i><i class="skeleton"></i><i class="skeleton"></i><i class="skeleton"></i></div><div class="skeleton-row"><i class="skeleton block"></i><i class="skeleton"></i><i class="skeleton"></i><i class="skeleton"></i></div><div class="skeleton-row"><i class="skeleton block"></i><i class="skeleton"></i><i class="skeleton"></i><i class="skeleton"></i></div><div class="skeleton-row"><i class="skeleton block"></i><i class="skeleton"></i><i class="skeleton"></i><i class="skeleton"></i></div><span class="sr-only">Cargando administradores y supervisores</span></div>
+          </div>
+
+          <article class="state-card" data-show="empty"><div><span class="state-icon"><svg class="icon"><use href="#i-users"></use></svg></span><h2>Aún no hay usuarios</h2><p>Invita a administradores o supervisores para comenzar a organizar los accesos del equipo.</p><button class="btn btn-primary empty-admin-cta" type="button" data-dialog-trigger="invite"><svg class="icon icon-sm"><use href="#i-plus"></use></svg>Invitar administrador o supervisor</button></div></article>
+          <article class="state-card" data-show="no-results"><div><span class="state-icon"><svg class="icon"><use href="#i-search"></use></svg></span><h2>No encontramos coincidencias</h2><p>Cambia los términos de búsqueda o ajusta los filtros para ver otros resultados.</p><button class="btn btn-primary" type="button" data-go-state="ready-admin">Limpiar búsqueda</button></div></article>
+          <article class="state-card danger error-without-data" data-show="error" data-error-mode="empty"><div><span class="state-icon"><svg class="icon"><use href="#i-alert"></use></svg></span><h2 data-api-error-title>Ocurrió un problema temporal</h2><p data-api-error-message>No pudimos mostrar los usuarios. Inténtalo nuevamente.</p><button class="btn btn-primary" type="button" data-api-error-action data-go-state="ready-admin">Reintentar</button></div></article>
+        </section>
+
+        <section class="panel" data-show="forbidden" aria-labelledby="forbidden-title">
+          <article class="state-card danger"><div><span class="state-icon"><svg class="icon"><use href="#i-shield"></use></svg></span><h2 id="forbidden-title">No tienes permisos</h2><p>No tienes permiso para consultar administradores y supervisores en esta empresa.</p><button class="btn" type="button">Volver al resumen</button></div></article>
+        </section>
+      </div>
+    </main>
+
+    <button class="mobile-backdrop" type="button" data-nav-close aria-label="Cerrar menú"></button>
+  </div>
+
+  <!-- Formularios extensos: drawer golden lateral, con body desplazable y acciones persistentes. -->
+  <div data-show="invite invite-validation invite-saving invite-error edit edit-saving edit-error resend resend-saving resend-error">
+    <div class="scrim" data-dialog-dismiss aria-hidden="true"></div>
+    <section class="drawer" role="dialog" aria-modal="true" aria-labelledby="user-form-title" aria-describedby="user-form-description" data-overlay>
+      <header class="drawer-head">
+        <div><span class="eyebrow">Usuarios</span><h2 id="user-form-title"><span data-show="invite invite-validation invite-saving invite-error">Invitar administrador o supervisor</span><span data-show="edit edit-saving edit-error">Editar administrador o supervisor</span><span data-show="resend resend-saving resend-error">Corregir y reenviar invitación</span></h2><p id="user-form-description"><span data-show="invite invite-validation invite-saving invite-error">Configura el acceso que recibirá la persona invitada.</span><span data-show="edit edit-saving edit-error">Actualiza los datos permitidos de la cuenta.</span><span data-show="resend resend-saving resend-error">Corrige la invitación pendiente antes de solicitar una nueva entrega.</span></p></div>
+        <button class="btn btn-icon" type="button" aria-label="Cerrar formulario" data-dialog-close data-disable-in="invite-saving edit-saving resend-saving"><svg class="icon"><use href="#i-x"></use></svg></button>
+      </header>
+      <div class="drawer-body">
+        <div class="alert alert-info form-context" data-show="edit edit-saving edit-error"><svg class="icon"><use href="#i-info"></use></svg><div><strong>Marina Torres</strong><p>Cuenta activa · marina.torres@comercialandina.example</p></div></div>
+        <div class="alert alert-info form-context" data-show="resend resend-saving resend-error"><svg class="icon"><use href="#i-info"></use></svg><div><strong>Camila Vega</strong><p>Invitación pendiente · camila.vega@comercialandina.example</p></div></div>
+        <form class="form-stack" aria-label="Datos del administrador o supervisor">
+          <div class="alert alert-danger" role="alert" data-show="invite-error edit-error resend-error"><svg class="icon"><use href="#i-alert"></use></svg><div><strong data-api-error-title>No pudimos guardar los cambios</strong><p data-api-error-message>Ocurrió un error inesperado. Inténtalo nuevamente.</p></div></div>
+          <div class="alert alert-danger field-error-summary" role="alert" data-show="invite-validation"><svg class="icon"><use href="#i-alert"></use></svg><div><strong>Revisa la información ingresada</strong><p>Hay campos que necesitan tu atención antes de enviar la invitación.</p></div></div>
+          <div class="field"><label for="full-name">Nombre completo</label><div class="control" data-validation-control><input id="full-name" required minlength="2" maxlength="160" placeholder="Ingresa el nombre completo" data-prefill="displayName"></div><p class="field-error" id="full-name-error" data-show="invite-validation">Ingresa un nombre de al menos 2 caracteres.</p></div>
+          <div class="field"><label for="corporate-email">Correo corporativo</label><div class="control" data-validation-control><input id="corporate-email" required type="email" maxlength="254" placeholder="nombre@empresa.example" data-prefill="email" aria-describedby="corporate-email-error"></div><p class="field-error" id="corporate-email-error" data-show="invite-validation">Ingresa un correo corporativo válido.</p></div>
+          <div class="field"><label for="username">Usuario <span class="muted">(opcional)</span></label><div class="control"><input id="username" minlength="3" maxlength="100" placeholder="Ej. mtorres" data-prefill="username"></div><p class="field-help">Si lo completas, debe tener entre 3 y 100 caracteres.</p></div>
+          <fieldset class="role-picker">
+            <legend>Rol</legend>
+            <div class="role-grid" role="radiogroup" aria-label="Selecciona un rol">
+              <label class="role-option" data-role-option="COMPANY_ADMIN"><input type="radio" name="role" value="COMPANY_ADMIN"><span class="role-radio" aria-hidden="true"></span><strong>Administrador</strong><small>Gestiona usuarios y accesos de la empresa.</small></label>
+              <label class="role-option selected" data-role-option="SUPERVISOR"><input type="radio" name="role" value="SUPERVISOR" checked><span class="role-radio" aria-hidden="true"></span><strong>Supervisor</strong><small>Consulta y coordina la operación permitida para su rol.</small></label>
+            </div>
+          </fieldset>
+        </form>
+      </div>
+      <footer class="drawer-foot"><button class="btn" type="button" data-dialog-close data-disable-in="invite-saving edit-saving resend-saving">Cancelar</button><button class="btn btn-primary" type="button" data-form-submit data-disable-in="invite-saving edit-saving resend-saving" data-busy-in="invite-saving edit-saving resend-saving"><span data-show="invite invite-validation invite-error">Enviar invitación</span><span data-show="invite-saving"><span class="spinner" aria-hidden="true"></span>Enviando invitación…</span><span data-show="edit edit-error">Guardar cambios</span><span data-show="edit-saving"><span class="spinner" aria-hidden="true"></span>Guardando cambios…</span><span data-show="resend resend-error">Corregir y reenviar invitación</span><span data-show="resend-saving"><span class="spinner" aria-hidden="true"></span>Solicitando nueva entrega…</span></button></footer>
+    </section>
+  </div>
+
+  <div data-show="detail-loading detail-ready detail-error">
+    <div class="scrim" data-dialog-dismiss aria-hidden="true"></div>
+    <section class="drawer" role="dialog" aria-modal="true" aria-labelledby="detail-title" aria-describedby="detail-description" data-overlay>
+      <header class="drawer-head"><div><span class="eyebrow">Usuarios</span><h2 id="detail-title">Detalle de usuario</h2><p id="detail-description">Información actual del registro seleccionado.</p></div><button class="btn btn-icon" type="button" aria-label="Cerrar detalle" data-dialog-close><svg class="icon"><use href="#i-x"></use></svg></button></header>
+      <div class="drawer-body drawer-status" data-show="detail-loading"><div aria-busy="true"><span class="state-icon"><span class="spinner" aria-hidden="true"></span></span><h3>Cargando detalle</h3><p>Estamos obteniendo la información más reciente.</p><span class="sr-only">Cargando detalle del usuario</span></div></div>
+      <div class="drawer-body" data-show="detail-ready"><div class="detail-identity"><span class="identity-mark">MT</span><span><strong>Marina Torres</strong><span>marina.torres@comercialandina.example</span></span></div><dl class="definition-grid"><div><dt>Correo corporativo</dt><dd>marina.torres@comercialandina.example</dd></div><div><dt>Usuario</dt><dd>mtorres</dd></div><div><dt>Rol</dt><dd>Administradora</dd></div><div><dt>Estado</dt><dd><span class="badge success">Activo</span></dd></div></dl></div>
+      <div class="drawer-body drawer-status" data-show="detail-error"><div><span class="state-icon"><svg class="icon"><use href="#i-alert"></use></svg></span><h3 data-api-error-title>No pudimos cargar el usuario</h3><p data-api-error-message>El usuario ya no está disponible. Actualiza la lista e inténtalo nuevamente.</p></div></div>
+      <footer class="drawer-foot"><button class="btn" type="button" data-dialog-close>Cerrar</button><button class="btn btn-primary" type="button" data-show="detail-error" data-api-error-action data-go-state="detail-loading">Reintentar</button></footer>
+    </section>
+  </div>
+
+  <!-- Confirmaciones breves y sensibles: dialog golden centrado. -->
+  <div data-show="confirm-block confirm-block-saving confirm-block-error confirm-reactivate confirm-reactivate-saving confirm-reactivate-error">
+    <div class="scrim" data-dialog-dismiss aria-hidden="true"></div>
+    <section class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="status-dialog-title" aria-describedby="status-dialog-description" data-overlay>
+      <header class="dialog-head"><div><span class="eyebrow">Usuarios</span><h2 id="status-dialog-title"><span data-show="confirm-block confirm-block-saving confirm-block-error">Bloquear usuario</span><span data-show="confirm-reactivate confirm-reactivate-saving confirm-reactivate-error">Reactivar usuario</span></h2><p>Confirma el cambio de acceso para este usuario.</p></div><button class="btn btn-icon" type="button" aria-label="Cerrar confirmación" data-dialog-close data-disable-in="confirm-block-saving confirm-reactivate-saving"><svg class="icon"><use href="#i-x"></use></svg></button></header>
+      <div class="dialog-body">
+        <span class="confirm-icon" data-show="confirm-block confirm-block-saving confirm-block-error"><svg class="icon"><use href="#i-lock"></use></svg></span>
+        <span class="confirm-icon info" data-show="confirm-reactivate confirm-reactivate-saving confirm-reactivate-error"><svg class="icon"><use href="#i-arrow"></use></svg></span>
+        <h3 data-show="confirm-block confirm-block-saving confirm-block-error">¿Bloquear a Julián Quispe?</h3>
+        <h3 data-show="confirm-reactivate confirm-reactivate-saving confirm-reactivate-error">¿Reactivar a Diego Salas?</h3>
+        <div id="status-dialog-description"><p class="confirmation-copy" data-show="confirm-block confirm-block-saving confirm-block-error">Julián Quispe perderá acceso a la empresa mientras permanezca bloqueado.</p><p class="confirmation-copy" data-show="confirm-reactivate confirm-reactivate-saving confirm-reactivate-error">Diego Salas recuperará el acceso correspondiente a su rol de Administrador.</p></div>
+        <p class="confirm-note" data-show="confirm-block confirm-block-saving confirm-block-error"><svg class="icon"><use href="#i-shield"></use></svg><span>Sus sesiones activas se revocarán cuando se confirme el bloqueo.</span></p>
+        <div class="alert alert-danger confirm-error" role="alert" data-show="confirm-block-error confirm-reactivate-error"><svg class="icon"><use href="#i-alert"></use></svg><div><strong data-api-error-title>No pudimos actualizar al usuario</strong><p data-api-error-message>La información fue modificada. Actualiza la lista antes de reintentar.</p></div></div>
+      </div>
+      <footer class="dialog-foot"><button class="btn" type="button" data-initial-focus data-dialog-close data-disable-in="confirm-block-saving confirm-reactivate-saving">Cancelar</button><button class="btn btn-danger" type="button" data-show="confirm-block confirm-block-error" data-go-state="confirm-block-saving">Bloquear usuario</button><button class="btn btn-danger" type="button" disabled data-show="confirm-block-saving"><span class="spinner" aria-hidden="true"></span>Bloqueando…</button><button class="btn btn-primary" type="button" data-show="confirm-reactivate confirm-reactivate-error" data-go-state="confirm-reactivate-saving">Reactivar usuario</button><button class="btn btn-primary" type="button" disabled data-show="confirm-reactivate-saving"><span class="spinner" aria-hidden="true"></span>Reactivando…</button></footer>
+    </section>
+  </div>
+
+  <aside class="mockup-guide" aria-label="Controles del mockup">
+    <label for="state">Estado</label><select id="state" data-state-selector></select>
+    <label for="error-code">Error</label><select id="error-code" data-error-selector><option value="401">401</option><option value="403">403</option><option value="404">404</option><option value="409">409</option><option value="422">422</option><option value="500">500</option><option value="503">503</option></select>
+    <button class="btn btn-icon btn-compact" type="button" data-theme-toggle aria-label="Cambiar tema"><svg class="icon"><use href="#i-moon"></use></svg></button>
+  </aside>
+
+  <script src="assets/golden-states.js"></script>
+  <script>
+    (function () {
+      "use strict";
+
+      const body = document.body;
+      const params = new URLSearchParams(window.location.search);
+      const state = body.dataset.state || "ready-admin";
+      const menuButton = document.querySelector("[data-nav-toggle]");
+      const closeNavButton = document.querySelector("[data-nav-close]");
+      const clientsButton = document.querySelector("[data-clients-toggle]");
+      const clientsNavigation = document.querySelector("#clients-navigation");
+      const profileButton = document.querySelector("[data-profile-toggle]");
+      const profileMenu = document.querySelector("#profile-menu");
+      const activeMenuTrigger = document.querySelector(`[data-menu-trigger="${state}"]`);
+      const activeMenu = document.querySelector(`.action-menu[data-show~="${state}"]`);
+      let returnFocusTarget = null;
+
+      function stateUrl(nextState) {
+        const next = new URL(window.location.href);
+        next.searchParams.set("state", nextState);
+        next.searchParams.delete("error");
+        next.searchParams.delete("data");
+        return next;
+      }
+
+      function goToState(nextState) {
+        window.location.href = stateUrl(nextState).toString();
+      }
+
+      function setNavigation(open, restoreFocus) {
+        body.dataset.nav = open ? "open" : "closed";
+        menuButton?.setAttribute("aria-expanded", String(open));
+        menuButton?.setAttribute("aria-label", open ? "Cerrar menú" : "Abrir menú");
+        if (!open && restoreFocus && menuButton instanceof HTMLElement) menuButton.focus();
+      }
+
+      function setClientsExpanded(expanded) {
+        clientsButton?.setAttribute("aria-expanded", String(expanded));
+        if (clientsNavigation instanceof HTMLElement) clientsNavigation.hidden = !expanded;
+      }
+
+      function setProfileOpen(open, restoreFocus) {
+        profileButton?.setAttribute("aria-expanded", String(open));
+        if (profileMenu instanceof HTMLElement) profileMenu.hidden = !open;
+        if (!open && restoreFocus && profileButton instanceof HTMLElement) profileButton.focus();
+      }
+
+      setNavigation(state === "mobile-menu-open", false);
+      setClientsExpanded(false);
+      setProfileOpen(false, false);
+      if (activeMenuTrigger instanceof HTMLElement) activeMenuTrigger.setAttribute("aria-expanded", "true");
+      if (activeMenu instanceof HTMLElement && window.sessionStorage.getItem("fe004-focus-menu") === "true") {
+        window.sessionStorage.removeItem("fe004-focus-menu");
+        const firstMenuItem = activeMenu.querySelector("[role=menuitem]");
+        if (firstMenuItem instanceof HTMLElement) window.setTimeout(function () { firstMenuItem.focus(); }, 0);
+      }
+
+      if (state === "readonly-supervisor") {
+        document.querySelectorAll("[data-profile-role]").forEach(function (node) {
+          node.textContent = node.closest(".dashboard-profile-card") ? "Supervisor de empresa" : "Supervisor";
+        });
+        profileButton?.setAttribute("aria-label", "Abrir opciones del perfil de Alex Medina, Supervisor");
+      }
+
+      menuButton?.addEventListener("click", function () {
+        const open = body.dataset.nav === "open";
+        menuButton.setAttribute("aria-expanded", String(open));
+        menuButton.setAttribute("aria-label", open ? "Cerrar menú" : "Abrir menú");
+      });
+      closeNavButton?.addEventListener("click", function () { setNavigation(false, true); });
+      clientsButton?.addEventListener("click", function () { setClientsExpanded(clientsButton.getAttribute("aria-expanded") !== "true"); });
+      profileButton?.addEventListener("click", function () { setProfileOpen(profileButton.getAttribute("aria-expanded") !== "true", false); });
+
+      document.querySelectorAll("[data-theme-toggle]").forEach(function (control) {
+        function syncThemeControl() {
+          const dark = body.dataset.theme === "dark";
+          control.setAttribute("aria-checked", String(dark));
+          if (control.classList.contains("theme-control")) control.setAttribute("aria-label", dark ? "Activar modo claro" : "Activar modo oscuro");
+        }
+        syncThemeControl();
+        control.addEventListener("click", syncThemeControl);
+      });
+
+      const errorMessages = {
+        "401": { title: "Tu sesión ya no es válida", message: "Inicia sesión nuevamente para continuar.", action: "Iniciar sesión" },
+        "403": { title: "No tienes permisos", message: "No tienes permiso para realizar esta acción.", action: "Cerrar" },
+        "404": { title: "Usuario no disponible", message: "El usuario ya no está disponible. Actualiza la lista e inténtalo nuevamente.", action: "Reintentar" },
+        "409": { title: "La información cambió", message: "Los datos fueron modificados o entran en conflicto. Actualiza la lista antes de reintentar.", action: "Reintentar" },
+        "422": { title: "Revisa la información ingresada", message: "Uno o más campos no son válidos. Corrige los datos señalados e inténtalo nuevamente.", action: "Revisar campos" },
+        "500": { title: "Ocurrió un problema inesperado", message: "No pudimos completar la operación. Inténtalo nuevamente.", action: "Reintentar" },
+        "503": { title: "Servicio temporalmente no disponible", message: "El servicio no está disponible por el momento. Inténtalo más tarde.", action: "Reintentar" }
+      };
+      const defaultError = state === "detail-error" ? "404" : state === "confirm-block-error" || state === "confirm-reactivate-error" || state === "resend-error" ? "409" : state === "invite-validation" ? "422" : state === "invite-error" ? "503" : "500";
+      const errorCode = errorMessages[params.get("error")] ? params.get("error") : defaultError;
+      const errorCopy = errorMessages[errorCode];
+      document.querySelectorAll("[data-api-error-title]").forEach(function (node) { node.textContent = errorCopy.title; });
+      document.querySelectorAll("[data-api-error-message]").forEach(function (node) { node.textContent = errorCopy.message; });
+      document.querySelectorAll("[data-api-error-action]").forEach(function (node) { node.textContent = errorCopy.action; });
+      const errorSelector = document.querySelector("[data-error-selector]");
+      if (errorSelector instanceof HTMLSelectElement) {
+        errorSelector.value = errorCode;
+        errorSelector.addEventListener("change", function () { const next = new URL(window.location.href); next.searchParams.set("error", errorSelector.value); window.location.href = next.toString(); });
+      }
+
+      if (state === "error") {
+        const hasNoErrorData = params.get("data") === "none";
+        document.querySelectorAll("[data-error-mode]").forEach(function (node) {
+          const mode = node.getAttribute("data-error-mode");
+          if (mode === "empty") node.hidden = !hasNoErrorData;
+          if (mode === "stale" || mode === "stale-ready") node.hidden = hasNoErrorData;
+        });
+      }
+
+      const prefill = state.startsWith("edit") || state.startsWith("resend");
+      if (prefill) {
+        const values = state.startsWith("resend")
+          ? { displayName: "Camila Vega", email: "camila.vega@comercialandina.example", username: "cvega" }
+          : { displayName: "Marina Torres", email: "marina.torres@comercialandina.example", username: "mtorres" };
+        document.querySelectorAll("[data-prefill]").forEach(function (input) { if (input instanceof HTMLInputElement) input.value = values[input.dataset.prefill] || ""; });
+      }
+      if (state === "invite-validation") {
+        document.querySelectorAll("[data-validation-control]").forEach(function (node) { node.classList.add("is-error"); });
+        document.querySelector("#full-name")?.setAttribute("aria-invalid", "true");
+        document.querySelector("#corporate-email")?.setAttribute("aria-invalid", "true");
+      }
+
+      document.querySelectorAll("[data-role-option]").forEach(function (option) {
+        const optionInput = option.querySelector("input[type=radio]");
+        const shouldSelect = state.startsWith("edit") ? option.getAttribute("data-role-option") === "COMPANY_ADMIN" : option.getAttribute("data-role-option") === "SUPERVISOR";
+        option.classList.toggle("selected", shouldSelect);
+        if (optionInput instanceof HTMLInputElement) optionInput.checked = shouldSelect;
+        option.addEventListener("click", function () {
+          document.querySelectorAll("[data-role-option]").forEach(function (item) {
+            item.classList.remove("selected");
+            const input = item.querySelector("input[type=radio]");
+            if (input instanceof HTMLInputElement) input.checked = false;
+          });
+          option.classList.add("selected");
+          if (optionInput instanceof HTMLInputElement) optionInput.checked = true;
+        });
+      });
+
+      document.querySelectorAll("[data-dialog-trigger]").forEach(function (control) {
+        control.addEventListener("click", function () {
+          window.sessionStorage.setItem("fe004-return-focus", '[data-dialog-trigger="invite"]');
+          goToState(control.getAttribute("data-dialog-trigger") || "invite");
+        });
+      });
+      document.querySelectorAll("[data-menu-trigger]").forEach(function (control) {
+        control.addEventListener("click", function () {
+          const nextState = control.getAttribute("data-menu-trigger") || "ready-admin";
+          if (state === nextState) {
+            closeActiveMenu(true);
+            window.history.replaceState({}, "", stateUrl("ready-admin"));
+            return;
+          }
+          window.sessionStorage.setItem("fe004-focus-menu", "true");
+          goToState(nextState);
+        });
+      });
+      document.querySelectorAll("[data-go-state]").forEach(function (control) {
+        control.addEventListener("click", function () {
+          const menu = control.closest(".action-menu");
+          if (menu instanceof HTMLElement) {
+            const menuState = menu.getAttribute("data-show");
+            if (menuState) window.sessionStorage.setItem("fe004-return-focus", `[data-menu-trigger="${menuState}"]`);
+          }
+          goToState(control.getAttribute("data-go-state") || "ready-admin");
+        });
+      });
+      document.querySelectorAll("[data-form-submit]").forEach(function (control) {
+        control.addEventListener("click", function () {
+          if (state === "invite" || state === "invite-validation" || state === "invite-error") goToState("invite-saving");
+          else if (state === "edit" || state === "edit-error") goToState("edit-saving");
+          else if (state === "resend" || state === "resend-error") goToState("resend-saving");
+        });
+      });
+
+      function closeActiveMenu(restoreFocus) {
+        if (activeMenu instanceof HTMLElement) activeMenu.hidden = true;
+        if (activeMenuTrigger instanceof HTMLElement) {
+          activeMenuTrigger.setAttribute("aria-expanded", "false");
+          if (restoreFocus) activeMenuTrigger.focus();
+        }
+      }
+
+      if (activeMenu instanceof HTMLElement) {
+        const items = Array.from(activeMenu.querySelectorAll("[role=menuitem]"));
+        activeMenu.addEventListener("keydown", function (event) {
+          const index = items.indexOf(document.activeElement);
+          if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+            event.preventDefault();
+            const step = event.key === "ArrowDown" ? 1 : items.length - 1;
+            items[(Math.max(index, 0) + step) % items.length]?.focus();
+          }
+        });
+      }
+
+      const visibleDialog = Array.from(document.querySelectorAll("[data-overlay]")).find(function (node) { return node instanceof HTMLElement && node.getClientRects().length > 0; });
+      if (visibleDialog instanceof HTMLElement) {
+        const triggerName = state.startsWith("invite") ? "invite" : null;
+        const storedReturnSelector = window.sessionStorage.getItem("fe004-return-focus");
+        returnFocusTarget = storedReturnSelector ? document.querySelector(storedReturnSelector) : triggerName ? document.querySelector(`[data-dialog-trigger="${triggerName}"]`) : activeMenuTrigger;
+        const focusable = Array.from(visibleDialog.querySelectorAll("button:not(:disabled), input:not(:disabled), [href], summary, [tabindex]:not([tabindex='-1'])"));
+        const initial = visibleDialog.querySelector("[data-initial-focus]") || focusable.find(function (node) { return node instanceof HTMLInputElement; }) || focusable[0];
+        if (initial instanceof HTMLElement) window.setTimeout(function () { initial.focus(); }, 0);
+        const closeDialog = function () {
+          if (state === "invite-saving" || state === "edit-saving" || state === "resend-saving" || state === "confirm-block-saving" || state === "confirm-reactivate-saving") return;
+          visibleDialog.hidden = true;
+          document.querySelectorAll(".scrim").forEach(function (node) { if (node instanceof HTMLElement && node.getClientRects().length > 0) node.hidden = true; });
+          window.history.replaceState({}, "", stateUrl("ready-admin"));
+          window.sessionStorage.removeItem("fe004-return-focus");
+          if (returnFocusTarget instanceof HTMLElement) returnFocusTarget.focus();
+        };
+        visibleDialog.querySelectorAll("[data-dialog-close]").forEach(function (control) { control.addEventListener("click", closeDialog); });
+        document.querySelectorAll("[data-dialog-dismiss]").forEach(function (control) { if (control.getClientRects().length > 0) control.addEventListener("click", closeDialog); });
+        visibleDialog.addEventListener("keydown", function (event) {
+          if (event.key === "Escape" && state !== "invite-saving" && state !== "edit-saving" && state !== "resend-saving" && state !== "confirm-block-saving" && state !== "confirm-reactivate-saving") {
+            event.preventDefault();
+            closeDialog();
+          }
+          if (event.key === "Tab" && focusable.length) {
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+            else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+          }
+        });
+      }
+
+      document.addEventListener("click", function (event) {
+        if (!(event.target instanceof Node)) return;
+        if (profileMenu instanceof HTMLElement && !profileMenu.hidden && !profileMenu.contains(event.target) && !profileButton?.contains(event.target)) setProfileOpen(false, false);
+      });
+      document.addEventListener("keydown", function (event) {
+        if (event.key !== "Escape") return;
+        if (profileMenu instanceof HTMLElement && !profileMenu.hidden) setProfileOpen(false, true);
+        else if (activeMenu instanceof HTMLElement && !activeMenu.hidden) closeActiveMenu(true);
+        else if (body.dataset.nav === "open") setNavigation(false, true);
+      });
+    })();
+  </script>
+</body>
+</html>

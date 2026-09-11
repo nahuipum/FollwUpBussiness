@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>followUp Business · Golden login</title>
+  <link rel="stylesheet" href="assets/golden-system.css">
+  <script src="assets/golden-icons.js" defer></script>
+</head>
+<body data-states="ready validation loading auth-error retry invalid-session">
+  <!--
+    Mockup presentacional. Estados: ?state=ready|validation|loading|auth-error|retry|invalid-session
+    Agregar &guide=1 muestra el selector de estados; &theme=dark muestra el tema oscuro.
+    Las reglas, permisos, redirecciones y mensajes definitivos pertenecen a historias y código productivo.
+  -->
+  <div class="login-shell">
+    <section class="login-brand" aria-label="Presentación de followUp Business">
+      <div class="brand-plate"><img class="brand-logo" src="assets/brand/followup-logo.png" alt="followUp Business"></div>
+      <div class="login-brand-copy">
+        <span class="eyebrow">Acceso seguro</span>
+        <h1>Cada seguimiento, en el momento justo.</h1>
+        <p>Conecta a tu equipo con las oportunidades que mueven tu negocio.</p>
+        <div class="login-map-card" aria-hidden="true">
+          <div class="map-stage">
+            <div class="map-route">
+              <svg viewBox="0 0 600 320" preserveAspectRatio="none"><path class="route-line route-alt" d="M20 255 C130 275 150 90 270 128 S420 278 575 55"/><path class="route-line" d="M20 255 C130 245 150 98 270 128 S420 250 575 55"/></svg>
+            </div>
+            <span class="pin one"><span>1</span></span><span class="pin two"><span>2</span></span><span class="pin three"><span>3</span></span>
+            <div class="map-legend"><span class="badge info">Ruta preparada</span><span>3 visitas</span></div>
+          </div>
+        </div>
+      </div>
+      <p class="login-foot"><svg class="icon icon-sm"><use href="#i-lock"></use></svg> Plataforma de uso interno · Flujo protegido</p>
+    </section>
+
+    <main class="login-main">
+      <section class="login-form" aria-labelledby="login-title">
+        <img class="mobile-logo brand-plate" src="assets/brand/followup-logo.png" alt="followUp Business">
+        <span class="eyebrow">Acceso seguro</span>
+        <h1 id="login-title">Inicia sesión</h1>
+        <p>Ingresa con las credenciales asignadas para acceder a tu panel.</p>
+
+        <form novalidate data-busy-in="loading">
+          <div class="alert alert-warning" role="status" data-show="retry" hidden>
+            <svg class="icon"><use href="#i-clock"></use></svg>
+            <div><strong>Espera antes de volver a intentarlo</strong><p>Por seguridad, espera 24 segundos antes de volver a intentarlo.</p></div>
+          </div>
+
+          <div class="field">
+            <label for="identifier">Correo o nombre de usuario</label>
+            <div class="control" data-show="ready loading auth-error retry invalid-session" hidden>
+              <svg class="icon"><use href="#i-mail"></use></svg>
+              <input id="identifier" autocomplete="username" placeholder="nombre@empresa.com" data-state-value data-value-loading="usuario@empresa.com" data-value-auth-error="usuario@empresa.com" data-value-retry="usuario@empresa.com" data-disable-in="loading retry">
+            </div>
+            <div class="control is-error" data-show="validation" hidden>
+              <svg class="icon"><use href="#i-mail"></use></svg>
+              <input autocomplete="username" aria-invalid="true" aria-describedby="identifier-error">
+            </div>
+            <p id="identifier-error" class="field-error" data-show="validation" hidden>Ingresa un correo electrónico o usuario válido.</p>
+          </div>
+
+          <div class="field">
+            <label for="password">Contraseña</label>
+            <div class="control" data-show="ready loading auth-error retry invalid-session" hidden>
+              <svg class="icon"><use href="#i-lock"></use></svg>
+              <input id="password" type="password" autocomplete="current-password" placeholder="Ingresa tu contraseña" data-state-value data-value-loading="FollowUpDemo1!" data-value-auth-error="••••••••" data-value-retry="••••••••" data-disable-in="loading retry">
+              <button class="visibility" type="button" data-password-toggle data-disable-in="loading retry" aria-label="Mostrar contraseña"><svg class="icon"><use href="#i-eye"></use></svg></button>
+            </div>
+            <div class="control is-error" data-show="validation" hidden>
+              <svg class="icon"><use href="#i-lock"></use></svg>
+              <input type="password" autocomplete="current-password" aria-invalid="true" aria-describedby="password-error">
+              <button class="visibility" type="button" aria-label="Mostrar contraseña"><svg class="icon"><use href="#i-eye"></use></svg></button>
+            </div>
+            <p id="password-error" class="field-error" data-show="validation" hidden>La contraseña debe tener entre 8 y 200 caracteres.</p>
+          </div>
+
+          <div class="login-helper">
+            <span class="remember"><span aria-hidden="true"></span>Recordarme</span>
+            <a class="login-link" href="#">¿Necesitas ayuda?</a>
+          </div>
+
+          <button class="btn btn-primary login-submit" type="button" data-disable-in="loading retry">
+            <span data-show="ready validation auth-error invalid-session" hidden>Iniciar sesión</span>
+            <span data-show="loading" hidden><span class="spinner" aria-hidden="true"></span>Iniciando sesión…</span>
+            <span data-show="retry" hidden>Espera 24 s</span>
+          </button>
+          <p class="field-help" role="status" data-show="loading" hidden>Validando credenciales y cargando tu panel.</p>
+        </form>
+
+        <footer class="secure-footer">
+          <p class="secure-line"><svg class="icon icon-sm"><use href="#i-shield"></use></svg>Procesamos tu solicitud de forma segura.</p>
+          <div class="secure-divider"></div>
+          <span>© 2026 FollowUpBusiness</span>
+        </footer>
+      </section>
+    </main>
+  </div>
+
+  <div data-show="auth-error" hidden>
+    <div class="scrim"></div>
+    <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="auth-error-title">
+      <div class="dialog-body">
+        <span class="login-modal-icon"><svg class="icon"><use href="#i-alert"></use></svg></span>
+        <h2 id="auth-error-title">Inicio de sesión fallido</h2>
+        <p class="muted">No fue posible iniciar sesión. Verifica tus credenciales e inténtalo nuevamente.</p>
+      </div>
+      <footer class="dialog-foot"><button class="btn btn-primary" type="button">Cerrar</button></footer>
+    </section>
+  </div>
+
+  <div data-show="invalid-session" hidden>
+    <div class="scrim"></div>
+    <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="session-title">
+      <div class="dialog-body">
+        <span class="login-modal-icon"><svg class="icon"><use href="#i-shield"></use></svg></span>
+        <h2 id="session-title">Sesión inválida</h2>
+        <p class="muted">Tu sesión ya no es válida o ha expirado. Vuelve a iniciar sesión para continuar.</p>
+      </div>
+      <footer class="dialog-foot"><button class="btn" type="button">Cerrar</button><button class="btn btn-primary" type="button">Ir al inicio de sesión</button></footer>
+    </section>
+  </div>
+
+  <aside class="mockup-guide" aria-label="Controles del mockup"><label for="state">Estado</label><select id="state" data-state-selector></select><button class="btn btn-icon btn-compact" type="button" data-theme-toggle aria-label="Cambiar tema"><svg class="icon"><use href="#i-moon"></use></svg></button></aside>
+  <script src="assets/golden-states.js"></script>
+</body>
+</html>

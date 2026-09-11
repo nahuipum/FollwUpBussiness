@@ -22,6 +22,7 @@ export function TableActionMenu({
   menuRef,
   onKeyDown,
   onDismiss,
+  variant = "default",
 }: {
   anchor: HTMLElement | null;
   ariaLabel: string;
@@ -29,6 +30,7 @@ export function TableActionMenu({
   menuRef?: RefObject<HTMLDivElement | null> | undefined;
   onKeyDown?: KeyboardEventHandler<HTMLDivElement> | undefined;
   onDismiss?: (() => void) | undefined;
+  variant?: "default" | "golden";
 }) {
   const internalRef = useRef<HTMLDivElement>(null);
   const activeRef = menuRef ?? internalRef;
@@ -49,7 +51,7 @@ export function TableActionMenu({
     <FloatingMenu
       anchor={anchor}
       menuRef={activeRef}
-      className="table-action-menu"
+      className={`table-action-menu table-action-menu--${variant}`}
       ariaLabel={ariaLabel}
       onKeyDown={onKeyDown}
     >

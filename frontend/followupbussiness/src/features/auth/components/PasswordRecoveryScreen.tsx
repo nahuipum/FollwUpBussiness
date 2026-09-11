@@ -1,4 +1,5 @@
 import { PasswordRecoveryRoute } from "./PasswordRecoveryRoute";
+import "../styles/login.css";
 import "../styles/password-recovery.css";
 
 type PasswordRecoveryScreenProps = {

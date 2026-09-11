@@ -24,6 +24,7 @@ afterEach(() => {
   window.localStorage.removeItem(themeStorageKey);
   delete document.documentElement.dataset.theme;
   document.documentElement.style.removeProperty("color-scheme");
+  document.body.style.removeProperty("overflow");
 });
 
 test("activa y desactiva el modo oscuro desde el encabezado", () => {
@@ -70,4 +71,43 @@ test("admite grupos desplegables sin confundir la acción del grupo con sus ruta
   fireEvent.click(screen.getByRole("button", { name: "Gestión de clientes" }));
   expect(selectManagement).toHaveBeenCalledOnce();
   expect(screen.getByRole("button", { name: /Mapa general/ })).toHaveProperty("disabled", true);
+});
+
+test("drawer restaura scroll y foco al cerrarse", () => {
+  const select = vi.fn();
+  render(<DashboardLayout brand={<span>Marca</span>} contextLabel="Empresa" navigationLabel="Navegación" navigation={[{ id: "home", label: "Inicio", icon: <span>Icono</span>, onSelect: select }]} profile={{ initials: "LP", name: "Luis Pérez", role: "Administrador" }} breadcrumbs={["Inicio"]} onLogout={vi.fn()}>Contenido</DashboardLayout>);
+  const menu = screen.getByRole("button", { name: "Abrir menú" });
+  fireEvent.click(menu);
+  expect(menu.getAttribute("aria-expanded")).toBe("true");
+  expect(document.body.style.overflow).toBe("hidden");
+  fireEvent.click(document.querySelector<HTMLButtonElement>(".dashboard-backdrop")!);
+  expect(document.body.style.overflow).toBe("");
+  expect(document.activeElement).toBe(menu);
+  fireEvent.click(menu);
+  fireEvent.keyDown(document, { key: "Escape" });
+  expect(screen.queryByRole("button", { name: "Cerrar menú" })).toBeNull();
+  expect(document.body.style.overflow).toBe("");
+  expect(document.activeElement).toBe(menu);
+});
+
+test("cierra el drawer al navegar y conserva perfil y logout", () => {
+  const select = vi.fn();
+  const onLogout = vi.fn();
+  render(<DashboardLayout brand={<span>Marca</span>} contextLabel="Empresa" navigationLabel="Navegación" navigation={[{ id: "home", label: "Inicio", icon: <span>Icono</span>, onSelect: select }]} profile={{ initials: "LP", name: "Luis Pérez", role: "Administrador" }} breadcrumbs={["Empresa", "Inicio"]} onLogout={onLogout}>Contenido</DashboardLayout>);
+
+  fireEvent.click(screen.getByRole("button", { name: "Abrir menú" }));
+  fireEvent.click(screen.getByRole("button", { name: "Inicio" }));
+  expect(select).toHaveBeenCalledOnce();
+  expect(screen.queryByRole("button", { name: "Cerrar menú" })).toBeNull();
+  expect(document.body.style.overflow).toBe("");
+
+  const profileButton = screen.getByRole("button", { name: "Abrir opciones del perfil de Luis Pérez" });
+  fireEvent.click(profileButton);
+  expect(screen.getByRole("menu")).toBeTruthy();
+  fireEvent.mouseDown(document.body);
+  expect(screen.queryByRole("menu")).toBeNull();
+
+  fireEvent.click(profileButton);
+  fireEvent.click(screen.getByRole("menuitem", { name: "Cerrar sesión" }));
+  expect(onLogout).toHaveBeenCalledOnce();
 });

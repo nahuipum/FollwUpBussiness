@@ -1,53 +1,46 @@
 .auth-secure-footer {
-  margin-top: 54px;
+  display: grid;
+  gap: var(--visual-space-3);
+  margin-top: var(--visual-space-6);
+  color: var(--visual-text-muted);
+  font-size: 12px;
+  text-align: center;
 }
 
 .auth-secure-line {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 15px;
+  gap: var(--visual-space-2);
   margin: 0;
-  color: #7386a1;
-  font-size: 15px;
-  line-height: 1.4;
+  color: var(--visual-text-muted);
+  font-size: 12px;
+  line-height: 16px;
   text-align: center;
 }
 
 .auth-secure-line svg {
-  width: 37px;
-  height: 43px;
+  width: 16px;
+  height: 16px;
   flex: 0 0 auto;
-  color: #0b7c88;
+  color: var(--visual-text-muted);
 }
 
 .auth-footer-divider {
   height: 1px;
-  margin: 55px 0 28px;
-  background: #d6dee8;
+  margin: 0;
+  background: var(--visual-border);
 }
 
 .auth-copyright {
   margin: 0;
-  color: #8192aa;
-  font-size: 14px;
+  color: var(--visual-text-muted);
+  font-size: 12px;
   text-align: center;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 620px) {
   .auth-secure-footer {
-    margin-top: 62px;
-  }
-
-  .auth-secure-line {
-    font-size: 17px;
-  }
-
-  .auth-footer-divider {
-    margin: 62px 0 28px;
-  }
-
-  .auth-copyright {
-    font-size: 16px;
+    margin-top: var(--visual-space-5);
   }
 }

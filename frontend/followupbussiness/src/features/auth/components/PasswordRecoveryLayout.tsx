@@ -1,7 +1,7 @@
 import { type ReactNode } from "react";
-import { ShieldCheck } from "lucide-react";
-import { BrandPanel, PasswordRecoveryBrandMark } from "./BrandPanel";
+import { BrandPanel } from "./BrandPanel";
 import { AuthSecureFooter } from "./AuthSecureFooter";
+import followUpLogo from "../assets/followup-logo.png";
 
 type PasswordRecoveryLayoutProps = {
   children: ReactNode;
@@ -19,30 +19,28 @@ export function PasswordRecoveryLayout({
   hiddenFromAssistiveTechnology = false,
 }: PasswordRecoveryLayoutProps) {
   return (
-    <main className="login-panel password-recovery-panel">
+    <main className="login-golden password-recovery-golden">
       <BrandPanel
         eyebrow="Acceso seguro"
         title="Recupera tu acceso de forma segura."
         description="Solicita un enlace para restablecer tu contraseña y volver a tu panel sin perder continuidad."
         footer="Plataforma de uso interno · Flujo protegido"
-        mark={<PasswordRecoveryBrandMark />}
+        mapBadge="Acceso protegido"
+        mapDetail="Continuidad segura"
       />
       <section
-        className="form-panel recovery-form-panel"
+        className="login-golden__main recovery-golden__main"
         aria-labelledby={labelledBy}
       >
         <div
-          className={`form-wrap recovery-content-shell${status ? " recovery-status status-view" : ""}`}
+          className={`login-golden__form recovery-golden__view${status ? " recovery-golden__status" : ""}`}
           aria-hidden={hiddenFromAssistiveTechnology || undefined}
         >
-          <p className="mobile-brand">
-            <PasswordRecoveryBrandMark />
-            FollowUpBusiness
-          </p>
-          <p className="mobile-eyebrow">
-            <ShieldCheck aria-hidden="true" />
-            Acceso seguro
-          </p>
+          <img
+            className="login-golden__mobile-logo"
+            src={followUpLogo}
+            alt="followUp Business"
+          />
           {children}
           <AuthSecureFooter />
         </div>

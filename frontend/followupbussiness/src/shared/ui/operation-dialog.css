@@ -70,7 +70,40 @@
 .confirmation-dialog button:focus-visible { outline: 3px solid rgb(56 178 172 / 35%); outline-offset: 2px; }
 @media (max-width: 520px) {
   .operation-dialog footer,
-  .confirmation-dialog footer { flex-direction: column-reverse; }
+  .confirmation-dialog:not(.confirmation-dialog--golden) footer { flex-direction: column-reverse; }
   .operation-dialog footer button,
   .confirmation-dialog footer button { width: 100%; }
 }
+
+.confirmation-dialog--golden { width:min(100%, 480px); overflow:hidden; padding:0; border:1px solid var(--visual-border); border-radius:var(--visual-radius-xl); color:var(--visual-text); background:var(--visual-surface-raised); box-shadow:var(--visual-shadow-lg); }
+.confirmation-dialog--golden .shared-modal-header { margin:0; padding:20px 22px 16px; border-bottom:1px solid var(--visual-border); background:var(--visual-surface-raised); box-sizing:border-box; }
+.confirmation-dialog--golden .shared-modal-header__module { margin-bottom:8px; color:var(--visual-brand-strong); }
+.confirmation-dialog--golden .shared-modal-header h2 { color:var(--visual-text-strong); }
+.confirmation-dialog--golden .shared-modal-header__description { color:var(--visual-text-muted); font-size:13px; }
+.confirmation-dialog--golden .shared-modal-header__close { width:44px; height:44px; border:1px solid var(--visual-control); border-radius:var(--visual-radius-md); color:var(--visual-text-soft); background:var(--visual-surface); }
+.confirmation-dialog--golden .shared-modal-header__close:hover:not(:disabled) { color:var(--visual-text-strong); border-color:var(--visual-brand-border); background:var(--visual-surface-subtle); }
+.confirmation-dialog--golden .shared-modal-header__close:focus-visible { outline:0; box-shadow:var(--visual-focus-ring); }
+.confirmation-dialog--golden .confirmation-dialog__content { justify-items:start; gap:0; padding:20px 22px; text-align:left; }
+.confirmation-dialog--golden .operation-dialog__icon { width:48px; height:48px; margin-bottom:var(--visual-space-4); border-radius:14px; }
+.confirmation-dialog--golden .operation-dialog__icon svg { width:21px; height:21px; }
+.confirmation-dialog--golden .operation-dialog__icon--error { color:var(--visual-danger); background:var(--visual-danger-background); }
+.confirmation-dialog--golden .operation-dialog__icon--info { color:var(--visual-brand-strong); background:var(--visual-brand-soft); }
+.confirmation-dialog--golden h3 { margin:0 0 var(--visual-space-3); color:var(--visual-text-strong); font-size:18px; }
+.confirmation-dialog--golden .confirmation-dialog__content > p { color:var(--visual-text-muted); line-height:1.45; }
+.confirmation-dialog--golden .confirmation-dialog__note { display:flex; gap:var(--visual-space-2); margin-top:var(--visual-space-4); padding:var(--visual-space-3); border-radius:var(--visual-radius-md); color:var(--visual-text-soft); background:var(--visual-surface-subtle); font-size:13px; line-height:1.4; }
+.confirmation-dialog--golden .confirmation-dialog__note svg { width:18px; flex:none; color:var(--visual-danger); }
+.confirmation-dialog--golden .confirmation-dialog__error { width:100%; display:flex; align-items:flex-start; gap:var(--visual-space-3); box-sizing:border-box; margin-top:var(--visual-space-4); padding:var(--visual-space-3) var(--visual-space-4); border:1px solid color-mix(in srgb, var(--visual-danger) 35%, var(--visual-surface)); border-radius:var(--visual-radius-md); color:var(--visual-danger); background:var(--visual-danger-background); }
+.confirmation-dialog--golden .confirmation-dialog__error > svg { width:18px; height:18px; flex:none; margin-top:1px; }
+.confirmation-dialog--golden .confirmation-dialog__error strong { display:block; margin-bottom:2px; }
+.confirmation-dialog--golden .confirmation-dialog__error p { margin:0; color:inherit; font-size:13px; line-height:18px; }
+.confirmation-dialog--golden footer { display:flex; justify-content:flex-end; gap:var(--visual-space-2); margin:0; padding:14px 22px; border-top:1px solid var(--visual-border); background:var(--visual-surface-subtle); }
+.confirmation-dialog--golden .operation-dialog__primary,.confirmation-dialog--golden .operation-dialog__secondary { min-width:0; display:inline-flex; align-items:center; justify-content:center; gap:var(--visual-space-2); border-radius:var(--visual-radius-md); }
+.confirmation-dialog--golden .operation-dialog__secondary { color:var(--visual-text); border-color:var(--visual-control); background:var(--visual-surface); }
+.confirmation-dialog--golden .operation-dialog__primary { color:var(--visual-on-danger); border-color:var(--visual-danger-action); background:var(--visual-danger-action); }
+.confirmation-dialog--golden.confirmation-dialog--reactivate .operation-dialog__primary { color:var(--visual-on-brand); border-color:var(--visual-brand); background:var(--visual-brand); }
+.confirmation-dialog__spinner { width:17px; height:17px; display:inline-block; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; animation:confirmation-dialog-spin .8s linear infinite; }
+.confirmation-dialog--golden button:focus-visible { outline:0; box-shadow:var(--visual-focus-ring); }
+.confirmation-dialog--golden .operation-dialog__secondary:focus { outline:0; box-shadow:var(--visual-focus-ring); }
+@media (max-width: 620px) { .confirmation-dialog--golden footer { display:grid; grid-template-columns:1fr; }.confirmation-dialog--golden footer button { width:100%; } }
+@keyframes confirmation-dialog-spin { to { transform:rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .confirmation-dialog__spinner { animation:none; } }

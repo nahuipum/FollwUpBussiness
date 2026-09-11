@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>followUp Business · Golden rutas</title>
+  <link rel="stylesheet" href="assets/golden-system.css">
+  <script src="assets/golden-icons.js" defer></script>
+</head>
+<body data-states="ready loading empty no-results error forbidden detail draft publish">
+  <!--
+    Mockup presentacional. Estados: ?state=ready|loading|empty|no-results|error|forbidden|detail|draft|publish
+    Agregar &guide=1 muestra el selector; &theme=dark muestra el tema oscuro.
+    El motor, permisos, transiciones, publicación y versionado pertenecen a historias y código productivo.
+  -->
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Navegación principal">
+      <a class="sidebar-brand brand-plate" href="#" aria-label="followUp Business, inicio"><img class="brand-logo" src="assets/brand/followup-logo.png" alt=""></a>
+      <div>
+        <p class="nav-label">Espacio de trabajo</p>
+        <nav class="nav">
+          <a href="#"><svg class="icon"><use href="#i-grid"></use></svg>Resumen</a>
+          <a href="#"><svg class="icon"><use href="#i-client"></use></svg>Clientes</a>
+          <a class="active" href="#" aria-current="page"><svg class="icon"><use href="#i-route"></use></svg>Rutas <small>100</small></a>
+          <a href="#"><svg class="icon"><use href="#i-pin"></use></svg>Visitas</a>
+          <a href="#"><svg class="icon"><use href="#i-calendar"></use></svg>Agenda</a>
+          <a href="#"><svg class="icon"><use href="#i-report"></use></svg>Reportes</a>
+        </nav>
+      </div>
+      <div><p class="nav-label">Administración</p><nav class="nav"><a href="#"><svg class="icon"><use href="#i-settings"></use></svg>Configuración</a></nav></div>
+      <div class="sidebar-foot"><div class="help-card"><strong>¿Necesitas ayuda?</strong>Consulta la guía de uso del espacio de trabajo.</div></div>
+    </aside>
+
+    <header class="topbar">
+      <div class="top-left"><button class="menu-control" type="button" data-nav-toggle aria-label="Abrir navegación"><svg class="icon"><use href="#i-menu"></use></svg></button><div class="crumb"><span>Comercial Andina</span><span aria-hidden="true">/</span><strong>Rutas</strong></div></div>
+      <div class="top-actions"><span class="updated"><i></i><span class="updated-long">Última actualización: </span>10:42</span><button class="theme-control" type="button" data-theme-toggle aria-label="Cambiar tema"><svg class="icon"><use href="#i-moon"></use></svg></button><button class="icon-btn" type="button" aria-label="Notificaciones"><svg class="icon"><use href="#i-bell"></use></svg></button><div class="person"><span class="avatar">AM</span><span class="person-copy"><strong>Ana Morales</strong><span>Administradora</span></span></div></div>
+    </header>
+
+    <main class="app-main">
+      <div class="page">
+        <header class="page-head">
+          <div><span class="eyebrow">Planificación operativa</span><h1>Rutas</h1><p>Consulta las rutas asignadas a los vendedores de la empresa.</p></div>
+          <button class="btn btn-primary" type="button"><svg class="icon icon-sm"><use href="#i-plus"></use></svg>Crear borrador</button>
+        </header>
+
+        <div class="alert alert-danger connection-banner" data-show="error" hidden>
+          <svg class="icon"><use href="#i-alert"></use></svg>
+          <div><strong>Ocurrió un problema temporal</strong><p>No pudimos actualizar las rutas. Los datos mostrados pueden no estar vigentes.</p><div class="alert-actions"><button class="alert-link" type="button">Reintentar</button></div></div>
+        </div>
+
+        <section class="map-workspace" data-show="ready error detail draft publish" data-stale-in="error" aria-label="Espacio operativo de rutas" hidden>
+          <div class="map-stage">
+            <div class="map-toolbar"><div class="map-toolbar-group"><button class="btn btn-compact" type="button"><svg class="icon icon-sm"><use href="#i-calendar"></use></svg><span>10 sep 2026</span></button><button class="btn btn-compact" type="button"><svg class="icon icon-sm"><use href="#i-locate"></use></svg><span>Centrar ruta</span></button></div><span class="badge info">4 puntos</span></div>
+            <div class="map-route" aria-hidden="true"><svg viewBox="0 0 600 340" preserveAspectRatio="none"><path class="route-line route-alt" d="M10 278 C102 294 130 72 250 124 S395 310 584 42"/><path class="route-line" d="M10 278 C104 258 138 96 250 124 S395 270 584 42"/></svg></div>
+            <span class="pin one"><span>1</span></span><span class="pin two"><span>2</span></span><span class="pin three"><span>3</span></span><span class="pin four"><span>4</span></span>
+            <div class="map-legend"><span class="badge info">Ruta seleccionada</span><span>Alternativa</span></div>
+          </div>
+
+          <aside class="route-panel" aria-label="Panel de rutas">
+            <header class="route-panel-head"><span class="eyebrow">Resultados</span><h2>Rutas del día</h2><p>100 rutas encontradas</p></header>
+            <div class="route-filter-strip"><div class="field"><span>Vendedor</span><details><summary class="select-trigger">Todos<svg class="icon icon-sm"><use href="#i-chevron"></use></svg></summary></details></div><div class="field"><span>Estado</span><details><summary class="select-trigger">Todos<svg class="icon icon-sm"><use href="#i-chevron"></use></svg></summary></details></div></div>
+            <div class="route-list-cards" aria-label="Página 1 de rutas">
+              <article class="route-card selected" tabindex="0"><div class="route-card-head"><div><h3>Ruta Norte 04</h3><p>Diego Luna · 10/09/2026</p></div><div class="route-card-tools"><span class="badge neutral">Borrador</span><button class="more" type="button" aria-label="Acciones de Ruta Norte 04"><svg class="icon"><use href="#i-more"></use></svg></button></div></div><div class="route-meta"><span>4 puntos</span><span>Versión 3</span></div></article>
+              <article class="route-card" tabindex="0"><div class="route-card-head"><div><h3>Ruta Centro 02</h3><p>Sofía Ramos · 10/09/2026</p></div><div class="route-card-tools"><span class="badge success">Publicada</span><button class="more" type="button" aria-label="Acciones de Ruta Centro 02"><svg class="icon"><use href="#i-more"></use></svg></button></div></div><div class="route-meta"><span>6 puntos</span><span>Versión 1</span></div></article>
+              <article class="route-card" tabindex="0"><div class="route-card-head"><div><h3>Ruta Este 01</h3><p>Marco Ruiz · 10/09/2026</p></div><div class="route-card-tools"><span class="badge warning">En curso</span><button class="more" type="button" aria-label="Acciones de Ruta Este 01"><svg class="icon"><use href="#i-more"></use></svg></button></div></div><div class="route-meta"><span>5 puntos</span><span>Versión 2</span></div></article>
+              <article class="route-card" tabindex="0"><div class="route-card-head"><div><h3>Ruta Sur 06</h3><p>Lucía Vega · 10/09/2026</p></div><div class="route-card-tools"><span class="badge success">Publicada</span><button class="more" type="button" aria-label="Acciones de Ruta Sur 06"><svg class="icon"><use href="#i-more"></use></svg></button></div></div><div class="route-meta"><span>7 puntos</span><span>Versión 2</span></div></article>
+              <article class="route-card" tabindex="0"><div class="route-card-head"><div><h3>Ruta Oeste 03</h3><p>Bruno Díaz · 10/09/2026</p></div><div class="route-card-tools"><span class="badge neutral">Borrador</span><button class="more" type="button" aria-label="Acciones de Ruta Oeste 03"><svg class="icon"><use href="#i-more"></use></svg></button></div></div><div class="route-meta"><span>3 puntos</span><span>Versión 1</span></div></article>
+              <article class="route-card" tabindex="0"><div class="route-card-head"><div><h3>Ruta Norte 08</h3><p>Camila León · 10/09/2026</p></div><div class="route-card-tools"><span class="badge success">Publicada</span><button class="more" type="button" aria-label="Acciones de Ruta Norte 08"><svg class="icon"><use href="#i-more"></use></svg></button></div></div><div class="route-meta"><span>8 puntos</span><span>Versión 4</span></div></article>
+              <article class="route-card" tabindex="0"><div class="route-card-head"><div><h3>Ruta Centro 07</h3><p>Mateo Cruz · 10/09/2026</p></div><div class="route-card-tools"><span class="badge warning">En curso</span><button class="more" type="button" aria-label="Acciones de Ruta Centro 07"><svg class="icon"><use href="#i-more"></use></svg></button></div></div><div class="route-meta"><span>5 puntos</span><span>Versión 2</span></div></article>
+              <article class="route-card" tabindex="0"><div class="route-card-head"><div><h3>Ruta Este 05</h3><p>Valeria Soto · 10/09/2026</p></div><div class="route-card-tools"><span class="badge neutral">Borrador</span><button class="more" type="button" aria-label="Acciones de Ruta Este 05"><svg class="icon"><use href="#i-more"></use></svg></button></div></div><div class="route-meta"><span>4 puntos</span><span>Versión 1</span></div></article>
+            </div>
+            <nav class="pagination route-pagination" aria-label="Paginación de rutas"><span>Mostrando 1–20 de 100 rutas</span><span class="pages"><button class="page-btn" type="button" aria-label="Página anterior" disabled>‹</button><button class="page-btn current" type="button" aria-label="Página 1" aria-current="page">1</button><button class="page-btn" type="button" aria-label="Página 2">2</button><button class="page-btn" type="button" aria-label="Página 3">3</button><span class="page-ellipsis" aria-hidden="true">…</span><button class="page-btn" type="button" aria-label="Página 5">5</button><button class="page-btn" type="button" aria-label="Página siguiente">›</button></span></nav>
+            <footer class="route-panel-foot"><button class="btn" type="button">Ver detalle</button><button class="btn btn-primary" type="button">Publicar ruta</button></footer>
+          </aside>
+        </section>
+
+        <section class="panel" data-show="loading" hidden>
+          <header class="table-header"><div><strong>Rutas del día</strong><span>Cargando rutas</span></div></header>
+          <div class="skeleton-list" aria-busy="true"><div class="skeleton-row"><i class="skeleton block"></i><i class="skeleton"></i><i class="skeleton"></i><i class="skeleton"></i></div><div class="skeleton-row"><i class="skeleton block"></i><i class="skeleton"></i><i class="skeleton"></i><i class="skeleton"></i></div><div class="skeleton-row"><i class="skeleton block"></i><i class="skeleton"></i><i class="skeleton"></i><i class="skeleton"></i></div><span class="sr-only">Cargando rutas</span></div>
+        </section>
+        <section class="panel" data-show="empty" hidden><article class="state-card"><div><span class="state-icon"><svg class="icon"><use href="#i-empty"></use></svg></span><h2>Aún no hay rutas</h2><p>Cuando existan rutas aparecerán en este espacio.</p></div></article></section>
+        <section class="panel" data-show="no-results" hidden><article class="state-card"><div><span class="state-icon"><svg class="icon"><use href="#i-search"></use></svg></span><h2>No encontramos rutas</h2><p>Prueba con otros filtros.</p><button class="btn btn-primary" type="button">Limpiar filtros</button></div></article></section>
+        <section class="panel" data-show="forbidden" hidden><article class="state-card danger"><div><span class="state-icon"><svg class="icon"><use href="#i-shield"></use></svg></span><h2>No tienes permisos</h2><p>No tienes permiso para consultar rutas.</p><button class="btn" type="button">Reintentar</button></div></article></section>
+      </div>
+    </main>
+  </div>
+
+  <div data-show="detail" hidden>
+    <div class="scrim"></div>
+    <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="route-detail-title">
+      <header class="dialog-head"><div><span class="eyebrow">Rutas</span><h2 id="route-detail-title">Detalle de ruta</h2><p>Ruta Norte 04</p></div><button class="btn btn-icon" type="button" aria-label="Cerrar detalle"><svg class="icon"><use href="#i-x"></use></svg></button></header>
+      <div class="dialog-body"><dl class="definition-grid"><div><dt>Fecha</dt><dd>10/09/2026</dd></div><div><dt>Vendedor</dt><dd>Diego Luna</dd></div><div><dt>Estado</dt><dd><span class="badge neutral">Borrador</span></dd></div><div><dt>Versión</dt><dd>3</dd></div></dl><ol class="timeline"><li><span class="timeline-index">1</span><span><strong>Mercado Brisa</strong><small>15 min estimados</small></span></li><li><span class="timeline-index">2</span><span><strong>Librería Sendero</strong><small>20 min estimados</small></span></li><li><span class="timeline-index">3</span><span><strong>Distribuidora Cauce</strong><small>25 min estimados</small></span></li></ol></div>
+      <footer class="dialog-foot"><button class="btn" type="button">Cerrar</button><button class="btn" type="button">Generar propuesta</button><button class="btn btn-primary" type="button">Publicar ruta</button></footer>
+    </section>
+  </div>
+
+  <div data-show="draft" hidden>
+    <div class="scrim"></div>
+    <section class="drawer" role="dialog" aria-modal="true" aria-labelledby="draft-title">
+      <header class="drawer-head"><div><span class="eyebrow">Rutas</span><h2 id="draft-title">Crear borrador</h2><p>Define fecha, vendedor y clientes de la ruta.</p></div><button class="btn btn-icon" type="button" aria-label="Cerrar formulario"><svg class="icon"><use href="#i-x"></use></svg></button></header>
+      <div class="drawer-body"><div class="form-grid"><div class="field"><label for="route-date">Fecha</label><div class="control"><input id="route-date" value="10/09/2026"></div></div><div class="field"><span>Vendedor</span><details><summary class="select-trigger">Diego Luna<svg class="icon icon-sm"><use href="#i-chevron"></use></svg></summary></details></div><div class="field wide"><label for="route-name">Nombre de ruta</label><div class="control"><input id="route-name" value="Ruta Norte 04"></div></div><div class="alert alert-info wide"><svg class="icon"><use href="#i-info"></use></svg><div><strong>Clientes sugeridos</strong><p>La selección y las estimaciones mostradas son una referencia visual del formulario.</p></div></div></div><ol class="timeline"><li><span class="timeline-index">1</span><span><strong>Mercado Brisa</strong><small>15 min de atención</small></span></li><li><span class="timeline-index">2</span><span><strong>Librería Sendero</strong><small>20 min de atención</small></span></li><li><span class="timeline-index">3</span><span><strong>Distribuidora Cauce</strong><small>25 min de atención</small></span></li></ol></div>
+      <footer class="drawer-foot"><button class="btn" type="button">Cancelar</button><button class="btn btn-primary" type="button">Guardar borrador</button></footer>
+    </section>
+  </div>
+
+  <div data-show="publish" hidden>
+    <div class="scrim"></div>
+    <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="publish-title">
+      <header class="dialog-head"><div><span class="eyebrow">Rutas</span><h2 id="publish-title">Confirmar publicación</h2><p>Revisa la información antes de continuar.</p></div><button class="btn btn-icon" type="button" aria-label="Cerrar confirmación"><svg class="icon"><use href="#i-x"></use></svg></button></header>
+      <div class="dialog-body"><div class="alert alert-info"><svg class="icon"><use href="#i-route"></use></svg><div><strong>Ruta Norte 04</strong><p>4 puntos · Diego Luna · 10/09/2026</p></div></div></div>
+      <footer class="dialog-foot"><button class="btn" type="button">Cancelar</button><button class="btn btn-primary" type="button">Confirmar publicación</button></footer>
+    </section>
+  </div>
+
+  <aside class="mockup-guide" aria-label="Controles del mockup"><label for="state">Estado</label><select id="state" data-state-selector></select><button class="btn btn-icon btn-compact" type="button" data-theme-toggle aria-label="Cambiar tema"><svg class="icon"><use href="#i-moon"></use></svg></button></aside>
+  <script src="assets/golden-states.js"></script>
+</body>
+</html>

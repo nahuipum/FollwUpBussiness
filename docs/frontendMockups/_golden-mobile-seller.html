@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>followUp Business · Golden seller móvil</title>
+  <link rel="stylesheet" href="assets/golden-system.css">
+  <script src="assets/golden-icons.js" defer></script>
+</head>
+<body class="seller-mobile-page" data-states="ready loading disabled">
+  <!--
+    Mockup presentacional mobile-first basado en la referencia adjunta.
+    Estados: ?state=ready|loading|disabled; &guide=1 muestra el selector.
+    No inicia jornadas, tracking ni navegación: reglas y comportamiento pertenecen a historias y código productivo.
+  -->
+  <div class="seller-mobile-frame">
+    <header class="seller-app-header">
+      <a class="seller-brand" href="#" aria-label="followUp Business, inicio">
+        <img class="brand-logo" src="assets/brand/followup-logo.png" alt="followUp Business">
+        <span>Inicio</span>
+      </a>
+      <div class="seller-header-actions">
+        <button class="icon-btn" type="button" aria-label="Notificaciones"><svg class="icon"><use href="#i-bell"></use></svg></button>
+        <button class="seller-account" type="button" aria-label="Abrir cuenta de Diego Luna, SELLER"><span class="seller-avatar">DL</span><svg class="icon icon-sm"><use href="#i-chevron"></use></svg></button>
+      </div>
+    </header>
+
+    <main class="seller-scroll">
+      <section class="seller-intro" aria-labelledby="seller-title">
+        <span class="eyebrow">Inicio · SELLER</span>
+        <h1 id="seller-title">Tu jornada aún no inicia</h1>
+        <p>El inicio concentra el estado del día y sus avisos operativos.</p>
+      </section>
+
+      <section class="journey-card" aria-labelledby="journey-title">
+        <span class="badge warning seller-status"><svg class="icon icon-sm"><use href="#i-alert"></use></svg>No iniciada</span>
+        <h2 id="journey-title">Jornada pendiente</h2>
+        <p>Esta es una estructura visual. No inicia una jornada ni activa tracking.</p>
+        <button class="btn btn-primary seller-primary" type="button" data-disable-in="loading disabled" data-busy-in="loading">
+          <span data-show="ready disabled" hidden><svg class="icon"><use href="#i-play"></use></svg>Iniciar jornada</span>
+          <span data-show="loading" hidden><span class="spinner" aria-hidden="true"></span>Preparando…</span>
+        </button>
+      </section>
+
+      <aside class="alert alert-info seller-context" aria-label="Estado de seguimiento">
+        <svg class="icon"><use href="#i-info"></use></svg>
+        <div><strong>Sin tracking activo</strong><p>El seguimiento solo se representa como aviso contextual, nunca como un destino.</p></div>
+      </aside>
+    </main>
+
+    <nav class="seller-bottom-nav" aria-label="Navegación principal de SELLER">
+      <button class="seller-nav-item active" type="button" aria-current="page"><svg class="icon"><use href="#i-home"></use></svg><span>Inicio</span></button>
+      <button class="seller-nav-item" type="button"><svg class="icon"><use href="#i-route"></use></svg><span>Ruta</span></button>
+      <button class="seller-nav-item" type="button"><svg class="icon"><use href="#i-activity"></use></svg><span>Actividad</span></button>
+      <button class="seller-nav-item" type="button"><svg class="icon"><use href="#i-more"></use></svg><span>Más</span></button>
+    </nav>
+  </div>
+
+  <aside class="mockup-guide" aria-label="Controles del mockup"><label for="state">Estado</label><select id="state" data-state-selector></select><button class="btn btn-icon btn-compact" type="button" data-theme-toggle aria-label="Cambiar tema"><svg class="icon"><use href="#i-moon"></use></svg></button></aside>
+  <script src="assets/golden-states.js"></script>
+</body>
+</html>

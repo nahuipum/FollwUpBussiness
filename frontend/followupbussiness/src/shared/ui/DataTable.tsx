@@ -18,15 +18,19 @@ export function DataTable<T>({
   items,
   columns,
   rowKey,
+  responsive = "scroll",
+  variant = "default",
 }: {
   ariaLabel: string;
   items: readonly T[];
   columns: readonly DataTableColumn<T>[];
   rowKey: (item: T) => string;
+  responsive?: "scroll" | "cards";
+  variant?: "default" | "golden";
 }) {
   return (
-    <div className="data-table__wrap">
-      <table className="data-table" aria-label={ariaLabel}>
+    <div className={`data-table__wrap data-table__wrap--${responsive}`}>
+      <table className={`data-table data-table--${responsive} data-table--${variant}`} aria-label={ariaLabel}>
         <thead>
           <tr>
             {columns.map((column) => (
@@ -70,6 +74,7 @@ export function DataTablePagination({
   ariaLabel,
   summary,
   lastUpdated,
+  variant = "default",
 }: {
   page: number;
   totalPages: number;
@@ -79,16 +84,19 @@ export function DataTablePagination({
   ariaLabel: string;
   summary?: ReactNode;
   lastUpdated?: Date | null | undefined;
+  variant?: "default" | "golden";
 }) {
   if (totalPages < 1) return null;
+  const lastPage = totalPages - 1;
+  const pages = paginationPages(page, lastPage);
   return (
-    <footer className="data-table__pagination">
+    <footer className={`data-table__pagination data-table__pagination--${variant}`}>
       {(summary || lastUpdated) && (
         <div className="data-table__metadata">
           {summary && <span className="data-table__summary">{summary}</span>}
           {lastUpdated && (
             <time className="data-table__last-updated" dateTime={lastUpdated.toISOString()} role="status">
-              Actualizado {lastUpdated.toLocaleTimeString()}
+              Actualizado hoy, {formatTime(lastUpdated)}
             </time>
           )}
         </div>
@@ -96,6 +104,7 @@ export function DataTablePagination({
       <label className="data-table__page-size">
         <span>Registros por página</span>
         <VisualSelect
+          variant={variant}
           ariaLabel="Registros por página"
           value={String(pageSize)}
           options={dataTablePageSizes.map((size) => ({ value: String(size), label: String(size) }))}
@@ -111,13 +120,19 @@ export function DataTablePagination({
         >
           <ChevronLeft aria-hidden="true" />
         </button>
-        <button
-          type="button"
-          aria-current="page"
-          aria-label={`Página ${page + 1}`}
-        >
-          {page + 1}
-        </button>
+        {pages.map((item, index) => item === "ellipsis" ? (
+          <span key={`ellipsis-${index}`} className="data-table__ellipsis" aria-hidden="true">…</span>
+        ) : (
+          <button
+            key={item}
+            type="button"
+            aria-current={item === page ? "page" : undefined}
+            aria-label={`Página ${item + 1}`}
+            onClick={item === page ? undefined : () => onPageChange(item)}
+          >
+            {item + 1}
+          </button>
+        ))}
         <button
           type="button"
           aria-label="Página siguiente"
@@ -131,12 +146,34 @@ export function DataTablePagination({
   );
 }
 
+function formatTime(value: Date) {
+  return new Intl.DateTimeFormat("es-PE", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(value);
+}
+
+function paginationPages(page: number, lastPage: number): Array<number | "ellipsis"> {
+  if (lastPage === 0) return [0];
+  if (page === 0) return [0, "ellipsis", lastPage];
+  if (page === lastPage) return [0, "ellipsis", lastPage];
+
+  return [
+    0,
+    ...(page > 1 ? ["ellipsis" as const] : []),
+    page,
+    ...(page < lastPage - 1 ? ["ellipsis" as const] : []),
+    lastPage,
+  ];
+}
+
 export function DataTableStatus({
   label,
   tone,
 }: {
   label: string;
-  tone: "success" | "warning" | "danger";
+  tone: "success" | "warning" | "danger" | "neutral";
 }) {
   return (
     <span className={`data-table__status data-table__status--${tone}`}>

@@ -160,7 +160,9 @@ export function apiUrl(path: string): string {
 export async function apiRequest(
   path: string,
   init: RequestInit,
-  { publishErrors = true }: { publishErrors?: boolean } = {},
+  {
+    publishErrors = true,
+  }: { publishErrors?: boolean | ((status: number) => boolean) } = {},
 ): Promise<Response> {
   const sessionGeneration = activeSessionGeneration;
   const controller = new AbortController();
@@ -174,7 +176,10 @@ export async function apiRequest(
     const response = await fetch(apiUrl(path), { ...init, signal });
     if (sessionGeneration !== activeSessionGeneration)
       throw new ApiRequestObsoleteError();
-    if (!response.ok && publishErrors)
+    const shouldPublishError = typeof publishErrors === "function"
+      ? publishErrors(response.status)
+      : publishErrors;
+    if (!response.ok && shouldPublishError)
       void publishApiError(response, sessionGeneration);
     return response;
   } catch (error) {

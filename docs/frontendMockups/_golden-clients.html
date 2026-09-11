@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>followUp Business · Golden clientes</title>
+  <link rel="stylesheet" href="assets/golden-system.css">
+  <script src="assets/golden-icons.js" defer></script>
+</head>
+<body data-states="ready loading empty no-results error forbidden form detail">
+  <!--
+    Mockup presentacional. Estados: ?state=ready|loading|empty|no-results|error|forbidden|form|detail
+    Agregar &guide=1 muestra el selector; &theme=dark muestra el tema oscuro.
+    El alcance de cartera, permisos, validaciones y acciones pertenece a historias y código productivo.
+  -->
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Navegación principal">
+      <a class="sidebar-brand brand-plate" href="#" aria-label="followUp Business, inicio"><img class="brand-logo" src="assets/brand/followup-logo.png" alt=""></a>
+      <div>
+        <p class="nav-label">Espacio de trabajo</p>
+        <nav class="nav">
+          <a href="#"><svg class="icon"><use href="#i-grid"></use></svg>Resumen</a>
+          <a class="active" href="#" aria-current="page"><svg class="icon"><use href="#i-client"></use></svg>Clientes <small>48</small></a>
+          <a href="#"><svg class="icon"><use href="#i-route"></use></svg>Rutas</a>
+          <a href="#"><svg class="icon"><use href="#i-pin"></use></svg>Visitas</a>
+          <a href="#"><svg class="icon"><use href="#i-calendar"></use></svg>Agenda</a>
+          <a href="#"><svg class="icon"><use href="#i-report"></use></svg>Reportes</a>
+        </nav>
+      </div>
+      <div><p class="nav-label">Administración</p><nav class="nav"><a href="#"><svg class="icon"><use href="#i-settings"></use></svg>Configuración</a></nav></div>
+      <div class="sidebar-foot"><div class="help-card"><strong>¿Necesitas ayuda?</strong>Consulta la guía de uso del espacio de trabajo.</div></div>
+    </aside>
+
+    <header class="topbar">
+      <div class="top-left"><button class="menu-control" type="button" data-nav-toggle aria-label="Abrir navegación"><svg class="icon"><use href="#i-menu"></use></svg></button><div class="crumb"><span>Comercial Andina</span><span aria-hidden="true">/</span><strong>Clientes</strong></div></div>
+      <div class="top-actions"><span class="updated"><i></i><span class="updated-long">Última actualización: </span>10:42</span><button class="theme-control" type="button" data-theme-toggle aria-label="Cambiar tema"><svg class="icon"><use href="#i-moon"></use></svg></button><button class="icon-btn" type="button" aria-label="Notificaciones"><svg class="icon"><use href="#i-bell"></use></svg></button><div class="person"><span class="avatar">AM</span><span class="person-copy"><strong>Ana Morales</strong><span>Administradora</span></span></div></div>
+    </header>
+
+    <main class="app-main">
+      <div class="page">
+        <header class="page-head">
+          <div><span class="eyebrow">Cartera comercial</span><h1>Clientes</h1><p>Consulta y organiza la cartera de clientes de la empresa.</p></div>
+          <button class="btn btn-primary" type="button"><svg class="icon icon-sm"><use href="#i-plus"></use></svg>Crear cliente</button>
+        </header>
+
+        <section class="panel table-shell clients-table-shell" aria-label="Listado de clientes">
+          <div class="filterbar clients">
+            <div class="field search"><label for="search">Buscar</label><div class="control"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input id="search" type="search" placeholder="Nombre o segmento"></div></div>
+            <div class="field"><span>Zona</span><details><summary class="select-trigger">Todas<svg class="icon icon-sm"><use href="#i-chevron"></use></svg></summary></details></div>
+            <div class="field"><span>Vendedor</span><details><summary class="select-trigger">Todos<svg class="icon icon-sm"><use href="#i-chevron"></use></svg></summary></details></div>
+            <div class="field"><span>Estado</span><details><summary class="select-trigger">Todos<svg class="icon icon-sm"><use href="#i-chevron"></use></svg></summary></details></div>
+            <div class="field"><label for="without-visit">Sin visita desde</label><div class="control"><input id="without-visit" type="text" value="10/08/2026"></div></div>
+            <div class="field"><label for="without-purchase">Sin compra desde</label><div class="control"><input id="without-purchase" type="text" placeholder="dd/mm/aaaa"></div></div>
+          </div>
+          <div class="active-filters" data-show="ready no-results error form detail" hidden><span>Filtros activos:</span><span class="chip">Zona: Norte ×</span><span class="chip">Sin visita: 10 ago ×</span><button class="btn btn-ghost btn-compact" type="button">Limpiar filtros</button></div>
+
+          <div class="alert alert-danger" data-show="error" hidden>
+            <svg class="icon"><use href="#i-alert"></use></svg>
+            <div><strong>Ocurrió un problema temporal</strong><p>No pudimos actualizar los clientes. Los datos mostrados pueden no estar vigentes.</p><div class="alert-actions"><button class="alert-link" type="button">Reintentar</button></div></div>
+          </div>
+
+          <div data-show="ready error form detail" data-stale-in="error" hidden>
+            <header class="table-title"><div><strong>Resultados</strong><span>48 clientes</span></div><button class="btn btn-compact" type="button" aria-label="Ordenar resultados"><svg class="icon icon-sm"><use href="#i-filter"></use></svg><span>Ordenar</span></button></header>
+            <div class="table-scroll">
+              <table aria-label="Clientes">
+                <thead><tr><th>Cliente</th><th>Segmento</th><th>Vendedores asignados</th><th>Estado</th><th><span class="sr-only">Acciones</span></th></tr></thead>
+                <tbody>
+                  <tr><td data-label="Cliente"><span class="identity"><span class="identity-mark">MB</span><span><strong>Mercado Brisa</strong><small>CLI-1048</small></span></span></td><td data-label="Segmento">Minorista</td><td data-label="Vendedores asignados">2</td><td data-label="Estado"><span class="badge success">Activo</span></td><td data-label="Acciones"><button class="more" type="button" aria-label="Más acciones para Mercado Brisa"><svg class="icon"><use href="#i-more"></use></svg></button></td></tr>
+                  <tr><td data-label="Cliente"><span class="identity"><span class="identity-mark">LS</span><span><strong>Librería Sendero</strong><small>CLI-1039</small></span></span></td><td data-label="Segmento">Especializado</td><td data-label="Vendedores asignados">1</td><td data-label="Estado"><span class="badge danger">Inactivo</span></td><td data-label="Acciones"><button class="more" type="button" aria-label="Más acciones para Librería Sendero"><svg class="icon"><use href="#i-more"></use></svg></button></td></tr>
+                  <tr><td data-label="Cliente"><span class="identity"><span class="identity-mark">DC</span><span><strong>Distribuidora Cauce</strong><small>CLI-1026</small></span></span></td><td data-label="Segmento">Distribuidor</td><td data-label="Vendedores asignados">3</td><td data-label="Estado"><span class="badge success">Activo</span></td><td data-label="Acciones"><button class="more" type="button" aria-label="Más acciones para Distribuidora Cauce"><svg class="icon"><use href="#i-more"></use></svg></button></td></tr>
+                  <tr><td data-label="Cliente"><span class="identity"><span class="identity-mark">CP</span><span><strong>Comercial Pinar</strong><small>CLI-1012</small></span></span></td><td data-label="Segmento">Mayorista</td><td data-label="Vendedores asignados">1</td><td data-label="Estado"><span class="badge success">Activo</span></td><td data-label="Acciones"><button class="more" type="button" aria-label="Más acciones para Comercial Pinar"><svg class="icon"><use href="#i-more"></use></svg></button></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <nav class="pagination" aria-label="Paginación de clientes"><span>Mostrando 1–4 de 48 clientes</span><span class="pages"><button class="page-btn" type="button" aria-label="Página anterior" disabled>‹</button><button class="page-btn current" type="button" aria-label="Página 1" aria-current="page">1</button><button class="page-btn" type="button" aria-label="Página 2">2</button><button class="page-btn" type="button" aria-label="Página 3">3</button><button class="page-btn" type="button" aria-label="Página siguiente">›</button></span></nav>
+          </div>
+
+          <div data-show="loading" hidden>
+            <header class="table-title"><div><strong>Resultados</strong><span>Cargando clientes</span></div></header>
+            <div class="skeleton-list" aria-busy="true"><div class="skeleton-row"><i class="skeleton block"></i><i class="skeleton"></i><i class="skeleton"></i><i class="skeleton"></i></div><div class="skeleton-row"><i class="skeleton block"></i><i class="skeleton"></i><i class="skeleton"></i><i class="skeleton"></i></div><div class="skeleton-row"><i class="skeleton block"></i><i class="skeleton"></i><i class="skeleton"></i><i class="skeleton"></i></div><span class="sr-only">Cargando clientes</span></div>
+          </div>
+
+          <article class="state-card" data-show="empty" hidden><div><span class="state-icon"><svg class="icon"><use href="#i-empty"></use></svg></span><h2>Aún no hay clientes</h2><p>Cuando existan clientes aparecerán en este listado.</p></div></article>
+          <article class="state-card" data-show="no-results" hidden><div><span class="state-icon"><svg class="icon"><use href="#i-search"></use></svg></span><h2>No encontramos clientes</h2><p>Prueba con otros filtros o términos de búsqueda.</p><button class="btn btn-primary" type="button">Limpiar filtros</button></div></article>
+          <article class="state-card danger" data-show="forbidden" hidden><div><span class="state-icon"><svg class="icon"><use href="#i-shield"></use></svg></span><h2>No tienes permisos</h2><p>No tienes permiso para consultar clientes.</p><button class="btn" type="button">Reintentar</button></div></article>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div data-show="form" hidden>
+    <div class="scrim"></div>
+    <section class="drawer" role="dialog" aria-modal="true" aria-labelledby="client-form-title">
+      <header class="drawer-head"><div><span class="eyebrow">Clientes</span><h2 id="client-form-title">Crear cliente</h2><p>Completa los datos principales y confirma la ubicación.</p></div><button class="btn btn-icon" type="button" aria-label="Cerrar formulario"><svg class="icon"><use href="#i-x"></use></svg></button></header>
+      <div class="drawer-body"><div class="form-grid">
+        <div class="field wide"><label for="client-name">Nombre</label><div class="control"><input id="client-name" value="Comercial Horizonte"></div></div>
+        <div class="field wide"><label for="client-address">Dirección</label><div class="control"><input id="client-address" value="Av. Central 245"></div><p class="field-help">Selecciona el punto en el mapa o ingresa las coordenadas.</p></div>
+        <div class="field"><span>Tipo de documento</span><details><summary class="select-trigger">RUC<svg class="icon icon-sm"><use href="#i-chevron"></use></svg></summary></details></div>
+        <div class="field"><label for="document">Número de documento</label><div class="control"><input id="document" value="20123456789"></div></div>
+        <div class="field"><label for="segment">Segmento</label><div class="control"><input id="segment" value="Minorista"></div></div>
+        <div class="field"><label for="frequency">Frecuencia de visita (días)</label><div class="control"><input id="frequency" value="15"></div></div>
+        <div class="field wide"><span>Territorio activo</span><details><summary class="select-trigger">Norte<svg class="icon icon-sm"><use href="#i-chevron"></use></svg></summary></details></div>
+        <div class="field"><label for="latitude">Latitud</label><div class="control"><input id="latitude" value="-12.0464"></div></div>
+        <div class="field"><label for="longitude">Longitud</label><div class="control"><input id="longitude" value="-77.0428"></div></div>
+        <div class="alert alert-info wide"><svg class="icon"><use href="#i-pin"></use></svg><div><strong>Ubicación pendiente de confirmación</strong><p>Confirma que las coordenadas representan la ubicación del cliente.</p></div></div>
+      </div></div>
+      <footer class="drawer-foot"><button class="btn" type="button">Cancelar</button><button class="btn btn-primary" type="button">Crear cliente</button></footer>
+    </section>
+  </div>
+
+  <div data-show="detail" hidden>
+    <div class="scrim"></div>
+    <section class="drawer" role="dialog" aria-modal="true" aria-labelledby="client-detail-title">
+      <header class="drawer-head"><div><span class="eyebrow">Clientes</span><h2 id="client-detail-title">Detalle de cliente</h2><p>Información actual del registro seleccionado.</p></div><button class="btn btn-icon" type="button" aria-label="Cerrar detalle"><svg class="icon"><use href="#i-x"></use></svg></button></header>
+      <div class="drawer-body"><dl class="definition-grid"><div><dt>Nombre</dt><dd>Mercado Brisa</dd></div><div><dt>Estado</dt><dd><span class="badge success">Activo</span></dd></div><div><dt>Tipo de documento</dt><dd>RUC</dd></div><div><dt>Número de documento</dt><dd>20123456789</dd></div><div><dt>Segmento</dt><dd>Minorista</dd></div><div><dt>Frecuencia de visita</dt><dd>Cada 15 días</dd></div><div><dt>Territorio</dt><dd>Norte</dd></div><div><dt>Vendedores asignados</dt><dd>2</dd></div><div><dt>Dirección</dt><dd>Av. Central 245</dd></div></dl></div>
+      <footer class="drawer-foot"><button class="btn" type="button">Cerrar</button></footer>
+    </section>
+  </div>
+
+  <aside class="mockup-guide" aria-label="Controles del mockup"><label for="state">Estado</label><select id="state" data-state-selector></select><button class="btn btn-icon btn-compact" type="button" data-theme-toggle aria-label="Cambiar tema"><svg class="icon"><use href="#i-moon"></use></svg></button></aside>
+  <script src="assets/golden-states.js"></script>
+</body>
+</html>

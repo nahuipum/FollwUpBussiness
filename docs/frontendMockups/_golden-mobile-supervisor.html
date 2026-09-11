@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>followUp Business · Golden supervisor móvil</title>
+  <link rel="stylesheet" href="assets/golden-system.css">
+  <script src="assets/golden-icons.js" defer></script>
+</head>
+<body data-states="ready reconnecting stale empty error forbidden seller-detail">
+  <!--
+    Mockup presentacional. Estados: ?state=ready|reconnecting|stale|empty|error|forbidden|seller-detail
+    Agregar &guide=1 muestra el selector; &theme=dark muestra el tema oscuro.
+    La visibilidad del equipo, privacidad, freshness, permisos y datos pertenecen a historias y código productivo.
+  -->
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Navegación principal">
+      <a class="sidebar-brand brand-plate" href="#" aria-label="followUp Business, inicio"><img class="brand-logo" src="assets/brand/followup-logo.png" alt=""></a>
+      <span class="sidebar-context">Comercial Andina</span>
+      <div>
+        <p class="nav-label">Supervisor</p>
+        <nav class="nav">
+          <a class="active" href="#" aria-current="page"><svg class="icon"><use href="#i-grid"></use></svg>Resumen</a>
+          <a href="#"><svg class="icon"><use href="#i-users"></use></svg>Vendedores</a>
+          <a href="#"><svg class="icon"><use href="#i-pin"></use></svg>Zonas</a>
+          <a href="#"><svg class="icon"><use href="#i-client"></use></svg>Clientes</a>
+          <a href="#"><svg class="icon"><use href="#i-route"></use></svg>Rutas</a>
+          <a href="#"><svg class="icon"><use href="#i-settings"></use></svg>Configuración</a>
+        </nav>
+      </div>
+      <div class="sidebar-foot"><div class="help-card"><strong>¿Necesitas ayuda?</strong>Consulta la guía de uso del espacio de trabajo.</div></div>
+    </aside>
+
+    <header class="topbar">
+      <div class="top-left"><button class="menu-control" type="button" data-nav-toggle aria-label="Abrir navegación"><svg class="icon"><use href="#i-menu"></use></svg></button><div class="crumb"><span>Comercial Andina</span><span aria-hidden="true">/</span><strong>Resumen</strong></div></div>
+      <div class="top-actions"><span class="updated"><i></i><span class="updated-long">Última actualización: </span>10:42</span><button class="theme-control" type="button" data-theme-toggle aria-label="Cambiar tema"><svg class="icon"><use href="#i-moon"></use></svg></button><button class="icon-btn" type="button" aria-label="Notificaciones"><svg class="icon"><use href="#i-bell"></use></svg></button><div class="person"><span class="avatar">AM</span><span class="person-copy"><strong>Ana Morales</strong><span>Supervisora</span></span></div></div>
+    </header>
+
+    <main class="app-main">
+      <div class="page">
+        <header class="page-head"><div><span class="eyebrow">Operación del equipo</span><h1>Supervisión en vivo</h1><p>Consulta el estado, la ubicación reportada y el avance visible de tu equipo.</p></div><button class="btn" type="button"><svg class="icon icon-sm"><use href="#i-filter"></use></svg>Filtrar equipo</button></header>
+
+        <section class="metrics" data-show="ready reconnecting stale error seller-detail" hidden aria-label="Resumen operativo">
+          <article class="metric"><div class="metric-top"><span>Vendedores activos</span><span class="metric-icon"><svg class="icon icon-sm"><use href="#i-users"></use></svg></span></div><strong>8</strong><small>de 11 vendedores</small></article>
+          <article class="metric"><div class="metric-top"><span>Visitas realizadas</span><span class="metric-icon"><svg class="icon icon-sm"><use href="#i-visit"></use></svg></span></div><strong>24</strong><small>hoy</small></article>
+          <article class="metric"><div class="metric-top"><span>Ventas registradas</span><span class="metric-icon"><svg class="icon icon-sm"><use href="#i-sale"></use></svg></span></div><strong>17</strong><small>hoy</small></article>
+          <article class="metric"><div class="metric-top"><span>Conversión</span><span class="metric-icon"><svg class="icon icon-sm"><use href="#i-target"></use></svg></span></div><strong>71%</strong><small>visitas con venta</small></article>
+        </section>
+
+        <div class="alert alert-info connection-banner" data-show="reconnecting" hidden><svg class="icon"><use href="#i-wifi"></use></svg><div><strong>Reconectando seguimiento en vivo</strong><p>Conservamos la última información visible mientras restablecemos la conexión.</p></div></div>
+        <div class="alert alert-warning connection-banner" data-show="stale" hidden><svg class="icon"><use href="#i-clock"></use></svg><div><strong>Hay ubicaciones desactualizadas</strong><p>Revisa la hora de cada reporte antes de interpretar la posición.</p></div></div>
+        <div class="alert alert-danger connection-banner" data-show="error" hidden><svg class="icon"><use href="#i-alert"></use></svg><div><strong>No pudimos actualizar el mapa</strong><p>Mostramos la última información disponible. Reintenta para obtener datos vigentes.</p><div class="alert-actions"><button class="alert-link" type="button">Reintentar</button></div></div></div>
+
+        <section class="tracking-layout" data-show="ready reconnecting stale error seller-detail" data-stale-in="error" hidden>
+          <div class="map-stage tracking-map" aria-label="Mapa de vendedores activos">
+            <div class="map-toolbar"><div class="map-toolbar-group"><button class="btn btn-compact" type="button"><svg class="icon icon-sm"><use href="#i-locate"></use></svg><span>Centrar equipo</span></button></div><span class="badge success" data-show="ready seller-detail" hidden>En vivo</span><span class="badge info" data-show="reconnecting" hidden>Reconectando</span><span class="badge warning" data-show="stale error" hidden>Último dato</span></div>
+            <div class="map-route" aria-hidden="true"><svg viewBox="0 0 600 340" preserveAspectRatio="none"><path class="route-line route-alt" d="M10 278 C102 294 130 72 250 124 S395 310 584 42"/><path class="route-line" d="M10 278 C104 258 138 96 250 124 S395 270 584 42"/></svg></div>
+            <span class="pin one"><span>DL</span></span><span class="pin two"><span>SR</span></span><span class="pin three warning"><span>MR</span></span><span class="pin four"><span>LV</span></span>
+            <div class="map-legend"><span class="badge success">Ubicación vigente</span><span class="badge warning">Revisar hora</span></div>
+          </div>
+
+          <aside class="seller-rail" aria-label="Vendedores visibles">
+            <header class="seller-rail-head"><span class="eyebrow">Equipo</span><h2>Vendedores visibles</h2><p>8 activos · ordenados por actualización</p></header>
+            <div class="seller-list">
+              <article class="seller-card"><span class="identity-mark">DL</span><span><strong>Diego Luna</strong><small>Actualizado 10:42</small></span><button class="btn btn-icon btn-compact" type="button" aria-label="Ver detalle de Diego Luna"><svg class="icon"><use href="#i-arrow"></use></svg></button><span class="badge success">En jornada</span></article>
+              <article class="seller-card"><span class="identity-mark">SR</span><span><strong>Sofía Ramos</strong><small>Actualizado 10:40</small></span><button class="btn btn-icon btn-compact" type="button" aria-label="Ver detalle de Sofía Ramos"><svg class="icon"><use href="#i-arrow"></use></svg></button><span class="badge success">En jornada</span></article>
+              <article class="seller-card"><span class="identity-mark">MR</span><span><strong>Marco Ruiz</strong><small>Último reporte 10:18</small></span><button class="btn btn-icon btn-compact" type="button" aria-label="Ver detalle de Marco Ruiz"><svg class="icon"><use href="#i-arrow"></use></svg></button><span class="badge warning">Ubicación antigua</span></article>
+              <article class="seller-card"><span class="identity-mark">LV</span><span><strong>Lucía Vega</strong><small>Actualizado 10:39</small></span><button class="btn btn-icon btn-compact" type="button" aria-label="Ver detalle de Lucía Vega"><svg class="icon"><use href="#i-arrow"></use></svg></button><span class="badge success">En jornada</span></article>
+            </div>
+          </aside>
+        </section>
+
+        <section class="panel" data-show="empty" hidden><article class="state-card"><div><span class="state-icon"><svg class="icon"><use href="#i-map"></use></svg></span><h2>No hay vendedores activos</h2><p>Cuando existan jornadas activas, su información visible aparecerá aquí.</p></div></article></section>
+        <section class="panel" data-show="forbidden" hidden><article class="state-card danger"><div><span class="state-icon"><svg class="icon"><use href="#i-shield"></use></svg></span><h2>No tienes permisos</h2><p>No tienes permiso para consultar el seguimiento del equipo.</p><button class="btn" type="button">Volver al resumen</button></div></article></section>
+      </div>
+    </main>
+  </div>
+
+  <div data-show="seller-detail" hidden>
+    <div class="scrim"></div>
+    <section class="drawer" role="dialog" aria-modal="true" aria-labelledby="seller-detail-title">
+      <header class="drawer-head"><div><span class="eyebrow">Vendedor activo</span><h2 id="seller-detail-title">Diego Luna</h2><p>Resumen visible de la jornada.</p></div><button class="btn btn-icon" type="button" aria-label="Cerrar detalle"><svg class="icon"><use href="#i-x"></use></svg></button></header>
+      <div class="drawer-body">
+        <div class="alert alert-info"><svg class="icon"><use href="#i-clock"></use></svg><div><strong>Última actualización 10:42</strong><p>Precisión reportada: 18 m.</p></div></div>
+        <dl class="definition-grid"><div><dt>Estado</dt><dd><span class="badge success">En jornada</span></dd></div><div><dt>Ruta</dt><dd>Ruta Norte 04</dd></div><div><dt>Visitas realizadas</dt><dd>4</dd></div><div><dt>Visitas pendientes</dt><dd>3</dd></div><div><dt>Ventas del día</dt><dd>3</dd></div><div><dt>Conversión</dt><dd>75%</dd></div></dl>
+        <ol class="timeline"><li><span class="timeline-index">1</span><span><strong>Mercado Brisa</strong><small>Visita registrada</small></span></li><li><span class="timeline-index">2</span><span><strong>Librería Sendero</strong><small>Próxima visita visible</small></span></li><li><span class="timeline-index">3</span><span><strong>Distribuidora Cauce</strong><small>Pendiente</small></span></li></ol>
+      </div>
+      <footer class="drawer-foot"><button class="btn" type="button">Cerrar</button><button class="btn btn-primary" type="button">Ver ruta</button></footer>
+    </section>
+  </div>
+
+  <aside class="mockup-guide" aria-label="Controles del mockup"><label for="state">Estado</label><select id="state" data-state-selector></select><button class="btn btn-icon btn-compact" type="button" data-theme-toggle aria-label="Cambiar tema"><svg class="icon"><use href="#i-moon"></use></svg></button></aside>
+  <script src="assets/golden-states.js"></script>
+</body>
+</html>

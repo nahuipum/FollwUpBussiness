@@ -45,36 +45,40 @@ export function PasswordRecoveryDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
+        aria-describedby={`${titleId}-description`}
       >
-        <button
-          className="recovery-modal-close"
-          type="button"
-          aria-label="Cerrar diálogo"
-          onClick={onDismiss}
-        >
-          <X aria-hidden="true" />
-        </button>
-        <span className="recovery-modal-handle" aria-hidden="true" />
-        <span className="recovery-modal-icon" aria-hidden="true">
-          {icon}
-        </span>
-        <h2 id={titleId}>{title}</h2>
-        <p>{description}</p>
-        <button
-          ref={initialFocusRef}
-          className="submit-button primary-button recovery-modal-primary"
-          type="button"
-          onClick={primaryAction.onClick}
-        >
-          {primaryAction.label}
-        </button>
-        {secondaryAction && <button
-          className="text-link recovery-modal-secondary"
-          type="button"
-          onClick={secondaryAction.onClick}
-        >
-          {secondaryAction.label}
-        </button>}
+        <div className="recovery-modal__body">
+          <button
+            className="recovery-modal-close"
+            type="button"
+            aria-label="Cerrar diálogo"
+            onClick={onDismiss}
+          >
+            <X aria-hidden="true" />
+          </button>
+          <span className="recovery-modal-icon" aria-hidden="true">
+            {icon}
+          </span>
+          <h2 id={titleId}>{title}</h2>
+          <p id={`${titleId}-description`}>{description}</p>
+        </div>
+        <footer className="recovery-modal__footer">
+          {secondaryAction && <button
+            className="recovery-golden__link recovery-modal-secondary"
+            type="button"
+            onClick={secondaryAction.onClick}
+          >
+            {secondaryAction.label}
+          </button>}
+          <button
+            ref={initialFocusRef}
+            className="login-golden__submit recovery-modal-primary"
+            type="button"
+            onClick={primaryAction.onClick}
+          >
+            {primaryAction.label}
+          </button>
+        </footer>
       </section>
     </div>
   );

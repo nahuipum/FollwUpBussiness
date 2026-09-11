@@ -1,0 +1,13 @@
+# READY_FOR_HANDOFF — FE-SHELL-DASHBOARD
+
+Candidate-ID: `HEAD ceb2c20 + diff 5c6d91e6a0a4`.
+
+Se corrigió el shell de empresa contra el golden sin alterar sesión, roles, navegación ni autenticación. El PNG productivo `src/features/auth/assets/followup-logo.png` coincide byte a byte con el golden (SHA-256 `391fcac8218182ad…`). Sidebar claro de 252 px, logo de hasta 204 px sin recorte, `Segoe UI Variable`, tokens exactos de marca/superficies/bordes, radios 12/16 y sombras golden; el dark shell usa aliases propios sin teal. Topbar de 72 px, control de tema de 44 px solo-icono y Auditoría `disabled`. Clientes inicia cerrado en dashboard y mantiene autoexpansión para rutas hijas. La navegación queda natural con scroll interno y perfil tras ella (≈y622); contenido desktop: eyebrow ≈y106, título ≈y131, heading ≈y255 y cards ≈y313.
+
+Archivos: `CompanyWorkspaceLayout.tsx`, `PlatformWorkspaceLayout.tsx`, `DashboardLayout.tsx`, `dashboard-layout.css`, `global.css`, `CompanyDashboardPage.tsx`, `company-dashboard.css`, `dashboard-primitives.css` y `company-dashboard-shell.visual.spec.ts` con baseline desktop cerrado más escenarios de Clientes/perfil, tablet, móvil/drawer, oscuro, Clientes, Rutas, supervisor y plataforma. Plataforma reutiliza el PNG oficial y su Auditoría queda `disabled` sin ruta inventada.
+
+Evidencia visual: se capturó el before determinista 1440×900, golden servido en `4176` y comparaciones lado a lado; tras iteraciones de geometría y dark mode, las diferencias residuales son los datos reales/deterministas de sesión y la forma de los iconos Lucide exigidos frente a los símbolos SVG del mockup. Se inspeccionaron desktop 1440×900, tablet 900×900, móvil y drawer 390×844, oscuro, Clientes, Rutas, supervisor y plataforma. Snapshots actualizados, inspeccionados y luego verificados sin `--update-snapshots`.
+
+Validaciones finales: tests focalizados pedidos 7/7; `npm run typecheck` pasa; visual shell 9/9 después de inspección y rerun sin actualización; regresión visual login, recuperación, filtros y tema 34/34 tras actualizar la expectativa test-only del canvas oscuro al token golden; `npm run build` pasa; `npm run lint` termina con 0 errores y 2 warnings preexistentes. La suite completa quedó 334/337: los dos fallos conocidos de `DateFilterField.test.tsx` y un timeout de `ClientFilters.test.tsx` al competir en paralelo con Playwright; este último pasó aislado 1/1 inmediatamente después. `git diff --check` pasa.
+
+Riesgo conocido: `npm test` completo mantiene 2 casos preexistentes de `DateFilterField.test.tsx`: el selector `[data-date="2026-08-26"]` no encuentra elemento; no pertenece al diff visual. No se hizo commit ni push.

@@ -11,6 +11,8 @@ import type {
   CompanyUserStatus,
 } from "./types";
 
+const publishSessionErrors = { publishErrors: (status: number) => status === 401 } as const;
+
 function isRole(value: unknown): value is CompanyUserRole {
   return value === "COMPANY_ADMIN" || value === "SUPERVISOR";
 }
@@ -81,7 +83,7 @@ export async function listCompanyUsers(filters: {
   if (filters.search.trim()) query.set("search", filters.search.trim());
   if (filters.role) query.set("role", filters.role);
   if (filters.status) query.set("status", filters.status);
-  const response = await apiRequest(`/company/users?${query}`, { method: "GET", headers: getSessionAuthorization() });
+  const response = await apiRequest(`/company/users?${query}`, { method: "GET", headers: getSessionAuthorization() }, publishSessionErrors);
   return { response, page: response.status === 200 ? parsePage(await response.json().catch(() => null)) : null };
 }
 
@@ -91,7 +93,7 @@ export async function getCompanyUser(userId: string): Promise<{
 }> {
   const response = await apiRequest(
     `/company/users/${encodeURIComponent(userId)}`,
-    { method: "GET", headers: getSessionAuthorization() },
+    { method: "GET", headers: getSessionAuthorization() }, publishSessionErrors,
   );
   return {
     response,
@@ -102,7 +104,7 @@ export async function getCompanyUser(userId: string): Promise<{
 }
 
 async function userMutation(path: string, init: RequestInit): Promise<{ response: Response; user: CompanyUser | null }> {
-  const response = await apiRequest(path, init);
+  const response = await apiRequest(path, init, publishSessionErrors);
   return { response, user: response.status === 200 || response.status === 202 ? parseUser(await response.json().catch(() => null)) : null };
 }
 

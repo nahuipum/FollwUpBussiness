@@ -9,3 +9,4 @@
   font-size: 13px;
   font-weight: 650;
 }
+.read-only-notice--golden { gap:12px; align-items:flex-start; border-color:var(--visual-brand-border); color:var(--visual-brand-strong); background:var(--visual-brand-soft); }.read-only-notice--golden svg { width:20px; flex:none; }.read-only-notice--golden strong { display:block; }.read-only-notice--golden p { margin:3px 0 0; font-weight:400; line-height:1.4; }

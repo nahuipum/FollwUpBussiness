@@ -2,12 +2,12 @@ import { ClipboardList, ContactRound, LayoutDashboard, ListFilter, Map, MapPinne
 import type { ReactNode } from "react";
 import { DashboardLayout, type DashboardNavigationItem } from "../../shared/layout/DashboardLayout";
 import { getSessionCompanyLabel, getSessionIdentity, logout } from "../../features/auth/auth";
-import { PasswordRecoveryBrandMark } from "../../features/auth/components/BrandPanel";
+import followUpLogo from "../../features/auth/assets/followup-logo.png";
 import { navigate } from "../navigation";
 
-export type CompanySection = "dashboard" | "administrators-supervisors" | "sellers" | "territories" | "clients" | "routes" | "customer-assignments" | "settings";
-export type SupervisorSection = "dashboard" | "sellers" | "territories" | "clients" | "routes" | "settings";
-export type SellerSection = "settings";
+type CompanySection = "dashboard" | "administrators-supervisors" | "sellers" | "territories" | "clients" | "routes" | "customer-assignments" | "settings";
+type SupervisorSection = "dashboard" | "sellers" | "territories" | "clients" | "routes" | "settings";
+type SellerSection = "settings";
 
 type Props = {
   activeSection: CompanySection | SupervisorSection | SellerSection;
@@ -45,7 +45,7 @@ export function CompanyWorkspaceLayout({ activeSection, workspace, children }: P
 
   return (
     <DashboardLayout
-      brand={<><span className="platform-logo"><PasswordRecoveryBrandMark /></span>FollowUpBusiness</>}
+      brand={<img className="dashboard-brand-logo" src={followUpLogo} alt="followUp Business" />}
       contextLabel={companyName}
       navigationLabel={isSeller ? "Vendedor" : isSupervisor ? "Supervisor" : "Empresa"}
       profile={{
@@ -67,12 +67,12 @@ function companyNavigation(activeSection: CompanySection, canManage: boolean): D
   return [
     item("dashboard", "Resumen", <LayoutDashboard />, activeSection, "/company/dashboard"),
     item("administrators-supervisors", "Administradores y supervisores", <Users />, activeSection, "/company/administrators-supervisors"),
-    item("sellers", "Vendedores", <UserRound />, activeSection, "/company/sellers"),
+    item("sellers", "Vendedores", <Users />, activeSection, "/company/sellers"),
     ...(canManage ? [item("territories", "Zonas", <MapPinned />, activeSection, "/company/territories")] : []),
     clientGroup(activeSection, "/company/clients", "/company/clients/map", canManage),
     ...(canManage ? [item("customer-assignments", "Asignar cartera", <ContactRound />, activeSection, "/company/customer-assignments")] : []),
     item("routes", "Rutas", <Route />, activeSection, "/company/routes"),
-    { id: "audit", label: "Auditoría", icon: <ClipboardList /> },
+    { id: "audit", label: "Auditoría", icon: <ClipboardList />, disabled: true },
     item("settings", "Configuración", <Settings />, activeSection, "/company/settings"),
   ];
 }

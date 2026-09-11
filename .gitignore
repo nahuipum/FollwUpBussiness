@@ -592,3 +592,5 @@ todo.local.md
 scratch/
 private/
 personal/
+docs/frontendMockups/redesign/captures/
+frontend/followupbussiness/tests/visual/**/*.png

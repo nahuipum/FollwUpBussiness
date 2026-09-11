@@ -1,0 +1,4 @@
+import { render } from "@testing-library/react";
+import { expect, test } from "vitest";
+import { InformationalState, QuickAccessGrid } from "./dashboard-primitives";
+test("asigna IDs únicos y referencias ARIA correctas a primitivas reutilizadas", () => { const { container } = render(<><QuickAccessGrid title="Uno" description="Descripción"><span /></QuickAccessGrid><QuickAccessGrid title="Dos" description="Descripción"><span /></QuickAccessGrid><InformationalState title="Estado uno">Contenido</InformationalState><InformationalState title="Estado dos">Contenido</InformationalState></>); const labelled = Array.from(container.querySelectorAll<HTMLElement>("[aria-labelledby]")); const ids = labelled.map((element) => element.getAttribute("aria-labelledby")); expect(new Set(ids).size).toBe(ids.length); ids.forEach((id) => expect(container.querySelector(`#${id}`)?.id).toBe(id)); });

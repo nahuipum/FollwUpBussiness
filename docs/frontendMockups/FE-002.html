@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>followUp Business · Recuperación de contraseña</title>
+  <link rel="stylesheet" href="assets/golden-system.css">
+  <script src="assets/golden-icons.js" defer></script>
+  <style>
+    /* FE-002 solo compone primitivas y tokens del sistema visual aprobado. */
+    html,
+    body { overflow-x: hidden; }
+
+    .fe2-shell { min-width: 320px; }
+    .fe2-brand { position: sticky; top: 0; height: 100vh; }
+    .fe2-brand-display {
+      max-width: 580px;
+      margin: var(--space-3) 0 var(--space-4);
+      color: var(--text-strong);
+      font-size: clamp(34px, 4vw, 48px);
+      font-weight: 700;
+      letter-spacing: -.03em;
+      line-height: 1.08;
+    }
+    .fe2-main { align-items: center; }
+    .fe2-view { width: min(100%, 430px); }
+    .fe2-view > p { color: var(--text-soft); }
+    .fe2-form { display: grid; gap: 18px; margin-top: var(--space-6); }
+    .fe2-actions { display: grid; gap: var(--space-2); }
+    .fe2-primary { width: 100%; }
+    .fe2-link {
+      display: inline-flex;
+      min-height: 44px;
+      align-items: center;
+      justify-content: center;
+      padding: 0 var(--space-3);
+      border: 0;
+      border-radius: var(--radius-sm);
+      color: var(--brand-strong);
+      background: transparent;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .fe2-link:hover { background: var(--brand-soft); text-decoration: underline; text-underline-offset: 3px; }
+    .fe2-privacy {
+      display: flex;
+      gap: var(--space-2);
+      align-items: flex-start;
+      margin: 0;
+      color: var(--text-muted);
+      font-size: 12px;
+      line-height: 16px;
+    }
+    .fe2-privacy .icon { width: 16px; height: 16px; margin-top: 1px; }
+    .fe2-alert p { color: inherit; }
+    .fe2-control input { min-height: 42px; }
+    .fe2-control:has(input:disabled) { background: var(--surface-muted); }
+    .fe2-control input:disabled { cursor: not-allowed; }
+    .fe2-visibility.is-visible::after {
+      position: absolute;
+      width: 22px;
+      height: 2px;
+      border-radius: var(--radius-pill);
+      background: currentColor;
+      content: "";
+      transform: rotate(-42deg);
+    }
+    .fe2-visibility { position: relative; }
+    .fe2-loading-track {
+      height: var(--space-1);
+      overflow: hidden;
+      border-radius: var(--radius-pill);
+      background: var(--surface-muted);
+    }
+    .fe2-loading-track span {
+      display: block;
+      width: 46%;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--brand);
+      animation: fe2-progress 1.2s ease-in-out infinite alternate;
+    }
+    @keyframes fe2-progress { to { transform: translateX(118%); } }
+
+    .fe2-rules {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--space-2) var(--space-3);
+      margin: -6px 0 0;
+      padding: var(--space-3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      background: var(--surface-subtle);
+      list-style: none;
+    }
+    .fe2-rule {
+      display: flex;
+      min-width: 0;
+      gap: 6px;
+      align-items: center;
+      color: var(--text-muted);
+      font-size: 12px;
+      line-height: 16px;
+    }
+    .fe2-rule .icon { width: 16px; height: 16px; color: var(--control); }
+    .fe2-rule.is-valid { color: var(--success); font-weight: 600; }
+    .fe2-rule.is-valid .icon { color: var(--success); }
+    .fe2-match {
+      display: flex;
+      gap: var(--space-2);
+      align-items: center;
+      margin: -6px 0 0;
+      color: var(--success);
+      font-size: 12px;
+      line-height: 16px;
+      font-weight: 600;
+    }
+    .fe2-match.is-error { color: var(--danger); }
+    .fe2-match .icon { width: 16px; height: 16px; }
+
+    .fe2-status { text-align: center; }
+    .fe2-status-icon {
+      display: grid;
+      width: 64px;
+      height: 64px;
+      place-items: center;
+      margin: 0 auto var(--space-5);
+      border-radius: var(--radius-lg);
+      color: var(--brand-strong);
+      background: var(--brand-soft);
+    }
+    .fe2-status-icon.success { color: var(--success); background: var(--success-bg); }
+    .fe2-status-icon .icon { width: 32px; height: 32px; }
+    .fe2-status-copy { margin: 0 auto; color: var(--text-soft); }
+    .fe2-status-note {
+      margin: var(--space-4) auto var(--space-5);
+      color: var(--text-muted);
+      font-size: 12px;
+      line-height: 16px;
+    }
+    .fe2-status .fe2-actions { margin-top: var(--space-5); }
+
+    .fe2-modal-icon { color: var(--brand-strong); background: var(--brand-soft); }
+    .fe2-dialog-close {
+      position: absolute;
+      top: var(--space-3);
+      right: var(--space-3);
+      z-index: 1;
+    }
+    .fe2-dialog { position: fixed; }
+    .fe2-dialog .dialog-body { position: relative; padding: var(--space-5); }
+    .fe2-dialog .dialog-body h2 { padding-right: var(--space-6); margin-bottom: var(--space-2); }
+    .fe2-dialog .dialog-body p { margin-bottom: 0; color: var(--text-muted); }
+    .fe2-dialog .dialog-foot { display: flex; justify-content: flex-end; padding: var(--space-4) var(--space-5); border-top: 1px solid var(--border); }
+
+    @media (max-width: 1060px) and (min-width: 621px) {
+      .fe2-brand { padding-inline: var(--space-6); }
+      .fe2-main { padding-inline: var(--space-6); }
+    }
+    @media (max-width: 620px) {
+      .fe2-brand { display: none; }
+      .fe2-main { min-height: 100svh; padding: 30px 20px max(30px, env(safe-area-inset-bottom)); }
+      .fe2-view { width: 100%; margin: 0 auto; }
+      .fe2-view .mobile-logo { width: 184px; margin-bottom: var(--space-7); }
+      .fe2-form { margin-top: var(--space-5); }
+      .fe2-rules { grid-template-columns: 1fr; }
+      .fe2-status { padding-top: var(--space-2); }
+      .fe2-status .mobile-logo { margin-bottom: var(--space-6); }
+      .fe2-dialog { top: auto; bottom: 0; }
+      .fe2-dialog .dialog-body { padding: var(--space-5) 20px; }
+      .fe2-dialog .dialog-foot { display: grid; padding: var(--space-4) 20px max(var(--space-4), env(safe-area-inset-bottom)); }
+      .fe2-dialog .dialog-foot .btn { width: 100%; }
+      .mockup-guide { align-items: stretch; flex-wrap: wrap; }
+      .mockup-guide select { flex: 1 1 190px; max-width: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .fe2-loading-track span { animation: none; transform: none; }
+    }
+  </style>
+</head>
+<body data-state="request-ready">
+  <!--
+    Referencia canónica FE-002. Estados mediante ?state=<nombre>.
+    ?guide=1 muestra el selector y ?theme=dark permite comprobar el tema oscuro.
+    El mockup no envía datos, no valida credenciales y no contiene tokens reales.
+  -->
+  <div class="login-shell fe2-shell">
+    <section class="login-brand fe2-brand" aria-label="Presentación de followUp Business">
+      <div class="brand-plate"><img class="brand-logo" src="assets/brand/followup-logo.png" alt="followUp Business"></div>
+      <div class="login-brand-copy">
+        <span class="eyebrow">Acceso seguro</span>
+        <p class="fe2-brand-display">Recupera tu acceso de forma segura.</p>
+        <p>Solicita un enlace para restablecer tu contraseña y volver a tu panel sin perder continuidad.</p>
+        <div class="login-map-card" aria-hidden="true">
+          <div class="map-stage">
+            <div class="map-route">
+              <svg viewBox="0 0 600 320" preserveAspectRatio="none"><path class="route-line route-alt" d="M20 255 C130 275 150 90 270 128 S420 278 575 55"/><path class="route-line" d="M20 255 C130 245 150 98 270 128 S420 250 575 55"/></svg>
+            </div>
+            <span class="pin one"><span>1</span></span><span class="pin two"><span>2</span></span><span class="pin three"><span>3</span></span>
+            <div class="map-legend"><span class="badge info">Acceso protegido</span><span>Continuidad segura</span></div>
+          </div>
+        </div>
+      </div>
+      <p class="login-foot"><svg class="icon icon-sm"><use href="#i-lock"></use></svg> Plataforma de uso interno · Flujo protegido</p>
+    </section>
+
+    <main class="login-main fe2-main">
+      <section class="login-form fe2-view" data-view="request" aria-labelledby="request-title">
+        <img class="mobile-logo brand-plate" src="assets/brand/followup-logo.png" alt="followUp Business">
+        <span class="eyebrow">Acceso seguro</span>
+        <h1 id="request-title">¿Olvidaste tu contraseña?</h1>
+        <p>Ingresa tu correo corporativo y te enviaremos instrucciones para restablecer el acceso.</p>
+
+        <form class="fe2-form" novalidate data-form="request">
+          <div class="alert alert-danger fe2-alert" role="alert" data-show="request-error" hidden>
+            <svg class="icon"><use href="#i-alert"></use></svg>
+            <div><strong>Ocurrió un problema temporal</strong><p>No pudimos procesar la solicitud. Inténtalo nuevamente.</p></div>
+          </div>
+          <div class="alert alert-warning fe2-alert" role="status" data-show="request-cooldown" hidden>
+            <svg class="icon"><use href="#i-clock"></use></svg>
+            <div><strong>Espera antes de volver a intentarlo</strong><p>Ya estamos procesando una solicitud reciente. Por seguridad, espera 30 segundos antes de volver a intentarlo.</p></div>
+          </div>
+          <div class="alert alert-danger fe2-alert" role="alert" data-show="service-unavailable" hidden>
+            <svg class="icon"><use href="#i-alert"></use></svg>
+            <div><strong>Servicio no disponible</strong><p>El servicio no está disponible temporalmente. Inténtalo más tarde.</p></div>
+          </div>
+
+          <div class="field">
+            <label for="recovery-email">Correo electrónico</label>
+            <div class="control fe2-control" data-request-control>
+              <svg class="icon" aria-hidden="true"><use href="#i-mail"></use></svg>
+              <input id="recovery-email" name="email" type="email" autocomplete="email" maxlength="254" placeholder="nombre@empresa.com">
+            </div>
+            <p class="field-error" id="recovery-email-error" role="alert" data-show="request-validation" hidden>Ingresa un correo electrónico válido.</p>
+          </div>
+
+          <p class="fe2-privacy"><svg class="icon" aria-hidden="true"><use href="#i-info"></use></svg><span>Por seguridad, el mensaje de confirmación no indicará si el correo está registrado.</span></p>
+          <div class="fe2-actions">
+            <button class="btn btn-primary fe2-primary" type="button" data-request-submit>
+              <span data-show="request-ready request-validation request-error service-unavailable" hidden>Enviar enlace de recuperación</span>
+              <span data-show="request-loading" hidden><span class="spinner" aria-hidden="true"></span>Enviando solicitud...</span>
+              <span data-show="request-cooldown" hidden>Espera 30 s</span>
+            </button>
+            <p class="field-help" role="status" data-show="request-loading" hidden>Procesando tu solicitud</p>
+            <div class="fe2-loading-track" data-show="request-loading" aria-hidden="true" hidden><span></span></div>
+            <button class="fe2-link" type="button">Volver al inicio de sesión</button>
+          </div>
+        </form>
+        <footer class="secure-footer">
+          <p class="secure-line"><svg class="icon icon-sm"><use href="#i-shield"></use></svg>Procesamos tu solicitud de forma segura.</p>
+          <div class="secure-divider"></div><span>© 2026 FollowUpBusiness</span>
+        </footer>
+      </section>
+
+      <section class="login-form fe2-view fe2-status" data-view="confirmation" aria-labelledby="confirmation-title" hidden>
+        <img class="mobile-logo brand-plate" src="assets/brand/followup-logo.png" alt="followUp Business">
+        <span class="fe2-status-icon" aria-hidden="true"><svg class="icon"><use href="#i-mail"></use></svg></span>
+        <h1 id="confirmation-title">Revisa tu correo</h1>
+        <p class="fe2-status-copy">Si existe una cuenta asociada al correo ingresado, recibirás instrucciones para restablecer tu contraseña.</p>
+        <p class="fe2-status-note">Revisa también tu carpeta de correo no deseado.</p>
+        <div class="fe2-actions">
+          <button class="btn btn-primary fe2-primary" type="button">Volver al inicio de sesión</button>
+          <button class="fe2-link" type="button">Usar otro correo</button>
+        </div>
+        <footer class="secure-footer">
+          <p class="secure-line"><svg class="icon icon-sm"><use href="#i-shield"></use></svg>Procesamos tu solicitud de forma segura.</p>
+          <div class="secure-divider"></div><span>© 2026 FollowUpBusiness</span>
+        </footer>
+      </section>
+
+      <section class="login-form fe2-view" data-view="reset" aria-labelledby="reset-title" hidden>
+        <img class="mobile-logo brand-plate" src="assets/brand/followup-logo.png" alt="followUp Business">
+        <span class="eyebrow">Acceso seguro</span>
+        <h1 id="reset-title">Crea una nueva contraseña</h1>
+        <p>Elige una contraseña segura para recuperar el acceso a tu cuenta.</p>
+
+        <form class="fe2-form" novalidate data-form="reset">
+          <div class="alert alert-danger fe2-alert" role="alert" data-show="reset-error" hidden>
+            <svg class="icon"><use href="#i-alert"></use></svg>
+            <div><strong>No pudimos restablecer la contraseña</strong><p>La nueva contraseña no cumple la política de seguridad. Elige otra contraseña.</p></div>
+          </div>
+          <div class="field">
+            <label for="new-password">Nueva contraseña</label>
+            <div class="control fe2-control" data-new-control>
+              <svg class="icon" aria-hidden="true"><use href="#i-lock"></use></svg>
+              <input id="new-password" name="new-password" type="password" autocomplete="new-password" placeholder="Ingresa una nueva contraseña">
+              <button class="visibility fe2-visibility" type="button" data-toggle="new-password" aria-label="Mostrar nueva contraseña"><svg class="icon" aria-hidden="true"><use href="#i-eye"></use></svg></button>
+            </div>
+            <p class="field-error" id="new-password-error" role="alert" data-show="reset-validation" hidden>La contraseña debe tener entre 8 y 72 bytes.</p>
+          </div>
+
+          <ul class="fe2-rules" aria-label="Reglas de contraseña">
+            <li class="fe2-rule" data-rule="length"><svg class="icon" aria-hidden="true"><use href="#i-shield"></use></svg>Mínimo 8 caracteres</li>
+            <li class="fe2-rule" data-rule="upper"><svg class="icon" aria-hidden="true"><use href="#i-shield"></use></svg>Una letra mayúscula</li>
+            <li class="fe2-rule" data-rule="lower"><svg class="icon" aria-hidden="true"><use href="#i-shield"></use></svg>Una letra minúscula</li>
+            <li class="fe2-rule" data-rule="number"><svg class="icon" aria-hidden="true"><use href="#i-shield"></use></svg>Un número</li>
+            <li class="fe2-rule" data-rule="special"><svg class="icon" aria-hidden="true"><use href="#i-shield"></use></svg>Un carácter especial</li>
+          </ul>
+
+          <div class="field">
+            <label for="confirm-password">Confirmar nueva contraseña</label>
+            <div class="control fe2-control" data-confirm-control>
+              <svg class="icon" aria-hidden="true"><use href="#i-lock"></use></svg>
+              <input id="confirm-password" name="confirm-password" type="password" autocomplete="new-password" placeholder="Repite la nueva contraseña">
+              <button class="visibility fe2-visibility" type="button" data-toggle="confirm-password" aria-label="Mostrar confirmar nueva contraseña"><svg class="icon" aria-hidden="true"><use href="#i-eye"></use></svg></button>
+            </div>
+            <p class="field-error" id="confirm-password-error" role="alert" data-show="reset-validation" hidden>Las contraseñas no coinciden.</p>
+          </div>
+
+          <p class="fe2-match" data-show="reset-passwords-match" hidden><svg class="icon" aria-hidden="true"><use href="#i-shield"></use></svg>Las contraseñas coinciden.</p>
+          <p class="fe2-match is-error" data-show="reset-passwords-mismatch" hidden><svg class="icon" aria-hidden="true"><use href="#i-alert"></use></svg>Las contraseñas no coinciden.</p>
+
+          <div class="fe2-actions">
+            <button class="btn btn-primary fe2-primary" type="button" data-reset-submit>
+              <span data-show="reset-ready reset-validation reset-password-visible reset-passwords-match reset-passwords-mismatch reset-error" hidden>Restablecer contraseña</span>
+              <span data-show="reset-loading" hidden><span class="spinner" aria-hidden="true"></span>Restableciendo…</span>
+            </button>
+            <p class="field-help" role="status" data-show="reset-loading" hidden>Actualizando el acceso</p>
+            <div class="fe2-loading-track" data-show="reset-loading" aria-hidden="true" hidden><span></span></div>
+            <button class="fe2-link" type="button">Cancelar y volver al inicio de sesión</button>
+          </div>
+        </form>
+        <footer class="secure-footer">
+          <p class="secure-line"><svg class="icon icon-sm"><use href="#i-shield"></use></svg>Procesamos tu solicitud de forma segura.</p>
+          <div class="secure-divider"></div><span>© 2026 FollowUpBusiness</span>
+        </footer>
+      </section>
+
+      <section class="login-form fe2-view fe2-status" data-view="token" aria-labelledby="token-fallback-title" hidden>
+        <img class="mobile-logo brand-plate" src="assets/brand/followup-logo.png" alt="followUp Business">
+        <span class="fe2-status-icon" aria-hidden="true"><svg class="icon"><use href="#i-lock"></use></svg></span>
+        <h1 id="token-fallback-title">Enlace no disponible</h1>
+      </section>
+
+      <section class="login-form fe2-view fe2-status" data-view="success" aria-labelledby="success-title" hidden>
+        <img class="mobile-logo brand-plate" src="assets/brand/followup-logo.png" alt="followUp Business">
+        <span class="fe2-status-icon success" aria-hidden="true"><svg class="icon"><use href="#i-shield"></use></svg></span>
+        <h1 id="success-title">Contraseña actualizada</h1>
+        <p class="fe2-status-copy">Tu contraseña se restableció correctamente. Ya puedes iniciar sesión con tus nuevas credenciales.</p>
+        <p class="fe2-status-note">Por seguridad, el enlace utilizado dejó de estar disponible.</p>
+        <div class="fe2-actions"><button class="btn btn-primary fe2-primary" type="button">Ir al inicio de sesión</button></div>
+        <footer class="secure-footer">
+          <p class="secure-line"><svg class="icon icon-sm"><use href="#i-shield"></use></svg>Procesamos tu solicitud de forma segura.</p>
+          <div class="secure-divider"></div><span>© 2026 FollowUpBusiness</span>
+        </footer>
+      </section>
+    </main>
+  </div>
+
+  <div data-token-modal hidden>
+    <div class="scrim"></div>
+    <section class="dialog fe2-dialog" role="dialog" aria-modal="true" aria-labelledby="token-problem-title" aria-describedby="token-problem-description">
+      <div class="dialog-body">
+        <button class="btn btn-icon fe2-dialog-close" type="button" aria-label="Cerrar diálogo"><svg class="icon" aria-hidden="true"><use href="#i-x"></use></svg></button>
+        <span class="login-modal-icon fe2-modal-icon" aria-hidden="true"><svg class="icon"><use href="#i-lock"></use></svg></span>
+        <h2 id="token-problem-title">Enlace vencido o no disponible</h2>
+        <p id="token-problem-description">Este enlace ya expiró, fue reemplazado o no está disponible. Ponte en contacto con tu supervisor o administrador para que te reenvíe una nueva invitación.</p>
+      </div>
+      <footer class="dialog-foot"><button class="btn btn-primary" type="button" data-token-primary>Volver al inicio de sesión</button></footer>
+    </section>
+  </div>
+
+  <aside class="mockup-guide" aria-label="Controles del mockup">
+    <label for="state-selector">Estado</label>
+    <select id="state-selector" data-state-selector></select>
+    <button class="btn btn-icon btn-compact" type="button" data-theme-toggle aria-label="Cambiar tema"><svg class="icon"><use href="#i-moon"></use></svg></button>
+  </aside>
+
+  <script>
+    (function () {
+      "use strict";
+
+      const states = [
+        "request-ready", "request-validation", "request-loading", "request-error", "request-cooldown", "service-unavailable",
+        "confirmation",
+        "reset-ready", "reset-validation", "reset-password-visible", "reset-passwords-match", "reset-passwords-mismatch", "reset-loading", "reset-error",
+        "token-malformed", "token-expired", "token-invalid", "token-used",
+        "success"
+      ];
+      const params = new URLSearchParams(window.location.search);
+      const requestedState = params.get("state");
+      const state = states.includes(requestedState) ? requestedState : "request-ready";
+      const isRequest = state.startsWith("request-") || state === "service-unavailable";
+      const isReset = state.startsWith("reset-");
+      const isTokenProblem = state.startsWith("token-");
+      const view = isRequest ? "request" : isTokenProblem ? "token" : isReset ? "reset" : state;
+      const exampleEmail = "persona@empresa.example";
+      const completePassword = "Abcdef1!";
+      const mismatchPassword = "Abcdef2!";
+
+      document.body.dataset.state = state;
+      document.body.dataset.guide = params.get("guide") === "1" ? "true" : "false";
+      if (params.get("theme") === "dark") document.body.dataset.theme = "dark";
+
+      document.querySelectorAll("[data-view]").forEach((element) => {
+        element.hidden = element.getAttribute("data-view") !== view;
+      });
+      document.querySelectorAll("[data-show]").forEach((element) => {
+        const visibleStates = (element.getAttribute("data-show") || "").split(/\s+/);
+        element.hidden = !visibleStates.includes(state);
+      });
+
+      const requestInput = document.getElementById("recovery-email");
+      const requestControl = document.querySelector("[data-request-control]");
+      const requestSubmit = document.querySelector("[data-request-submit]");
+      if (requestInput && requestControl && requestSubmit) {
+        requestInput.value = state === "request-validation" ? "correo-incompleto" : state === "request-ready" ? "" : exampleEmail;
+        const requestInvalid = state === "request-validation";
+        const requestDisabled = state === "request-loading" || state === "request-cooldown";
+        requestInput.setAttribute("aria-invalid", String(requestInvalid));
+        requestInput.toggleAttribute("aria-describedby", requestInvalid);
+        if (requestInvalid) requestInput.setAttribute("aria-describedby", "recovery-email-error");
+        requestInput.disabled = requestDisabled;
+        requestControl.classList.toggle("is-error", requestInvalid);
+        requestSubmit.disabled = requestDisabled;
+        document.querySelector("[data-form='request']")?.setAttribute("aria-busy", String(state === "request-loading"));
+      }
+
+      const newPassword = document.getElementById("new-password");
+      const confirmation = document.getElementById("confirm-password");
+      const newControl = document.querySelector("[data-new-control]");
+      const confirmControl = document.querySelector("[data-confirm-control]");
+      const resetSubmit = document.querySelector("[data-reset-submit]");
+      const resetValues = {
+        "reset-ready": ["", ""],
+        "reset-validation": ["clave", "otra-clave"],
+        "reset-password-visible": [completePassword, completePassword],
+        "reset-passwords-match": [completePassword, completePassword],
+        "reset-passwords-mismatch": [completePassword, mismatchPassword],
+        "reset-loading": [completePassword, completePassword],
+        "reset-error": [completePassword, completePassword]
+      };
+      if (newPassword && confirmation && newControl && confirmControl && resetSubmit) {
+        const values = resetValues[state] || ["", ""];
+        newPassword.value = values[0];
+        confirmation.value = values[1];
+        const validation = state === "reset-validation";
+        const visible = state === "reset-password-visible";
+        const loading = state === "reset-loading";
+        newPassword.type = visible ? "text" : "password";
+        confirmation.type = visible ? "text" : "password";
+        newPassword.disabled = loading;
+        confirmation.disabled = loading;
+        newPassword.setAttribute("aria-invalid", String(validation));
+        confirmation.setAttribute("aria-invalid", String(validation));
+        if (validation) {
+          newPassword.setAttribute("aria-describedby", "new-password-error");
+          confirmation.setAttribute("aria-describedby", "confirm-password-error");
+        }
+        newControl.classList.toggle("is-error", validation);
+        confirmControl.classList.toggle("is-error", validation);
+        resetSubmit.disabled = loading;
+        document.querySelector("[data-form='reset']")?.setAttribute("aria-busy", String(loading));
+        document.querySelectorAll("[data-toggle]").forEach((button) => {
+          button.disabled = loading;
+          button.classList.toggle("is-visible", visible);
+          const label = button.getAttribute("data-toggle") === "new-password" ? "nueva contraseña" : "confirmar nueva contraseña";
+          button.setAttribute("aria-label", (visible ? "Ocultar " : "Mostrar ") + label);
+        });
+        const tests = {
+          length: values[0].length >= 8,
+          upper: /[A-Z]/.test(values[0]),
+          lower: /[a-z]/.test(values[0]),
+          number: /\d/.test(values[0]),
+          special: /[^A-Za-z0-9]/.test(values[0])
+        };
+        document.querySelectorAll("[data-rule]").forEach((rule) => rule.classList.toggle("is-valid", Boolean(tests[rule.getAttribute("data-rule")])));
+      }
+
+      document.querySelectorAll("[data-toggle]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const input = document.getElementById(button.getAttribute("data-toggle"));
+          if (!input) return;
+          const show = input.type === "password";
+          input.type = show ? "text" : "password";
+          button.classList.toggle("is-visible", show);
+          const label = button.getAttribute("data-toggle") === "new-password" ? "nueva contraseña" : "confirmar nueva contraseña";
+          button.setAttribute("aria-label", (show ? "Ocultar " : "Mostrar ") + label);
+        });
+      });
+
+      const tokenLayer = document.querySelector("[data-token-modal]");
+      if (tokenLayer) tokenLayer.hidden = !isTokenProblem;
+      if (isTokenProblem) {
+        document.querySelector("[data-view='token']")?.setAttribute("aria-hidden", "true");
+        window.setTimeout(() => document.querySelector("[data-token-primary]")?.focus(), 0);
+      }
+
+      const selector = document.querySelector("[data-state-selector]");
+      if (selector) {
+        states.forEach((name) => selector.add(new Option(name, name, false, name === state)));
+        selector.addEventListener("change", () => {
+          const next = new URL(window.location.href);
+          next.searchParams.set("state", selector.value);
+          window.location.href = next.href;
+        });
+      }
+      document.querySelector("[data-theme-toggle]")?.addEventListener("click", () => {
+        const next = new URL(window.location.href);
+        if (document.body.dataset.theme === "dark") next.searchParams.delete("theme");
+        else next.searchParams.set("theme", "dark");
+        window.location.href = next.href;
+      });
+    })();
+  </script>
+</body>
+</html>

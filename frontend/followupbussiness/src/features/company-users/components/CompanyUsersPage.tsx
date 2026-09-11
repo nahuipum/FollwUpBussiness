@@ -1,3 +1,4 @@
+import { AlertTriangle, ArrowRight, LockKeyhole, Plus, Search, Shield, Users } from "lucide-react";
 import { useRef } from "react";
 import {
   correctAndResendCompanyUserInvitation,
@@ -7,18 +8,19 @@ import {
 } from "../api";
 import { useCompanyUsers } from "../hooks/useCompanyUsers";
 import { useCompanyUserDetail } from "../hooks/useCompanyUserDetail";
-import { useFocusTrap } from "../hooks/useFocusTrap";
 import type { CompanyUser, CompanyUserInput } from "../types";
-import { CompanyUserInviteDialog } from "./CompanyUserInviteDialog";
-import { CompanyUserDetailDialog } from "./CompanyUserDetailDialog";
+import { CompanyUserFormDrawer } from "./CompanyUserFormDrawer";
+import { CompanyUserDetailDrawer } from "./CompanyUserDetailDrawer";
 import { CompanyUsersFilters } from "./CompanyUsersFilters";
 import { CompanyUsersHeader } from "./CompanyUsersHeader";
 import { CompanyUsersTable } from "./CompanyUsersTable";
-import { ApiRequestObsoleteError, normalizeApiError } from "../../../lib/api";
+import { ApiRequestObsoleteError, normalizeApiError, type ApiError } from "../../../lib/api";
 import { TableLoadingIndicator } from "../../../shared/ui/TableLoadingIndicator";
 import { ReadOnlyNotice } from "../../../shared/ui/ReadOnlyNotice";
 import { AsyncStateCard } from "../../../shared/ui/AsyncStateCard";
-import { ModalHeader } from "../../../shared/ui/ModalHeader";
+import { ConfirmationDialog } from "../../../shared/ui/ConfirmationDialog";
+import { CorrelationId } from "../../../shared/ui/error-ui/components/CorrelationId";
+import { navigate } from "../../../app/navigation";
 
 export function CompanyUsersPage() {
   const users = useCompanyUsers();
@@ -26,7 +28,7 @@ export function CompanyUsersPage() {
   const saveUser = async (input: CompanyUserInput) => {
     if (users.submitting) return;
     users.setSubmitting(true);
-    users.setError(null);
+    users.setMutationError(null);
     const mutationId = users.startMutation();
     try {
       const current = users.editingUser;
@@ -52,14 +54,14 @@ export function CompanyUsersPage() {
         if (!resending) users.retry();
       } else {
         const error = await normalizeApiError(result.response);
-        if (users.isCurrentMutation(mutationId)) users.setError(error);
+        if (users.isCurrentMutation(mutationId)) users.setMutationError(error);
       }
     } catch (reason) {
       if (
         users.isCurrentMutation(mutationId) &&
         !(reason instanceof ApiRequestObsoleteError)
       )
-        users.setError({ status: 500, correlationId: null, fieldErrors: [] });
+        users.setMutationError({ status: 500, correlationId: null, fieldErrors: [] });
     } finally {
       if (users.isCurrentMutation(mutationId)) users.setSubmitting(false);
     }
@@ -68,7 +70,7 @@ export function CompanyUsersPage() {
     const current = users.statusUser;
     if (!current || users.submitting) return;
     users.setSubmitting(true);
-    users.setError(null);
+    users.setMutationError(null);
     const mutationId = users.startMutation();
     try {
       const next = current.status === "LOCKED" || current.status === "INACTIVE"
@@ -81,19 +83,36 @@ export function CompanyUsersPage() {
         users.setStatusUser(null);
       } else {
         const error = await normalizeApiError(result.response);
-        if (users.isCurrentMutation(mutationId)) users.setError(error);
+        if (users.isCurrentMutation(mutationId)) users.setMutationError(error);
       }
     } catch (reason) {
       if (
         users.isCurrentMutation(mutationId) &&
         !(reason instanceof ApiRequestObsoleteError)
       )
-        users.setError({ status: 500, correlationId: null, fieldErrors: [] });
+        users.setMutationError({ status: 500, correlationId: null, fieldErrors: [] });
     } finally {
       if (users.isCurrentMutation(mutationId)) users.setSubmitting(false);
     }
   };
   const items = users.result?.items ?? [];
+  const showResults = users.loading || items.length > 0;
+  if (users.error?.status === 403) {
+    return (
+      <section className="company-users company-users__forbidden" aria-labelledby="company-users-forbidden-title">
+        <AsyncStateCard
+          title="No tienes permisos"
+          description="No tienes permiso para consultar administradores y supervisores en esta empresa."
+          actionLabel="Volver al resumen"
+          onAction={() => navigate("/company/dashboard")}
+          tone="error"
+          variant="golden"
+          icon={<AlertTriangle />}
+          correlationId={users.error.correlationId}
+        />
+      </section>
+    );
+  }
   return (
     <section className="company-users" aria-labelledby="company-users-title">
         <CompanyUsersHeader
@@ -101,23 +120,6 @@ export function CompanyUsersPage() {
           inviteButtonRef={users.inviteButtonRef}
           onInvite={() => users.setInviteOpen(true)}
         />
-        {users.error && (
-          <AsyncStateCard
-            title={
-              users.error.status === 403
-                ? "No tienes permisos"
-                : "Ocurrió un problema temporal"
-            }
-            description={
-              users.error.status === 403
-                ? "No tienes permiso para realizar esta acción."
-                : "No pudimos mostrar los usuarios. Inténtalo más tarde."
-            }
-            actionLabel="Reintentar"
-            onAction={users.retry}
-            tone="error"
-          />
-        )}
         {users.notice && (
           <p className="company-users__notice" role="status">
             {users.notice}
@@ -127,7 +129,7 @@ export function CompanyUsersPage() {
           className="company-users__card"
           aria-label="Lista de administradores y supervisores"
         >
-          {!users.canManage && <ReadOnlyNotice />}
+          {!users.canManage && <ReadOnlyNotice variant="golden" />}
           <CompanyUsersFilters
             query={users.search}
             role={users.role}
@@ -136,8 +138,28 @@ export function CompanyUsersPage() {
             onRoleChange={users.changeRole}
             onStatusChange={users.changeStatus}
           />
+          {users.error && !items.length ? (
+            <AsyncStateCard
+              title="Ocurrió un problema temporal"
+              description="No pudimos mostrar los usuarios. Inténtalo más tarde."
+              actionLabel="Reintentar"
+              onAction={users.retry}
+              tone="error" variant="golden" icon={<AlertTriangle />}
+              correlationId={users.error.correlationId}
+            />
+          ) : <>
+          {users.error && items.length > 0 && (
+            <div className="company-users__stale-notice" role="status">
+              <span>Actualización pendiente. Conservamos los últimos datos disponibles.</span>
+              {users.error.correlationId && <CorrelationId correlationId={users.error.correlationId} />}
+            </div>
+          )}
+          {showResults && <header className="company-users__results" aria-live="polite">
+            <div><strong>Resultados</strong><span>{users.loading ? "Cargando usuarios" : `${users.result?.page.totalElements ?? 0} administradores y supervisores`}</span></div>
+            {users.error && items.length > 0 && <span className="company-users__updating">Actualización pendiente</span>}
+          </header>}
           {users.loading ? (
-            <TableLoadingIndicator label="Cargando usuarios" />
+            <TableLoadingIndicator label="Cargando usuarios" variant="golden" columns={5} />
           ) : items.length === 0 ? (
             <AsyncStateCard
               title={
@@ -145,22 +167,25 @@ export function CompanyUsersPage() {
                   ? "No encontramos coincidencias"
                   : "Aún no hay usuarios"
               }
-              description="Invita a tu equipo para comenzar a colaborar."
+              description={users.search || users.role || users.status ? "No encontramos usuarios que coincidan con los filtros seleccionados. Prueba con otros criterios o limpia los filtros." : "Invita a administradores o supervisores para comenzar a organizar los accesos del equipo."}
               actionLabel={
                 users.search || users.role || users.status
                   ? "Limpiar búsqueda"
-                  : "Invitar usuario"
+                  : users.canManage ? "Invitar administrador o supervisor" : undefined
               }
               onAction={
                 users.search || users.role || users.status
                   ? users.clearFilters
-                  : () => users.setInviteOpen(true)
+                  : users.canManage ? () => users.setInviteOpen(true) : undefined
               }
+              variant="golden"
+              icon={users.search || users.role || users.status ? <Search /> : <Users />}
+              actionIcon={users.search || users.role || users.status ? undefined : users.canManage ? <Plus aria-hidden="true" /> : undefined}
             />
           ) : (
             <CompanyUsersTable
               users={items}
-              page={users.page}
+              page={users.result?.page.page ?? users.page}
               pageSize={users.pageSize}
               totalPages={users.result?.page.totalPages ?? 0}
               totalElements={users.result?.page.totalElements ?? items.length}
@@ -189,9 +214,10 @@ export function CompanyUsersPage() {
               onPageSizeChange={users.changePageSize}
             />
           )}
+          </>}
         </section>
         {(users.inviteOpen || users.editingUser || users.resendingUser) && (
-          <CompanyUserInviteDialog
+          <CompanyUserFormDrawer
             user={users.resendingUser ?? users.editingUser}
             mode={
               users.resendingUser
@@ -202,24 +228,25 @@ export function CompanyUsersPage() {
             }
             busy={users.submitting}
             error={
-              users.error
-                ? mutationErrorMessage(users.error.status)
+              users.mutationError
+                ? mutationErrorMessage(users.mutationError.status)
                 : null
             }
+            correlationId={users.mutationError?.correlationId}
             onClose={() => {
               users.setInviteOpen(false);
               users.setEditingUser(null);
               users.setResendingUser(null);
-              users.setError(null);
+              users.setMutationError(null);
             }}
             onSubmit={saveUser}
           />
         )}
         {users.statusUser && (
-          <StatusConfirmation
+          <CompanyUserStatusConfirmation
             user={users.statusUser}
             busy={users.submitting}
-            error={users.error !== null}
+            error={users.mutationError}
             onClose={() => users.setStatusUser(null)}
             onConfirm={changeStatus}
             returnFocusTarget={
@@ -228,7 +255,7 @@ export function CompanyUsersPage() {
           />
         )}
         {(details.loading || details.user !== null || details.error !== null) && (
-          <CompanyUserDetailDialog
+          <CompanyUserDetailDrawer
             user={details.user}
             loading={details.loading}
             error={details.error}
@@ -259,62 +286,24 @@ function mutationErrorMessage(status: number) {
   }
 }
 
-function StatusConfirmation({
+function CompanyUserStatusConfirmation({
   user,
   busy,
   error,
   onClose,
   onConfirm,
-  returnFocusTarget: _returnFocusTarget,
+  returnFocusTarget,
 }: {
   user: CompanyUser;
   busy: boolean;
-  error: boolean;
+  error: ApiError | null;
   onClose: () => void;
   onConfirm: () => void;
   returnFocusTarget: HTMLButtonElement | null;
 }) {
-  const dialogRef = useRef<HTMLElement>(null);
-  const returnFocusRef = useRef(_returnFocusTarget);
-  useFocusTrap(dialogRef, onClose, returnFocusRef);
   const reactivate = user.status === "LOCKED" || user.status === "INACTIVE";
-  return (
-    <div className="company-users__dialog-backdrop">
-      <section ref={dialogRef} className="company-users__dialog" role="dialog" aria-modal="true" aria-labelledby="status-title">
-        <ModalHeader
-          module="Usuarios"
-          title={reactivate ? "Reactivar usuario" : "Bloquear usuario"}
-          titleId="status-title"
-        />
-        <p>
-          {reactivate
-            ? "¿Deseas reactivar este usuario?"
-            : "¿Deseas bloquear este usuario?"}
-        </p>
-        {error && <p role="alert">No fue posible actualizar el usuario.</p>}
-        <footer>
-          <button
-            className="company-users__secondary"
-            type="button"
-            onClick={onClose}
-            disabled={busy}
-          >
-            Cancelar
-          </button>
-          <button
-            className="company-users__primary"
-            type="button"
-            onClick={onConfirm}
-            disabled={busy}
-          >
-            {busy
-              ? "Guardando…"
-              : reactivate
-                ? "Reactivar usuario"
-                : "Bloquear usuario"}
-          </button>
-        </footer>
-      </section>
-    </div>
-  );
+  const title = reactivate ? "Reactivar usuario" : "Bloquear usuario";
+  const returnFocusRef = useRef<HTMLElement | null>(returnFocusTarget);
+  const role = user.role === "COMPANY_ADMIN" ? "Administrador" : "Supervisor";
+  return <ConfirmationDialog appearance="golden" {...(reactivate ? { className: "confirmation-dialog--reactivate" } : {})} titleId="status-dialog-title" descriptionId="status-dialog-description" module="Usuarios" title={title} headerDescription="Confirma el cambio de acceso para este usuario." bodyTitle={reactivate ? `¿Reactivar a ${user.displayName}?` : `¿Bloquear a ${user.displayName}?`} message={reactivate ? `${user.displayName} recuperará el acceso correspondiente a su rol de ${role}.` : `${user.displayName} perderá acceso a la empresa mientras permanezca bloqueado.`} icon={reactivate ? <ArrowRight aria-hidden="true" /> : <LockKeyhole aria-hidden="true" />} tone={reactivate ? "info" : "error"} {...(!reactivate ? { note: <><Shield aria-hidden="true" />Sus sesiones activas se revocarán cuando se confirme el bloqueo.</> } : {})} busy={busy} busyLabel={reactivate ? "Reactivando…" : "Bloqueando…"} error={error ? mutationErrorMessage(error.status) : null} errorTitle="No pudimos actualizar al usuario" correlationId={error?.correlationId} cancelLabel="Cancelar" confirmLabel={title} onCancel={onClose} onConfirm={onConfirm} returnFocusRef={returnFocusRef} />;
 }

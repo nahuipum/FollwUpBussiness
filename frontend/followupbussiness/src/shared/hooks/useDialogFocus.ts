@@ -6,13 +6,13 @@ function focusableElements(dialog: HTMLElement | null) {
   return dialog ? [...dialog.querySelectorAll<HTMLElement>(focusableSelector)].filter((element) => !element.hasAttribute('disabled') && element.tabIndex >= 0) : []
 }
 
-export function useDialogFocus(onDismiss: () => void, initialFocusRef?: RefObject<HTMLElement | null>, dismissOnEscape = true) {
+export function useDialogFocus(onDismiss: () => void, initialFocusRef?: RefObject<HTMLElement | null>, dismissOnEscape = true, returnFocusRef?: RefObject<HTMLElement | null>) {
   const dialogRef = useRef<HTMLElement>(null)
   const fallbackInitialFocusRef = useRef<HTMLButtonElement>(null)
   const dismiss = useEffectEvent(onDismiss)
 
   useEffect(() => {
-    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const previousFocus = returnFocusRef?.current ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null)
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     const focusable = focusableElements(dialogRef.current)
@@ -48,7 +48,7 @@ export function useDialogFocus(onDismiss: () => void, initialFocusRef?: RefObjec
       document.body.style.overflow = previousOverflow
       previousFocus?.focus()
     }
-  }, [dismissOnEscape, initialFocusRef])
+  }, [dismissOnEscape, initialFocusRef, returnFocusRef])
 
   return { dialogRef, initialFocusRef: fallbackInitialFocusRef }
 }

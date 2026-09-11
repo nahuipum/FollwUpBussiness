@@ -12,26 +12,27 @@ afterEach(() => {
   setViewportWidth(initialInnerWidth);
 });
 
-test("does not render the brand panel at widths of 900px or less", () => {
-  setViewportWidth(900);
+test("does not render the approved brand panel at widths of 620px or less", () => {
+  setViewportWidth(620);
 
   render(<BrandPanel />);
 
-  expect(screen.queryByLabelText("FollowUpBusiness")).toBeNull();
+  expect(screen.queryByLabelText("Presentación de followUp Business")).toBeNull();
 });
 
-test("renders the brand panel above 900px and removes it after resizing down", () => {
-  setViewportWidth(901);
+test("renders the approved brand panel above 620px and removes it after resizing down", () => {
+  setViewportWidth(621);
   render(<BrandPanel />);
 
-  expect(screen.queryByLabelText("FollowUpBusiness")).not.toBeNull();
+  expect(screen.queryByLabelText("Presentación de followUp Business")).not.toBeNull();
+  expect(screen.getByRole("img", { name: "followUp Business" })).toBeTruthy();
   expect(screen.getByRole("heading", { name: "Cada seguimiento, en el momento justo." })).toBeTruthy();
   expect(screen.getByText("Conecta a tu equipo con las oportunidades que mueven tu negocio.")).toBeTruthy();
 
   act(() => {
-    setViewportWidth(900);
+    setViewportWidth(620);
     window.dispatchEvent(new Event("resize"));
   });
 
-  expect(screen.queryByLabelText("FollowUpBusiness")).toBeNull();
+  expect(screen.queryByLabelText("Presentación de followUp Business")).toBeNull();
 });

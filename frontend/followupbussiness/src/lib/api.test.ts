@@ -1,7 +1,25 @@
-import { expect, test } from "vitest";
-import { ApiConfigurationError, normalizeApiError, resolveApiUrl } from "./api";
+import { afterEach, expect, test, vi } from "vitest";
+import { ApiConfigurationError, apiRequest, normalizeApiError, resolveApiUrl, subscribeToApiErrors } from "./api";
 
 const validCorrelationId = "00000000-0000-4000-8000-000000000001";
+
+afterEach(() => vi.unstubAllGlobals());
+
+test("permite publicar solo un 401 cuando el feature presenta los demás errores localmente", async () => {
+  const listener = vi.fn();
+  const unsubscribe = subscribeToApiErrors(listener);
+  const fetchMock = vi.fn()
+    .mockResolvedValueOnce(new Response(null, { status: 403 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ correlationId: validCorrelationId }), { status: 401 }));
+  vi.stubGlobal("fetch", fetchMock);
+  const publishOnlyUnauthorized = (status: number) => status === 401;
+
+  await apiRequest("/company/users", { method: "GET" }, { publishErrors: publishOnlyUnauthorized });
+  expect(listener).not.toHaveBeenCalled();
+  await apiRequest("/company/users", { method: "GET" }, { publishErrors: publishOnlyUnauthorized });
+  await vi.waitFor(() => expect(listener).toHaveBeenCalledWith(expect.objectContaining({ status: 401, correlationId: validCorrelationId }), 0));
+  unsubscribe();
+});
 
 test("resolves login against an HTTPS backend base URL", () => {
   expect(resolveApiUrl("https://localhost:8080", "/auth/login")).toBe(

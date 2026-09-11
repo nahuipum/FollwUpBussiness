@@ -15,6 +15,9 @@
 .async-state-card h2 { color: #14213d; }
 .async-state-card p { max-width: 420px; color: #67778a; line-height: 1.5; }
 .async-state-card__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   min-height: 44px;
   margin-top: 10px;
   padding: 0 17px;
@@ -27,4 +30,6 @@
   font-weight: 700;
   cursor: pointer;
 }
+.async-state-card__action svg { width: 16px; height: 16px; }
 .async-state-card--error { border-style: solid; border-color: rgb(20 33 61 / 8%); }
+.async-state-card--golden { min-height:360px; border-style:solid; border-color:var(--visual-border); border-radius:var(--visual-radius-xl); background:var(--visual-surface); }.async-state-card--golden h2 { color:var(--visual-text-strong); }.async-state-card--golden p { color:var(--visual-text-muted); }.async-state-card__icon { display:grid; width:48px; height:48px; place-items:center; border-radius:14px; color:var(--visual-brand); background:var(--visual-brand-soft); }.async-state-card__icon svg { width:22px; }

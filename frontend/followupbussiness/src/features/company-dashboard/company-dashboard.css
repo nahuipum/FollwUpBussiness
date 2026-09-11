@@ -1,0 +1,8 @@
+.dashboard-content .page-header { margin-bottom:32px; }
+.dashboard-content .page-header > span { display:block; margin-bottom:4px; font-size:12px; font-weight:700; letter-spacing:.08em; line-height:16px; }
+.dashboard-content .page-header h1 { margin:0; font-size:clamp(28px,3vw,32px); font-weight:700; letter-spacing:-.03em; line-height:40px; }
+.dashboard-content .page-header p { margin:10px 0 0; font-size:15px; line-height:22px; }
+.dashboard-content .quick-access-heading { margin-bottom:16px; }
+.dashboard-content .quick-access-heading h2 { margin:0 0 3px; font-size:18px; line-height:26px; }
+.dashboard-content .quick-access-heading p { margin:0; font-size:13px; line-height:20px; }
+.dashboard-content .informational-state { margin-top:24px; }

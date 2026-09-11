@@ -2,6 +2,7 @@ import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { CompanyUsersPageRoute } from "./CompanyUsersPageRoute";
 import { CompanyWorkspaceLayout } from "../../app/components/CompanyWorkspaceLayout";
+import type { CompanyUser } from "./types";
 
 const state = vi.hoisted(() => ({
   identity: { id: "admin", displayName: "Ana", company: "company-a", roles: ["COMPANY_ADMIN"] },
@@ -65,6 +66,88 @@ test("bloquea cancelar y el doble envío mientras procesa el reenvío", async ()
   await act(async () => { complete?.({ response: response(202), user: invitedUser }); });
 });
 test("bloquea solo tras confirmación y limpia datos tras cambio de sesión", async () => { await loaded(); fireEvent.click(screen.getByRole("button", { name: "Más acciones para Ana Gómez" })); fireEvent.click(screen.getByRole("menuitem", { name: "Bloquear usuario" })); fireEvent.click(screen.getByRole("button", { name: "Bloquear usuario" })); await act(async () => {}); expect(state.status).toHaveBeenCalledWith(user, "LOCKED"); state.identity = { id: "other", displayName: "Otra", company: "company-b", roles: ["COMPANY_ADMIN"] }; await act(async () => { state.listeners.forEach((listener) => listener()); }); expect(screen.queryByText("Ana Gómez")).toBeNull(); });
-test("la confirmación de estado atrapa el foco y se cierra con Escape", async () => { await loaded(); const trigger = screen.getByRole("button", { name: "Más acciones para Ana Gómez" }); fireEvent.click(trigger); fireEvent.click(screen.getByRole("menuitem", { name: "Bloquear usuario" })); const cancel = screen.getByRole("button", { name: "Cancelar" }); const confirm = screen.getByRole("button", { name: "Bloquear usuario" }); expect(document.activeElement).toBe(cancel); confirm.focus(); fireEvent.keyDown(document, { key: "Tab" }); expect(document.activeElement).toBe(cancel); fireEvent.keyDown(document, { key: "Escape" }); expect(screen.queryByRole("dialog")).toBeNull(); expect(document.activeElement).toBe(trigger); });
+test("la confirmación usa alertdialog, atrapa el foco y se cierra con Escape", async () => { await loaded(); const trigger = screen.getByRole("button", { name: "Más acciones para Ana Gómez" }); fireEvent.click(trigger); fireEvent.click(screen.getByRole("menuitem", { name: "Bloquear usuario" })); const cancel = screen.getByRole("button", { name: "Cancelar" }); const confirm = screen.getByRole("button", { name: "Bloquear usuario" }); expect(screen.getByRole("alertdialog")).toBeTruthy(); expect(document.activeElement).toBe(cancel); confirm.focus(); fireEvent.keyDown(document, { key: "Tab" }); expect(document.activeElement).toBe(screen.getByRole("button", { name: "Cerrar confirmación" })); fireEvent.keyDown(document, { key: "Escape" }); expect(screen.queryByRole("alertdialog")).toBeNull(); expect(document.activeElement).toBe(trigger); });
+test("la confirmación golden conserva descripción, orden de acciones y foco inicial", async () => {
+  await loaded();
+  fireEvent.click(screen.getByRole("button", { name: "Más acciones para Ana Gómez" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: "Bloquear usuario" }));
+  const dialog = screen.getByRole("alertdialog");
+  expect(dialog.className).toContain("confirmation-dialog--golden");
+  expect(dialog.getAttribute("aria-describedby")).toBe("status-dialog-description");
+  expect(dialog.querySelector("footer")?.children.item(0)?.textContent).toBe("Cancelar");
+  expect(document.activeElement).toBe(screen.getByRole("button", { name: "Cancelar" }));
+});
+test("bloquea cierres y doble envío mientras actualiza el estado", async () => {
+  let complete: ((value: { response: Response; user: CompanyUser }) => void) | undefined;
+  state.status.mockImplementationOnce(() => new Promise((resolve) => { complete = resolve; }));
+  await loaded();
+  fireEvent.click(screen.getByRole("button", { name: "Más acciones para Ana Gómez" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: "Bloquear usuario" }));
+  fireEvent.click(screen.getByRole("button", { name: "Bloquear usuario" }));
+  await act(async () => {});
+  const dialog = screen.getByRole("alertdialog");
+  const busy = screen.getByRole("button", { name: "Bloqueando…" }) as HTMLButtonElement;
+  expect(busy.disabled).toBe(true);
+  expect((screen.getByRole("button", { name: "Cancelar" }) as HTMLButtonElement).disabled).toBe(true);
+  expect((screen.getByRole("button", { name: "Cerrar confirmación" }) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.keyDown(document, { key: "Escape" });
+  fireEvent.mouseDown(dialog.parentElement as HTMLElement);
+  fireEvent.click(busy);
+  expect(screen.getByRole("alertdialog")).toBe(dialog);
+  expect(state.status).toHaveBeenCalledTimes(1);
+  await act(async () => { complete?.({ response: response(200), user: { ...user, status: "LOCKED" } }); });
+});
+test("reactiva con el rol real y etiqueta busy específica", async () => {
+  const locked = { ...user, status: "LOCKED" as const };
+  state.list.mockResolvedValue({ response: response(200), page: { items: [locked], page: { page: 0, pageSize: 20, totalElements: 1, totalPages: 1 } } });
+  let complete: ((value: { response: Response; user: CompanyUser }) => void) | undefined;
+  state.status.mockImplementationOnce(() => new Promise((resolve) => { complete = resolve; }));
+  await loaded();
+  fireEvent.click(screen.getByRole("button", { name: "Más acciones para Ana Gómez" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: "Reactivar usuario" }));
+  expect(screen.getByText("Ana Gómez recuperará el acceso correspondiente a su rol de Supervisor.")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Reactivar usuario" }));
+  await act(async () => {});
+  expect((screen.getByRole("button", { name: "Reactivando…" }) as HTMLButtonElement).disabled).toBe(true);
+  await act(async () => { complete?.({ response: response(200), user }); });
+});
+test("muestra la jerarquía completa del error de confirmación", async () => {
+  state.status.mockResolvedValue({ response: response(409), user: null });
+  await loaded();
+  fireEvent.click(screen.getByRole("button", { name: "Más acciones para Ana Gómez" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: "Bloquear usuario" }));
+  fireEvent.click(screen.getByRole("button", { name: "Bloquear usuario" }));
+  await act(async () => {});
+  const alert = screen.getByRole("alert");
+  expect(alert.textContent).toContain("No pudimos actualizar al usuario");
+  expect(alert.textContent).toMatch(/cambiaron o entran en conflicto/i);
+  expect(alert.querySelector("svg")).toBeTruthy();
+});
+test("los formularios y el detalle se muestran como drawers laterales", async () => { await loaded(); fireEvent.click(screen.getByRole("button", { name: "Invitar administrador o supervisor" })); expect(screen.getByRole("dialog").className).toContain("drawer-surface"); expect(screen.getByRole("button", { name: "Enviar invitación" }).closest("footer")?.className).toContain("drawer-surface__footer"); fireEvent.keyDown(document, { key: "Escape" }); fireEvent.click(screen.getByRole("button", { name: "Más acciones para Ana Gómez" })); fireEvent.click(screen.getByRole("menuitem", { name: "Ver detalle" })); await act(async () => {}); expect(screen.getByRole("dialog").className).toContain("drawer-surface"); });
+test("el detalle listo presenta tarjetas de definición y un estado semántico", async () => { await loaded(); fireEvent.click(screen.getByRole("button", { name: "Más acciones para Ana Gómez" })); fireEvent.click(screen.getByRole("menuitem", { name: "Ver detalle" })); await act(async () => {}); const detail = screen.getByRole("region", { name: "Información del usuario" }); expect(detail.querySelector(".company-users__detail-grid")).toBeTruthy(); expect(detail.querySelectorAll(".company-users__detail-grid > div")).toHaveLength(4); expect(detail.querySelector(".company-users__detail-status--active")?.textContent).toBe("Activo"); });
 test("cierra acciones al hacer clic fuera del menú", async () => { await loaded(); fireEvent.click(screen.getByRole("button", { name: "Más acciones para Ana Gómez" })); expect(screen.getByRole("menu")).toBeTruthy(); fireEvent.pointerDown(document.body); expect(screen.queryByRole("menu")).toBeNull(); });
-test("muestra detalle y supervisor solo puede acceder a esa acción", async () => { state.identity = { id: "supervisor", displayName: "Sofía", company: "company-a", roles: ["SUPERVISOR"] }; await loaded(); fireEvent.click(screen.getByRole("button", { name: "Más acciones para Ana Gómez" })); expect(screen.getByRole("menuitem", { name: "Ver detalle" })).toBeTruthy(); expect(screen.queryByRole("menuitem", { name: "Editar usuario" })).toBeNull(); fireEvent.click(screen.getByRole("menuitem", { name: "Ver detalle" })); await act(async () => {}); expect(state.get).toHaveBeenCalledWith("u1"); expect(screen.getByText("Detalle de usuario")).toBeTruthy(); });
+test("el supervisor ve la lista en modo solo lectura, sin columna ni menú de acciones", async () => { state.identity = { id: "supervisor", displayName: "Sofía", company: "company-a", roles: ["SUPERVISOR"] }; await loaded(); expect(screen.getByText(/Solo lectura/i)).toBeTruthy(); expect(screen.queryByRole("columnheader", { name: "Acciones" })).toBeNull(); expect(screen.queryByRole("button", { name: "Más acciones para Ana Gómez" })).toBeNull(); expect(state.get).not.toHaveBeenCalled(); });
+test("un 403 muestra forbidden local sin filtros, tabla, CTA ni PII", async () => { await loaded(); state.list.mockResolvedValue({ response: response(403), page: null }); fireEvent.change(screen.getByRole("searchbox", { name: "Buscar por nombre o correo" }), { target: { value: "Ana" } }); await act(async () => { await vi.advanceTimersByTimeAsync(250); }); expect(screen.getByRole("heading", { name: "No tienes permisos" })).toBeTruthy(); expect(screen.getByText("No tienes permiso para consultar administradores y supervisores en esta empresa.")).toBeTruthy(); expect(screen.getByRole("button", { name: "Volver al resumen" })).toBeTruthy(); expect(screen.queryByText("Ana Gómez")).toBeNull(); expect(screen.queryByRole("searchbox")).toBeNull(); expect(screen.queryByRole("table")).toBeNull(); expect(screen.queryByRole("button", { name: "Invitar administrador o supervisor" })).toBeNull(); });
+test("un 401 limpia PII antes de mostrar el error local de sesión inválida", async () => { await loaded(); state.list.mockResolvedValue({ response: response(401), page: null }); fireEvent.change(screen.getByRole("searchbox", { name: "Buscar por nombre o correo" }), { target: { value: "Ana" } }); await act(async () => { await vi.advanceTimersByTimeAsync(250); }); expect(screen.queryByText("Ana Gómez")).toBeNull(); expect(screen.getByRole("alert")).toBeTruthy(); });
+test("una invitación pendiente no ofrece bloqueo ni invoca el cambio de estado", async () => { state.list.mockResolvedValue({ response: response(200), page: { items: [invitedUser], page: { page: 0, pageSize: 20, totalElements: 1, totalPages: 1 } } }); await loaded(); fireEvent.click(screen.getByRole("button", { name: "Más acciones para Carla Pérez" })); expect(screen.getByRole("menuitem", { name: "Ver detalle" })).toBeTruthy(); expect(screen.getByRole("menuitem", { name: "Corregir y reenviar invitación" })).toBeTruthy(); expect(screen.queryByRole("menuitem", { name: "Bloquear usuario" })).toBeNull(); expect(state.status).not.toHaveBeenCalled(); });
+test("muestra solo el correlationId validado en errores del listado", async () => {
+  const validId = "00000000-0000-4000-8000-000000000401";
+  state.list.mockResolvedValue({ response: new Response(JSON.stringify({ correlationId: validId }), { status: 500 }), page: null });
+  await loaded();
+  expect(screen.getByText(`Correlation ID: ${validId}`)).toBeTruthy();
+  cleanup();
+  state.list.mockResolvedValue({ response: new Response(JSON.stringify({ correlationId: "<script>hostile</script>" }), { status: 500 }), page: null });
+  await loaded();
+  expect(screen.queryByText(/hostile/)).toBeNull();
+});
+test("conserva el correlationId validado en errores de mutación", async () => {
+  const validId = "00000000-0000-4000-8000-000000000422";
+  state.invite.mockResolvedValue({ response: new Response(JSON.stringify({ correlationId: validId }), { status: 422 }), user: null });
+  await loaded();
+  fireEvent.click(screen.getByRole("button", { name: "Invitar administrador o supervisor" }));
+  fireEvent.change(screen.getByLabelText("Nombre completo"), { target: { value: "Luis Pérez" } });
+  fireEvent.change(screen.getByLabelText("Correo corporativo"), { target: { value: "luis@example.com" } });
+  fireEvent.click(screen.getByRole("button", { name: "Enviar invitación" }));
+  await act(async () => {});
+  expect(screen.getByText(`Correlation ID: ${validId}`)).toBeTruthy();
+});

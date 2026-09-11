@@ -18,6 +18,7 @@ function Filter<T extends string>({
     <div className="filter-field">
       <span>{label}</span>
       <VisualSelect
+        variant="golden"
         ariaLabel={label}
         value={selected}
         options={values.map((value) => ({ value, label: value }))}
@@ -47,14 +48,13 @@ export function CompanyUsersFilters({
   return (
     <div className="company-users__toolbar">
       <label className="company-users__search">
-        <Search aria-hidden="true" />
-        <span className="sr-only">Buscar por nombre o correo</span>
-        <input
+        <span>Buscar por nombre o correo</span>
+        <div className="company-users__search-control"><Search aria-hidden="true" /><input
           type="search"
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
-          placeholder="Buscar por nombre o correo"
-        />
+          placeholder="Nombre o correo"
+        /></div>
       </label>
       <Filter
         label="Rol"

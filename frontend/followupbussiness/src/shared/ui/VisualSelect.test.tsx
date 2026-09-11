@@ -105,3 +105,13 @@ test("abre hacia arriba cuando no hay espacio debajo del selector", () => {
   expect(menu.style.top).toBe("694px");
   expect(menu.style.maxHeight).toBe("120px");
 });
+
+test("mantiene default y aplica golden solo cuando se solicita", () => {
+  render(<>
+    <VisualSelect value="A" options={options} onChange={() => undefined} ariaLabel="Selector default" />
+    <VisualSelect value="A" options={options} onChange={() => undefined} ariaLabel="Selector golden" variant="golden" />
+  </>);
+
+  expect(screen.getByRole("button", { name: "Selector default" }).closest(".visual-select")?.className).toContain("visual-select--default");
+  expect(screen.getByRole("button", { name: "Selector golden" }).closest(".visual-select")?.className).toContain("visual-select--golden");
+});

@@ -37,6 +37,7 @@ export function useCompanyUsers() {
   const [result, setResult] = useState<CompanyUserPage | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ApiError | null>(null);
+  const [mutationError, setMutationError] = useState<ApiError | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [menuUser, setMenuUser] = useState<string | null>(null);
@@ -61,7 +62,14 @@ export function useCompanyUsers() {
             setResult(next.page);
             setError(null);
             setLastUpdated(new Date());
-          } else setError(await normalizeApiError(next.response));
+          } else {
+            const nextError = await normalizeApiError(next.response);
+            if (nextError?.status === 401 || nextError?.status === 403) {
+              setResult(null);
+              setLastUpdated(null);
+            }
+            setError(nextError);
+          }
         })
         .catch((reason) => {
           if (
@@ -92,6 +100,7 @@ export function useCompanyUsers() {
         setPage(0);
         setResult(null);
         setError(null);
+        setMutationError(null);
         setLastUpdated(null);
         setMenuUser(null);
         setEditingUser(null);
@@ -141,6 +150,7 @@ export function useCompanyUsers() {
     result,
     loading,
     error,
+    mutationError,
     lastUpdated,
     menuUser,
     editingUser,
@@ -158,7 +168,7 @@ export function useCompanyUsers() {
     setInviteOpen,
     setSubmitting,
     setNotice,
-    setError,
+    setMutationError,
     replaceUser,
     retry: () => setReloadKey((value) => value + 1),
     startMutation: () => ++mutationRef.current,

@@ -1,222 +1,332 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from "@playwright/test";
 
-const token = 't'.repeat(43)
-const passwordApiPattern = '**/*'
-const viewports = [
-  { name: 'desktop', width: 1440, height: 900 },
-  { name: 'mobile', width: 390, height: 844 },
-] as const
+const desktop = { width: 1440, height: 900 };
+const tablet = { width: 768, height: 1024 };
+const mobile = { width: 390, height: 844 };
+const syntheticToken = "v".repeat(43);
+const syntheticEmail = "visual-test@company.example";
+const syntheticPassword = "VisualOnly1!";
+const passwordApiPattern = "**/api/auth/password-*";
+const consoleIssues = new WeakMap<Page, string[]>();
 
-async function mockResponse(page: Page, status: number, headers?: Record<string, string>) {
-  await page.unrouteAll({ behavior: 'ignoreErrors' })
+test.beforeEach(async ({ page }) => {
+  const issues: string[] = [];
+  consoleIssues.set(page, issues);
+  page.on("console", (message) => {
+    const messageText = message.text();
+    const isExpectedHttpFailure = messageText.startsWith(
+      "Failed to load resource: the server responded with a status of",
+    );
+    if (
+      !isExpectedHttpFailure &&
+      (message.type() === "error" || message.type() === "warning")
+    )
+      issues.push(messageText);
+  });
+});
+
+test.afterEach(async ({ page }) => {
+  expect(consoleIssues.get(page) ?? []).toEqual([]);
+});
+
+async function openRecovery(
+  page: Page,
+  viewport: { width: number; height: number },
+) {
+  await page.setViewportSize(viewport);
+  await page.goto("/password-recovery");
+  await expect(
+    page.getByRole("heading", { name: "¿Olvidaste tu contraseña?" }),
+  ).toBeVisible();
+}
+
+async function openReset(
+  page: Page,
+  viewport: { width: number; height: number } = desktop,
+) {
+  await page.setViewportSize(viewport);
+  await page.goto(`/password-reset?token=${syntheticToken}`);
+  await expect(
+    page.getByRole("heading", { name: "Crea una nueva contraseña" }),
+  ).toBeVisible();
+  await expect(page).toHaveURL(/\/password-reset$/);
+}
+
+async function fillReset(page: Page, confirmation = syntheticPassword) {
+  await page.locator("#new-password").fill(syntheticPassword);
+  await page.locator("#confirm-password").fill(confirmation);
+}
+
+async function mockResponse(
+  page: Page,
+  status: number,
+  headers?: Record<string, string>,
+) {
+  await page.route(passwordApiPattern, (route) =>
+    route.fulfill({ status, headers, body: "" }),
+  );
+}
+
+async function mockPendingResponse(page: Page, finalStatus = 500) {
+  let release = () => {};
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
   await page.route(passwordApiPattern, async (route) => {
-    if (route.request().url().includes('/auth/password-')) await route.fulfill(headers ? { status, headers, body: '' } : { status, body: '' })
-    else await route.continue()
-  })
+    await gate;
+    await route.fulfill({ status: finalStatus, body: "" });
+  });
+  return release;
 }
 
-async function mockPendingResponse(page: Page) {
-  let release: (() => Promise<void>) | undefined
-  await page.unrouteAll({ behavior: 'ignoreErrors' })
-  await page.route(passwordApiPattern, async (route) => {
-    if (!route.request().url().includes('/auth/password-')) return route.continue()
-    await new Promise<void>((resolve) => { release = async () => { await route.fulfill({ status: 500, body: '' }); resolve() } })
-  })
-  return async () => release?.()
+async function expectStableRecovery(page: Page, name: string) {
+  await page.addStyleTag({
+    content: "*, *::before, *::after { caret-color: transparent !important; }",
+  });
+  await page.evaluate(() => document.fonts.ready);
+  await expect(page.locator(".auth-secure-footer")).toBeVisible();
+
+  const logo = page.locator(
+    ".login-golden__brand-logo:visible, .login-golden__mobile-logo:visible",
+  );
+  await expect(logo).toHaveCount(1);
+  expect(
+    await logo.evaluate((image: HTMLImageElement) => {
+      const naturalRatio = image.naturalWidth / image.naturalHeight;
+      const renderedRatio =
+        image.getBoundingClientRect().width /
+        image.getBoundingClientRect().height;
+      return (
+        image.complete &&
+        image.naturalWidth > 0 &&
+        Math.abs(naturalRatio - renderedRatio) < 0.02
+      );
+    }),
+  ).toBe(true);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+
+  await expect(page).toHaveScreenshot(name, {
+    animations: "disabled",
+    fullPage: true,
+  });
 }
 
-async function stableShot(page: Page, name: string) {
-  await expect(page.locator('.auth-copyright')).toHaveText('© 2026 FollowUpBusiness')
-  await page.screenshot({ path: `test-results/visual/${name}.png`, fullPage: true, animations: 'disabled' })
-}
+test("request ready desktop", async ({ page }) => {
+  await openRecovery(page, desktop);
+  await expect(page.locator(".login-golden__brand")).toBeVisible();
+  await expect(page.locator(".login-golden__map-card")).toBeVisible();
+  await expectStableRecovery(
+    page,
+    "password-recovery-request-ready-desktop.png",
+  );
+});
 
-async function openReset(page: Page) {
-  await page.goto(`/password-reset?token=${token}`)
-  await expect(page.getByRole('heading', { name: 'Crea una nueva contraseña' })).toBeVisible()
-}
+test("request ready tablet", async ({ page }) => {
+  await openRecovery(page, tablet);
+  await expect(page.locator(".login-golden__brand")).toBeVisible();
+  await expectStableRecovery(
+    page,
+    "password-recovery-request-ready-tablet.png",
+  );
+});
 
-async function submitReset(page: Page) {
-  await page.locator('#new-password').fill('correct-password')
-  await page.locator('#confirm-password').fill('correct-password')
-  await page.getByRole('button', { name: 'Restablecer contraseña' }).click()
-}
+test("request ready mobile", async ({ page }) => {
+  await openRecovery(page, mobile);
+  await expect(page.locator(".login-golden__brand")).toHaveCount(0);
+  await expectStableRecovery(
+    page,
+    "password-recovery-request-ready-mobile.png",
+  );
+});
 
-async function expectBrandPanelGeometry(page: Page, viewport: (typeof viewports)[number]) {
-  const brandPanel = page.locator('.brand-panel')
-  if (viewport.width <= 900) {
-    await expect(brandPanel).toBeHidden()
-    await expect(page.locator('.form-panel')).toHaveCSS('padding-left', '24px')
-    expect(await page.locator('.form-panel').evaluate((element) => Math.round(element.getBoundingClientRect().width))).toBe(viewport.width)
-    return
+test("request validation", async ({ page }) => {
+  await openRecovery(page, desktop);
+  await page
+    .getByRole("button", { name: "Enviar enlace de recuperación" })
+    .click();
+  await expect(page.locator("#recovery-email")).toHaveAttribute(
+    "aria-describedby",
+    "recovery-email-error",
+  );
+  await expect(page.locator("#recovery-email")).toBeFocused();
+  await expectStableRecovery(page, "password-recovery-request-validation.png");
+});
+
+test("request loading", async ({ page }) => {
+  const release = await mockPendingResponse(page);
+  await openRecovery(page, desktop);
+  await page.locator("#recovery-email").fill(syntheticEmail);
+  await page
+    .getByRole("button", { name: "Enviar enlace de recuperación" })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Enviando solicitud..." }),
+  ).toBeDisabled();
+  try {
+    await expectStableRecovery(page, "password-recovery-request-loading.png");
+  } finally {
+    release();
   }
+});
 
-  await expect(brandPanel).toBeVisible()
-  await expect(page.locator('.map-dots')).toBeVisible()
-  await expect(page.locator('.map-card')).toBeVisible()
-  await expect(page.locator('.street-map-art')).toBeVisible()
-  await expect(page.locator('.map-ripple')).toHaveCount(2)
-  await expect(page.locator('.map-pin')).toHaveCount(2)
-  await expect(page.locator('.map-waypoint')).toBeVisible()
-  expect(await page.locator('.street-map-art').evaluate((image: HTMLImageElement) => image.naturalWidth > 0)).toBe(true)
-  expect(await brandPanel.evaluate((panel) => Math.round(panel.getBoundingClientRect().width))).toBe(viewport.width / 2)
-  expect(await page.locator('.brand-header').evaluate((header) => {
-    const rect = header.getBoundingClientRect()
-    return Math.round(rect.x) === 66 && Math.round(rect.y) === 58
-  })).toBe(true)
-  expect(await page.locator('.map-wrap').evaluate((map) => {
-    const rect = map.getBoundingClientRect()
-    return Math.round(rect.x) === 66 && Math.round(rect.width) === 560 && Math.round(rect.height) === 312
-  })).toBe(true)
-}
+test("request generic error", async ({ page }) => {
+  await mockResponse(page, 418);
+  await openRecovery(page, desktop);
+  await page.locator("#recovery-email").fill(syntheticEmail);
+  await page
+    .getByRole("button", { name: "Enviar enlace de recuperación" })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Ocurrió un problema temporal" }),
+  ).toBeVisible();
+  await expectStableRecovery(page, "password-recovery-request-error.png");
+});
 
-async function expectSuccessV3Presentation(page: Page, viewport: (typeof viewports)[number]) {
-  const copy = page.locator('.status-copy')
-  const note = page.locator('.status-note')
-  const title = page.locator('.status-view h1')
-  const icon = page.locator('.status-view .status-icon')
-  const mobile = viewport.width <= 520 && viewport.height <= 900
+test("request unavailable", async ({ page }) => {
+  await mockResponse(page, 503);
+  await openRecovery(page, desktop);
+  await page.locator("#recovery-email").fill(syntheticEmail);
+  await page
+    .getByRole("button", { name: "Enviar enlace de recuperación" })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Servicio no disponible" }),
+  ).toBeVisible();
+  await expectStableRecovery(page, "password-recovery-request-unavailable.png");
+});
 
-  await expect(copy).toHaveCSS('text-align', 'center')
-  await expect(copy).toHaveCSS('color', 'rgb(109, 128, 159)')
-  await expect(copy).toHaveCSS('font-size', mobile ? '15.5px' : '17px')
-  await expect(copy).toHaveCSS('margin-top', mobile ? '13px' : '18px')
-  await expect(note).toHaveCSS('color', 'rgb(113, 132, 160)')
-  await expect(note).toHaveCSS('font-size', mobile ? '13.5px' : '15px')
-  await expect(note).toHaveCSS('margin-top', mobile ? '16px' : '22px')
-  await expect(note).toHaveCSS('margin-bottom', mobile ? '27px' : '42px')
-  await expect(title).toHaveCSS('font-size', mobile ? '37px' : '43px')
-  await expect(icon).toHaveCSS('width', mobile ? '91px' : '118px')
-  expect(await copy.evaluate((element) => Math.round(element.getBoundingClientRect().x + element.getBoundingClientRect().width / 2))).toBe(Math.round(viewport.width * (mobile ? .5 : .75)))
-}
+test("request cooldown", async ({ page }) => {
+  await mockResponse(page, 429, { "Retry-After": "30" });
+  await openRecovery(page, desktop);
+  await page.locator("#recovery-email").fill(syntheticEmail);
+  await page
+    .getByRole("button", { name: "Enviar enlace de recuperación" })
+    .click();
+  await expect(page.getByRole("status")).toContainText("30 segundos");
+  await expect(
+    page.getByRole("button", { name: "Espera 30 s" }),
+  ).toBeDisabled();
+  await expectStableRecovery(page, "password-recovery-request-cooldown.png");
+});
 
-for (const viewport of viewports) {
-  test(`FE-002 ${viewport.name}: solicitud, alertas y confirmación v3`, async ({ page }) => {
-    await page.setViewportSize(viewport)
-    await page.goto('/password-recovery')
-    await expect(page.getByRole('heading', { name: '¿Olvidaste tu contraseña?' })).toBeVisible()
-    await expect(page.locator('.recovery-form-panel h1')).toHaveCSS('text-align', 'center')
-    await expectBrandPanelGeometry(page, viewport)
-    await stableShot(page, `${viewport.name}-request`)
+test("confirmation", async ({ page }) => {
+  await page.setViewportSize(desktop);
+  await page.goto("/password-recovery/confirmation");
+  await expect(
+    page.getByRole("heading", { name: "Revisa tu correo" }),
+  ).toBeFocused();
+  await expectStableRecovery(page, "password-recovery-confirmation.png");
+});
 
-    await page.getByRole('button', { name: 'Enviar enlace de recuperación' }).click()
-    await expect(page.getByRole('alert')).toContainText('correo electrónico válido')
-    await stableShot(page, `${viewport.name}-request-validation`)
+test("reset ready desktop", async ({ page }) => {
+  await openReset(page);
+  await expect(
+    page.getByRole("list", { name: "Reglas de contraseña" }),
+  ).toBeVisible();
+  await expectStableRecovery(page, "password-recovery-reset-ready-desktop.png");
+});
 
-    await page.goto('/password-recovery')
-    await mockResponse(page, 500)
-    await page.locator('#recovery-email').fill('person@example.com')
-    await page.getByRole('button', { name: 'Enviar enlace de recuperación' }).click()
-    await expect(page.getByRole('alert')).toBeVisible()
-    await stableShot(page, `${viewport.name}-request-error`)
-  })
+test("reset ready mobile", async ({ page }) => {
+  await openReset(page, mobile);
+  await expect(page.locator(".login-golden__brand")).toHaveCount(0);
+  await expectStableRecovery(page, "password-recovery-reset-ready-mobile.png");
+});
 
-  test(`FE-002 ${viewport.name}: cooldown, indisponibilidad, carga y confirmación v3`, async ({ page }) => {
-    await page.setViewportSize(viewport)
-    await page.goto('/password-recovery')
-    await mockResponse(page, 429, { 'Retry-After': '30' })
-    await page.locator('#recovery-email').fill('person@example.com')
-    await page.getByRole('button', { name: 'Enviar enlace de recuperación' }).click()
-    await expect(page.locator('.recovery-alert[role="status"]')).toContainText(/espera \d+ segundos/)
-    await stableShot(page, `${viewport.name}-request-cooldown`)
-  })
+test("reset validation", async ({ page }) => {
+  await openReset(page);
+  await page.getByRole("button", { name: "Restablecer contraseña" }).click();
+  await expect(page.locator("#new-password")).toHaveAttribute(
+    "aria-describedby",
+    "new-password-error",
+  );
+  await expect(page.locator("#new-password")).toBeFocused();
+  await expectStableRecovery(page, "password-recovery-reset-validation.png");
+});
 
-  test(`FE-002 ${viewport.name}: indisponibilidad, carga y confirmación v3`, async ({ page }) => {
-    await page.setViewportSize(viewport)
-    await page.goto('/password-recovery')
-    await mockResponse(page, 503)
-    await page.locator('#recovery-email').fill('person@example.com')
-    await page.getByRole('button', { name: 'Enviar enlace de recuperación' }).click()
-    await expect(page.getByRole('alert')).toContainText('no está disponible temporalmente')
-    await stableShot(page, `${viewport.name}-service-unavailable`)
-  })
+test("reset password visibility and matching rules", async ({ page }) => {
+  await openReset(page);
+  await fillReset(page);
+  await page.getByRole("button", { name: "Mostrar nueva contraseña" }).click();
+  await expect(page.locator("#new-password")).toHaveAttribute("type", "text");
+  await expect(page.getByText("Las contraseñas coinciden.")).toBeVisible();
+  await expect(page.locator(".recovery-golden__rule.is-valid")).toHaveCount(5);
+  await expectStableRecovery(page, "password-recovery-reset-rules-visible.png");
+});
 
-  test(`FE-002 ${viewport.name}: carga y confirmación v3`, async ({ page }) => {
-    await page.setViewportSize(viewport)
-    await page.goto('/password-recovery')
-    const releasePendingRequest = await mockPendingResponse(page)
-    try {
-      await page.locator('#recovery-email').fill('person@example.com')
-      await page.getByRole('button', { name: 'Enviar enlace de recuperación' }).click()
-      await expect(page.getByRole('button', { name: 'Enviando solicitud...' })).toBeDisabled()
-      await stableShot(page, `${viewport.name}-request-loading`)
-    } finally {
-      await releasePendingRequest()
-    }
+test("reset mismatch", async ({ page }) => {
+  await openReset(page);
+  await fillReset(page, "VisualOnly2!");
+  await expect(page.getByText("Las contraseñas no coinciden.")).toBeVisible();
+  await expectStableRecovery(page, "password-recovery-reset-mismatch.png");
+});
 
-    await page.goto('/password-recovery/confirmation')
-    await expect(page.getByRole('heading', { name: 'Revisa tu correo' })).toBeVisible()
-    await stableShot(page, `${viewport.name}-confirmation`)
-  })
+test("reset loading", async ({ page }) => {
+  const release = await mockPendingResponse(page);
+  await openReset(page);
+  await fillReset(page);
+  await page.getByRole("button", { name: "Restablecer contraseña" }).click();
+  await expect(
+    page.getByRole("button", { name: "Restableciendo…" }),
+  ).toBeDisabled();
+  try {
+    await expectStableRecovery(page, "password-recovery-reset-loading.png");
+  } finally {
+    release();
+  }
+});
 
-  test(`FE-002 ${viewport.name}: reset, resultado y tokens v3`, async ({ page }) => {
-    await page.setViewportSize(viewport)
-    await openReset(page)
-    await stableShot(page, `${viewport.name}-reset`)
-    await page.locator('#new-password').fill('correct-password')
-    await page.locator('#confirm-password').fill('correct-password')
-    await expect(page.getByText('Las contraseñas coinciden.')).toBeVisible()
-    await stableShot(page, `${viewport.name}-reset-ready`)
+test("reset error", async ({ page }) => {
+  await mockResponse(page, 422);
+  await openReset(page);
+  await fillReset(page);
+  await page.getByRole("button", { name: "Restablecer contraseña" }).click();
+  await expect(
+    page.getByRole("heading", {
+      name: "No pudimos restablecer la contraseña",
+    }),
+  ).toBeVisible();
+  await expectStableRecovery(page, "password-recovery-reset-error.png");
+});
 
-    await page.goto(`/password-reset?token=${token}`)
-    await page.getByRole('button', { name: 'Restablecer contraseña' }).click()
-    await expect(page.getByRole('alert')).toBeVisible()
-    await stableShot(page, `${viewport.name}-reset-validation`)
-  })
+test("token problem desktop", async ({ page }) => {
+  await page.setViewportSize(desktop);
+  await page.goto("/password-reset?token=malformed");
+  await expect(
+    page.getByRole("dialog", { name: "Enlace vencido o no disponible" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Volver al inicio de sesión" }),
+  ).toBeFocused();
+  await expectStableRecovery(
+    page,
+    "password-recovery-token-problem-desktop.png",
+  );
+});
 
-  test(`FE-002 ${viewport.name}: errores y carga de reset v3`, async ({ page }) => {
-    await page.setViewportSize(viewport)
-    await openReset(page)
-    await mockResponse(page, 422)
-    await submitReset(page)
-    await expect(page.getByRole('alert')).toContainText('política')
-    await stableShot(page, `${viewport.name}-reset-error`)
+test("token problem mobile", async ({ page }) => {
+  await page.setViewportSize(mobile);
+  await page.goto("/password-reset?token=malformed");
+  await expect(
+    page.getByRole("dialog", { name: "Enlace vencido o no disponible" }),
+  ).toBeVisible();
+  await expectStableRecovery(
+    page,
+    "password-recovery-token-problem-mobile.png",
+  );
+});
 
-    await openReset(page)
-    const releasePendingReset = await mockPendingResponse(page)
-    try {
-      await submitReset(page)
-      await expect(page.getByRole('button', { name: 'Restableciendo…' })).toBeDisabled()
-      await stableShot(page, `${viewport.name}-reset-loading`)
-    } finally {
-      await releasePendingReset()
-    }
-  })
-
-  test(`FE-002 ${viewport.name}: éxito y tokens v3`, async ({ page }) => {
-    await page.setViewportSize(viewport)
-    await openReset(page)
-    await mockResponse(page, 204)
-    await submitReset(page)
-    await expect(page.getByRole('heading', { name: 'Contraseña actualizada' })).toBeVisible()
-    await expect(page.locator('.status-copy')).toHaveText('Tu contraseña se restableció correctamente. Ya puedes iniciar sesión con tus nuevas credenciales.')
-    await expect(page.locator('.status-note')).toHaveText('Por seguridad, el enlace utilizado dejó de estar disponible.')
-    await expectSuccessV3Presentation(page, viewport)
-    await stableShot(page, `${viewport.name}-success`)
-  })
-
-  test(`FE-002 ${viewport.name}: tokens no válidos v3`, async ({ page }) => {
-    await page.setViewportSize(viewport)
-    await openReset(page)
-    await mockResponse(page, 410)
-    await submitReset(page)
-    await expect(page.getByRole('dialog', { name: 'Enlace vencido o no válido' })).toBeVisible()
-    await stableShot(page, `${viewport.name}-token-expired`)
-
-    await openReset(page)
-    await mockResponse(page, 400)
-    await submitReset(page)
-    await expect(page.getByRole('dialog', { name: 'Enlace no válido' })).toBeVisible()
-    await stableShot(page, `${viewport.name}-token-invalid`)
-    // El contrato no distingue token usado de inválido: la misma presentación pública evita filtraciones.
-    await stableShot(page, `${viewport.name}-token-used`)
-  })
-
-  test(`FE-001 ${viewport.name}: shell compartido y formulario protegido`, async ({ page }) => {
-    await page.setViewportSize(viewport)
-    await page.goto('/')
-    await expect(page.getByRole('heading', { name: 'Inicia sesión' })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Iniciar sesión' })).toBeVisible()
-    await expectBrandPanelGeometry(page, viewport)
-    await stableShot(page, `${viewport.name}-fe001-login`)
-  })
-}
+test("success", async ({ page }) => {
+  await mockResponse(page, 204);
+  await openReset(page);
+  await fillReset(page);
+  await page.getByRole("button", { name: "Restablecer contraseña" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Contraseña actualizada" }),
+  ).toBeFocused();
+  await expect(page).toHaveURL("/password-reset/success");
+  await expectStableRecovery(page, "password-recovery-success.png");
+});

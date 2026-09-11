@@ -1,5 +1,6 @@
 import { AlertTriangle } from "lucide-react";
-import { useRef } from "react";
+import { useRef, type ReactNode, type RefObject } from "react";
+import { CorrelationId } from "./error-ui/components/CorrelationId";
 import { FormAlert } from "./FormAlert";
 import { ModalHeader } from "./ModalHeader";
 import { ModalSurface } from "./ModalSurface";
@@ -20,6 +21,14 @@ export function ConfirmationDialog({
   confirmLabel,
   onCancel,
   onConfirm,
+  returnFocusRef,
+  appearance = "default",
+  descriptionId,
+  bodyTitle,
+  note,
+  correlationId,
+  headerDescription,
+  errorTitle = "No pudimos actualizar al usuario",
 }: {
   titleId: string;
   title: string;
@@ -30,25 +39,36 @@ export function ConfirmationDialog({
   busy?: boolean;
   busyLabel?: string;
   error?: string | null;
-  className?: string;
+  className?: string | undefined;
   cancelLabel?: string;
   confirmLabel: string;
   onCancel: () => void;
   onConfirm: () => void;
+  returnFocusRef?: RefObject<HTMLElement | null>;
+  appearance?: "default" | "golden";
+  descriptionId?: string;
+  bodyTitle?: string;
+  note?: ReactNode;
+  correlationId?: string | null | undefined;
+  headerDescription?: string;
+  errorTitle?: string;
 }) {
   const cancelRef = useRef<HTMLButtonElement>(null);
   return (
-    <ModalSurface titleId={titleId} onDismiss={onCancel} className={`confirmation-dialog${module ? " confirmation-dialog--with-header" : ""}${className ? ` ${className}` : ""}`} initialFocusRef={cancelRef} dismissOnEscape={!busy}>
-      {module && <ModalHeader module={module} title={title} titleId={titleId} onClose={onCancel} closeLabel="Cerrar confirmación" closeDisabled={busy} />}
+    <ModalSurface titleId={titleId} descriptionId={descriptionId} onDismiss={onCancel} appearance={appearance === "golden" ? "bottom-sheet" : "default"} className={`confirmation-dialog confirmation-dialog--${appearance}${module ? " confirmation-dialog--with-header" : ""}${className ? ` ${className}` : ""}`} initialFocusRef={cancelRef} dismissOnEscape={!busy} dismissOnBackdrop={appearance === "golden" && !busy} role="alertdialog" {...(returnFocusRef ? { returnFocusRef } : {})}>
+      {module && <ModalHeader module={module} title={title} titleId={titleId} {...(headerDescription ? { description: headerDescription } : {})} onClose={onCancel} closeLabel="Cerrar confirmación" closeDisabled={busy} />}
       <section className="confirmation-dialog__content">
         <span className={`operation-dialog__icon operation-dialog__icon--${tone}`}>{icon ?? <AlertTriangle aria-hidden="true" />}</span>
         {!module && <h2 id={titleId}>{title}</h2>}
-        <p>{message}</p>
+        {bodyTitle && <h3>{bodyTitle}</h3>}
+        <p id={descriptionId}>{message}</p>
+        {note && <div className="confirmation-dialog__note">{note}</div>}
+        {error && appearance === "golden" && <div className="confirmation-dialog__error" role="alert"><AlertTriangle aria-hidden="true" /><div><strong>{errorTitle}</strong><p>{error}</p>{correlationId && <CorrelationId correlationId={correlationId} />}</div></div>}
       </section>
-      {error && <FormAlert>{error}</FormAlert>}
+      {error && appearance === "default" && <FormAlert>{error}{correlationId && <CorrelationId correlationId={correlationId} />}</FormAlert>}
       <footer>
         <button ref={cancelRef} className="operation-dialog__secondary" type="button" onClick={onCancel} disabled={busy}>{cancelLabel}</button>
-        <button className="operation-dialog__primary" type="button" onClick={onConfirm} disabled={busy}>{busy ? (busyLabel ?? "Guardando…") : confirmLabel}</button>
+        <button className="operation-dialog__primary" type="button" onClick={onConfirm} disabled={busy}>{busy && <span className="confirmation-dialog__spinner" aria-hidden="true" />}{busy ? (busyLabel ?? "Guardando…") : confirmLabel}</button>
       </footer>
     </ModalSurface>
   );

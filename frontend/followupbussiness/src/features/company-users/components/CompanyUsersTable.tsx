@@ -64,6 +64,8 @@ export function CompanyUsersTable({
         ariaLabel="Administradores y supervisores"
         items={users}
         rowKey={(user) => user.id}
+        responsive="cards"
+        variant="golden"
         columns={userColumns({
           readOnly,
           menuUser,
@@ -82,13 +84,9 @@ export function CompanyUsersTable({
         onPageChange={onPageChange}
         onPageSizeChange={onPageSizeChange}
         ariaLabel="Paginación de administradores y supervisores"
-        summary={
-          <>
-            Mostrando {users.length} de {totalElements} administradores y
-            supervisores
-          </>
-        }
+        summary={`Mostrando ${page * pageSize + 1}–${Math.min((page + 1) * pageSize, totalElements)} de ${totalElements} usuarios`}
         lastUpdated={lastUpdated}
+        variant="golden"
       />
     </>
   );
@@ -118,7 +116,7 @@ function userColumns({
       id: "user",
       header: "Usuario",
       label: "Usuario",
-      width: "34%",
+      width: "36%",
       render: (user) => (
         <DataTableIdentity
           mark={initials(user.displayName)}
@@ -131,29 +129,29 @@ function userColumns({
       id: "role",
       header: "Rol",
       label: "Rol",
-      width: "17%",
+      width: "16%",
       render: (user) => roleLabel[user.role],
     },
     {
       id: "status",
       header: "Estado",
       label: "Estado",
-      width: "26%",
+      width: "19%",
       render: (user) => <StatusBadge status={user.status} />,
     },
     {
       id: "updated",
       header: "Última actualización",
       label: "Última actualización",
-      width: "16%",
+      width: "22%",
       render: (user) => formatDate(user.updatedAt),
     },
   ];
-  columns.push({
+  if (!readOnly) columns.push({
     id: "actions",
-    header: "Acciones",
+    header: <span className="sr-only">Acciones</span>,
     label: "Acciones",
-    width: "12%",
+    width: "72px",
     align: "center",
     render: (user) => (
       <div className="company-users__actions">
@@ -162,7 +160,7 @@ function userColumns({
             menuTriggers.current[user.id] = node;
           }}
           type="button"
-          className="data-table__icon-button"
+          className="data-table__icon-button data-table__icon-button--golden"
           aria-label={`Más acciones para ${user.displayName}`}
           aria-expanded={menuUser === user.id}
           onClick={() => onMenuChange(menuUser === user.id ? null : user.id)}
@@ -198,12 +196,14 @@ function initials(name: string) {
 }
 function formatDate(value: string) {
   const date = new Date(value);
-  return Number.isNaN(date.valueOf())
-    ? "—"
-    : new Intl.DateTimeFormat("es-PE", {
-        dateStyle: "medium",
-        timeStyle: "short",
-      }).format(date);
+  if (Number.isNaN(date.valueOf())) return "—";
+  const now = new Date();
+  const day = (candidate: Date) => new Date(candidate.getFullYear(), candidate.getMonth(), candidate.getDate()).valueOf();
+  const difference = Math.round((day(now) - day(date)) / 86_400_000);
+  const time = new Intl.DateTimeFormat("es-PE", { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(date);
+  if (difference === 0) return `Hoy, ${time}`;
+  if (difference === 1) return `Ayer, ${time}`;
+  return `${new Intl.DateTimeFormat("es-PE", { day: "numeric", month: "short" }).format(date)} ${time}`;
 }
 function StatusBadge({ status }: { status: CompanyUserStatus }) {
   return (
@@ -212,6 +212,8 @@ function StatusBadge({ status }: { status: CompanyUserStatus }) {
       tone={
         status === "ACTIVE"
           ? "success"
+          : status === "INACTIVE"
+            ? "neutral"
           : status === "LOCKED"
             ? "danger"
             : "warning"
@@ -261,6 +263,7 @@ function UserActionMenu({
       ariaLabel={`Acciones de ${user.displayName}`}
       onKeyDown={onKeyDown}
       onDismiss={onClose}
+      variant="golden"
       items={[
         {
           label: "Ver detalle",
@@ -280,7 +283,7 @@ function UserActionMenu({
                     icon: <Pencil aria-hidden="true" />,
                     onSelect: onEdit,
                   },
-              {
+              ...(user.status !== "INVITED" ? [{
                 label:
                   user.status === "LOCKED" || user.status === "INACTIVE"
                     ? "Reactivar usuario"
@@ -291,7 +294,7 @@ function UserActionMenu({
                     ? ("default" as const)
                     : ("danger" as const),
                 onSelect: onStatus,
-              },
+              }] : []),
             ]
           : []),
       ]}

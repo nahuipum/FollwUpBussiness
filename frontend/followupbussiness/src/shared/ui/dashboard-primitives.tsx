@@ -1,0 +1,8 @@
+import { ArrowRight, Info } from "lucide-react";
+import { useId, type ComponentType, type ReactNode } from "react";
+import "./dashboard-primitives.css";
+export function PageContainer({ children }: { children: ReactNode }) { return <div className="page-container">{children}</div>; }
+export function PageHeader({ eyebrow, title, children }: { eyebrow: string; title: string; children: ReactNode }) { return <header className="page-header"><span>{eyebrow}</span><h1>{title}</h1><p>{children}</p></header>; }
+export function QuickAccessGrid({ title, description, children }: { title: string; description: string; children: ReactNode }) { const titleId = `quick-access-title-${useId()}`; return <section aria-labelledby={titleId}><header className="quick-access-heading"><h2 id={titleId}>{title}</h2><p>{description}</p></header><div className="quick-access-grid">{children}</div></section>; }
+export function QuickAccessCard({ label, description, icon: Icon, onSelect }: { label: string; description: string; icon: ComponentType<{ "aria-hidden"?: boolean }>; onSelect: () => void }) { return <button className="quick-access-card" type="button" onClick={onSelect}><span className="quick-access-card__icon"><Icon aria-hidden={true} /></span><span className="quick-access-card__copy"><strong>{label}</strong><small>{description}</small></span><ArrowRight className="quick-access-card__arrow" aria-hidden="true" /></button>; }
+export function InformationalState({ title, children }: { title: string; children: ReactNode }) { const titleId = `informational-state-title-${useId()}`; return <aside className="informational-state" aria-labelledby={titleId}><span><Info aria-hidden="true" /></span><div><strong id={titleId}>{title}</strong><p>{children}</p></div></aside>; }

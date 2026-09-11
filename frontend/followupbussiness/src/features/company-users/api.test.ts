@@ -39,7 +39,11 @@ test("corrige y reenvía con el endpoint y versión exigidos por contrato", asyn
   expect(request).toHaveBeenCalledWith(
     "/company/users/user%2Fwith%20space/invitation",
     expect.objectContaining({ method: "POST" }),
+    expect.objectContaining({ publishErrors: expect.any(Function) }),
   );
+  const publishErrors = request.mock.calls[0]?.[2]?.publishErrors as (status: number) => boolean;
+  expect(publishErrors(401)).toBe(true);
+  expect(publishErrors(403)).toBe(false);
   const init = request.mock.calls[0]?.[1] as RequestInit;
   expect(new Headers(init.headers).get("If-Match")).toBe('"4"');
   expect(JSON.parse(String(init.body))).toEqual({

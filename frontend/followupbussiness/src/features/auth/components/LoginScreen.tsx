@@ -4,7 +4,7 @@ import "../styles/login.css";
 
 export function LoginScreen() {
   return (
-    <main className="login-panel">
+    <main className="login-golden">
       <BrandPanel />
       <LoginForm />
     </main>
