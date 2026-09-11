@@ -1,12 +1,5 @@
-import { CheckCircle2, X, XCircle } from "lucide-react";
-import { ModalSurface } from "../../../shared/ui/ModalSurface";
+import { OperationDialog } from "../../../shared/ui/OperationDialog";
 
 export function SellerOperationDialog({ tone, title, message, onClose }: { tone: "success" | "error"; title?: string; message: string; onClose: () => void }) {
-  const success = tone === "success";
-  const heading = title ?? (success ? "Vendedor actualizado" : "No pudimos actualizar el vendedor");
-  return <ModalSurface titleId="seller-operation-title" onDismiss={onClose} className="seller-list__dialog seller-list__operation-dialog">
-    <header className="seller-list__operation-close"><button type="button" aria-label="Cerrar mensaje" onClick={onClose}><X aria-hidden="true" /></button></header>
-    <section className="seller-list__operation-content"><span className={`seller-list__operation-icon seller-list__operation-icon--${success ? "success" : "error"}`}>{success ? <CheckCircle2 aria-hidden="true" /> : <XCircle aria-hidden="true" />}</span><h2 id="seller-operation-title">{heading}</h2><p role={success ? "status" : "alert"}>{message}</p></section>
-    <footer><button className="seller-list__primary" type="button" onClick={onClose}>Aceptar</button></footer>
-  </ModalSurface>;
+  return <OperationDialog titleId="seller-operation-title" tone={tone} title={title ?? (tone === "success" ? "Vendedor actualizado" : "No pudimos actualizar el vendedor")} message={message} onClose={onClose} />;
 }

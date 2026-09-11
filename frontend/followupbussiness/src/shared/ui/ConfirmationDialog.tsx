@@ -14,6 +14,7 @@ export function ConfirmationDialog({
   icon,
   tone = "warning",
   busy = false,
+  confirmDisabled = false,
   busyLabel,
   error,
   className,
@@ -25,7 +26,9 @@ export function ConfirmationDialog({
   appearance = "default",
   descriptionId,
   bodyTitle,
+  identity,
   note,
+  details,
   correlationId,
   headerDescription,
   errorTitle = "No pudimos actualizar al usuario",
@@ -37,6 +40,7 @@ export function ConfirmationDialog({
   icon?: React.ReactNode;
   tone?: "warning" | "info" | "error";
   busy?: boolean;
+  confirmDisabled?: boolean;
   busyLabel?: string;
   error?: string | null;
   className?: string | undefined;
@@ -48,7 +52,9 @@ export function ConfirmationDialog({
   appearance?: "default" | "golden";
   descriptionId?: string;
   bodyTitle?: string;
+  identity?: ReactNode;
   note?: ReactNode;
+  details?: ReactNode;
   correlationId?: string | null | undefined;
   headerDescription?: string;
   errorTitle?: string;
@@ -60,15 +66,17 @@ export function ConfirmationDialog({
       <section className="confirmation-dialog__content">
         <span className={`operation-dialog__icon operation-dialog__icon--${tone}`}>{icon ?? <AlertTriangle aria-hidden="true" />}</span>
         {!module && <h2 id={titleId}>{title}</h2>}
+        {identity && <div className="confirmation-dialog__identity">{identity}</div>}
         {bodyTitle && <h3>{bodyTitle}</h3>}
         <p id={descriptionId}>{message}</p>
         {note && <div className="confirmation-dialog__note">{note}</div>}
         {error && appearance === "golden" && <div className="confirmation-dialog__error" role="alert"><AlertTriangle aria-hidden="true" /><div><strong>{errorTitle}</strong><p>{error}</p>{correlationId && <CorrelationId correlationId={correlationId} />}</div></div>}
+        {details && <div className="confirmation-dialog__details">{details}</div>}
       </section>
       {error && appearance === "default" && <FormAlert>{error}{correlationId && <CorrelationId correlationId={correlationId} />}</FormAlert>}
       <footer>
         <button ref={cancelRef} className="operation-dialog__secondary" type="button" onClick={onCancel} disabled={busy}>{cancelLabel}</button>
-        <button className="operation-dialog__primary" type="button" onClick={onConfirm} disabled={busy}>{busy && <span className="confirmation-dialog__spinner" aria-hidden="true" />}{busy ? (busyLabel ?? "Guardando…") : confirmLabel}</button>
+        <button className="operation-dialog__primary" type="button" onClick={onConfirm} disabled={busy || confirmDisabled}>{busy && <span className="confirmation-dialog__spinner" aria-hidden="true" />}{busy ? (busyLabel ?? "Guardando…") : confirmLabel}</button>
       </footer>
     </ModalSurface>
   );

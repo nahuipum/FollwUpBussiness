@@ -32,6 +32,7 @@ test("envía los territorios seleccionados al pulsar Asignar territorios", () =>
   fireEvent.click(save);
   expect(screen.getByRole("alert").textContent).toContain("Selecciona al menos un territorio");
   expect(submit).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Territorios" }));
   fireEvent.click(screen.getByLabelText("LIM — Lima"));
   expect(save.disabled).toBe(false);
   fireEvent.click(save);
@@ -44,8 +45,13 @@ test("inhabilita el guardado cuando no hay territorios activos", () => {
   render(<SellerAssignmentDialog seller={seller} kind="territories" options={{ supervisors: [], territories: [] }} loading={false} busy={false} error={null} onClose={() => undefined} onRetry={() => undefined} onSubmit={submit} />);
 
   expect(screen.getByText("No hay territorios activos")).toBeTruthy();
-  expect(screen.queryByRole("button", { name: "Asignar territorios" })).toBeNull();
+  expect((screen.getByRole("button", { name: "Asignar territorios" }) as HTMLButtonElement).disabled).toBe(true);
   expect(submit).not.toHaveBeenCalled();
+});
+
+test("muestra localmente el correlation ID validado de una asignación rechazada", () => {
+  render(<SellerAssignmentDialog seller={seller} kind="supervisor" options={{ supervisors: [], territories: [] }} loading={false} busy={false} error={{ status: 422, correlationId: "00000000-0000-4000-8000-000000000006", fieldErrors: [] }} onClose={() => undefined} onRetry={() => undefined} onSubmit={() => undefined} />);
+  expect(screen.getByText("Correlation ID: 00000000-0000-4000-8000-000000000006")).toBeTruthy();
 });
 
 test.each([

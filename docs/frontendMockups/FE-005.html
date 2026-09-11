@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>followUp Business · FE-005 Vendedores</title>
+  <link rel="stylesheet" href="assets/golden-system.css">
+  <script src="assets/golden-icons.js" defer></script>
+  <style>
+    /* Extensiones de composición locales: solo consumen tokens del sistema golden. */
+    .company-sidebar { overflow: hidden; }
+    .sidebar-nav-region { min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+    .company-sidebar .sidebar-brand { flex: 0 0 auto; }
+    .company-sidebar .sidebar-context { margin-top: -14px; }
+    .company-sidebar .nav { gap: var(--space-1); }
+    .company-sidebar .nav-item,
+    .nav-group-trigger { width: 100%; min-height: 42px; display: flex; align-items: center; gap: 11px; padding: 9px 11px; border: 0; border-radius: 9px; color: var(--text-soft); background: transparent; font-weight: 600; text-align: left; text-decoration: none; }
+    .company-sidebar .nav-item:hover,
+    .nav-group-trigger:hover { color: var(--text-strong); background: var(--surface-subtle); }
+    .company-sidebar .nav-item.active { color: var(--brand-strong); background: var(--brand-soft); }
+    .company-sidebar .nav-item[aria-disabled="true"] { color: var(--text-muted); cursor: default; opacity: .72; }
+    .nav-group-trigger .nav-chevron { width: 16px; height: 16px; margin-left: auto; }
+    .nav-children { display: grid; gap: 2px; margin: 3px 0 5px 18px; padding-left: 12px; border-left: 1px solid var(--border); }
+    .nav-children .nav-item { min-height: 40px; padding: 8px 10px; font-size: 13px; }
+
+    .dashboard-profile-card { display: grid; flex: 0 0 auto; grid-template-columns: auto minmax(0, 1fr); gap: 4px 10px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-subtle); }
+    .dashboard-profile-card .avatar { grid-row: 1 / span 2; }
+    .dashboard-profile-card strong,
+    .dashboard-profile-card small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dashboard-profile-card strong { color: var(--text-strong); font-size: 13px; }
+    .dashboard-profile-card small { color: var(--text-muted); font-size: 12px; }
+    .dashboard-profile-card p { grid-column: 1 / -1; margin: 8px 0 0; padding-top: 9px; color: var(--text-muted); border-top: 1px solid var(--border); font-size: 12px; }
+    .sidebar-logout { grid-column: 1 / -1; width: 100%; margin-top: 5px; }
+
+    .top-profile-wrap { position: relative; }
+    .top-profile-trigger { min-height: 44px; display: flex; align-items: center; gap: 9px; padding: 4px 7px; border: 0; border-radius: 10px; background: transparent; }
+    .top-profile-trigger:hover { background: var(--surface-subtle); }
+    .top-profile-trigger .nav-chevron { width: 16px; height: 16px; color: var(--text-muted); }
+    .profile-menu { position: absolute; z-index: 45; top: calc(100% + 8px); right: 0; width: 224px; padding: 7px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-raised); box-shadow: var(--shadow-md); }
+    .profile-menu-head { padding: 9px 10px 11px; border-bottom: 1px solid var(--border); }
+    .profile-menu-head strong,
+    .profile-menu-head span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .profile-menu-head strong { color: var(--text-strong); font-size: 13px; }
+    .profile-menu-head span { margin-top: 2px; color: var(--text-muted); font-size: 12px; }
+    .profile-menu button { width: 100%; margin-top: 6px; justify-content: flex-start; border-color: transparent; background: transparent; }
+    .mobile-backdrop { display: none; }
+
+    .sellers-page-head { margin-bottom: 20px; }
+    .sellers-page-head p { max-width: 680px; }
+    .sellers-shell { position: relative; overflow: visible; }
+    .sellers-filterbar { grid-template-columns: minmax(280px, 1.55fr) repeat(3, minmax(150px, .72fr)); }
+    .app-select { position: relative; min-width: 0; }
+    .app-select[open] .select-trigger { border-color: var(--brand); box-shadow: var(--ring); }
+    .app-select[open] .select-trigger .icon { transform: rotate(180deg); }
+    .select-trigger .icon { transition: transform .16s ease; }
+    .select-menu { position: absolute; z-index: 20; top: calc(100% + 7px); right: 0; left: 0; display: grid; gap: 3px; min-width: 184px; padding: 6px; border: 1px solid var(--border); border-radius: 11px; background: var(--surface-raised); box-shadow: var(--shadow-md); }
+    .select-option { width: 100%; min-height: 38px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 9px; border: 0; border-radius: var(--radius-sm); color: var(--text-soft); background: transparent; text-align: left; }
+    .select-option:hover,
+    .select-option:focus-visible { color: var(--text-strong); background: var(--surface-muted); }
+    .select-option[aria-selected="true"] { color: var(--brand-strong); background: var(--brand-soft); font-weight: 700; }
+    .select-option[aria-selected="true"]::after { width: 7px; height: 12px; border: solid currentColor; border-width: 0 2px 2px 0; content: ""; transform: rotate(45deg); }
+
+    .read-only-notice { display: flex; align-items: flex-start; gap: var(--space-3); margin: 18px 18px 0; padding: 12px 14px; color: var(--info); border: 1px solid var(--brand-border); border-radius: var(--radius-md); background: var(--info-bg); }
+    .read-only-notice strong { display: block; margin-bottom: 2px; }
+    .read-only-notice p { margin: 0; font-size: 13px; }
+    .sellers-shell > .alert { margin-top: 2px; }
+    .sellers-table { min-width: 980px; }
+    .sellers-table th:nth-child(1) { width: 27%; }
+    .sellers-table th:nth-child(2) { width: 14%; }
+    .sellers-table th:nth-child(3) { width: 20%; }
+    .sellers-table th:nth-child(4) { width: 18%; }
+    .sellers-table th:nth-child(5) { width: 14%; }
+    .sellers-table th:last-child { width: 72px; text-align: center; }
+    .sellers-table td:last-child { position: relative; overflow: visible; }
+    .sellers-table .more { margin: 0 auto; }
+    .territory-list { display: flex; flex-wrap: wrap; gap: 4px; }
+    .territory-tag { padding: 2px 7px; border-radius: var(--radius-pill); color: var(--text-soft); background: var(--surface-muted); font-size: 11px; white-space: nowrap; }
+    .table-updating { display: inline-flex; align-items: center; gap: 7px; color: var(--info); font-size: 12px; font-weight: 700; }
+    .table-updating .spinner { width: 14px; height: 14px; }
+
+    .action-menu { position: fixed; z-index: 80; top: 0; left: 0; visibility: hidden; width: max-content; min-width: 238px; max-width: min(310px, calc(100vw - 28px)); display: grid; gap: 2px; padding: 6px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-raised); box-shadow: var(--shadow-md); }
+    .action-menu[data-positioned="true"] { visibility: visible; }
+    .action-menu button { min-height: 40px; display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 0; border-radius: var(--radius-sm); color: var(--text-soft); background: transparent; text-align: left; }
+    .action-menu button:hover,
+    .action-menu button:focus-visible { color: var(--text-strong); background: var(--surface-muted); }
+    .action-menu button.danger { color: var(--danger); }
+    .action-menu button.danger:hover,
+    .action-menu button.danger:focus-visible { background: var(--danger-bg); }
+    .action-menu .icon { width: 18px; height: 18px; }
+
+    .sellers-pagination { align-items: flex-end; border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
+    .pagination-meta { display: grid; gap: 2px; }
+    .pagination-meta strong { color: var(--text-soft); font-size: 12px; }
+    .pagination-meta time { color: var(--text-muted); font-size: 11px; }
+    .pagination-tools { display: flex; align-items: flex-end; gap: var(--space-3); }
+    .page-size { min-width: 154px; }
+    .page-size .select-trigger { min-height: 36px; }
+    .page-size .select-menu { top: auto; bottom: calc(100% + 6px); }
+    .page-prev .icon { transform: rotate(90deg); }
+    .page-next .icon { transform: rotate(-90deg); }
+    .state-card .btn + .btn { margin-left: var(--space-2); }
+
+    .form-stack { display: grid; gap: var(--space-4); }
+    .form-context { margin-bottom: var(--space-4); }
+    .control textarea { min-height: 116px; padding: var(--space-3) 0; resize: vertical; }
+    .territory-picker { position: relative; }
+    .territory-picker-trigger { width: 100%; text-align: left; }
+    .territory-picker-trigger > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .territory-picker[open] .territory-picker-trigger { border-color: var(--brand); box-shadow: var(--ring); }
+    .territory-picker[open] .territory-picker-trigger .icon { transform: rotate(180deg); }
+    .territory-selection { display: flex; min-height: 0; flex-wrap: wrap; gap: 6px; margin-top: var(--space-2); }
+    .territory-selection:empty { display: none; }
+    .territory-chip { display: inline-flex; min-height: 30px; align-items: center; gap: 5px; padding: 3px 5px 3px 9px; color: var(--brand-deep); border: 1px solid var(--brand-border); border-radius: var(--radius-pill); background: var(--brand-soft); font-size: 12px; font-weight: 700; }
+    .territory-chip button { width: 24px; height: 24px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; color: var(--brand-strong); background: transparent; }
+    .territory-chip button:hover { background: color-mix(in srgb, var(--brand) 12%, transparent); }
+    .territory-chip .icon { width: 14px; height: 14px; }
+    .territory-popover { position: absolute; z-index: 30; top: calc(100% + 7px); right: 0; left: 0; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-raised); box-shadow: var(--shadow-md); }
+    .territory-search { padding: var(--space-3); border-bottom: 1px solid var(--border); }
+    .territory-search .control { min-height: 40px; }
+    .territory-options { max-height: 244px; overflow-y: auto; padding: 6px; }
+    .territory-option { position: relative; width: 100%; min-height: 46px; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--space-3); padding: 8px 34px 8px 10px; border: 0; border-radius: var(--radius-sm); color: var(--text-soft); background: transparent; text-align: left; }
+    .territory-option:hover,
+    .territory-option:focus-visible { color: var(--text-strong); background: var(--surface-muted); }
+    .territory-option strong,
+    .territory-option small { display: block; }
+    .territory-option strong { color: var(--text-strong); font-size: 13px; }
+    .territory-option small { margin-top: 1px; color: var(--text-muted); font-size: 11px; }
+    .territory-option[aria-selected="true"] { color: var(--brand-strong); background: var(--brand-soft); }
+    .territory-option[aria-selected="true"]::after { position: absolute; top: 15px; right: 14px; width: 7px; height: 12px; border: solid currentColor; border-width: 0 2px 2px 0; content: ""; transform: rotate(45deg); }
+    .territory-popover-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); padding: 9px 12px; color: var(--text-muted); border-top: 1px solid var(--border); background: var(--surface-subtle); font-size: 11px; }
+    .territory-popover-foot strong { color: var(--text-soft); }
+    .drawer-status { min-height: 100%; display: grid; place-items: center; padding: var(--space-5); text-align: center; }
+    .drawer-status > div { max-width: 390px; }
+    .drawer-status h3 { margin-bottom: var(--space-2); }
+    .drawer-status p { color: var(--text-muted); }
+    .detail-identity { display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-5); }
+    .detail-identity .identity-mark { width: 44px; height: 44px; border-radius: var(--radius-md); font-size: 13px; }
+    .detail-identity strong,
+    .detail-identity span { display: block; }
+    .detail-identity strong { color: var(--text-strong); }
+    .detail-identity span { margin-top: 2px; color: var(--text-muted); font-size: 12px; }
+
+    .confirm-icon { width: 48px; height: 48px; display: grid; place-items: center; margin-bottom: var(--space-4); color: var(--danger); border-radius: 14px; background: var(--danger-bg); }
+    .confirm-icon.info { color: var(--brand-strong); background: var(--brand-soft); }
+    .confirm-identity { display: flex; align-items: center; gap: var(--space-3); margin: var(--space-3) 0; padding: var(--space-3); border-radius: var(--radius-md); background: var(--surface-subtle); }
+    .confirm-identity strong,
+    .confirm-identity small { display: block; }
+    .confirm-identity small { color: var(--text-muted); }
+    .confirmation-copy { margin-bottom: 0; color: var(--text-muted); font-size: 13px; }
+    .confirm-note { display: flex; gap: var(--space-2); margin: var(--space-4) 0 0; padding: var(--space-3); color: var(--text-soft); border-radius: var(--radius-md); background: var(--surface-subtle); font-size: 13px; }
+    .confirm-note .icon { color: var(--danger); }
+    .reason-field { margin-top: var(--space-4); }
+    .reason-meta { display: flex; justify-content: space-between; gap: var(--space-3); }
+    .confirm-error { margin-top: var(--space-4); }
+    .operation-dialog .dialog-body { display: grid; justify-items: center; padding-block: var(--space-6); text-align: center; }
+    .operation-dialog .dialog-body p { margin: 0; color: var(--text-muted); }
+    .operation-dialog .confirm-icon { margin-bottom: var(--space-3); }
+
+    @media (max-width: 1060px) {
+      .company-sidebar { overflow-y: auto; }
+      .sidebar-nav-region { overflow: visible; }
+      body[data-nav="open"] .mobile-backdrop { position: fixed; inset: 0; z-index: 29; display: block; border: 0; background: var(--overlay); }
+      .sellers-filterbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .sellers-filterbar .search { grid-column: 1 / -1; }
+    }
+    @media (max-width: 620px) {
+      .top-left { flex: 1 1 auto; overflow: hidden; }
+      .top-profile-trigger { width: 44px; padding: 4px; }
+      .top-profile-trigger .nav-chevron { display: none; }
+      .profile-menu { position: fixed; top: 62px; right: 14px; }
+      .app-main { padding-top: 28px; }
+      .sellers-page-head h1 { font-size: 27px; line-height: 34px; }
+      .sellers-filterbar { grid-template-columns: 1fr; }
+      .sellers-filterbar .search { grid-column: auto; }
+      .read-only-notice { margin: 14px 14px 0; }
+      .sellers-table { min-width: 0; }
+      .sellers-table tbody { padding-bottom: 18px; }
+      .sellers-table tbody tr { padding-right: 52px; }
+      .sellers-table td:first-child { display: block; text-align: left; }
+      .sellers-table td:last-child { position: absolute; top: 8px; right: 4px; width: auto; padding: 0; }
+      .sellers-table .more { width: 44px; height: 44px; }
+      .territory-list { justify-content: flex-end; }
+      .action-menu { position: absolute; top: 42px; right: 0; left: auto; min-width: min(286px, calc(100vw - 48px)); }
+      .action-menu button { min-height: 44px; }
+      .sellers-pagination { align-items: stretch; }
+      .pagination-tools { width: 100%; display: grid; grid-template-columns: 1fr; }
+      .pagination-tools .pages { width: 100%; }
+      .page-size { width: 100%; }
+      .page-size .select-trigger { min-height: 44px; }
+      .select-option,
+      .page-btn { min-height: 44px; }
+      .page-btn { height: 44px; }
+      .state-card { min-height: 330px; padding: var(--space-5) var(--space-4); }
+      .state-card .btn + .btn { margin: var(--space-2) 0 0; }
+      .confirm-identity { align-items: flex-start; }
+      .territory-popover { position: fixed; z-index: 70; top: auto; right: 14px; bottom: 14px; left: 14px; max-height: min(520px, calc(100vh - 28px)); }
+      .territory-options { max-height: min(300px, 42vh); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .nav-chevron,
+      .select-trigger .icon { transition: none !important; }
+    }
+  </style>
+</head>
+<body data-states="ready-admin ready-supervisor loading refreshing empty no-results error forbidden menu-active menu-invited menu-inactive menu-supervisor create create-validation create-saving create-error edit detail detail-supervisor assign-supervisor assign-supervisor-loading assign-supervisor-empty assign-supervisor-error assign-territories assign-territories-loading assign-territories-empty assign-territories-error confirm-inactivate confirm-inactivate-validation confirm-inactivate-saving confirm-inactivate-active-journey-error confirm-activate confirm-resend-invitation resend-invitation-saving operation-success operation-error">
+  <!--
+    Golden definitivo para FE-005 y flujos relacionados FE-006/FE-007.
+    Datos ficticios bajo dominios .example. Estado: ?state=<estado>. Tema: &theme=dark. Guía: &guide=1.
+    La tabla representa una página intermedia de 128 vendedores para validar paginación real y elipsis.
+    Accesibilidad representada: landmarks, labels, tabla semántica/data cards, menú con teclado,
+    aria-modal, trap y retorno de foco, Escape, focus-visible y reduced motion.
+  -->
+  <div class="app-shell">
+    <aside id="company-sidebar" class="sidebar company-sidebar" aria-label="Navegación principal">
+      <a class="sidebar-brand brand-plate" href="/company/dashboard" aria-label="followUp Business, ir al resumen"><img class="brand-logo" src="assets/brand/followup-logo.png" alt=""></a>
+      <span class="sidebar-context">Comercial Andina</span>
+      <div class="sidebar-nav-region">
+        <p class="nav-label">Empresa</p>
+        <nav class="nav" aria-label="Secciones de la empresa">
+          <a class="nav-item" href="/company/dashboard"><svg class="icon"><use href="#i-grid"></use></svg>Resumen</a>
+          <a class="nav-item" href="/company/administrators-supervisors"><svg class="icon"><use href="#i-users"></use></svg>Administradores y supervisores</a>
+          <a class="nav-item active" href="/company/sellers" aria-current="page"><svg class="icon"><use href="#i-users"></use></svg>Vendedores</a>
+          <a class="nav-item" href="/company/territories"><svg class="icon"><use href="#i-pin"></use></svg>Zonas</a>
+          <section class="nav-group" aria-labelledby="clients-group-label"><button id="clients-group-label" class="nav-group-trigger" type="button" aria-expanded="false" aria-controls="clients-navigation" data-clients-toggle><svg class="icon"><use href="#i-client"></use></svg><span>Clientes</span><svg class="icon nav-chevron"><use href="#i-chevron"></use></svg></button><div id="clients-navigation" class="nav-children" role="group" aria-label="Opciones de Clientes" hidden><a class="nav-item" href="/company/clients"><svg class="icon"><use href="#i-client"></use></svg>Gestión de clientes</a><a class="nav-item" href="/company/clients/map"><svg class="icon"><use href="#i-map"></use></svg>Mapa general</a><a class="nav-item" href="/company/customer-imports"><svg class="icon"><use href="#i-empty"></use></svg>Carga de clientes</a></div></section>
+          <a class="nav-item" href="/company/customer-assignments"><svg class="icon"><use href="#i-client"></use></svg>Asignar cartera</a>
+          <a class="nav-item" href="/company/routes"><svg class="icon"><use href="#i-route"></use></svg>Rutas</a>
+          <span class="nav-item" aria-disabled="true"><svg class="icon"><use href="#i-report"></use></svg>Auditoría</span>
+          <a class="nav-item" href="/company/settings"><svg class="icon"><use href="#i-settings"></use></svg>Configuración</a>
+        </nav>
+      </div>
+      <section class="dashboard-profile-card" aria-label="Contexto de usuario"><span class="avatar">AM</span><span><strong>Alex Medina</strong><small data-profile-role>Administración de empresa</small></span><p>Comercial Andina</p><button class="btn btn-compact sidebar-logout" type="button"><svg class="icon icon-sm"><use href="#i-arrow"></use></svg>Cerrar sesión</button></section>
+    </aside>
+
+    <header class="topbar">
+      <div class="top-left"><button class="menu-control" type="button" data-nav-toggle aria-label="Abrir menú" aria-expanded="false" aria-controls="company-sidebar"><svg class="icon"><use href="#i-menu"></use></svg></button><nav class="crumb" aria-label="Breadcrumbs"><span>Comercial Andina</span><span aria-hidden="true">/</span><strong aria-current="page">Vendedores</strong></nav></div>
+      <div class="top-actions"><button class="theme-control" type="button" role="switch" aria-checked="false" data-theme-toggle aria-label="Activar modo oscuro"><svg class="icon"><use href="#i-moon"></use></svg></button><div class="top-profile-wrap"><button class="top-profile-trigger" type="button" aria-label="Abrir opciones del perfil de Alex Medina" aria-haspopup="menu" aria-expanded="false" aria-controls="profile-menu" data-profile-toggle><span class="avatar">AM</span><span class="person-copy"><strong>Alex Medina</strong><span data-profile-role>Administración</span></span><svg class="icon nav-chevron"><use href="#i-chevron"></use></svg></button><div id="profile-menu" class="profile-menu" role="menu" hidden><div class="profile-menu-head"><strong>Alex Medina</strong><span>Comercial Andina</span></div><button class="btn" type="button" role="menuitem"><svg class="icon icon-sm"><use href="#i-arrow"></use></svg>Cerrar sesión</button></div></div></div>
+    </header>
+
+    <main class="app-main" id="main-content">
+      <div class="page">
+        <header class="page-head sellers-page-head">
+          <div><span class="eyebrow">Equipo comercial</span><h1>Vendedores</h1><p>Consulta y organiza el equipo comercial de la empresa.</p></div>
+          <button class="btn btn-primary" type="button" data-admin-action data-dialog-trigger="create" data-show="ready-admin loading refreshing empty no-results error menu-active menu-invited menu-inactive create create-validation create-saving create-error edit detail assign-supervisor assign-supervisor-loading assign-supervisor-empty assign-supervisor-error assign-territories assign-territories-loading assign-territories-empty assign-territories-error confirm-inactivate confirm-inactivate-validation confirm-inactivate-saving confirm-inactivate-active-journey-error confirm-activate confirm-resend-invitation resend-invitation-saving operation-success operation-error"><svg class="icon icon-sm"><use href="#i-plus"></use></svg>Crear vendedor</button>
+        </header>
+
+        <section class="panel table-shell sellers-shell" aria-label="Listado de vendedores" data-show="ready-admin ready-supervisor loading refreshing empty no-results error menu-active menu-invited menu-inactive menu-supervisor create create-validation create-saving create-error edit detail detail-supervisor assign-supervisor assign-supervisor-loading assign-supervisor-empty assign-supervisor-error assign-territories assign-territories-loading assign-territories-empty assign-territories-error confirm-inactivate confirm-inactivate-validation confirm-inactivate-saving confirm-inactivate-active-journey-error confirm-activate confirm-resend-invitation resend-invitation-saving operation-success operation-error">
+          <aside class="read-only-notice" role="status" data-show="ready-supervisor menu-supervisor detail-supervisor"><svg class="icon"><use href="#i-eye"></use></svg><div><strong>Vista de solo lectura</strong><p>Puedes consultar el listado, ver detalles, aplicar filtros y cambiar de página. La gestión de vendedores corresponde a una persona administradora.</p></div></aside>
+          <div class="filterbar sellers-filterbar">
+            <div class="field search"><label for="seller-search">Buscar por nombre, correo o código</label><div class="control"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input id="seller-search" type="search" placeholder="Nombre, correo o código" data-state-value data-value-no-results="sin-coincidencias"></div></div>
+            <div class="field"><span id="supervisor-filter-label">Supervisor</span><details class="app-select"><summary class="select-trigger" aria-labelledby="supervisor-filter-label">Todos<svg class="icon icon-sm"><use href="#i-chevron"></use></svg></summary><div class="select-menu" role="listbox" aria-label="Supervisor"><button class="select-option" type="button" role="option" aria-selected="true">Todos</button><button class="select-option" type="button" role="option">Sofía Campos</button><button class="select-option" type="button" role="option">Julián Quispe</button></div></details></div>
+            <div class="field"><span id="territory-filter-label">Zona/territorio</span><details class="app-select"><summary class="select-trigger" aria-labelledby="territory-filter-label">Todos<svg class="icon icon-sm"><use href="#i-chevron"></use></svg></summary><div class="select-menu" role="listbox" aria-label="Zona o territorio"><button class="select-option" type="button" role="option" aria-selected="true">Todos</button><button class="select-option" type="button" role="option">Lima Centro</button><button class="select-option" type="button" role="option">Lima Norte</button></div></details></div>
+            <div class="field"><span id="status-filter-label">Estado</span><details class="app-select"><summary class="select-trigger" aria-labelledby="status-filter-label">Todos<svg class="icon icon-sm"><use href="#i-chevron"></use></svg></summary><div class="select-menu" role="listbox" aria-label="Estado"><button class="select-option" type="button" role="option" aria-selected="true">Todos</button><button class="select-option" type="button" role="option">Invitación pendiente</button><button class="select-option" type="button" role="option">Activo</button><button class="select-option" type="button" role="option">Inactivo</button></div></details></div>
+          </div>
+
+          <div class="alert alert-danger" role="alert" data-show="error"><svg class="icon"><use href="#i-alert"></use></svg><div><strong>Ocurrió un problema temporal</strong><p>No pudimos actualizar los vendedores. Mostramos la última versión disponible.</p><div class="alert-actions"><button class="alert-link" type="button" data-go-state="refreshing">Reintentar</button></div></div></div>
+
+          <div data-show="ready-admin ready-supervisor refreshing error menu-active menu-invited menu-inactive menu-supervisor create create-validation create-saving create-error edit detail detail-supervisor assign-supervisor assign-supervisor-loading assign-supervisor-empty assign-supervisor-error assign-territories assign-territories-loading assign-territories-empty assign-territories-error confirm-inactivate confirm-inactivate-validation confirm-inactivate-saving confirm-inactivate-active-journey-error confirm-activate confirm-resend-invitation resend-invitation-saving operation-success operation-error" data-stale-in="refreshing error">
+            <header class="table-title"><div><strong>Resultados</strong><span>128 vendedores</span></div><span class="table-updating" data-show="refreshing"><span class="spinner" aria-hidden="true"></span>Actualizando resultados</span></header>
+            <div class="table-scroll">
+              <table class="sellers-table" aria-label="Vendedores">
+                <thead><tr><th scope="col">Vendedor</th><th scope="col">Teléfono</th><th scope="col">Zona/territorio</th><th scope="col">Supervisor</th><th scope="col">Estado</th><th scope="col" data-admin-column><span class="sr-only">Acciones</span></th></tr></thead>
+                <tbody>
+                  <tr><td data-label="Vendedor"><span class="identity"><span class="identity-mark">LC</span><span><strong>Lucía Calderón</strong><small>lucia.calderon@comercialandina.example</small></span></span></td><td data-label="Teléfono">+51 987 420 116</td><td data-label="Zona/territorio"><span class="territory-list"><span class="territory-tag">Lima Centro</span><span class="territory-tag">Lima Este</span></span></td><td data-label="Supervisor">Sofía Campos</td><td data-label="Estado"><span class="badge success">Activo</span></td><td data-label="Acciones"><button class="more" type="button" aria-label="Más acciones para Lucía Calderón" aria-haspopup="menu" aria-expanded="false" data-menu-trigger="menu-active"><svg class="icon"><use href="#i-more"></use></svg></button><div class="action-menu" role="menu" aria-label="Acciones de Lucía Calderón" data-show="menu-active menu-supervisor"><button type="button" role="menuitem" data-go-state="detail"><svg class="icon"><use href="#i-eye"></use></svg>Ver detalle</button><button type="button" role="menuitem" data-admin-only data-go-state="edit"><svg class="icon"><use href="#i-settings"></use></svg>Editar</button><button type="button" role="menuitem" data-admin-only data-go-state="assign-supervisor"><svg class="icon"><use href="#i-users"></use></svg>Reasignar supervisor</button><button type="button" role="menuitem" data-admin-only data-go-state="assign-territories"><svg class="icon"><use href="#i-map"></use></svg>Asignar territorios</button><button class="danger" type="button" role="menuitem" data-admin-only data-go-state="confirm-inactivate"><svg class="icon"><use href="#i-lock"></use></svg>Inactivar</button></div></td></tr>
+                  <tr><td data-label="Vendedor"><span class="identity"><span class="identity-mark">MS</span><span><strong>Mateo Salazar</strong><small>mateo.salazar@comercialandina.example</small></span></span></td><td data-label="Teléfono">+51 946 830 221</td><td data-label="Zona/territorio"><span class="territory-list"><span class="territory-tag">Lima Norte</span></span></td><td data-label="Supervisor">Julián Quispe</td><td data-label="Estado"><span class="badge warning">Invitación pendiente</span></td><td data-label="Acciones" data-admin-column><button class="more" type="button" aria-label="Más acciones para Mateo Salazar" aria-haspopup="menu" aria-expanded="false" data-menu-trigger="menu-invited"><svg class="icon"><use href="#i-more"></use></svg></button><div class="action-menu" role="menu" aria-label="Acciones de Mateo Salazar" data-show="menu-invited"><button type="button" role="menuitem" data-go-state="detail"><svg class="icon"><use href="#i-eye"></use></svg>Ver detalle</button><button type="button" role="menuitem" data-go-state="edit"><svg class="icon"><use href="#i-settings"></use></svg>Editar</button><button type="button" role="menuitem" data-go-state="assign-supervisor"><svg class="icon"><use href="#i-users"></use></svg>Asignar supervisor</button><button type="button" role="menuitem" data-go-state="assign-territories"><svg class="icon"><use href="#i-map"></use></svg>Asignar territorios</button><button type="button" role="menuitem" data-go-state="confirm-resend-invitation"><svg class="icon"><use href="#i-mail"></use></svg>Reenviar invitación</button></div></td></tr>
+                  <tr><td data-label="Vendedor"><span class="identity"><span class="identity-mark">AR</span><span><strong>Ana Rojas</strong><small>ana.rojas@comercialandina.example</small></span></span></td><td data-label="Teléfono">—</td><td data-label="Zona/territorio">Sin asignar</td><td data-label="Supervisor">Sin asignar</td><td data-label="Estado"><span class="badge danger">Inactivo</span></td><td data-label="Acciones" data-admin-column><button class="more" type="button" aria-label="Más acciones para Ana Rojas" aria-haspopup="menu" aria-expanded="false" data-menu-trigger="menu-inactive"><svg class="icon"><use href="#i-more"></use></svg></button><div class="action-menu" role="menu" aria-label="Acciones de Ana Rojas" data-show="menu-inactive"><button type="button" role="menuitem" data-go-state="detail"><svg class="icon"><use href="#i-eye"></use></svg>Ver detalle</button><button type="button" role="menuitem" data-go-state="edit"><svg class="icon"><use href="#i-settings"></use></svg>Editar</button><button type="button" role="menuitem" data-go-state="assign-supervisor"><svg class="icon"><use href="#i-users"></use></svg>Asignar supervisor</button><button type="button" role="menuitem" data-go-state="assign-territories"><svg class="icon"><use href="#i-map"></use></svg>Asignar territorios</button><button type="button" role="menuitem" data-go-state="confirm-activate"><svg class="icon"><use href="#i-arrow"></use></svg>Activar</button></div></td></tr>
+                  <tr><td data-label="Vendedor"><span class="identity"><span class="identity-mark">DP</span><span><strong>Diego Paredes</strong><small>diego.paredes@comercialandina.example</small></span></span></td><td data-label="Teléfono">+51 964 013 554</td><td data-label="Zona/territorio"><span class="territory-list"><span class="territory-tag">Callao</span></span></td><td data-label="Supervisor">Sofía Campos</td><td data-label="Estado"><span class="badge success">Activo</span></td><td data-label="Acciones" data-admin-column><button class="more" type="button" aria-label="Más acciones para Diego Paredes"><svg class="icon"><use href="#i-more"></use></svg></button></td></tr>
+                  <tr><td data-label="Vendedor"><span class="identity"><span class="identity-mark">VN</span><span><strong>Valeria Núñez</strong><small>valeria.nunez@comercialandina.example</small></span></span></td><td data-label="Teléfono">+51 924 778 090</td><td data-label="Zona/territorio"><span class="territory-list"><span class="territory-tag">Lima Sur</span></span></td><td data-label="Supervisor">Julián Quispe</td><td data-label="Estado"><span class="badge success">Activo</span></td><td data-label="Acciones" data-admin-column><button class="more" type="button" aria-label="Más acciones para Valeria Núñez"><svg class="icon"><use href="#i-more"></use></svg></button></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <footer class="pagination sellers-pagination">
+              <div class="pagination-meta"><strong>Mostrando 61–65 de 128 vendedores</strong><time datetime="2026-09-11T10:42:00-05:00" role="status">Actualizado hoy, 10:42</time></div>
+              <div class="pagination-tools"><div class="field page-size"><span id="page-size-label">Registros por página</span><details class="app-select"><summary class="select-trigger" aria-labelledby="page-size-label">5<svg class="icon icon-sm"><use href="#i-chevron"></use></svg></summary><div class="select-menu" role="listbox" aria-label="Registros por página"><button class="select-option" type="button" role="option" aria-selected="true">5</button><button class="select-option" type="button" role="option">10</button><button class="select-option" type="button" role="option">15</button><button class="select-option" type="button" role="option">20</button></div></details></div><nav class="pages" aria-label="Paginación de vendedores"><button class="page-btn page-prev" type="button" aria-label="Página anterior"><svg class="icon icon-sm"><use href="#i-chevron"></use></svg></button><button class="page-btn" type="button" aria-label="Página 1">1</button><span class="page-ellipsis" aria-hidden="true">…</span><button class="page-btn" type="button" aria-label="Página 12">12</button><button class="page-btn current" type="button" aria-label="Página 13" aria-current="page">13</button><button class="page-btn" type="button" aria-label="Página 14">14</button><span class="page-ellipsis" aria-hidden="true">…</span><button class="page-btn" type="button" aria-label="Página 26">26</button><button class="page-btn page-next" type="button" aria-label="Página siguiente"><svg class="icon icon-sm"><use href="#i-chevron"></use></svg></button></nav></div>
+            </footer>
+          </div>
+
+          <div data-show="loading"><header class="table-title"><div><strong>Resultados</strong><span>Cargando vendedores</span></div></header><div class="skeleton-list" aria-busy="true"><div class="skeleton-row"><i class="skeleton block"></i><i class="skeleton"></i><i class="skeleton"></i><i class="skeleton"></i></div><div class="skeleton-row"><i class="skeleton block"></i><i class="skeleton"></i><i class="skeleton"></i><i class="skeleton"></i></div><div class="skeleton-row"><i class="skeleton block"></i><i class="skeleton"></i><i class="skeleton"></i><i class="skeleton"></i></div><div class="skeleton-row"><i class="skeleton block"></i><i class="skeleton"></i><i class="skeleton"></i><i class="skeleton"></i></div><span class="sr-only">Cargando vendedores</span></div></div>
+          <article class="state-card" data-show="empty"><div><span class="state-icon"><svg class="icon"><use href="#i-users"></use></svg></span><h2>Aún no hay vendedores</h2><p>Crea el primer vendedor para comenzar a organizar el equipo comercial.</p><button class="btn btn-primary" type="button" data-go-state="create"><svg class="icon icon-sm"><use href="#i-plus"></use></svg>Crear vendedor</button></div></article>
+          <article class="state-card" data-show="no-results"><div><span class="state-icon"><svg class="icon"><use href="#i-search"></use></svg></span><h2>No encontramos vendedores</h2><p>Cambia la búsqueda o ajusta los filtros para ver otros resultados.</p><button class="btn btn-primary" type="button" data-go-state="ready-admin">Limpiar filtros</button></div></article>
+        </section>
+
+        <section class="panel" data-show="forbidden" aria-labelledby="forbidden-title"><article class="state-card danger"><div><span class="state-icon"><svg class="icon"><use href="#i-shield"></use></svg></span><h2 id="forbidden-title">No tienes permisos</h2><p>No tienes permiso para consultar vendedores en esta empresa.</p><button class="btn" type="button">Volver al resumen</button></div></article></section>
+      </div>
+    </main>
+    <button class="mobile-backdrop" type="button" data-nav-close aria-label="Cerrar menú"></button>
+  </div>
+
+  <!-- Crear y editar: drawer golden; la edición excluye correo, username y asignaciones. -->
+  <div data-show="create create-validation create-saving create-error edit">
+    <div class="scrim" data-dialog-dismiss aria-hidden="true"></div>
+    <section class="drawer" role="dialog" aria-modal="true" aria-labelledby="seller-form-title" aria-describedby="seller-form-description" data-overlay>
+      <header class="drawer-head"><div><span class="eyebrow">Vendedores</span><h2 id="seller-form-title"><span data-show="create create-validation create-saving create-error">Crear vendedor</span><span data-show="edit">Editar vendedor</span></h2><p id="seller-form-description"><span data-show="create create-validation create-saving create-error">Completa el perfil y, si corresponde, sus asignaciones iniciales.</span><span data-show="edit">Actualiza únicamente los datos editables del perfil.</span></p></div><button class="btn btn-icon" type="button" aria-label="Cerrar formulario" data-dialog-close data-disable-in="create-saving"><svg class="icon"><use href="#i-x"></use></svg></button></header>
+      <div class="drawer-body">
+        <div class="alert alert-info form-context" data-show="edit"><svg class="icon"><use href="#i-info"></use></svg><div><strong>Lucía Calderón</strong><p>Correo: lucia.calderon@comercialandina.example. Supervisor y territorios se administran desde acciones separadas.</p></div></div>
+        <form class="form-stack" aria-label="Datos del vendedor">
+          <div class="alert alert-danger" role="alert" data-show="create-error"><svg class="icon"><use href="#i-alert"></use></svg><div><strong>No pudimos crear al vendedor</strong><p>El correo, username o código de empleado ya está en uso. Revisa la información e inténtalo nuevamente.</p></div></div>
+          <div class="alert alert-danger" role="alert" data-show="create-validation"><svg class="icon"><use href="#i-alert"></use></svg><div><strong>Revisa la información ingresada</strong><p>Hay campos que necesitan tu atención antes de crear al vendedor.</p></div></div>
+          <div class="field"><label for="seller-name">Nombre completo</label><div class="control" data-validation-control><input id="seller-name" required minlength="2" maxlength="160" placeholder="Ingresa el nombre completo" value="" data-edit-value="Lucía Calderón"></div><p class="field-error" id="seller-name-error" data-show="create-validation">Ingresa un nombre de al menos 2 caracteres.</p></div>
+          <div class="field" data-show="create create-validation create-saving create-error"><label for="seller-email">Correo corporativo</label><div class="control" data-validation-control><input id="seller-email" required type="email" maxlength="254" placeholder="nombre@empresa.example"></div><p class="field-error" id="seller-email-error" data-show="create-validation">Ingresa un correo corporativo válido.</p></div>
+          <div class="field" data-show="create create-validation create-saving create-error"><label for="seller-username">Usuario <span class="muted">(opcional)</span></label><div class="control"><input id="seller-username" minlength="3" maxlength="100" placeholder="Ej. lcalderon"></div><p class="field-help">Si lo completas, debe tener entre 3 y 100 caracteres.</p></div>
+          <div class="field"><label for="seller-phone">Teléfono <span class="muted">(opcional)</span></label><div class="control"><input id="seller-phone" type="tel" maxlength="30" placeholder="Ej. +51 999 999 999" data-edit-value="+51 987 420 116"></div></div>
+          <div class="field"><label for="seller-code">Código de empleado <span class="muted">(opcional)</span></label><div class="control"><input id="seller-code" maxlength="50" placeholder="Ej. VEN-1048" data-edit-value="VEN-061"></div></div>
+          <div class="field" data-show="create create-validation create-saving create-error"><span id="create-supervisor-label">Supervisor <span class="muted">(opcional)</span></span><details class="app-select"><summary class="select-trigger" aria-labelledby="create-supervisor-label">Sin asignar<svg class="icon icon-sm"><use href="#i-chevron"></use></svg></summary><div class="select-menu" role="listbox" aria-label="Supervisor"><button class="select-option" type="button" role="option" aria-selected="true">Sin asignar</button><button class="select-option" type="button" role="option">Sofía Campos</button><button class="select-option" type="button" role="option">Julián Quispe</button></div></details></div>
+          <div class="field" data-show="create create-validation create-saving create-error">
+            <span id="create-territories-label">Territorios <span class="muted">(opcional)</span></span>
+            <details class="territory-picker" data-territory-picker>
+              <summary class="select-trigger territory-picker-trigger" aria-labelledby="create-territories-label" aria-haspopup="listbox"><span data-territory-summary>Seleccionar territorios</span><svg class="icon icon-sm"><use href="#i-chevron"></use></svg></summary>
+              <div class="territory-popover">
+                <div class="territory-search"><div class="control"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input type="search" aria-label="Buscar territorios" placeholder="Buscar por código o nombre" data-territory-search></div></div>
+                <div class="territory-options" role="listbox" aria-label="Territorios disponibles" aria-multiselectable="true">
+                  <button class="territory-option" type="button" role="option" aria-selected="false" data-territory-option data-code="LIM-CEN" data-name="Lima Centro"><span><strong>LIM-CEN — Lima Centro</strong><small>Territorio activo</small></span></button>
+                  <button class="territory-option" type="button" role="option" aria-selected="false" data-territory-option data-code="LIM-NOR" data-name="Lima Norte"><span><strong>LIM-NOR — Lima Norte</strong><small>Territorio activo</small></span></button>
+                  <button class="territory-option" type="button" role="option" aria-selected="false" data-territory-option data-code="LIM-EST" data-name="Lima Este"><span><strong>LIM-EST — Lima Este</strong><small>Territorio activo</small></span></button>
+                  <button class="territory-option" type="button" role="option" aria-selected="false" data-territory-option data-code="LIM-SUR" data-name="Lima Sur"><span><strong>LIM-SUR — Lima Sur</strong><small>Territorio activo</small></span></button>
+                  <button class="territory-option" type="button" role="option" aria-selected="false" data-territory-option data-code="CALLAO" data-name="Callao"><span><strong>CALLAO — Callao</strong><small>Territorio activo</small></span></button>
+                </div>
+                <div class="territory-popover-foot"><span><strong data-territory-visible>5</strong> coincidencias visibles</span><span>100 territorios disponibles</span></div>
+              </div>
+            </details>
+            <div class="territory-selection" data-territory-selection aria-live="polite"></div>
+            <p class="field-help">Busca por código o nombre; la lista se filtra sin ocupar todo el drawer.</p>
+          </div>
+        </form>
+      </div>
+      <footer class="drawer-foot"><button class="btn" type="button" data-dialog-close data-disable-in="create-saving">Cancelar</button><button class="btn btn-primary" type="button" data-show="create create-validation create-error" data-go-state="create-saving">Crear vendedor</button><button class="btn btn-primary" type="button" disabled data-show="create-saving"><span class="spinner" aria-hidden="true"></span>Creando vendedor…</button><button class="btn btn-primary" type="button" data-show="edit">Guardar cambios</button></footer>
+    </section>
+  </div>
+
+  <div data-show="detail detail-supervisor">
+    <div class="scrim" data-dialog-dismiss aria-hidden="true"></div>
+    <section class="drawer" role="dialog" aria-modal="true" aria-labelledby="seller-detail-title" aria-describedby="seller-detail-description" data-overlay>
+      <header class="drawer-head"><div><span class="eyebrow">Vendedores</span><h2 id="seller-detail-title">Detalle de vendedor</h2><p id="seller-detail-description">Información actual del registro seleccionado.</p></div><button class="btn btn-icon" type="button" aria-label="Cerrar detalle" data-dialog-close><svg class="icon"><use href="#i-x"></use></svg></button></header>
+      <div class="drawer-body"><div class="detail-identity"><span class="identity-mark">LC</span><span><strong>Lucía Calderón</strong><span>lucia.calderon@comercialandina.example</span></span></div><dl class="definition-grid"><div><dt>Estado</dt><dd><span class="badge success">Activo</span></dd></div><div><dt>Código de empleado</dt><dd>VEN-061</dd></div><div><dt>Correo corporativo</dt><dd>lucia.calderon@comercialandina.example</dd></div><div><dt>Teléfono</dt><dd>+51 987 420 116</dd></div><div><dt>Supervisor</dt><dd>Sofía Campos</dd></div><div><dt>Territorios</dt><dd>Lima Centro, Lima Este</dd></div></dl></div>
+      <footer class="drawer-foot"><button class="btn" type="button" data-dialog-close>Cerrar</button></footer>
+    </section>
+  </div>
+
+  <!-- Asignaciones: operaciones separadas del formulario de edición. -->
+  <div data-show="assign-supervisor assign-supervisor-loading assign-supervisor-empty assign-supervisor-error">
+    <div class="scrim" data-dialog-dismiss aria-hidden="true"></div>
+    <section class="drawer" role="dialog" aria-modal="true" aria-labelledby="assign-supervisor-title" aria-describedby="assign-supervisor-description" data-overlay>
+      <header class="drawer-head"><div><span class="eyebrow">Vendedores</span><h2 id="assign-supervisor-title">Reasignar supervisor</h2><p id="assign-supervisor-description">Actualiza la relación de supervisión de Lucía Calderón.</p></div><button class="btn btn-icon" type="button" aria-label="Cerrar asignación" data-dialog-close><svg class="icon"><use href="#i-x"></use></svg></button></header>
+      <div class="drawer-body drawer-status" data-show="assign-supervisor-loading"><div aria-busy="true"><span class="state-icon"><span class="spinner" aria-hidden="true"></span></span><h3>Cargando supervisores</h3><p>Estamos obteniendo las opciones activas.</p></div></div>
+      <div class="drawer-body" data-show="assign-supervisor assign-supervisor-empty assign-supervisor-error"><div class="alert alert-info form-context"><svg class="icon"><use href="#i-info"></use></svg><div><strong>Lucía Calderón</strong><p>Supervisor actual: Sofía Campos</p></div></div><div class="alert alert-warning form-context" data-show="assign-supervisor-empty"><svg class="icon"><use href="#i-alert"></use></svg><div><strong>No hay supervisores activos disponibles</strong><p>Puedes dejar al vendedor sin asignación o cancelar.</p></div></div><div class="alert alert-danger form-context" role="alert" data-show="assign-supervisor-error"><svg class="icon"><use href="#i-alert"></use></svg><div><strong>No pudimos cargar los supervisores</strong><p>Reintenta en unos segundos.</p></div></div><div class="field" data-show="assign-supervisor assign-supervisor-empty"><span id="assignment-supervisor-label">Supervisor</span><details class="app-select"><summary class="select-trigger" aria-labelledby="assignment-supervisor-label">Sofía Campos<svg class="icon icon-sm"><use href="#i-chevron"></use></svg></summary><div class="select-menu" role="listbox" aria-label="Supervisor"><button class="select-option" type="button" role="option">Sin asignar</button><button class="select-option" type="button" role="option" aria-selected="true" data-hide-empty>Sofía Campos</button><button class="select-option" type="button" role="option" data-hide-empty>Julián Quispe</button></div></details></div></div>
+      <footer class="drawer-foot"><button class="btn" type="button" data-dialog-close>Cancelar</button><button class="btn btn-primary" type="button" data-show="assign-supervisor">Reasignar supervisor</button><button class="btn btn-primary" type="button" data-show="assign-supervisor-empty">Dejar sin asignar</button><button class="btn btn-primary" type="button" data-show="assign-supervisor-error" data-go-state="assign-supervisor-loading">Reintentar</button></footer>
+    </section>
+  </div>
+
+  <div data-show="assign-territories assign-territories-loading assign-territories-empty assign-territories-error">
+    <div class="scrim" data-dialog-dismiss aria-hidden="true"></div>
+    <section class="drawer" role="dialog" aria-modal="true" aria-labelledby="assign-territories-title" aria-describedby="assign-territories-description" data-overlay>
+      <header class="drawer-head"><div><span class="eyebrow">Vendedores</span><h2 id="assign-territories-title">Asignar territorios</h2><p id="assign-territories-description">Reemplaza los territorios vigentes de Lucía Calderón.</p></div><button class="btn btn-icon" type="button" aria-label="Cerrar asignación" data-dialog-close><svg class="icon"><use href="#i-x"></use></svg></button></header>
+      <div class="drawer-body drawer-status" data-show="assign-territories-loading"><div aria-busy="true"><span class="state-icon"><span class="spinner" aria-hidden="true"></span></span><h3>Cargando territorios</h3><p>Estamos obteniendo los territorios activos.</p></div></div>
+      <div class="drawer-body drawer-status" data-show="assign-territories-empty"><div><span class="state-icon"><svg class="icon"><use href="#i-map"></use></svg></span><h3>No hay territorios activos</h3><p>No es posible guardar una asignación hasta que exista al menos un territorio activo.</p></div></div>
+      <div class="drawer-body drawer-status" data-show="assign-territories-error"><div><span class="state-icon"><svg class="icon"><use href="#i-alert"></use></svg></span><h3>No pudimos cargar los territorios</h3><p>Reintenta en unos segundos.</p></div></div>
+      <div class="drawer-body" data-show="assign-territories">
+        <div class="alert alert-info form-context"><svg class="icon"><use href="#i-info"></use></svg><div><strong>Lucía Calderón</strong><p>Selecciona uno o más territorios activos.</p></div></div>
+        <div class="field">
+          <span id="assignment-territories-label">Territorios</span>
+          <details class="territory-picker" data-territory-picker open>
+            <summary class="select-trigger territory-picker-trigger" aria-labelledby="assignment-territories-label" aria-haspopup="listbox"><span data-territory-summary>2 territorios seleccionados</span><svg class="icon icon-sm"><use href="#i-chevron"></use></svg></summary>
+            <div class="territory-popover">
+              <div class="territory-search"><div class="control"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input type="search" aria-label="Buscar territorios para Lucía Calderón" placeholder="Buscar por código o nombre" data-territory-search></div></div>
+              <div class="territory-options" role="listbox" aria-label="Territorios disponibles" aria-multiselectable="true">
+                <button class="territory-option" type="button" role="option" aria-selected="true" data-territory-option data-code="LIM-CEN" data-name="Lima Centro"><span><strong>LIM-CEN — Lima Centro</strong><small>Territorio activo</small></span></button>
+                <button class="territory-option" type="button" role="option" aria-selected="true" data-territory-option data-code="LIM-EST" data-name="Lima Este"><span><strong>LIM-EST — Lima Este</strong><small>Territorio activo</small></span></button>
+                <button class="territory-option" type="button" role="option" aria-selected="false" data-territory-option data-code="LIM-NOR" data-name="Lima Norte"><span><strong>LIM-NOR — Lima Norte</strong><small>Territorio activo</small></span></button>
+                <button class="territory-option" type="button" role="option" aria-selected="false" data-territory-option data-code="LIM-SUR" data-name="Lima Sur"><span><strong>LIM-SUR — Lima Sur</strong><small>Territorio activo</small></span></button>
+                <button class="territory-option" type="button" role="option" aria-selected="false" data-territory-option data-code="CALLAO" data-name="Callao"><span><strong>CALLAO — Callao</strong><small>Territorio activo</small></span></button>
+              </div>
+              <div class="territory-popover-foot"><span><strong data-territory-visible>5</strong> coincidencias visibles</span><span>100 territorios disponibles</span></div>
+            </div>
+          </details>
+          <div class="territory-selection" data-territory-selection aria-live="polite"></div>
+          <p class="field-help">Debes conservar al menos un territorio seleccionado.</p>
+        </div>
+      </div>
+      <footer class="drawer-foot"><button class="btn" type="button" data-dialog-close>Cancelar</button><button class="btn btn-primary" type="button" data-show="assign-territories">Asignar territorios</button><button class="btn btn-primary" type="button" data-show="assign-territories-error" data-go-state="assign-territories-loading">Reintentar</button></footer>
+    </section>
+  </div>
+
+  <!-- Cambio de estado: diálogo golden centrado; en mobile se convierte en bottom sheet. -->
+  <div data-show="confirm-inactivate confirm-inactivate-validation confirm-inactivate-saving confirm-inactivate-active-journey-error confirm-activate">
+    <div class="scrim" data-dialog-dismiss aria-hidden="true"></div>
+    <section class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="status-dialog-title" aria-describedby="status-dialog-description" data-overlay>
+      <header class="dialog-head"><div><span class="eyebrow">Vendedores</span><h2 id="status-dialog-title"><span data-show="confirm-inactivate confirm-inactivate-validation confirm-inactivate-saving confirm-inactivate-active-journey-error">Inactivar vendedor</span><span data-show="confirm-activate">Activar vendedor</span></h2><p>Confirma el cambio de acceso.</p></div><button class="btn btn-icon" type="button" aria-label="Cerrar confirmación" data-dialog-close data-disable-in="confirm-inactivate-saving"><svg class="icon"><use href="#i-x"></use></svg></button></header>
+      <div class="dialog-body"><span class="confirm-icon" data-show="confirm-inactivate confirm-inactivate-validation confirm-inactivate-saving confirm-inactivate-active-journey-error"><svg class="icon"><use href="#i-lock"></use></svg></span><span class="confirm-icon info" data-show="confirm-activate"><svg class="icon"><use href="#i-arrow"></use></svg></span><div class="confirm-identity"><span class="identity-mark">LC</span><span><strong>Lucía Calderón</strong><small>lucia.calderon@comercialandina.example</small></span></div><div id="status-dialog-description"><p class="confirmation-copy" data-show="confirm-inactivate confirm-inactivate-validation confirm-inactivate-saving confirm-inactivate-active-journey-error">Se revocará su acceso y no recibirá nuevas rutas. El vendedor y su historial permanecerán registrados.</p><p class="confirmation-copy" data-show="confirm-activate">Recuperará el acceso correspondiente. Esta acción no restaura sesiones, rutas ni asignaciones previas automáticamente.</p></div><p class="confirm-note" data-show="confirm-inactivate confirm-inactivate-validation confirm-inactivate-saving confirm-inactivate-active-journey-error"><svg class="icon"><use href="#i-shield"></use></svg><span>La inactivación nunca elimina al vendedor.</span></p><div class="alert alert-danger confirm-error" role="alert" data-show="confirm-inactivate-active-journey-error"><svg class="icon"><use href="#i-alert"></use></svg><div><strong>No se puede inactivar durante una jornada activa</strong><p>Finaliza la jornada o recorrido activo antes de volver a intentarlo.</p></div></div><div class="field reason-field"><label for="status-reason">Motivo</label><div class="control" data-reason-control><textarea id="status-reason" required minlength="5" maxlength="500" aria-describedby="reason-help reason-error" placeholder="Explica el motivo del cambio"></textarea></div><div class="reason-meta"><p class="field-help" id="reason-help">Entre 5 y 500 caracteres.</p><p class="field-help"><span data-reason-count>0</span>/500</p></div><p class="field-error" id="reason-error" data-show="confirm-inactivate-validation">El motivo debe tener entre 5 y 500 caracteres.</p></div></div>
+      <footer class="dialog-foot"><button class="btn" type="button" data-initial-focus data-dialog-close data-disable-in="confirm-inactivate-saving">Cancelar</button><button class="btn btn-danger" type="button" data-show="confirm-inactivate confirm-inactivate-validation confirm-inactivate-active-journey-error" data-go-state="confirm-inactivate-saving">Inactivar vendedor</button><button class="btn btn-danger" type="button" disabled data-show="confirm-inactivate-saving"><span class="spinner" aria-hidden="true"></span>Inactivando…</button><button class="btn btn-primary" type="button" data-show="confirm-activate">Activar vendedor</button></footer>
+    </section>
+  </div>
+
+  <div data-show="confirm-resend-invitation resend-invitation-saving">
+    <div class="scrim" data-dialog-dismiss aria-hidden="true"></div>
+    <section class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="resend-title" aria-describedby="resend-description" data-overlay><header class="dialog-head"><div><span class="eyebrow">Vendedores</span><h2 id="resend-title">Reenviar invitación</h2><p>Confirma la solicitud de una nueva entrega.</p></div><button class="btn btn-icon" type="button" aria-label="Cerrar confirmación" data-dialog-close data-disable-in="resend-invitation-saving"><svg class="icon"><use href="#i-x"></use></svg></button></header><div class="dialog-body"><span class="confirm-icon info"><svg class="icon"><use href="#i-mail"></use></svg></span><div class="confirm-identity"><span class="identity-mark">MS</span><span><strong>Mateo Salazar</strong><small>mateo.salazar@comercialandina.example</small></span></div><p id="resend-description" class="confirmation-copy">Se invalidará el enlace de activación anterior y se encolará una nueva invitación para entrega.</p></div><footer class="dialog-foot"><button class="btn" type="button" data-initial-focus data-dialog-close data-disable-in="resend-invitation-saving">Cancelar</button><button class="btn btn-primary" type="button" data-show="confirm-resend-invitation" data-go-state="resend-invitation-saving">Reenviar invitación</button><button class="btn btn-primary" type="button" disabled data-show="resend-invitation-saving"><span class="spinner" aria-hidden="true"></span>Reenviando…</button></footer></section>
+  </div>
+
+  <div data-show="operation-success operation-error">
+    <div class="scrim" data-dialog-dismiss aria-hidden="true"></div>
+    <section class="dialog operation-dialog" role="dialog" aria-modal="true" aria-labelledby="operation-title" data-overlay><header class="dialog-head"><div><span class="eyebrow">Vendedores</span><h2 id="operation-title"><span data-show="operation-success">Operación completada</span><span data-show="operation-error">No pudimos completar la operación</span></h2></div><button class="btn btn-icon" type="button" aria-label="Cerrar mensaje" data-dialog-close><svg class="icon"><use href="#i-x"></use></svg></button></header><div class="dialog-body"><span class="confirm-icon info" data-show="operation-success"><svg class="icon"><use href="#i-shield"></use></svg></span><span class="confirm-icon" data-show="operation-error"><svg class="icon"><use href="#i-alert"></use></svg></span><p data-show="operation-success" role="status">El vendedor fue actualizado correctamente.</p><p data-show="operation-error" role="alert">Los datos cambiaron durante la operación. Actualiza el listado antes de reintentar.</p></div><footer class="dialog-foot"><button class="btn btn-primary" type="button" data-dialog-close>Aceptar</button></footer></section>
+  </div>
+
+  <aside class="mockup-guide" aria-label="Controles del mockup"><label for="state">Estado</label><select id="state" data-state-selector></select><button class="btn btn-icon btn-compact" type="button" data-theme-toggle aria-label="Cambiar tema"><svg class="icon"><use href="#i-moon"></use></svg></button></aside>
+  <script src="assets/golden-states.js"></script>
+  <script>
+    (function () {
+      "use strict";
+      const body = document.body;
+      const state = body.dataset.state || "ready-admin";
+      const menuButton = document.querySelector("[data-nav-toggle]");
+      const closeNavButton = document.querySelector("[data-nav-close]");
+      const clientsButton = document.querySelector("[data-clients-toggle]");
+      const clientsNavigation = document.querySelector("#clients-navigation");
+      const profileButton = document.querySelector("[data-profile-toggle]");
+      const profileMenu = document.querySelector("#profile-menu");
+      const activeMenuTrigger = document.querySelector(`[data-menu-trigger="${state}"]`);
+      const activeMenu = document.querySelector(`.action-menu[data-show~="${state}"]`);
+
+      function stateUrl(nextState) { const next = new URL(window.location.href); next.searchParams.set("state", nextState); return next; }
+      function goToState(nextState) { window.location.href = stateUrl(nextState).toString(); }
+      function setNavigation(open, restoreFocus) { body.dataset.nav = open ? "open" : "closed"; menuButton?.setAttribute("aria-expanded", String(open)); menuButton?.setAttribute("aria-label", open ? "Cerrar menú" : "Abrir menú"); if (!open && restoreFocus && menuButton instanceof HTMLElement) menuButton.focus(); }
+      function setProfileOpen(open, restoreFocus) { profileButton?.setAttribute("aria-expanded", String(open)); if (profileMenu instanceof HTMLElement) profileMenu.hidden = !open; if (!open && restoreFocus && profileButton instanceof HTMLElement) profileButton.focus(); }
+
+      setNavigation(false, false);
+      clientsButton?.addEventListener("click", function () { const open = clientsButton.getAttribute("aria-expanded") !== "true"; clientsButton.setAttribute("aria-expanded", String(open)); if (clientsNavigation instanceof HTMLElement) clientsNavigation.hidden = !open; });
+      menuButton?.addEventListener("click", function () { setNavigation(body.dataset.nav !== "open", false); });
+      closeNavButton?.addEventListener("click", function () { setNavigation(false, true); });
+      profileButton?.addEventListener("click", function () { setProfileOpen(profileButton.getAttribute("aria-expanded") !== "true", false); });
+
+      const supervisorView = state === "ready-supervisor" || state === "menu-supervisor" || state === "detail-supervisor";
+      if (supervisorView) {
+        document.querySelectorAll("[data-profile-role]").forEach(function (node) { node.textContent = node.closest(".dashboard-profile-card") ? "Supervisor de empresa" : "Supervisor"; });
+        document.querySelectorAll("[data-admin-action], [data-admin-only]").forEach(function (node) { node.hidden = true; });
+      }
+      if (state === "assign-supervisor-empty") document.querySelectorAll("[data-hide-empty]").forEach(function (node) { node.hidden = true; });
+      if (state === "edit") document.querySelectorAll("[data-edit-value]").forEach(function (input) { if (input instanceof HTMLInputElement) input.value = input.dataset.editValue || ""; });
+      if (state === "create-validation") {
+        document.querySelectorAll("[data-validation-control]").forEach(function (node) { node.classList.add("is-error"); });
+        document.querySelector("#seller-name")?.setAttribute("aria-invalid", "true");
+        document.querySelector("#seller-email")?.setAttribute("aria-invalid", "true");
+      }
+      if (state === "confirm-inactivate-validation") {
+        document.querySelector("[data-reason-control]")?.classList.add("is-error");
+        document.querySelector("#status-reason")?.setAttribute("aria-invalid", "true");
+      }
+      if (activeMenuTrigger instanceof HTMLElement) activeMenuTrigger.setAttribute("aria-expanded", "true");
+      if (activeMenu instanceof HTMLElement && activeMenuTrigger instanceof HTMLElement) window.setTimeout(function () {
+        if (window.innerWidth > 620) {
+          const trigger = activeMenuTrigger.getBoundingClientRect();
+          const menu = activeMenu.getBoundingClientRect();
+          const left = Math.max(14, Math.min(window.innerWidth - menu.width - 14, trigger.right - menu.width));
+          activeMenu.style.top = `${trigger.bottom + 6}px`;
+          activeMenu.style.left = `${left}px`;
+        }
+        activeMenu.dataset.positioned = "true";
+        activeMenu.querySelector("[role=menuitem]")?.focus();
+      }, 0);
+
+      document.querySelectorAll("[data-dialog-trigger]").forEach(function (control) { control.addEventListener("click", function () { window.sessionStorage.setItem("fe005-return-focus", `[data-dialog-trigger="${control.getAttribute("data-dialog-trigger")}"]`); goToState(control.getAttribute("data-dialog-trigger") || "create"); }); });
+      document.querySelectorAll("[data-menu-trigger]").forEach(function (control) { control.addEventListener("click", function () { let nextState = control.getAttribute("data-menu-trigger") || "ready-admin"; if (state === "ready-supervisor" && nextState === "menu-active") nextState = "menu-supervisor"; if (state === nextState) { window.history.replaceState({}, "", stateUrl(supervisorView ? "ready-supervisor" : "ready-admin")); control.setAttribute("aria-expanded", "false"); control.focus(); } else { window.sessionStorage.setItem("fe005-return-focus", `[data-menu-trigger="${control.getAttribute("data-menu-trigger")}"]`); goToState(nextState); } }); });
+      document.querySelectorAll("[data-go-state]").forEach(function (control) { control.addEventListener("click", function () { const menu = control.closest(".action-menu"); if (menu) window.sessionStorage.setItem("fe005-return-focus", `[data-menu-trigger="menu-active"]`); let nextState = control.getAttribute("data-go-state") || "ready-admin"; if (state === "menu-supervisor" && nextState === "detail") nextState = "detail-supervisor"; goToState(nextState); }); });
+
+      document.querySelectorAll("[data-territory-picker]").forEach(function (picker) {
+        if (!(picker instanceof HTMLDetailsElement)) return;
+        const summary = picker.querySelector("[data-territory-summary]");
+        const trigger = picker.querySelector("summary");
+        const search = picker.querySelector("[data-territory-search]");
+        const visibleCount = picker.querySelector("[data-territory-visible]");
+        const selection = picker.parentElement?.querySelector("[data-territory-selection]");
+        const options = Array.from(picker.querySelectorAll("[data-territory-option]"));
+        const normalize = function (value) { return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("es"); };
+        const syncSelection = function () {
+          const selected = options.filter(function (option) { return option.getAttribute("aria-selected") === "true"; });
+          if (summary) summary.textContent = selected.length === 0 ? "Seleccionar territorios" : selected.length === 1 ? "1 territorio seleccionado" : `${selected.length} territorios seleccionados`;
+          if (!(selection instanceof HTMLElement)) return;
+          selection.replaceChildren();
+          selected.forEach(function (option) {
+            const chip = document.createElement("span");
+            chip.className = "territory-chip";
+            const label = document.createElement("span");
+            label.textContent = option.dataset.name || option.dataset.code || "Territorio";
+            const remove = document.createElement("button");
+            remove.type = "button";
+            remove.setAttribute("aria-label", `Quitar ${label.textContent}`);
+            const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            icon.setAttribute("class", "icon icon-xs");
+            icon.setAttribute("aria-hidden", "true");
+            const use = document.createElementNS("http://www.w3.org/2000/svg", "use");
+            use.setAttribute("href", "#i-x");
+            icon.appendChild(use);
+            remove.appendChild(icon);
+            remove.addEventListener("click", function () { option.setAttribute("aria-selected", "false"); syncSelection(); if (trigger instanceof HTMLElement) trigger.focus(); });
+            chip.append(label, remove);
+            selection.appendChild(chip);
+          });
+        };
+        options.forEach(function (option) {
+          option.addEventListener("click", function () {
+            option.setAttribute("aria-selected", String(option.getAttribute("aria-selected") !== "true"));
+            syncSelection();
+          });
+        });
+        if (search instanceof HTMLInputElement) search.addEventListener("keydown", function (event) {
+          if (event.key !== "ArrowDown") return;
+          const firstVisible = options.find(function (option) { return !option.hidden; });
+          if (firstVisible instanceof HTMLElement) { event.preventDefault(); firstVisible.focus(); }
+        });
+        picker.addEventListener("keydown", function (event) {
+          if (!(event.target instanceof HTMLElement) || !event.target.matches("[data-territory-option]")) return;
+          const visibleOptions = options.filter(function (option) { return !option.hidden; });
+          const current = visibleOptions.indexOf(event.target);
+          let next = current;
+          if (event.key === "ArrowDown") next = Math.min(current + 1, visibleOptions.length - 1);
+          else if (event.key === "ArrowUp") next = Math.max(current - 1, 0);
+          else if (event.key === "Home") next = 0;
+          else if (event.key === "End") next = visibleOptions.length - 1;
+          else return;
+          event.preventDefault();
+          visibleOptions[next]?.focus();
+        });
+        if (search instanceof HTMLInputElement) search.addEventListener("input", function () {
+          const query = normalize(search.value.trim());
+          let visible = 0;
+          options.forEach(function (option) {
+            const haystack = normalize(`${option.dataset.code || ""} ${option.dataset.name || ""}`);
+            option.hidden = query.length > 0 && !haystack.includes(query);
+            if (!option.hidden) visible += 1;
+          });
+          if (visibleCount) visibleCount.textContent = String(visible);
+        });
+        picker.addEventListener("toggle", function () { if (picker.open && search instanceof HTMLInputElement) window.setTimeout(function () { search.focus(); }, 0); });
+        picker.addEventListener("keydown", function (event) { if (event.key === "Escape" && picker.open) { event.preventDefault(); event.stopPropagation(); picker.open = false; if (trigger instanceof HTMLElement) trigger.focus(); } });
+        syncSelection();
+      });
+
+      const reason = document.querySelector("#status-reason");
+      const count = document.querySelector("[data-reason-count]");
+      if (reason instanceof HTMLTextAreaElement && count) reason.addEventListener("input", function () { count.textContent = String(reason.value.length); });
+
+      if (activeMenu instanceof HTMLElement) {
+        const items = Array.from(activeMenu.querySelectorAll("[role=menuitem]"));
+        activeMenu.addEventListener("keydown", function (event) { const index = items.indexOf(document.activeElement); if (event.key === "ArrowDown" || event.key === "ArrowUp") { event.preventDefault(); const step = event.key === "ArrowDown" ? 1 : items.length - 1; items[(Math.max(index, 0) + step) % items.length]?.focus(); } });
+      }
+
+      const visibleOverlay = Array.from(document.querySelectorAll("[data-overlay]")).find(function (node) { return node instanceof HTMLElement && node.getClientRects().length > 0; });
+      if (visibleOverlay instanceof HTMLElement) {
+        const focusable = Array.from(visibleOverlay.querySelectorAll("button:not(:disabled), input:not(:disabled), textarea:not(:disabled), summary, [href], [tabindex]:not([tabindex='-1'])"));
+        const initial = visibleOverlay.querySelector("[data-initial-focus]") || focusable.find(function (node) { return node instanceof HTMLInputElement || node instanceof HTMLTextAreaElement; }) || focusable[0];
+        if (initial instanceof HTMLElement) window.setTimeout(function () { initial.focus(); }, 0);
+        const closeOverlay = function () {
+          if (["create-saving", "confirm-inactivate-saving", "resend-invitation-saving"].includes(state)) return;
+          const selector = window.sessionStorage.getItem("fe005-return-focus");
+          visibleOverlay.hidden = true;
+          document.querySelectorAll(".scrim").forEach(function (node) { if (node instanceof HTMLElement && node.getClientRects().length > 0) node.hidden = true; });
+          window.history.replaceState({}, "", stateUrl(supervisorView ? "ready-supervisor" : "ready-admin"));
+          const target = selector ? document.querySelector(selector) : null;
+          window.sessionStorage.removeItem("fe005-return-focus");
+          if (target instanceof HTMLElement) target.focus();
+        };
+        visibleOverlay.querySelectorAll("[data-dialog-close]").forEach(function (control) { control.addEventListener("click", closeOverlay); });
+        document.querySelectorAll("[data-dialog-dismiss]").forEach(function (control) { if (control.getClientRects().length > 0) control.addEventListener("click", closeOverlay); });
+        visibleOverlay.addEventListener("keydown", function (event) { if (event.key === "Escape") { event.preventDefault(); closeOverlay(); } if (event.key === "Tab" && focusable.length) { const first = focusable[0]; const last = focusable[focusable.length - 1]; if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); } else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); } } });
+      }
+
+      document.addEventListener("click", function (event) { if (!(event.target instanceof Node)) return; if (profileMenu instanceof HTMLElement && !profileMenu.hidden && !profileMenu.contains(event.target) && !profileButton?.contains(event.target)) setProfileOpen(false, false); });
+      document.addEventListener("keydown", function (event) { if (event.key !== "Escape") return; if (profileMenu instanceof HTMLElement && !profileMenu.hidden) setProfileOpen(false, true); else if (activeMenu instanceof HTMLElement && !activeMenu.hidden) { activeMenu.hidden = true; if (activeMenuTrigger instanceof HTMLElement) { activeMenuTrigger.setAttribute("aria-expanded", "false"); activeMenuTrigger.focus(); } } else if (body.dataset.nav === "open") setNavigation(false, true); });
+    })();
+  </script>
+</body>
+</html>

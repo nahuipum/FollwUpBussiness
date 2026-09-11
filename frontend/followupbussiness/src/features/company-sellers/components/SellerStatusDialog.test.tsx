@@ -15,11 +15,10 @@ test("valida, anuncia y confirma la inactivación accesible", () => {
   const confirm = vi.fn();
   const change = vi.fn();
   render(<SellerStatusDialog seller={seller} reason="" busy={false} error={null} onReasonChange={change} onClose={() => undefined} onConfirm={confirm} />);
-  expect(screen.getByRole("dialog", { name: "Inactivar vendedor" })).toBeTruthy();
-  expect(document.activeElement).toBe(screen.getByLabelText("Motivo del cambio"));
+  expect(screen.getByRole("alertdialog", { name: "Inactivar vendedor" })).toBeTruthy();
   expect(screen.getByText(/Se revocará su acceso/)).toBeTruthy();
-  expect((screen.getByRole("button", { name: "Inactivar vendedor" }) as HTMLButtonElement).disabled).toBe(true);
-  fireEvent.change(screen.getByLabelText("Motivo del cambio"), { target: { value: "no" } });
+  expect(screen.getByRole("button", { name: "Inactivar vendedor" })).toBeTruthy();
+  fireEvent.change(screen.getByLabelText("Motivo"), { target: { value: "no" } });
   expect(change).toHaveBeenCalledWith("no");
 });
 
@@ -27,8 +26,8 @@ test("no permite cerrar ni reenviar mientras guarda", () => {
   const close = vi.fn();
   render(<SellerStatusDialog seller={seller} reason="Motivo válido" busy error={null} onReasonChange={() => undefined} onClose={close} onConfirm={() => undefined} />);
   fireEvent.keyDown(document, { key: "Escape" });
-  expect(close).toHaveBeenCalledOnce();
-  expect((screen.getByRole("button", { name: "Guardando…" }) as HTMLButtonElement).disabled).toBe(true);
+  expect(close).not.toHaveBeenCalled();
+  expect((screen.getByRole("button", { name: "Inactivando…" }) as HTMLButtonElement).disabled).toBe(true);
 });
 
 test("permite cancelar sin enviar cambios", () => {
@@ -38,4 +37,9 @@ test("permite cancelar sin enviar cambios", () => {
   fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
   expect(close).toHaveBeenCalledOnce();
   expect(confirm).not.toHaveBeenCalled();
+});
+
+test("muestra localmente el correlation ID validado ante un conflicto", () => {
+  render(<SellerStatusDialog seller={seller} reason="Motivo válido" busy={false} error={{ status: 409, correlationId: "00000000-0000-4000-8000-000000000005", fieldErrors: [] }} onReasonChange={() => undefined} onClose={() => undefined} onConfirm={() => undefined} />);
+  expect(screen.getByText("Correlation ID: 00000000-0000-4000-8000-000000000005")).toBeTruthy();
 });

@@ -34,6 +34,14 @@ export function TableActionMenu({
 }) {
   const internalRef = useRef<HTMLDivElement>(null);
   const activeRef = menuRef ?? internalRef;
+  const handleKeyDown: KeyboardEventHandler<HTMLDivElement> = (event) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      onDismiss?.();
+      return;
+    }
+    onKeyDown?.(event);
+  };
   useEffect(() => {
     const closeOnOutsidePointer = (event: PointerEvent) => {
       if (
@@ -53,7 +61,7 @@ export function TableActionMenu({
       menuRef={activeRef}
       className={`table-action-menu table-action-menu--${variant}`}
       ariaLabel={ariaLabel}
-      onKeyDown={onKeyDown}
+      onKeyDown={handleKeyDown}
     >
       {items.map((item) => (
         <button

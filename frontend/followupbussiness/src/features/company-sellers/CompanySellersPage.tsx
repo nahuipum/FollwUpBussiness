@@ -32,6 +32,8 @@ export function CompanySellersPage() {
     sellers.replaceSeller,
   );
   const items = sellers.result?.items ?? [];
+  const forbidden = sellers.error?.status === 403;
+  const hasFilters = Boolean(sellers.search || sellers.status || sellers.supervisorId || sellers.territoryId);
   const [detail, setDetail] = useState<Seller | null>(null);
   const sessionKeyRef = useRef(sellers.sessionKey);
 
@@ -50,10 +52,11 @@ export function CompanySellersPage() {
     <section className="seller-list" aria-labelledby="seller-list-title">
       <header className="seller-list__heading">
         <div>
+          <span className="seller-list__eyebrow">Equipo comercial</span>
           <h1 id="seller-list-title">Vendedores</h1>
           <p>Consulta y organiza el equipo comercial de la empresa.</p>
         </div>
-        {canManage && (
+        {canManage && !forbidden && (
           <button
             className="seller-list__primary"
             type="button"
@@ -64,7 +67,7 @@ export function CompanySellersPage() {
           </button>
         )}
       </header>
-      <section className="seller-list__card" aria-label="Listado de vendedores">
+      {forbidden ? <AsyncStateCard tone="error" variant="golden" title="No tienes permisos" description="No tienes permiso para consultar vendedores." {...(sellers.error?.correlationId ? { correlationId: sellers.error.correlationId } : {})} /> : <section className="seller-list__card" aria-label="Listado de vendedores">
         <SellerFilters
           query={sellers.search}
           status={sellers.status}
@@ -77,48 +80,34 @@ export function CompanySellersPage() {
           onSupervisorChange={sellers.changeSupervisor}
           onTerritoryChange={sellers.changeTerritory}
         />
-        {!canManage && <ReadOnlyNotice />}
-        {sellers.error && (
+        {!canManage && <ReadOnlyNotice variant="golden" />}
+        {sellers.error && items.length === 0 && (
           <AsyncStateCard
             tone="error"
-            title={
-              sellers.error.status === 403
-                ? "No tienes permisos"
-                : "Ocurrió un problema temporal"
-            }
-            description={
-              sellers.error.status === 403
-                ? "No tienes permiso para consultar vendedores."
-                : "No pudimos mostrar los vendedores. Inténtalo más tarde."
-            }
+            variant="golden"
+            title="Ocurrió un problema temporal"
+            description="No pudimos mostrar los vendedores. Inténtalo más tarde."
+            correlationId={sellers.error.correlationId}
             actionLabel="Reintentar"
             onAction={sellers.retry}
           />
         )}
         {sellers.loading && items.length === 0 ? (
-          <TableLoadingIndicator label="Cargando vendedores" />
+          <TableLoadingIndicator variant="golden" columns={6} label="Cargando vendedores" />
         ) : !sellers.error && items.length === 0 ? (
           <AsyncStateCard
+            variant="golden"
             title={
-              sellers.search ||
-              sellers.status ||
-              sellers.supervisorId ||
-              sellers.territoryId
+              hasFilters
                 ? "No encontramos vendedores"
                 : "Aún no hay vendedores"
             }
             description={
-              sellers.search ||
-              sellers.status ||
-              sellers.supervisorId ||
-              sellers.territoryId
+              hasFilters
                 ? "Prueba con otros filtros o términos de búsqueda."
                 : "Cuando existan vendedores aparecerán en este listado."
             }
-            {...(sellers.search ||
-            sellers.status ||
-            sellers.supervisorId ||
-            sellers.territoryId
+            {...(hasFilters
               ? {
                   actionLabel: "Limpiar filtros",
                   onAction: sellers.clearFilters,
@@ -126,8 +115,9 @@ export function CompanySellersPage() {
               : {})}
           />
         ) : (
-          !sellers.error && (
+          items.length > 0 && (
             <>
+              <div className="seller-list__results"><div><strong>Resultados</strong><span>{sellers.result?.page.totalElements ?? items.length} vendedores</span></div>{sellers.loading && <TableLoadingIndicator variant="golden" label="Actualizando vendedores" compact />}{sellers.error && <span role="status">Actualización pendiente</span>}</div>
               <SellerTable
                 sellers={items}
                 page={sellers.page}
@@ -146,18 +136,10 @@ export function CompanySellersPage() {
                 onChangeStatus={statusChange.open}
                 onResendInvitation={invitation.open}
               />
-              {sellers.loading && (
-                <div className="seller-list__stale">
-                  <TableLoadingIndicator
-                    label="Actualizando vendedores"
-                    compact
-                  />
-                </div>
-              )}
             </>
           )
         )}
-      </section>
+      </section>}
       {detail && (
         <SellerDetailDialog seller={detail} onClose={() => setDetail(null)} />
       )}

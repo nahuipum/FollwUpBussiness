@@ -145,7 +145,6 @@
   .async-state-card,
   .modal,
   .modal-surface,
-  .seller-list__dialog,
   .territory-list__dialog,
   .table-action-menu,
   .visual-select__menu
@@ -191,13 +190,6 @@
   .company-users__heading p,
   .company-users__role-option span,
   .seller-list__heading p,
-  .seller-list__dialog dt,
-  .seller-list__loading,
-  .seller-list__stale,
-  .seller-list__updated,
-  .seller-list__hint,
-  .seller-list__operation-content p,
-  .seller-list__invitation-content p,
   .territory-list__heading p,
   .territory-list__stale,
   .client-list__heading p,
@@ -221,10 +213,6 @@
   .company-users__secondary,
   .seller-list__secondary,
   .seller-list__search,
-  .seller-list__status-dialog textarea,
-  .seller-list__form-dialog input,
-  .seller-list__form-dialog select,
-  .seller-list__form-dialog fieldset,
   .territory-list__secondary,
   .territory-list__search,
   .territory-list__dialog input,
@@ -284,11 +272,6 @@
   .company-copy strong,
   .company-users__role-picker legend,
   .company-users__role-option,
-  .seller-list__dialog dd,
-  .seller-list__status-dialog p,
-  .seller-list__status-dialog label,
-  .seller-list__form-dialog label,
-  .seller-list__form-dialog legend,
   .territory-list__dialog label
 ) { color: var(--theme-text-form); }
 
@@ -299,7 +282,7 @@
   .company-copy span
 ) { color: var(--theme-text-muted); }
 
-:root[data-theme="dark"] :is(.data-table__identity-mark, .company-mark, .seller-list__invitation-icon) {
+:root[data-theme="dark"] :is(.data-table__identity-mark, .company-mark) {
   color: #74d2d5;
   background: linear-gradient(145deg, #153844, #102c38);
 }
@@ -344,7 +327,7 @@
 }
 
 /* Semantic feedback keeps its meaning while reducing glare. */
-:root[data-theme="dark"] :is(.data-table__status--success, .company-status--active, .seller-list__operation-icon--success) {
+:root[data-theme="dark"] :is(.data-table__status--success, .company-status--active) {
   border-color: #28684c;
   color: #72d6a5;
   background: #102c24;
@@ -356,7 +339,7 @@
   background: #302513;
 }
 
-:root[data-theme="dark"] :is(.data-table__status--danger, .company-status--suspended, .seller-list__operation-icon--error, .form-alert, .error-ui-inline-alert--error) {
+:root[data-theme="dark"] :is(.data-table__status--danger, .company-status--suspended, .form-alert, .error-ui-inline-alert--error) {
   border-color: #7b4050;
   color: #ff91a7;
   background: #321b25;

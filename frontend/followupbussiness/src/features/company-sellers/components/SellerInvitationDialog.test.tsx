@@ -11,13 +11,31 @@ const seller = {
 
 afterEach(() => document.body.replaceChildren());
 
-test("confirma accesiblemente y expone el error de conflicto", () => {
+test("confirma en bottom sheet golden y expone el error de conflicto", () => {
   const confirm = vi.fn();
   render(<SellerInvitationDialog seller={seller} busy={false} success={false} error={{ status: 409, correlationId: null, fieldErrors: [] }} onClose={() => undefined} onConfirm={confirm} />);
-  expect(screen.getByRole("dialog", { name: "Reenviar invitación" })).toBeTruthy();
+  expect(
+    screen.getByRole("alertdialog", { name: "Reenviar invitación" }),
+  ).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Reenviar invitación" }));
   expect(confirm).toHaveBeenCalledOnce();
   expect(screen.getByRole("alert").textContent).toContain("La invitación cambió");
+});
+
+test("declara la aceptación asíncrona sin afirmar la entrega", () => {
+  render(
+    <SellerInvitationDialog
+      seller={seller}
+      busy={false}
+      success
+      error={null}
+      onClose={() => undefined}
+      onConfirm={() => undefined}
+    />,
+  );
+
+  expect(screen.getByText("Invitación aceptada para entrega")).toBeTruthy();
+  expect(screen.getByText(/se procesará de forma asíncrona/)).toBeTruthy();
 });
 
 test("bloquea la confirmación mientras reenvía", () => {

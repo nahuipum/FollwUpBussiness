@@ -15,6 +15,14 @@ import type {
   TerritoryReference,
 } from "./types";
 
+const publishSessionErrors = {
+  publishErrors: (status: number) => status === 401,
+} as const;
+
+function sellerApiRequest(path: string, init: RequestInit) {
+  return apiRequest(path, init, publishSessionErrors);
+}
+
 function isStatus(value: unknown): value is SellerStatus {
   return value === "INVITED" || value === "ACTIVE" || value === "INACTIVE";
 }
@@ -119,7 +127,7 @@ export async function listSellers(
   if (filters.status) query.set("status", filters.status);
   if (filters.supervisorId) query.set("supervisorId", filters.supervisorId);
   if (filters.territoryId) query.set("territoryId", filters.territoryId);
-  const response = await apiRequest(`/sellers?${query}`, {
+  const response = await sellerApiRequest(`/sellers?${query}`, {
     method: "GET",
     headers: getSessionAuthorization(),
   });
@@ -190,7 +198,7 @@ async function listAllReferences<T>(
   path: string,
   parse: (entry: unknown) => T | null,
 ): Promise<{ response: Response; items: readonly T[] | null }> {
-  const firstResponse = await apiRequest(`${path}&page=0&pageSize=100`, {
+  const firstResponse = await sellerApiRequest(`${path}&page=0&pageSize=100`, {
     method: "GET",
     headers: getSessionAuthorization(),
   });
@@ -202,7 +210,7 @@ async function listAllReferences<T>(
     return { response: firstResponse, items: first?.items ?? null };
   const rest = await Promise.all(
     [...Array(first.page.totalPages - 1)].map(async (_, index) => {
-      const response = await apiRequest(
+      const response = await sellerApiRequest(
         `${path}&page=${index + 1}&pageSize=100`,
         { method: "GET", headers: getSessionAuthorization() },
       );
@@ -278,7 +286,7 @@ function createBody(input: SellerFormInput) {
 }
 
 export function createSeller(input: SellerFormInput) {
-  return apiRequest("/sellers", {
+  return sellerApiRequest("/sellers", {
     method: "POST",
     headers: mutationHeaders(),
     body: JSON.stringify(createBody(input)),
@@ -286,7 +294,7 @@ export function createSeller(input: SellerFormInput) {
 }
 
 export async function getSeller(sellerId: string): Promise<{ response: Response; seller: Seller | null }> {
-  const response = await apiRequest(`/sellers/${encodeURIComponent(sellerId)}`, {
+  const response = await sellerApiRequest(`/sellers/${encodeURIComponent(sellerId)}`, {
     method: "GET",
     headers: getSessionAuthorization(),
   });
@@ -297,7 +305,7 @@ export async function getSeller(sellerId: string): Promise<{ response: Response;
 }
 
 export function updateSeller(seller: Seller, input: SellerFormInput) {
-  return apiRequest(`/sellers/${encodeURIComponent(seller.id)}`, {
+  return sellerApiRequest(`/sellers/${encodeURIComponent(seller.id)}`, {
     method: "PATCH",
     headers: mutationHeaders(seller.version),
     body: JSON.stringify({
@@ -312,7 +320,7 @@ export function updateSellerSupervisor(
   sellerId: string,
   supervisorId: string | null,
 ) {
-  return apiRequest(`/sellers/${encodeURIComponent(sellerId)}/supervisor`, {
+  return sellerApiRequest(`/sellers/${encodeURIComponent(sellerId)}/supervisor`, {
     method: "PUT",
     headers: mutationHeaders(),
     body: JSON.stringify({ supervisorId }),
@@ -323,7 +331,7 @@ export function updateSellerTerritories(
   sellerId: string,
   territoryIds: readonly string[],
 ) {
-  return apiRequest(`/sellers/${encodeURIComponent(sellerId)}/territories`, {
+  return sellerApiRequest(`/sellers/${encodeURIComponent(sellerId)}/territories`, {
     method: "PUT",
     headers: mutationHeaders(),
     body: JSON.stringify({ territoryIds: [...new Set(territoryIds)] }),
@@ -334,7 +342,7 @@ export async function changeSellerStatus(
   sellerId: string,
   input: SellerStatusChangeInput,
 ): Promise<{ response: Response; seller: Seller | null }> {
-  const response = await apiRequest(
+  const response = await sellerApiRequest(
     `/sellers/${encodeURIComponent(sellerId)}/status`,
     {
       method: "PATCH",
@@ -354,7 +362,7 @@ export async function changeSellerStatus(
 export async function resendSellerInvitation(
   seller: Seller,
 ): Promise<{ response: Response; seller: Seller | null }> {
-  const response = await apiRequest(
+  const response = await sellerApiRequest(
     `/sellers/${encodeURIComponent(seller.id)}/invitation`,
     {
       method: "POST",

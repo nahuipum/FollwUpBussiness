@@ -29,19 +29,23 @@ export function SellerFilters({
 }) {
   return (
     <div className="seller-list__toolbar">
-      <label className="seller-list__search">
-        <Search aria-hidden="true" />
-        <span className="sr-only">Buscar vendedor</span>
-        <input
-          type="search"
-          value={query}
-          onChange={(event) => onQueryChange(event.target.value)}
-          placeholder="Buscar por nombre, correo o código"
-        />
-      </label>
+      <div className="seller-list__search-field">
+        <label htmlFor="seller-search">Buscar por nombre, correo o código</label>
+        <div className="seller-list__search">
+          <Search aria-hidden="true" />
+          <input
+            id="seller-search"
+            type="search"
+            value={query}
+            onChange={(event) => onQueryChange(event.target.value)}
+            placeholder="Nombre, correo o código"
+          />
+        </div>
+      </div>
       <div className="filter-field">
         <span>Supervisor</span>
         <VisualSelect
+          variant="golden"
           ariaLabel="Supervisor"
           value={supervisorId ?? "ALL"}
           options={[
@@ -54,9 +58,10 @@ export function SellerFilters({
         />
       </div>
       <div className="filter-field">
-        <span>Zona / sede</span>
+        <span>Zona/territorio</span>
         <VisualSelect
-          ariaLabel="Zona / sede"
+          variant="golden"
+          ariaLabel="Zona / territorio"
           value={territoryId ?? "ALL"}
           options={[
             { value: "ALL", label: "Todos" },
@@ -70,6 +75,7 @@ export function SellerFilters({
       <div className="filter-field">
         <span>Estado</span>
         <VisualSelect
+          variant="golden"
           ariaLabel="Estado"
           value={status ?? "ALL"}
           options={[

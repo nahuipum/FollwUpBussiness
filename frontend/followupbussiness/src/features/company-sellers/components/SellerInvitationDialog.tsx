@@ -1,12 +1,8 @@
 import { Send } from "lucide-react";
-import { createPortal } from "react-dom";
-import { useEffect } from "react";
-import { useDialogFocus } from "../../../shared/hooks/useDialogFocus";
-import { FormAlert } from "../../../shared/ui/FormAlert";
-import { ModalHeader } from "../../../shared/ui/ModalHeader";
-import { SellerOperationDialog } from "./SellerOperationDialog";
 import type { ApiError } from "../../../lib/api";
+import { ConfirmationDialog } from "../../../shared/ui/ConfirmationDialog";
 import type { Seller } from "../types";
+import { SellerOperationDialog } from "./SellerOperationDialog";
 
 function errorMessage(error: ApiError | null) {
   if (!error) return null;
@@ -37,50 +33,40 @@ export function SellerInvitationDialog({
   onClose: () => void;
   onConfirm: () => void;
 }) {
-  if (success) return <SellerOperationDialog tone="success" title="Invitación reenviada" message={`La nueva entrega de invitación fue aceptada para ${seller.displayName}.`} onClose={onClose} />;
-  return <SellerInvitationConfirmationDialog seller={seller} busy={busy} error={error} onClose={onClose} onConfirm={onConfirm} />;
-}
+  if (success) {
+    return (
+      <SellerOperationDialog
+        tone="success"
+        title="Invitación aceptada para entrega"
+        message={`La nueva entrega de invitación para ${seller.displayName} fue aceptada. El correo se procesará de forma asíncrona.`}
+        onClose={onClose}
+      />
+    );
+  }
 
-function SellerInvitationConfirmationDialog({
-  seller,
-  busy,
-  error,
-  onClose,
-  onConfirm,
-}: Omit<Parameters<typeof SellerInvitationDialog>[0], "success">) {
-  const { dialogRef, initialFocusRef } = useDialogFocus(onClose);
-  useEffect(() => {
-    initialFocusRef.current?.focus();
-  }, [initialFocusRef]);
-  const message = errorMessage(error);
-  return createPortal(
-    <div className="modal-surface-layer">
-      <section
-        ref={dialogRef}
-        className="modal-surface seller-list__dialog seller-list__invitation-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="seller-invitation-title"
-        aria-describedby="seller-invitation-description"
-      >
-        <ModalHeader module="Vendedores" title="Reenviar invitación" titleId="seller-invitation-title" onClose={onClose} closeLabel="Cerrar reenvío de invitación" closeDisabled={busy} className="seller-list__invitation-header" />
-        <section className="seller-list__invitation-content">
-            <span className="seller-list__invitation-icon" aria-hidden="true"><Send /></span>
-            <p id="seller-invitation-description">
-              ¿Deseas reenviar la invitación a {seller.displayName}? La entrega se procesará de forma asíncrona.
-            </p>
-        </section>
-        {message && <FormAlert>{message}</FormAlert>}
-        <footer>
-          <button ref={initialFocusRef} className="seller-list__secondary" type="button" onClick={onClose} disabled={busy}>
-            Cancelar
-          </button>
-          <button className="seller-list__primary" type="button" onClick={onConfirm} disabled={busy}>
-            {busy ? "Reenviando…" : "Reenviar invitación"}
-          </button>
-        </footer>
-      </section>
-    </div>,
-    document.body,
+  return (
+    <ConfirmationDialog
+      appearance="golden"
+      className="confirmation-dialog--info"
+      titleId="seller-invitation-title"
+      descriptionId="seller-invitation-description"
+      module="Vendedores"
+      title="Reenviar invitación"
+      headerDescription="Confirma la solicitud de una nueva entrega."
+      identity={<SellerIdentity seller={seller} />}
+      message="Se invalidará el enlace de activación anterior y se encolará una nueva invitación para entrega."
+      icon={<Send aria-hidden="true" />}
+      tone="info"
+      busy={busy}
+      busyLabel="Reenviando…"
+      error={errorMessage(error)}
+      errorTitle="No pudimos reenviar la invitación"
+      correlationId={error?.correlationId}
+      confirmLabel="Reenviar invitación"
+      onCancel={onClose}
+      onConfirm={onConfirm}
+    />
   );
 }
+
+function SellerIdentity({ seller }: { seller: Seller }) { return <><span className="confirmation-dialog__identity-mark">{seller.displayName.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase()}</span><span className="confirmation-dialog__identity-copy"><strong>{seller.displayName}</strong><small>{seller.email ?? "Sin correo registrado"}</small></span></>; }

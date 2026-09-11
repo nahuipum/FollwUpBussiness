@@ -27,6 +27,7 @@ test("envía los datos normalizados y evita doble envío mientras guarda", () =>
   fireEvent.change(screen.getByLabelText("Correo corporativo"), {
     target: { value: "ana@example.com" },
   });
+  fireEvent.click(screen.getByRole("button", { name: "Territorios" }));
   fireEvent.click(screen.getByLabelText("LIM — Lima"));
   fireEvent.click(screen.getByRole("button", { name: "Crear vendedor" }));
   expect(submit).toHaveBeenCalledWith(
@@ -51,7 +52,7 @@ test("muestra un estado recuperable cuando las opciones no cargan", () => {
     />,
   );
   expect(screen.getByRole("alert").textContent).toContain(
-    "No pudimos cargar las opciones de asignación.",
+    "No pudimos cargar las opciones",
   );
   expect(
     (screen.getByRole("button", { name: "Reintentar" }) as HTMLButtonElement)

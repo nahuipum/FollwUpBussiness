@@ -1,47 +1,20 @@
 import { useState, type FormEvent } from "react";
-import { ModalHeader } from "../../../shared/ui/ModalHeader";
-import { ModalSurface } from "../../../shared/ui/ModalSurface";
+import { DrawerSurface } from "../../../shared/ui/DrawerSurface";
 import { FormAlert } from "../../../shared/ui/FormAlert";
-import { VisualSelect } from "../../../shared/ui/VisualSelect";
+import { CorrelationId } from "../../../shared/ui/error-ui/components/CorrelationId";
 import { ModalAsyncState } from "../../../shared/ui/ModalAsyncState";
+import { MultiSelect } from "../../../shared/ui/MultiSelect";
+import { VisualSelect } from "../../../shared/ui/VisualSelect";
 import type { ApiError } from "../../../lib/api";
+import { DrawerHeader } from "./SellerDetailDialog";
 import type { Seller, SellerFormOptions } from "../types";
 import type { SellerAssignmentKind } from "../hooks/useSellerAssignment";
 
-function assignmentErrorMessage(error: ApiError | null): string | null {
-  if (error?.status === 403) return "No tienes permiso para modificar esta asignación.";
-  if (error?.status === 409) return "La asignación cambió mientras la editabas. Actualiza la lista antes de reintentar.";
-  if (error?.status === 422) return "La asignación no es válida. Revisa las opciones disponibles e inténtalo nuevamente.";
-  return error ? "No pudimos guardar la asignación. Inténtalo nuevamente." : null;
-}
-
-export function SellerAssignmentDialog({ seller, kind, options, loading, busy, error, onClose, onRetry, onSubmit }: {
-  seller: Seller; kind: SellerAssignmentKind; options: SellerFormOptions | null; loading: boolean; busy: boolean; error: ApiError | null;
-  onClose: () => void; onRetry: () => void; onSubmit: (value: string | null | readonly string[]) => void;
-}) {
-  const [supervisorId, setSupervisorId] = useState<string | null>(seller.supervisorId);
-  const [territoryIds, setTerritoryIds] = useState<readonly string[]>(seller.territoryIds);
-  const [selectionError, setSelectionError] = useState<string | null>(null);
-  const supervisor = kind === "supervisor";
-  const title = supervisor ? (seller.supervisorId ? "Reasignar supervisor" : "Asignar supervisor") : "Asignar territorios";
-  const noActiveTerritories = !supervisor && options?.territories.length === 0;
-  const errorMessage = assignmentErrorMessage(error);
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    if (!supervisor && territoryIds.length === 0) {
-      setSelectionError("Selecciona al menos un territorio para guardar la asignación.");
-      return;
-    }
-    setSelectionError(null);
-    onSubmit(supervisor ? supervisorId : [...new Set(territoryIds)]);
-  };
-  return <ModalSurface titleId="seller-assignment-title" onDismiss={onClose} className={`seller-list__dialog seller-list__form-dialog seller-list__assignment-dialog${supervisor ? " seller-list__assignment-dialog--supervisor" : ""}`}>
-    <ModalHeader module="Vendedores" title={title} titleId="seller-assignment-title" onClose={onClose} closeLabel="Cerrar asignación" closeDisabled={busy} />
-    <p>Vendedor: <strong>{seller.displayName}</strong></p>
-    {loading ? <ModalAsyncState state="loading" title="Cargando opciones" message="Estamos preparando las asignaciones disponibles." /> : !options ? <ModalAsyncState state="error" title="No pudimos cargar las opciones" message="No logramos obtener las asignaciones disponibles. Reintenta en unos segundos." primaryAction={{ label: "Reintentar", onClick: onRetry }} secondaryAction={{ label: "Cancelar", onClick: onClose }} /> : noActiveTerritories ? <section aria-live="polite"><h2>No hay territorios activos</h2><p>No es posible asignar territorios hasta que exista al menos uno activo.</p><footer><button className="seller-list__secondary" type="button" onClick={onClose}>Cancelar</button></footer></section> : <form onSubmit={submit}>
-      {supervisor ? <label>Supervisor<VisualSelect ariaLabel="Supervisor" value={supervisorId ?? "NONE"} options={[{ value: "NONE", label: "Sin asignar" }, ...options.supervisors.map((item) => ({ value: item.id, label: item.displayName }))]} onChange={(value) => setSupervisorId(value === "NONE" ? null : value)} /></label> : <fieldset><legend>Territorios</legend>{options.territories.map((territory) => <label key={territory.id} className="seller-list__checkbox"><input type="checkbox" checked={territoryIds.includes(territory.id)} onChange={(event) => { setSelectionError(null); setTerritoryIds((current) => event.target.checked ? [...current, territory.id] : current.filter((id) => id !== territory.id)); }} />{territory.code} — {territory.name}</label>)}</fieldset>}
-      {(selectionError || errorMessage) && <FormAlert>{selectionError ?? errorMessage}</FormAlert>}
-      <footer><button className="seller-list__secondary" type="button" onClick={onClose} disabled={busy}>Cancelar</button><button className="seller-list__primary" type="submit" disabled={busy}>{busy ? "Guardando…" : title}</button></footer>
-    </form>}
-  </ModalSurface>;
+function message(error: ApiError | null) { if (error?.status === 403) return "No tienes permiso para modificar esta asignación."; if (error?.status === 409) return "La asignación cambió mientras la editabas. Actualiza la lista antes de reintentar."; if (error?.status === 422) return "La asignación no es válida. Revisa las opciones disponibles e inténtalo nuevamente."; return error ? "No pudimos guardar la asignación. Inténtalo nuevamente." : null; }
+export function SellerAssignmentDialog({ seller, kind, options, loading, busy, error, onClose, onRetry, onSubmit }: { seller: Seller; kind: SellerAssignmentKind; options: SellerFormOptions | null; loading: boolean; busy: boolean; error: ApiError | null; onClose: () => void; onRetry: () => void; onSubmit: (value: string | null | readonly string[]) => void }) {
+  const [supervisorId, setSupervisorId] = useState<string | null>(seller.supervisorId); const [territoryIds, setTerritoryIds] = useState<readonly string[]>(seller.territoryIds); const [selectionError, setSelectionError] = useState<string | null>(null); const supervisor = kind === "supervisor"; const title = supervisor ? (seller.supervisorId ? "Reasignar supervisor" : "Asignar supervisor") : "Asignar territorios"; const errorMessage = message(error); const territoryOptions = options?.territories.map((item) => ({ value: item.id, label: item.name, meta: item.code, description: "Territorio activo" })) ?? [];
+  const submit = (event: FormEvent) => { event.preventDefault(); if (!supervisor && territoryIds.length === 0) { setSelectionError("Selecciona al menos un territorio para guardar la asignación."); return; } onSubmit(supervisor ? supervisorId : [...new Set(territoryIds)]); };
+  return <DrawerSurface titleId="seller-assignment-title" descriptionId="seller-assignment-description" busy={busy} onDismiss={onClose} className="seller-list__drawer" header={<DrawerHeader titleId="seller-assignment-title" descriptionId="seller-assignment-description" title={title} description={`Actualiza las asignaciones de ${seller.displayName}.`} onClose={onClose} busy={busy} />} footer={<><button className="seller-list__secondary" type="button" onClick={onClose} disabled={busy}>Cancelar</button>{options && <button className="seller-list__primary" type="submit" form="seller-assignment-form" disabled={busy || (!supervisor && options.territories.length === 0)}>{busy ? "Guardando…" : title}</button>}</>}>
+    {loading ? <ModalAsyncState state="loading" title="Cargando opciones" message="Estamos preparando las asignaciones disponibles." /> : !options ? <ModalAsyncState state="error" title="No pudimos cargar las opciones" message="No logramos obtener las asignaciones disponibles." primaryAction={{ label: "Reintentar", onClick: onRetry }} /> : !supervisor && options.territories.length === 0 ? <section className="seller-list__form"><h3>No hay territorios activos</h3><p>No es posible asignar territorios hasta que exista al menos uno activo.</p></section> : <form id="seller-assignment-form" className="seller-list__form" onSubmit={submit}><p className="seller-list__form-context"><strong>{seller.displayName}</strong><span>{supervisor ? "Supervisor" : "Territorios"}</span></p>{supervisor ? <label>Supervisor<VisualSelect variant="golden" ariaLabel="Supervisor" value={supervisorId ?? "NONE"} options={[{ value: "NONE", label: "Sin asignar" }, ...options.supervisors.map((item) => ({ value: item.id, label: item.displayName }))]} onChange={(value) => setSupervisorId(value === "NONE" ? null : value)} disabled={busy} /></label> : <MultiSelect variant="golden" searchable selectionNoun="territorios" placeholder="Seleccionar territorios" searchPlaceholder="Buscar por código o nombre" emptyMessage="No encontramos territorios activos." selectedSummary={(count) => `${count} territorio${count === 1 ? "" : "s"} seleccionado${count === 1 ? "" : "s"}`} visibleSummary={(count) => `${count} coincidencia${count === 1 ? "" : "s"} visible${count === 1 ? "" : "s"}`} totalSummary={(count) => `${count} territorios disponibles`} label="Territorios" ariaLabel="Territorios" value={territoryIds} options={territoryOptions} onChange={(value) => { setSelectionError(null); setTerritoryIds(value); }} />}{(selectionError || errorMessage) && <FormAlert>{selectionError ?? errorMessage}{error?.correlationId && <CorrelationId correlationId={error.correlationId} />}</FormAlert>}</form>}
+  </DrawerSurface>;
 }

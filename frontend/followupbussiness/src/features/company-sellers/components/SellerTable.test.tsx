@@ -49,3 +49,25 @@ test("permite elegir cantidad de registros por página", () => {
   fireEvent.click(screen.getByRole("option", { name: "10" }));
   expect(onPageSizeChange).toHaveBeenCalledWith(10);
 });
+
+test("el menú declara su tipo, se cierra con Escape y devuelve el foco", () => {
+  render(<SellerTable {...props(true)} />);
+  const trigger = screen.getByRole("button", { name: "Más acciones para Ana" });
+  expect(trigger.getAttribute("aria-haspopup")).toBe("menu");
+  fireEvent.click(trigger);
+  fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" });
+  expect(screen.queryByRole("menu")).toBeNull();
+  expect(document.activeElement).toBe(trigger);
+});
+
+test("la etiqueta INACTIVE usa el tono de peligro", () => {
+  render(
+    <SellerTable
+      {...props(true)}
+      sellers={[{ ...seller, status: "INACTIVE" as const }]}
+    />,
+  );
+  expect(screen.getByText("Inactivo").parentElement?.className).toContain(
+    "danger",
+  );
+});

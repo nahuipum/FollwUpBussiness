@@ -63,6 +63,7 @@ test("solicita filtros contractuales por ID y conserva las etiquetas enriquecida
       method: "GET",
       headers: { Authorization: "Bearer session" },
     }),
+    { publishErrors: expect.any(Function) },
   );
   expect(result.page?.items[0]).toMatchObject({
     supervisor: { displayName: "Sofía Supervisora" },
@@ -115,6 +116,7 @@ test("consulta el vendedor actual con la autorización de sesión", async () => 
   expect(state.request).toHaveBeenCalledWith(
     "/sellers/seller-1",
     expect.objectContaining({ method: "GET", headers: { Authorization: "Bearer session" } }),
+    { publishErrors: expect.any(Function) },
   );
   expect(result.seller?.version).toBe(1);
 });
@@ -149,11 +151,13 @@ test("carga referencias activas paginadas sin solicitudes por opción", async ()
     1,
     "/company/users?role=SUPERVISOR&status=ACTIVE&page=0&pageSize=100",
     expect.anything(),
+    { publishErrors: expect.any(Function) },
   );
   expect(state.request).toHaveBeenNthCalledWith(
     2,
     "/territories?status=ACTIVE&page=0&pageSize=100",
     expect.anything(),
+    { publishErrors: expect.any(Function) },
   );
 });
 
@@ -187,6 +191,7 @@ test("envía creación y edición con precondición y asignaciones sin duplicado
         territoryIds: ["territory-1"],
       }),
     }),
+    { publishErrors: expect.any(Function) },
   );
   expect(state.request).toHaveBeenNthCalledWith(
     2,
@@ -195,6 +200,7 @@ test("envía creación y edición con precondición y asignaciones sin duplicado
       method: "PATCH",
       headers: expect.objectContaining({ "If-Match": "1" }),
     }),
+    { publishErrors: expect.any(Function) },
   );
   expect(state.request).toHaveBeenNthCalledWith(
     3,
@@ -203,6 +209,7 @@ test("envía creación y edición con precondición y asignaciones sin duplicado
       method: "PUT",
       body: JSON.stringify({ supervisorId: null }),
     }),
+    { publishErrors: expect.any(Function) },
   );
   expect(state.request).toHaveBeenNthCalledWith(
     4,
@@ -211,6 +218,7 @@ test("envía creación y edición con precondición y asignaciones sin duplicado
       method: "PUT",
       body: JSON.stringify({ territoryIds: ["territory-1"] }),
     }),
+    { publishErrors: expect.any(Function) },
   );
 });
 
@@ -233,6 +241,7 @@ test("cambia el estado mediante PATCH con el motivo requerido", async () => {
         reason: "Fin de relación comercial",
       }),
     }),
+    { publishErrors: expect.any(Function) },
   );
   expect(result.seller?.status).toBe("INACTIVE");
 });
@@ -249,6 +258,25 @@ test("reenvía la invitación con precondición y acepta el vendedor invitado", 
       method: "POST",
       headers: expect.objectContaining({ "If-Match": "4" }),
     }),
+    { publishErrors: expect.any(Function) },
   );
   expect(result.seller?.status).toBe("INVITED");
+});
+
+test("mantiene los errores 500 dentro del feature y publica solo una sesión expirada", async () => {
+  state.request.mockResolvedValue(new Response(null, { status: 500 }));
+  await listSellers({
+    page: 0,
+    pageSize: 5,
+    search: "",
+    status: null,
+    supervisorId: null,
+    territoryId: null,
+  });
+  const options = state.request.mock.calls[0]?.[2] as {
+    publishErrors: (status: number) => boolean;
+  } | undefined;
+  expect(options).toBeDefined();
+  expect(options?.publishErrors(500)).toBe(false);
+  expect(options?.publishErrors(401)).toBe(true);
 });

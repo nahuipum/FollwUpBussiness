@@ -44,12 +44,21 @@ export function SellerTable({
 }) {
   const [menuSeller, setMenuSeller] = useState<Seller | null>(null);
   const triggers = useRef<Record<string, HTMLButtonElement | null>>({});
+  const closeMenuForAction = (seller: Seller) => {
+    setMenuSeller(null);
+    triggers.current[seller.id]?.focus();
+  };
+  const dismissMenu = () => {
+    const openSeller = menuSeller;
+    setMenuSeller(null);
+    if (openSeller) triggers.current[openSeller.id]?.focus();
+  };
   const columns: readonly DataTableColumn<Seller>[] = [
     {
       id: "seller",
       header: "Vendedor",
       label: "Vendedor",
-      width: "24%",
+      width: "25%",
       render: (seller) => (
         <DataTableIdentity
           mark={initials(seller.displayName)}
@@ -67,37 +76,36 @@ export function SellerTable({
     },
     {
       id: "territory",
-      header: "Zona / sede",
-      label: "Zona / sede",
-      width: "15%",
+      header: "Zona / territorio",
+      label: "Zona / territorio",
+      width: "18%",
       render: (seller) =>
-        seller.territories.map((territory) => territory.name).join(", ") ||
-        "Sin asignar",
+        seller.territories.length ? <span className="seller-list__territories">{seller.territories.map((territory) => <span key={territory.id}>{territory.name}</span>)}</span> : "Sin asignar",
     },
     {
       id: "supervisor",
       header: "Supervisor",
       label: "Supervisor",
-      width: "16%",
+      width: "17%",
       render: (seller) => seller.supervisor?.displayName ?? "Sin asignar",
     },
     {
       id: "status",
       header: "Estado",
       label: "Estado",
-      width: "1%",
+      width: "17%",
       render: (seller) => (
         <DataTableStatus
           label={statusLabel[seller.status]}
-          tone={seller.status === "ACTIVE" ? "success" : "warning"}
+          tone={seller.status === "ACTIVE" ? "success" : seller.status === "INACTIVE" ? "danger" : "warning"}
         />
       ),
     },
     {
       id: "actions",
-      header: "Acciones",
+      header: <span className="sr-only">Acciones</span>,
       label: "Acciones",
-      width: "1%",
+      width: "10%",
       align: "center",
       render: (seller) => (
         <div className="seller-list__actions">
@@ -105,10 +113,11 @@ export function SellerTable({
             ref={(node) => {
               triggers.current[seller.id] = node;
             }}
-            className="data-table__icon-button"
+            className="data-table__icon-button data-table__icon-button--golden"
             type="button"
             aria-label={`Más acciones para ${seller.displayName}`}
             aria-expanded={menuSeller?.id === seller.id}
+            aria-haspopup="menu"
             onClick={() =>
               setMenuSeller(menuSeller?.id === seller.id ? null : seller)
             }
@@ -119,13 +128,14 @@ export function SellerTable({
             <TableActionMenu
               anchor={triggers.current[seller.id] ?? null}
               ariaLabel={`Acciones de ${seller.displayName}`}
-              onDismiss={() => setMenuSeller(null)}
+              variant="golden"
+              onDismiss={dismissMenu}
               items={[
                 {
                   label: "Ver detalle",
                   icon: <Eye aria-hidden="true" />,
                   onSelect: () => {
-                    setMenuSeller(null);
+                    closeMenuForAction(seller);
                     onDetail(seller);
                   },
                 },
@@ -137,7 +147,7 @@ export function SellerTable({
                               label: "Reenviar invitación",
                               icon: <Send aria-hidden="true" />,
                               onSelect: () => {
-                                setMenuSeller(null);
+                                closeMenuForAction(seller);
                                 onResendInvitation(seller);
                               },
                             },
@@ -147,19 +157,19 @@ export function SellerTable({
                         label: "Editar",
                         icon: <Pencil aria-hidden="true" />,
                         onSelect: () => {
-                          setMenuSeller(null);
+                          closeMenuForAction(seller);
                           onEdit(seller);
                         },
                       },
                       {
                         label: seller.supervisorId ? "Reasignar supervisor" : "Asignar supervisor",
                         icon: <UserRoundCheck aria-hidden="true" />,
-                        onSelect: () => { setMenuSeller(null); onAssign(seller, "supervisor"); },
+                        onSelect: () => { closeMenuForAction(seller); onAssign(seller, "supervisor"); },
                       },
                       {
                         label: "Asignar territorios",
                         icon: <MapPinned aria-hidden="true" />,
-                        onSelect: () => { setMenuSeller(null); onAssign(seller, "territories"); },
+                        onSelect: () => { closeMenuForAction(seller); onAssign(seller, "territories"); },
                       },
                       ...(seller.status !== "INVITED"
                         ? [
@@ -174,8 +184,7 @@ export function SellerTable({
                                   ? ("danger" as const)
                                   : ("default" as const),
                               onSelect: () => {
-                                setMenuSeller(null);
-                                triggers.current[seller.id]?.focus();
+                                closeMenuForAction(seller);
                                 onChangeStatus(seller);
                               },
                             },
@@ -197,6 +206,8 @@ export function SellerTable({
         items={sellers}
         rowKey={(seller) => seller.id}
         columns={columns}
+        responsive="cards"
+        variant="golden"
       />
       <DataTablePagination
         page={page}
@@ -207,10 +218,12 @@ export function SellerTable({
         ariaLabel="Paginación de vendedores"
         summary={
           <>
-            Mostrando {sellers.length} de {totalElements} vendedores
+            Mostrando {firstResult(page, pageSize, totalElements)}–
+            {lastResult(page, pageSize, totalElements)} de {totalElements} vendedores
           </>
         }
         lastUpdated={lastUpdated}
+        variant="golden"
       />
     </>
   );
@@ -227,3 +240,13 @@ const initials = (name: string) =>
     .map((part) => part[0])
     .join("")
     .toUpperCase();
+
+function firstResult(page: number, pageSize: number, totalElements: number) {
+  if (totalElements === 0) return 0;
+  return Math.min(page * pageSize + 1, totalElements);
+}
+
+function lastResult(page: number, pageSize: number, totalElements: number) {
+  if (totalElements === 0) return 0;
+  return Math.min((page + 1) * pageSize, totalElements);
+}
