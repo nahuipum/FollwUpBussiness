@@ -1,38 +1,40 @@
 # FE-012 — Paquete de contexto
 
-- **Estado:** Desarrollo listo para handoff.
-- **Candidate-ID:** `3c13280+dafdabcf8d32`.
-- **Alcance:** Nueva ruta y opción `Clientes → Carga de clientes`, exclusiva de `COMPANY_ADMIN`, para descargar plantilla, validar y enviar CSV/XLSX, y consultar el trabajo inicial.
+- **Estado:** Desarrollo listo para handoff; QA, Seguridad y DoF anteriores no corresponden al candidato actual.
+- **Candidate-ID:** `574be0e+2c60f01eba4f`.
+- **Alcance:** migración visual golden de `/company/customer-imports`, exclusiva de `COMPANY_ADMIN`, sin rediseñar FE-013.
 
 ## Contrato estable y decisiones
 
-- `GET /customers/import-template`: `COMPANY_ADMIN`; `Accept` CSV/XLSX, conserva `X-Template-Version`; manejar 400/403/406.
-- `POST /customer-imports`: multipart `templateVersion`, `partialAcceptance`, `file`; `Idempotency-Key`, `CorrelationId` si se integra al mecanismo estándar; 202 con `Location` y `CustomerImportJob`; manejar 400/403/409/413/415/422.
-- `GET /customer-imports/{importId}`: sólo tenant actual y `COMPANY_ADMIN`; estados de `CustomerImportJob` para polling controlado.
-- Formatos CSV UTF-8 o XLSX sin macros; máximo 10 MiB. No parsear ni mostrar el contenido local. `partialAcceptance` está definido y por defecto es `true`; presentarlo como decisión explícita y accesible.
-- BE-018 tiene DoF PASS. BE-019 tiene QA y Security PASS sobre `7de8183 + 2e06ffdb2ab6`; no existe bloqueo Backend.
+- `GET /customers/import-template`: consulta automática de `X-Template-Version` y descarga Blob CSV/XLSX; recuperación real tras error.
+- `POST /customer-imports`: multipart `templateVersion`, `partialAcceptance`, `file`; conserva CSRF e `Idempotency-Key`; un POST por intento lógico; 202 navega con `replace` a `/company/customer-imports/{importId}`.
+- CSV UTF-8 o XLSX OOXML sin macros; máximo exacto `10 * 1024 * 1024` bytes. MIME vacío permitido con extensión válida. No se parsea ni previsualiza contenido.
+- 400/409/413/415/422 no reenvían automáticamente. Correlation ID se conserva cuando es seguro. 401/403 y cambios de sesión/empresa eliminan archivo, versión, trabajo e idempotencia; solicitudes obsoletas se ignoran.
+- Sólo `COMPANY_ADMIN` ve la opción y monta el flujo. El acceso directo de `SUPERVISOR` presenta forbidden sin consultar la plantilla.
 
 ## Invariantes
 
-1. Actor/recurso: sólo `COMPANY_ADMIN` ve y accede a la ruta; servidor sigue siendo autoridad.
-2. Éxito: versión recibida de plantilla se envía; un solo POST por intento lógico y trabajo consultado sin duplicación.
-3. Denegación: 403/401 limpian flujo y dan estado accesible; no se exponen datos del archivo.
-4. Conflicto/rechazos: 409, 413, 415, 422 y 400 no producen reenvío automático ni parsing local.
-5. Sesión/tenant: desmontaje, logout o cambio de empresa cancela polling y elimina archivo, versión, trabajo e idempotencia locales.
+1. Actor/recurso: ruta y navegación exclusivas de `COMPANY_ADMIN`; servidor sigue siendo autoridad final.
+2. Éxito: versión vigente acompaña el multipart y un 202 delega el resultado a FE-013.
+3. Denegación: no persisten archivo ni información de otra sesión/empresa.
+4. Conflictos/rechazos: mensajes contractuales, sin parsing ni reenvío automático.
+5. Límite de alcance: no cambian polling, estados, contadores ni descarga de rechazados de FE-013.
 
-## Superficie y referencia visual
+## Superficie visual y técnica
 
-- No existe `docs/frontendMockups/FE-012*.html`; usar como referencia `company-clients` y el layout real, sin copiar HTML.
-- Archivos previsibles: `src/app/App.tsx`, `src/app/components/CompanyWorkspaceLayout.tsx`, `src/features/company-clients/**` o feature de importación, `src/lib/api.ts`, auth y pruebas cercanas.
-- FE-013/BE-020 están fuera de alcance salvo enlace/navegación ya disponible; no descargar ni representar errores detallados.
-
-## Gate Development
-
-Estado esperado: `READY_FOR_HANDOFF` o `BLOCKED`. Verificar pruebas focalizadas, type-check y `build`/CI equivalente por cambio de rutas, autorización y transporte compartidos. Artefacto siguiente: `docs/handoffs/frontend/FE-012-development-handoff.md`.
+- Fuente visual inmutable: `docs/frontendMockups/FE-012.html`; consistencia comprobada con FE-008, FE-010, `_design-system.html`, `_application-shell.html` y `golden-system.css`.
+- `CompanyClientImportPage` usa cuatro pasos golden, `FileUploadField`, `InlineAlert`, `AsyncStateCard` y el application shell existente.
+- CSS FE-012 aislado bajo `.customer-import-upload*`; los selectores legacy todavía consumidos por FE-013 permanecen protegidos.
+- La comparación visual controlada cubre 1440×900, 1280×800, tablet, 390×844 y tema oscuro, además de estados funcionales.
 
 ## Delta Development
 
-- Ruta y submenú `Clientes → Carga de clientes` restringidos en UI a `COMPANY_ADMIN`; el servidor permanece como autoridad.
-- Transporte seguro: descarga de plantilla/versionado, multipart con CSRF e `Idempotency-Key`, validación local de tipo/tamaño sin leer contenido y polling cancelable en desmontaje/cambio de sesión o empresa.
-- Se consultó `docs/api/openapi.yaml` (rutas y `CustomerImportJob`) por ambigüedad de la forma necesaria para tipar el polling.
-- Remediación QA P1: el submenú `Carga de clientes` recibe `canManage` y no se representa para `SUPERVISOR`; prueba de regresión de navegación/rol añadida.
+- Se sustituyó la tarjeta turquesa antigua por el flujo golden aprobado, incluidos estados de plantilla, archivo, aceptación, envío, errores y forbidden.
+- `FileUploadField` se homologó con tokens golden y accesibilidad: input nativo, error asociado, nombre largo, quitar archivo con retorno de foco y estados hover/focus/disabled.
+- La validación local tipada diferencia 413 de 415 y rechaza XLSM, extensión/MIME incompatibles y tamaños superiores a 10 MiB.
+- Se añadió reintento real de versión, bloqueo sincrónico de descarga/envío duplicados y limpieza reforzada al pasar a un perfil no administrador.
+- Evidencia: 419/419 pruebas unitarias seriales, 19/19 visuales, typecheck, lint sin errores, build y `git diff --check` correctos.
+
+## Gate siguiente
+
+Estado esperado de QA: `PASS`, `CHANGES_REQUIRED` o `BLOCKED`. QA debe usar este Candidate-ID y el handoff actual; los artefactos QA/Seguridad/DoF con `3c13280+dafdabcf8d32` son históricos y no habilitan el gate actual.

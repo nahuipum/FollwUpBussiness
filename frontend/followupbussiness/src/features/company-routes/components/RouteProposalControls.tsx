@@ -1,4 +1,3 @@
-import { MultiSelect } from "../../../shared/ui/MultiSelect";
 import { TimeField } from "../../../shared/ui/TimeField";
 import { VisualSelect } from "../../../shared/ui/VisualSelect";
 import type { Route, RouteProposal, RouteProposalValidation } from "../types";
@@ -19,17 +18,24 @@ type Props = {
   proposal: RouteProposal | null;
   validation: RouteProposalValidation;
   saving: boolean;
+  showCandidateSelection?: boolean;
   onAvailabilityStart: (value: string) => void;
   onAvailabilityEnd: (value: string) => void;
   onVisit: (customerId: string, patch: Partial<Visit>) => void;
 };
 
 const priorityOptions = [
-  { value: "NONE", label: "Selecciona prioridad", disabled: true },
-  { value: "1", label: "Baja" },
-  { value: "2", label: "Media" },
-  { value: "3", label: "Alta" },
+  { value: "1", label: "Sin prioridad especial" },
+  { value: "2", label: "Baja" },
+  { value: "3", label: "Media" },
+  { value: "4", label: "Alta" },
 ] as const;
+
+const visitHelp = (index: number) => {
+  if (index === 0) return "La duración es tiempo de atención, no tiempo de traslado.";
+  if (index === 1) return "La ventana horaria es opcional, pero requiere ambos extremos.";
+  return "La prioridad orienta el orden de la propuesta.";
+};
 
 export function RouteProposalControls({
   route,
@@ -39,6 +45,7 @@ export function RouteProposalControls({
   proposal,
   validation,
   saving,
+  showCandidateSelection = false,
   onAvailabilityStart,
   onAvailabilityEnd,
   onVisit,
@@ -50,51 +57,37 @@ export function RouteProposalControls({
     ]),
   );
   const selectedCount = visits.filter((visit) => visit.included).length;
-  const selectedCustomerIds = visits
-    .filter((visit) => visit.included)
-    .map((visit) => visit.customerId);
-  const updateSelection = (customerIds: readonly string[]) => {
-    const next = new Set(customerIds);
-    visits.forEach((visit) => {
-      if (visit.included !== next.has(visit.customerId))
-        onVisit(visit.customerId, { included: next.has(visit.customerId) });
-    });
-  };
-
   return (
     <section
       className="route-detail__scheduled-date"
       aria-labelledby="route-proposal-controls-title"
     >
-      <h3 id="route-proposal-controls-title">Selecciona las visitas</h3>
-      <MultiSelect
-        label="Visitas candidatas"
-        ariaLabel="Visitas candidatas para la propuesta"
-        value={selectedCustomerIds}
-        options={visits.map((visit) => ({
-          value: visit.customerId,
-          label: names.get(visit.customerId) ?? "Cliente no disponible",
-          disabled: saving || (!visit.included && selectedCount >= 9),
-        }))}
-        onChange={updateSelection}
-        placeholder="Selecciona visitas"
-        closeOnSelect
-      />
-      <p role="status">
-        {selectedCount} visitas seleccionadas (máximo 9 por propuesta).
-      </p>
+      <header className="route-proposal-controls__header">
+        <div><h3 id="route-proposal-controls-title">Restricciones para la propuesta</h3><p>Las prioridades explícitas se consideran antes que las visitas sin prioridad especial. Jornada, ventanas y traslados también influyen en la propuesta; no se promete un orden por distancia.</p></div>
+        <span className="route-badge route-badge--info" role="status">{selectedCount} de 9 visitas</span>
+      </header>
+      {showCandidateSelection && <section className="route-proposal-candidates" aria-labelledby="route-proposal-candidates-title">
+        <div><h4 id="route-proposal-candidates-title">Visitas candidatas</h4><p>La selección es explícita y puede ajustarse sin cambiar el DRAFT.</p></div>
+        <div className="route-proposal-candidates__list">
+          {visits.map((visit) => {
+            const name = names.get(visit.customerId) ?? "Cliente no disponible";
+            return <button key={visit.customerId} type="button" aria-pressed={visit.included} disabled={saving || (!visit.included && selectedCount >= 9)} onClick={() => onVisit(visit.customerId, { included: !visit.included })}><span aria-hidden="true">{visit.included ? "✓" : "+"}</span><strong>{name}</strong><small>{visit.included ? "Incluida" : selectedCount >= 9 ? "Límite alcanzado" : "Agregar"}</small></button>;
+          })}
+        </div>
+      </section>}
       {selectedCount > 0 && (
         <>
-          <h3>Configura las visitas</h3>
-          <section aria-labelledby="route-proposal-availability-title">
+          <div className="route-proposal-dialog__visits">
+          <section className="route-proposal-dialog__availability" aria-labelledby="route-proposal-availability-title">
             <h4 id="route-proposal-availability-title">Jornada de trabajo</h4>
-            <p>Indica el inicio y el fin de la jornada en que se atenderán las visitas seleccionadas.</p>
+            <p>Usa el horario operativo de la fecha seleccionada.</p>
             <div className="route-proposal-dialog__field-grid">
               <TimeField
                 label="Inicio de jornada"
                 value={availabilityStart}
                 onValueChange={onAvailabilityStart}
                 disabled={saving}
+                variant="golden"
                 required
               />
               <TimeField
@@ -102,24 +95,25 @@ export function RouteProposalControls({
                 value={availabilityEnd}
                 onValueChange={onAvailabilityEnd}
                 disabled={saving}
+                variant="golden"
                 required
               />
             </div>
             {validation.availability && <p className="route-proposal-dialog__field-error" role="alert">{validation.availability}</p>}
           </section>
-          <ol className="route-proposal-dialog__visits">
             {visits
               .filter((visit) => visit.included)
-              .map((visit) => (
-                <li key={visit.customerId}>
+              .map((visit, index) => (
+                <article className="route-proposal-dialog__visit" key={visit.customerId}>
                   <h4>
                     {names.get(visit.customerId) ?? "Cliente no disponible"}
                   </h4>
                   <div className="route-proposal-dialog__field-grid">
                     <label>
-                      Duración estimada de la visita (minutos)
+                      Duración (min)
                       <input
                         className="route-proposal-dialog__duration"
+                        aria-label={`Duración estimada de la visita de ${names.get(visit.customerId) ?? "cliente"} (minutos)`}
                         required
                         type="number"
                         min={1}
@@ -138,27 +132,19 @@ export function RouteProposalControls({
                       Prioridad
                       <VisualSelect
                         ariaLabel={`Prioridad de ${names.get(visit.customerId) ?? "cliente"}`}
-                        value={visit.priority || "NONE"}
+                        value={visit.priority || "1"}
                         options={priorityOptions}
                         onChange={(value) =>
                           onVisit(visit.customerId, {
-                            priority: value === "NONE" ? "" : value,
+                            priority: value,
                           })
                         }
                         disabled={saving}
+                        variant="golden"
                       />
-                      <span className="route-proposal-dialog__help">
-                        Alta se considera antes que Media y Baja. El orden final también depende de la jornada, las ventanas y los traslados, por lo que no garantiza una posición exacta.
-                      </span>
                     </label>
                   </div>
-                  <section aria-labelledby={`visit-window-${visit.customerId}`}>
-                    <h5 id={`visit-window-${visit.customerId}`}>
-                      Ventana de atención del cliente (opcional)
-                    </h5>
-                    <p>
-                      Úsala sólo si el cliente requiere un horario específico.
-                    </p>
+                  <section aria-label={`Ventana de atención de ${names.get(visit.customerId) ?? "cliente"}`}>
                     <div className="route-proposal-dialog__field-grid">
                       <TimeField
                         label="Inicio de ventana"
@@ -167,6 +153,8 @@ export function RouteProposalControls({
                           onVisit(visit.customerId, { windowStart: value })
                         }
                         disabled={saving}
+                        variant="golden"
+                        showClockIcon
                       />
                       <TimeField
                         label="Fin de ventana"
@@ -175,13 +163,16 @@ export function RouteProposalControls({
                           onVisit(visit.customerId, { windowEnd: value })
                         }
                         disabled={saving}
+                        variant="golden"
+                        showClockIcon
                       />
                     </div>
                     {validation.windows[visit.customerId] && <p className="route-proposal-dialog__field-error" role="alert">{validation.windows[visit.customerId]}</p>}
                   </section>
-                </li>
+                  <p className="route-proposal-dialog__help">{visitHelp(index)}</p>
+                </article>
               ))}
-          </ol>
+          </div>
         </>
       )}
       {proposal && (

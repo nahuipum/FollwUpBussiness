@@ -1,10 +1,11 @@
+import { ArrowRight, Info } from "lucide-react";
 import { FormAlert } from "../../../shared/ui/FormAlert";
-import { ModalHeader } from "../../../shared/ui/ModalHeader";
-import { ModalSurface } from "../../../shared/ui/ModalSurface";
+import { WorkflowStepper } from "../../../shared/ui/WorkflowStepper";
 import type { ApiError } from "../../../lib/api";
 import type { FormEvent } from "react";
 import type { Route, RouteProposal, RouteProposalValidation } from "../types";
 import { RouteProposalControls } from "./RouteProposalControls";
+import { Button } from "../../../shared/ui/Button";
 
 type Visit = Readonly<{
   customerId: string;
@@ -14,7 +15,7 @@ type Visit = Readonly<{
   windowStart: string;
   windowEnd: string;
 }>;
-export function RouteProposalDialog({
+export function RouteProposalWorkflow({
   route,
   availabilityStart,
   availabilityEnd,
@@ -29,6 +30,7 @@ export function RouteProposalDialog({
   onVisit,
   onOptimize,
   onClose,
+  onChangeMode,
 }: {
   route: Route;
   availabilityStart: string;
@@ -44,25 +46,19 @@ export function RouteProposalDialog({
   onVisit: (customerId: string, patch: Partial<Visit>) => void;
   onOptimize: () => void;
   onClose: () => void;
+  onChangeMode: () => void;
 }) {
   const submit = (event: FormEvent) => {
     event.preventDefault();
     onOptimize();
   };
   return (
-    <ModalSurface
-      titleId="route-proposal-title"
-      onDismiss={onClose}
-      className="route-detail route-detail--proposal"
-    >
-      <ModalHeader
-        module="Rutas"
-        title="Generar propuesta"
-        titleId="route-proposal-title"
-        onClose={onClose}
-        closeDisabled={saving}
-      />
+    <section className="route-page-workflow" aria-labelledby="route-proposal-title">
+      <header className="routes-page__heading route-workflow-heading"><div><span className="route-eyebrow">Planificación operativa</span><h1 id="route-proposal-title">Generar propuesta automática</h1><p>Configura un borrador base y recibe una propuesta editable. Generar no guarda el orden ni publica la ruta.</p></div><Button onClick={onChangeMode} disabled={saving} leadingIcon={<ArrowRight aria-hidden="true" />}>Cambiar modo</Button></header>
+      <div className="route-workflow-card route-detail--proposal">
+      <WorkflowStepper label="Progreso de propuesta automática" steps={[{ label: "Datos base", state: "complete" }, { label: "Clientes", state: "complete" }, { label: "Restricciones", state: "current" }, { label: "Generar propuesta" }, { label: "Revisar y guardar" }]} />
       <form className="route-proposal-dialog__form" onSubmit={submit}>
+        <div className="route-info"><Info aria-hidden="true" /><div><strong>Generar no guarda ni publica</strong><p>El borrador técnico se prepara internamente al generar. Conservamos fecha, vendedor, clientes y restricciones si alguna operación falla.</p></div></div>
         {conflict && (
           <FormAlert>
             <strong>El borrador cambió</strong>
@@ -105,6 +101,7 @@ export function RouteProposalDialog({
         )}
         <RouteProposalControls
           route={route}
+          showCandidateSelection={route.points.length > 9}
           availabilityStart={availabilityStart}
           availabilityEnd={availabilityEnd}
           visits={visits}
@@ -116,16 +113,14 @@ export function RouteProposalDialog({
           onVisit={onVisit}
         />
         <footer>
-          <button
-            className="route-list__secondary"
-            type="button"
+          <Button
             onClick={onClose}
             disabled={saving}
           >
-            Cancelar
-          </button>
-          <button
-            className="route-list__primary"
+            Guardar y salir
+          </Button>
+          <Button
+            variant="primary"
             type="submit"
             disabled={
               saving ||
@@ -135,9 +130,9 @@ export function RouteProposalDialog({
             }
           >
             Generar propuesta
-          </button>
+          </Button>
         </footer>
-      </form>
-    </ModalSurface>
+      </form></div>
+    </section>
   );
 }

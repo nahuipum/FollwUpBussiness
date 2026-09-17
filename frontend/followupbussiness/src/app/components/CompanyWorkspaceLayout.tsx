@@ -1,4 +1,4 @@
-import { ClipboardList, ContactRound, LayoutDashboard, ListFilter, Map, MapPinned, Route, Settings, UserRound, Users } from "lucide-react";
+import { BriefcaseBusiness, ClipboardList, ContactRound, LayoutDashboard, ListFilter, Map, MapPinned, Route, Settings, UserRound, Users } from "lucide-react";
 import type { ReactNode } from "react";
 import { DashboardLayout, type DashboardNavigationItem } from "../../shared/layout/DashboardLayout";
 import { getSessionCompanyLabel, getSessionIdentity, logout } from "../../features/auth/auth";
@@ -13,7 +13,9 @@ type Props = {
   activeSection: CompanySection | SupervisorSection | SellerSection;
   workspace: "company" | "supervisor" | "seller";
   children: ReactNode;
+  pageLabel?: string;
 };
+const customerImportResultPath = /^\/company\/customer-imports\/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const companySections: Record<CompanySection, string> = {
   dashboard: "Resumen",
@@ -35,7 +37,7 @@ const supervisorSections: Record<SupervisorSection, string> = {
   settings: "Configuración",
 };
 
-export function CompanyWorkspaceLayout({ activeSection, workspace, children }: Props) {
+export function CompanyWorkspaceLayout({ activeSection, workspace, children, pageLabel }: Props) {
   const identity = getSessionIdentity();
   const companyName = getSessionCompanyLabel() ?? "Empresa";
   const isSupervisor = workspace === "supervisor"; const isSeller = workspace === "seller";
@@ -43,24 +45,31 @@ export function CompanyWorkspaceLayout({ activeSection, workspace, children }: P
     ? supervisorNavigation(activeSection as SupervisorSection)
     : companyNavigation(activeSection as CompanySection, identity?.roles.includes("COMPANY_ADMIN") ?? false);
 
+  const breadcrumbs = pageLabel === "Carga de clientes / Resultado"
+    ? [companyName, "Carga de clientes", "Resultado"]
+    : [companyName, pageLabel ?? (isSeller ? "Configuración" : isSupervisor ? supervisorSections[activeSection as SupervisorSection] : companySections[activeSection as CompanySection])];
   return (
     <DashboardLayout
       brand={<img className="dashboard-brand-logo" src={followUpLogo} alt="followUp Business" />}
       contextLabel={companyName}
       navigationLabel={isSeller ? "Vendedor" : isSupervisor ? "Supervisor" : "Empresa"}
       profile={{
-        initials: (identity?.displayName ?? "").slice(0, 2).toUpperCase(),
+        initials: initialsFor(identity?.displayName ?? ""),
         name: identity?.displayName ?? "",
         role: isSeller ? "Vendedor" : isSupervisor ? "Supervisor" : "Administradora de empresa",
         scopeLabel: companyName,
       }}
-      breadcrumbs={[companyName, isSeller ? "Configuración" : isSupervisor ? supervisorSections[activeSection as SupervisorSection] : companySections[activeSection as CompanySection]]}
+      breadcrumbs={breadcrumbs}
       onLogout={() => { void logout(); navigate("/", { replace: true }); }}
       navigation={navigation}
     >
       {children}
     </DashboardLayout>
   );
+}
+
+function initialsFor(displayName: string) {
+  return displayName.trim().split(/\s+/).slice(0, 2).map((part) => part[0] ?? "").join("").toUpperCase();
 }
 
 function companyNavigation(activeSection: CompanySection, canManage: boolean): DashboardNavigationItem[] {
@@ -102,7 +111,7 @@ function clientGroup(activeSection: string, managementPath: string, mapPath: str
     children: [
       { id: "clients-management", label: "Gestión de clientes", icon: <ListFilter />, active: window.location.pathname === managementPath, onSelect: () => navigate(managementPath) },
       ...(mapPath ? [{ id: "clients-map", label: "Mapa general", icon: <Map />, active: window.location.pathname === mapPath, onSelect: () => navigate(mapPath) }] : []),
-      ...(canManage ? [{ id: "clients-import", label: "Carga de clientes", icon: <ClipboardList />, active: window.location.pathname === "/company/customer-imports", onSelect: () => navigate("/company/customer-imports") }] : []),
+      ...(canManage ? [{ id: "clients-import", label: "Carga de clientes", icon: <BriefcaseBusiness />, active: window.location.pathname === "/company/customer-imports" || customerImportResultPath.test(window.location.pathname), onSelect: () => navigate("/company/customer-imports") }] : []),
     ],
   };
 }

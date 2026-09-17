@@ -1,11 +1,12 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import { useState } from "react";
 import { expect, test, vi } from "vitest";
 import { RouteOrderEditor } from "./RouteOrderEditor";
 import { moveDraggedRoutePoint, routeDragOriginStyle, routePointSortableId } from "../route-ordering";
 import type { Route } from "../types";
 
 vi.mock("../hooks/useRouteDirections", () => ({ useRouteDirections: () => ({ directions: null, loading: false, error: null, stale: false, retry: vi.fn() }) }));
-vi.mock("./RouteSequenceMap", () => ({ RouteSequenceMap: () => <div aria-label="Mapa de la ruta" /> }));
+vi.mock("./RouteSequenceMap", () => ({ RouteSequenceMap: ({ points }: { points: readonly { sequence: number; customerName: string | null }[] }) => <div aria-label="Mapa de la ruta">{points.map((point) => <span key={point.customerName}>{point.customerName}:{point.sequence}</span>)}</div> }));
 
 const baseRoute: Route = {
   id: "route-1", name: null, date: "2026-08-26", sellerId: "seller-1", status: "DRAFT", updatedAt: "2026-08-26T12:00:00Z", version: 1,
@@ -46,6 +47,20 @@ test("deshabilita el arrastre sin un identificador opaco y conserva las flechas"
   expect(screen.queryByRole("button", { name: "Reordenar Cliente inicio" })).toBeNull();
   fireEvent.click(screen.getAllByRole("button", { name: "Bajar Cliente inicio" }).at(-1)!);
   expect(move).toHaveBeenCalledWith(0, 1);
+});
+
+test("reordenar actualiza inmediatamente la numeración de los marcadores temporales", () => {
+  function Harness() {
+    const [route, setRoute] = useState(baseRoute);
+    const move = (index: number, direction: -1 | 1) => setRoute((current) => { const points = [...current.points].sort((a, b) => a.sequence - b.sequence); const [point] = points.splice(index, 1); if (point) points.splice(index + direction, 0, point); return { ...current, points: points.map((item, position) => ({ ...item, sequence: position + 1 })) }; });
+    return <RouteOrderEditor route={route} saving={false} onMove={move} onMoveTo={vi.fn()} previewEnabled={false} markerOnly />;
+  }
+  render(<Harness />);
+  const map = () => screen.getAllByLabelText("Mapa de la ruta").at(-1)!;
+  expect(map().textContent).toContain("Cliente inicio:1");
+  fireEvent.click(screen.getAllByRole("button", { name: "Bajar Cliente inicio" }).at(-1)!);
+  expect(map().textContent).toContain("Cliente inicio:2");
+  expect(map().textContent).toContain("Cliente final:1");
 });
 
 test("una única visita se identifica como inicio y final", () => {

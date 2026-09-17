@@ -40,8 +40,8 @@ export type RouteFilters = Readonly<{
 export type RouteSellerStatus = "INVITED" | "ACTIVE" | "INACTIVE";
 /** Kept with the bulk seller list so publishing never needs a seller request per route. */
 export type RouteSellerOption = Readonly<{ id: string; label: string; status?: RouteSellerStatus; territoryIds: readonly string[] }>;
-/** The territory ID is kept in memory solely to filter candidates; it is never rendered or submitted. */
-export type RouteCustomerOption = Readonly<{ id: string; label: string; territoryId: string | null; suggested: boolean }>;
+/** Territory and location stay in memory for candidate filtering and the planning map; neither is persisted or rendered as text. */
+export type RouteCustomerOption = Readonly<{ id: string; label: string; territoryId: string | null; suggested: boolean; location?: Readonly<{ latitude: number; longitude: number }> }>;
 export type RouteCustomerPage = Readonly<{ items: readonly RouteCustomerOption[]; page: RoutePage["page"] }>;
 export type CreateRouteVisit = Readonly<{ customerId: string; serviceDurationSeconds: number }>;
 export type CreateRouteInput = Readonly<{ date: string; sellerId: string; visits: readonly CreateRouteVisit[] }>;
@@ -60,5 +60,14 @@ export type RouteDirections = Readonly<{
 
 export type RouteOptimizationVisit = Readonly<{ customerId: string; serviceDurationSeconds: number; priority: number; windows: readonly Readonly<{ start: string; end: string }>[] }>;
 export type RouteOptimizationInput = Readonly<{ routeId: string; availability: Readonly<{ start: string; end: string }>; baseRouteVersion: number; visits: readonly RouteOptimizationVisit[] }>;
-export type RouteProposal = Readonly<{ proposalVersion: number; baseRouteVersion: number; orderedVisits: readonly Readonly<{ customerId: string; sequence: number }>[]; unassignedVisits: readonly Readonly<{ customerId: string; reason: "OUTSIDE_SHIFT" | "TIME_WINDOW_CONFLICT" | "UNREACHABLE" | "LIMIT_EXCEEDED" }>[]; optimality: "FEASIBLE" | "OPTIMAL" | "TIME_LIMIT" }>;
+export type RouteProposal = Readonly<{
+  proposalVersion: number;
+  baseRouteVersion: number;
+  orderedVisits: readonly Readonly<{ customerId: string; sequence: number }>[];
+  unassignedVisits: readonly Readonly<{ customerId: string; reason: "OUTSIDE_SHIFT" | "TIME_WINDOW_CONFLICT" | "UNREACHABLE" | "LIMIT_EXCEEDED" }>[];
+  totalTravelSeconds: number;
+  totalServiceSeconds: number;
+  totalDistanceMeters: number;
+  optimality: "FEASIBLE" | "OPTIMAL" | "TIME_LIMIT";
+}>;
 export type RouteProposalValidation = Readonly<{ availability?: string; windows: Readonly<Record<string, string>> }>;

@@ -10,3 +10,9 @@ test("normaliza la hora sin abrir un calendario", () => {
   fireEvent.change(field, { target: { value: "0930" } });
   expect(onValueChange).toHaveBeenCalledWith("09:30");
 });
+
+test("muestra el reloj decorativo solo cuando se solicita", () => {
+  const { container } = render(<TimeField label="Inicio de ventana" value="08:00" onValueChange={vi.fn()} variant="golden" showClockIcon />);
+  expect(container.querySelector(".time-field__clock")).toBeTruthy();
+  expect(screen.getByLabelText("Inicio de ventana").getAttribute("type")).toBe("text");
+});

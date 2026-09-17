@@ -12,7 +12,7 @@ beforeEach(() => state.request.mockReset());
 test("lista zonas con filtros contractuales y expone el conteo de vendedores", async () => {
   state.request.mockResolvedValue(new Response(JSON.stringify({ items: [territory], page: { page: 0, pageSize: 20, totalElements: 1, totalPages: 1 } }), { status: 200 }));
   const result = await listTerritories({ page: 0, pageSize: 20, search: "Lima", status: "ACTIVE" });
-  expect(state.request).toHaveBeenCalledWith("/territories?page=0&pageSize=20&search=Lima&status=ACTIVE", expect.objectContaining({ method: "GET", headers: { Authorization: "Bearer session" } }));
+  expect(state.request).toHaveBeenCalledWith("/territories?page=0&pageSize=20&search=Lima&status=ACTIVE", expect.objectContaining({ method: "GET", headers: { Authorization: "Bearer session" } }), { publishErrors: false });
   expect(result.page?.items[0]).toMatchObject({ assignedSellerCount: 3 });
 });
 
@@ -25,6 +25,6 @@ test("crea y actualiza sin boundary, con If-Match al editar", async () => {
   state.request.mockResolvedValue(new Response(null, { status: 200 }));
   const input = { name: "Lima Centro", code: "LIM", description: "Centro", status: "INACTIVE" as const };
   await createTerritory(input); await updateTerritory(territory, input);
-  expect(state.request).toHaveBeenNthCalledWith(1, "/territories", expect.objectContaining({ method: "POST", body: JSON.stringify({ name: "Lima Centro", code: "LIM", description: "Centro" }) }));
-  expect(state.request).toHaveBeenNthCalledWith(2, "/territories/territory-1", expect.objectContaining({ method: "PATCH", headers: expect.objectContaining({ "If-Match": "2" }), body: JSON.stringify({ name: "Lima Centro", code: "LIM", description: "Centro", status: "INACTIVE" }) }));
+  expect(state.request).toHaveBeenNthCalledWith(1, "/territories", expect.objectContaining({ method: "POST", body: JSON.stringify({ name: "Lima Centro", code: "LIM", description: "Centro" }) }), { publishErrors: false });
+  expect(state.request).toHaveBeenNthCalledWith(2, "/territories/territory-1", expect.objectContaining({ method: "PATCH", headers: expect.objectContaining({ "If-Match": "2" }), body: JSON.stringify({ name: "Lima Centro", code: "LIM", description: "Centro", status: "INACTIVE" }) }), { publishErrors: false });
 });

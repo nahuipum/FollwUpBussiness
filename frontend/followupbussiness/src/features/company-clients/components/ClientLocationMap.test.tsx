@@ -8,6 +8,8 @@ type MarkerInstance = {
   setLngLat: ReturnType<typeof vi.fn>;
   getLngLat: ReturnType<typeof vi.fn>;
   draggable: boolean;
+  anchor: "bottom";
+  element: HTMLElement;
 };
 const maps: Array<{ listeners: Record<string, Listener>; remove: ReturnType<typeof vi.fn>; center: [number, number]; zoom: number }> = [];
 const markers: MarkerInstance[] = [];
@@ -29,7 +31,9 @@ vi.mock("maplibre-gl", () => ({
     readonly setLngLat = vi.fn().mockReturnThis();
     readonly getLngLat = vi.fn(() => ({ lat: -12.2, lng: -77.2 }));
     readonly draggable: boolean;
-    constructor(options: { draggable: boolean }) { this.draggable = options.draggable; markers.push(this); }
+    readonly anchor: "bottom";
+    readonly element: HTMLElement;
+    constructor(options: { anchor: "bottom"; draggable: boolean; element: HTMLElement }) { this.anchor = options.anchor; this.draggable = options.draggable; this.element = options.element; markers.push(this); }
     addTo() { return this; }
     on(event: string, listener: () => void) { this.listeners[event] = listener; return this; }
   },
@@ -44,6 +48,9 @@ test("activa el mapa tras load, limita tras error y permite reintentar sin red",
 
   await waitFor(() => expect(maps).toHaveLength(1));
   const firstMap = maps.at(0);
+  expect(markers[0]?.anchor).toBe("bottom");
+  expect(markers[0]?.element.className).toBe("map-marker client-location-map__marker");
+  expect(markers[0]?.element.getAttribute("aria-hidden")).toBe("true");
   if (!firstMap) throw new Error("MapLibre no se inicializó");
   expect(state.setWorkerUrl).toHaveBeenCalledWith("/assets/maplibre-worker.js");
   expect(screen.getByRole("status").textContent).toContain("Cargando mapa");

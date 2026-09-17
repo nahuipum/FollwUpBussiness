@@ -7,9 +7,11 @@ vi.mock("../hooks/useRouteDirections", () => ({ useRouteDirections: () => ({ dir
 const route = { id: "route-1", name: "Norte", date: "2026-08-26", sellerId: "seller-1", status: "PUBLISHED" as const, points: [{ sequence: 2, customerName: null }, { sequence: 1, customerName: "Comercial Norte" }], updatedAt: "2026-08-26T11:00:00Z", version: 1 };
 test("muestra la secuencia y la vista de mapa en modo solo lectura", () => {
   render(<RouteDetailDialog target={route} route={route} sellerLabel="Ana" sellerAvailable onPublish={() => undefined} loading={false} error={null} canGenerateProposal={false} canPublish={false} onGenerateProposal={() => undefined} onRetry={() => undefined} onClose={() => undefined} />);
-  expect(screen.getByRole("heading", { name: "Visitas programadas" })).toBeTruthy();
-  expect(screen.getByText("Comercial Norte")).toBeTruthy(); expect(screen.getByText("Cliente no disponible")).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Secuencia de visitas" })).toBeTruthy();
+  expect(screen.getByText("Planificación del 26 de agosto de 2026")).toBeTruthy();
+  expect(screen.getAllByText("Comercial Norte").length).toBeGreaterThan(0); expect(screen.getAllByText("Cliente no disponible").length).toBeGreaterThan(0);
   expect(screen.queryByText("customer-1")).toBeNull(); expect(screen.queryByText("-12.04")).toBeNull();
+  expect(document.activeElement).toBe(screen.getByRole("button", { name: "Cerrar detalle" }));
 });
 test("ofrece generar propuesta sólo desde el detalle de un borrador autorizado", () => {
   const onGenerateProposal = vi.fn();

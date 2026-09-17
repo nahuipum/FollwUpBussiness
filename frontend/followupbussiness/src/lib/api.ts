@@ -12,11 +12,26 @@ export type ApiFieldError = Readonly<{
   code: string;
 }>;
 
+export type ApiErrorCode =
+  | "CORRELATION_ID_INVALID"
+  | "ROUTE_ENDPOINT_LOCATION_REQUIRED"
+  | "MULTIPLE_VISIT_TERRITORIES_NOT_SUPPORTED"
+  | "VISIT_TERRITORY_REQUIRED"
+  | "VISIT_TERRITORY_NOT_ASSIGNED_TO_SELLER"
+  | "SNAPSHOT_MISSING"
+  | "SNAPSHOT_INCOMPLETE"
+  | "SNAPSHOT_EXPIRED"
+  | "SNAPSHOT_STALE"
+  | "ROUTE_VERSION_CONFLICT"
+  | "JOURNEY_ALREADY_STARTED"
+  | "JOURNEY_STATE_UNAVAILABLE"
+  | "ROUTE_NOTIFICATION_UNAVAILABLE";
+
 export type ApiError = Readonly<{
   status: ApiErrorStatus;
   correlationId: string | null;
   fieldErrors: readonly ApiFieldError[];
-  code?: "CORRELATION_ID_INVALID" | "ROUTE_ENDPOINT_LOCATION_REQUIRED" | "MULTIPLE_VISIT_TERRITORIES_NOT_SUPPORTED" | "VISIT_TERRITORY_REQUIRED" | "VISIT_TERRITORY_NOT_ASSIGNED_TO_SELLER";
+  code?: ApiErrorCode;
 }>;
 
 export class ApiRequestObsoleteError extends Error {
@@ -89,13 +104,16 @@ export async function normalizeApiError(response: Response): Promise<ApiError | 
   const correlationId =
     safeCorrelationId(response.headers.get("X-Correlation-Id")) ??
     safeCorrelationId(problem?.correlationId);
-  const code = problem?.code === "CORRELATION_ID_INVALID" ||
-      problem?.code === "ROUTE_ENDPOINT_LOCATION_REQUIRED" ||
-      problem?.code === "MULTIPLE_VISIT_TERRITORIES_NOT_SUPPORTED" ||
-      problem?.code === "VISIT_TERRITORY_REQUIRED" ||
-      problem?.code === "VISIT_TERRITORY_NOT_ASSIGNED_TO_SELLER"
-    ? problem.code
-    : undefined;
+  const safeCodes = new Set<ApiErrorCode>([
+    "CORRELATION_ID_INVALID", "ROUTE_ENDPOINT_LOCATION_REQUIRED",
+    "MULTIPLE_VISIT_TERRITORIES_NOT_SUPPORTED", "VISIT_TERRITORY_REQUIRED",
+    "VISIT_TERRITORY_NOT_ASSIGNED_TO_SELLER", "SNAPSHOT_MISSING",
+    "SNAPSHOT_INCOMPLETE", "SNAPSHOT_EXPIRED", "SNAPSHOT_STALE",
+    "ROUTE_VERSION_CONFLICT", "JOURNEY_ALREADY_STARTED",
+    "JOURNEY_STATE_UNAVAILABLE", "ROUTE_NOTIFICATION_UNAVAILABLE",
+  ]);
+  const code = typeof problem?.code === "string" && safeCodes.has(problem.code as ApiErrorCode)
+    ? problem.code as ApiErrorCode : undefined;
   return {
     status: response.status as ApiErrorStatus,
     correlationId,

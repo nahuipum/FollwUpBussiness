@@ -62,3 +62,10 @@ test("golden navega con teclado, vuelve al disparador y se reposiciona dentro de
   expect(screen.getByRole("listbox", { name: "Territorios" }).style.maxHeight).not.toBe("");
   HTMLElement.prototype.getBoundingClientRect = original;
 });
+
+test("relaciona el error accesible con el disparador", () => {
+  render(<MultiSelect label="Vendedores" ariaLabel="Vendedores" value={[]} options={[]} onChange={() => undefined} invalid describedBy="seller-error" />);
+  const trigger = screen.getByRole("button", { name: "Vendedores" });
+  expect(trigger.getAttribute("aria-invalid")).toBe("true");
+  expect(trigger.getAttribute("aria-describedby")).toBe("seller-error");
+});

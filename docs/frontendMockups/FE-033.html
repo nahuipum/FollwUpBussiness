@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>followUp Business · FE-033 Configuración</title>
+  <link rel="stylesheet" href="assets/golden-system.css">
+  <script src="assets/golden-icons.js" defer></script>
+  <style>
+    /* Solo contenido. El margen exterior permite revisar la composición sin definir el shell de React. */
+    .settings-preview { max-width: 1296px; margin: 0 auto; padding: 30px 28px 48px; }
+    .settings-page { width: min(100%, 1240px); margin: 0 auto; }
+    .settings-page .page-head { margin-bottom: var(--space-5); }
+    .settings-page .page-head p { max-width: 660px; }
+    .settings-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); margin-bottom: var(--space-5); color: var(--text-muted); font-size: 12px; line-height: 16px; }
+    .settings-meta .meta-separator { width: 1px; height: 15px; background: var(--border); }
+    .settings-meta strong { color: var(--text-soft); font-weight: 700; }
+    .settings-layout { display: grid; grid-template-columns: minmax(0, 1.42fr) minmax(300px, .88fr); gap: var(--space-4); align-items: start; }
+    .settings-card { min-width: 0; padding: var(--space-5); }
+    .settings-card-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-5); }
+    .settings-card-head h2 { margin: 0 0 var(--space-1); font-size: 22px; line-height: 30px; }
+    .settings-card-head p { max-width: 580px; margin: 0; color: var(--text-muted); font-size: 13px; line-height: 20px; }
+    .settings-form { display: grid; gap: var(--space-5); }
+    .settings-section { display: grid; gap: var(--space-4); }
+    .settings-section + .settings-section { padding-top: var(--space-5); border-top: 1px solid var(--border); }
+    .settings-section-head h3 { margin: 0 0 var(--space-1); font-size: 16px; line-height: 24px; }
+    .settings-section-head p { margin: 0; color: var(--text-muted); font-size: 13px; line-height: 18px; }
+    .settings-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+    .settings-form fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+    .settings-form legend { padding: 0; }
+    .settings-form .control input { min-height: 42px; }
+    .settings-form .control input:disabled { color: var(--text-muted); cursor: default; }
+    .settings-form .control.is-disabled, .settings-form fieldset:disabled .control { background: var(--surface-muted); }
+    .settings-form .control.is-disabled:hover, .settings-form fieldset:disabled .control:hover { border-color: var(--control); }
+    .settings-form .control:has(input:disabled):focus-within { border-color: var(--control); box-shadow: none; }
+    .settings-form .control.is-error:focus-within { border-color: var(--danger); }
+    .settings-form input[type="time"] { min-width: 0; }
+    .settings-form input[type="number"] { appearance: textfield; }
+    .settings-form input[type="number"]::-webkit-inner-spin-button { opacity: 1; }
+    .settings-static { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+    .settings-static div { min-width: 0; padding: var(--space-3) var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-subtle); }
+    .settings-static dt { margin-bottom: var(--space-1); color: var(--text-muted); font-size: 12px; line-height: 16px; font-weight: 700; }
+    .settings-static dd { margin: 0; overflow-wrap: anywhere; color: var(--text-strong); font-size: 14px; line-height: 20px; font-weight: 700; }
+    .settings-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); padding-top: var(--space-5); border-top: 1px solid var(--border); }
+    .settings-actions p { max-width: 410px; margin: 0; color: var(--text-muted); font-size: 12px; line-height: 18px; }
+    .settings-actions .btn { white-space: nowrap; }
+    .policy-card { background: var(--surface); }
+    .policy-list { margin: 0; }
+    .policy-row { padding: var(--space-4) 0; border-top: 1px solid var(--border); }
+    .policy-row:first-child { padding-top: 0; border-top: 0; }
+    .policy-row dt { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); color: var(--text-soft); font-size: 13px; line-height: 18px; font-weight: 700; }
+    .policy-row dt strong { flex: 0 0 auto; color: var(--text-strong); font-size: 18px; line-height: 26px; }
+    .policy-row dd { max-width: 440px; margin: var(--space-1) 0 0; color: var(--text-muted); font-size: 13px; line-height: 19px; }
+    .policy-note { margin-top: var(--space-4); }
+    .policy-note p { margin: 0; }
+    .settings-alert { margin-bottom: var(--space-4); }
+    .settings-alert .alert-link { text-align: left; }
+    .settings-notice { display: flex; gap: var(--space-3); margin-bottom: var(--space-5); padding: var(--space-3) var(--space-4); border: 1px solid var(--brand-border); border-radius: var(--radius-md); color: var(--info); background: var(--info-bg); }
+    .settings-notice strong { display: block; }
+    .settings-notice p { margin: 2px 0 0; font-size: 13px; line-height: 18px; }
+    .settings-state-card { min-height: 350px; }
+    .settings-state-card .btn { margin-top: var(--space-1); }
+    .settings-skeleton { display: grid; gap: var(--space-5); width: 100%; }
+    .settings-skeleton .skeleton-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+    .settings-skeleton .skeleton-row span { height: 44px; border-radius: var(--radius-md); background: var(--surface-muted); }
+    .settings-skeleton .skeleton-heading { width: 45%; height: 25px; border-radius: var(--radius-sm); background: var(--surface-muted); }
+    .settings-skeleton .skeleton-line { width: 72%; height: 14px; border-radius: var(--radius-sm); background: var(--surface-muted); }
+    .settings-gap { margin-top: var(--space-5); padding: var(--space-4) var(--space-5); border: 1px dashed var(--control); border-radius: var(--radius-md); color: var(--text-muted); background: var(--surface-subtle); font-size: 12px; line-height: 18px; }
+    .settings-gap strong { display: block; margin-bottom: var(--space-1); color: var(--text-soft); font-size: 13px; }
+    .settings-gap p { margin: 0; }
+    .settings-gap p + p { margin-top: var(--space-2); }
+    .preview-toolbar { position: fixed; z-index: 90; right: var(--space-3); bottom: var(--space-3); display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); max-width: calc(100vw - 24px); padding: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-raised); box-shadow: var(--shadow-lg); }
+    .preview-toolbar label { color: var(--text-soft); font-size: 12px; font-weight: 700; }
+    .preview-toolbar select { min-height: 36px; max-width: min(280px, 53vw); padding: 0 var(--space-3); border: 1px solid var(--control); border-radius: var(--radius-sm); color: var(--text); background: var(--surface); }
+    .preview-toolbar .btn { min-height: 36px; }
+    body[data-guide="false"] .preview-toolbar { display: none; }
+    @media (max-width: 900px) { .settings-layout { grid-template-columns: 1fr; } }
+    @media (max-width: 620px) {
+      .settings-preview { padding: 24px 14px 100px; }
+      .settings-page .page-head { margin-bottom: 20px; }
+      .settings-card { padding: var(--space-4); }
+      .settings-card-head { margin-bottom: var(--space-4); }
+      .settings-card-head h2 { font-size: 20px; line-height: 28px; }
+      .settings-section { gap: var(--space-3); }
+      .settings-section + .settings-section { padding-top: var(--space-4); }
+      .settings-pair, .settings-static { grid-template-columns: 1fr; }
+      .settings-actions { align-items: stretch; flex-direction: column; padding-top: var(--space-4); }
+      .settings-actions .btn { width: 100%; }
+      .settings-meta .meta-separator { display: none; }
+      .preview-toolbar { left: var(--space-2); right: var(--space-2); bottom: var(--space-2); max-width: none; }
+      .preview-toolbar select { flex: 1; max-width: none; min-width: 0; }
+    }
+  </style>
+</head>
+<body data-states="unchanged pending validation-pair validation-order validation-window saving success save-error conflict loading refreshing load-error readonly forbidden" data-state="unchanged">
+  <!-- FE-033 define exclusivamente contenido. No se especifican sidebar, topbar, breadcrumb ni perfil compartidos.
+       Datos de ejemplo; los estados se inspeccionan con ?state=... y ?theme=dark. ?guide=0 oculta los controles de previsualización. -->
+  <main class="settings-preview" id="main-content">
+    <div class="settings-page">
+      <header class="page-head">
+        <div><span class="eyebrow">Workspace de empresa</span><h1>Configuración</h1><p>Consulta los parámetros de operación y las políticas vigentes de geocerca y ubicación de la empresa.</p></div>
+      </header>
+
+      <section class="panel state-card settings-state-card" aria-live="polite" data-show="loading">
+        <div class="settings-skeleton" aria-busy="true"><span class="sr-only">Cargando configuración</span><span class="skeleton-heading"></span><span class="skeleton-line"></span><div class="skeleton-row"><span></span><span></span></div><span class="skeleton-heading"></span><div class="skeleton-row"><span></span><span></span></div></div>
+      </section>
+      <section class="panel state-card settings-state-card danger" aria-labelledby="load-error-title" data-show="load-error">
+        <div><span class="state-icon"><svg class="icon"><use href="#i-alert"></use></svg></span><h2 id="load-error-title">Ocurrió un problema temporal</h2><p>No pudimos mostrar la configuración. Inténtalo de nuevo.</p><button class="btn btn-primary" type="button" data-go-state="loading">Reintentar</button></div>
+      </section>
+      <section class="panel state-card settings-state-card danger" aria-labelledby="forbidden-title" data-show="forbidden">
+        <div><span class="state-icon"><svg class="icon"><use href="#i-lock"></use></svg></span><h2 id="forbidden-title">No tienes permisos</h2><p>No tienes permiso para consultar la configuración de la empresa.</p></div>
+      </section>
+
+      <div data-show="unchanged pending validation-pair validation-order validation-window saving success save-error conflict refreshing readonly">
+        <div class="settings-meta" role="status"><span class="badge neutral" data-show="unchanged readonly">Sin cambios</span><span class="badge warning" data-show="pending validation-pair validation-order validation-window">Cambios pendientes</span><span class="badge info" data-show="saving refreshing">Actualizando</span><span class="badge success" data-show="success">Guardado</span><span class="badge danger" data-show="save-error">Error al guardar</span><span class="badge warning" data-show="conflict">Revisión requerida</span><span class="meta-separator" aria-hidden="true"></span><span><strong>Versión:</strong> <span data-show="success">8</span><span data-show="unchanged pending validation-pair validation-order validation-window saving save-error conflict refreshing readonly">7</span></span><span class="meta-separator" aria-hidden="true"></span><span data-show="unchanged pending validation-pair validation-order validation-window saving save-error conflict readonly">Última actualización: 10:42</span><span data-show="success">Última actualización: 10:45</span><span data-show="refreshing">Última actualización conocida: 10:42</span></div>
+
+        <div class="alert alert-info settings-alert" role="status" data-show="refreshing"><svg class="icon"><use href="#i-info"></use></svg><div><strong>Actualizando configuración</strong><p>Los valores mostrados podrían no estar vigentes. Espera la nueva versión antes de editar.</p></div></div>
+        <div class="alert alert-warning settings-alert" role="alert" data-show="conflict"><svg class="icon"><use href="#i-alert"></use></svg><div><strong>La configuración cambió en otra sesión</strong><p>No guardamos tus cambios. Recarga la versión vigente y revisa sus valores antes de volver a guardar.</p><div class="alert-actions"><button class="alert-link" type="button" data-go-state="refreshing">Recargar y revisar</button></div></div></div>
+        <div class="alert alert-danger settings-alert" role="alert" data-show="save-error"><svg class="icon"><use href="#i-alert"></use></svg><div><strong>No pudimos guardar los cambios</strong><p>La configuración no fue modificada. Revisa tu conexión e inténtalo de nuevo.</p></div></div>
+        <div class="alert alert-info settings-alert" role="status" data-show="success"><svg class="icon"><use href="#i-info"></use></svg><div><strong>Cambios guardados</strong><p>La configuración quedó actualizada. La siguiente edición usará la nueva versión.</p></div></div>
+        <div class="settings-notice" role="status" data-show="readonly"><svg class="icon"><use href="#i-eye"></use></svg><div><strong>Vista de solo lectura</strong><p>Puedes consultar los parámetros. Solo administración de empresa puede guardar cambios.</p></div></div>
+
+        <div class="settings-layout" data-stale-in="refreshing conflict">
+          <section class="panel settings-card" aria-labelledby="operational-title">
+            <header class="settings-card-head"><div><h2 id="operational-title">Configuración operativa</h2><p>La jornada se usa para planificar rutas. El plazo determina durante cuánto tiempo puede corregirse una venta registrada.</p></div><span class="badge info" data-show="unchanged pending validation-pair validation-order validation-window saving success save-error conflict refreshing">Editable</span><span class="badge neutral" data-show="readonly">Solo consulta</span></header>
+            <form class="settings-form" novalidate>
+              <section class="settings-section" aria-labelledby="planning-title"><div class="settings-section-head"><h3 id="planning-title">Jornada de planificación</h3><p>Define inicio y fin como una pareja. No hay un horario predeterminado.</p></div>
+                <fieldset data-disable-in="saving refreshing conflict readonly"><legend class="sr-only">Horario de planificación</legend><div class="settings-pair">
+                  <div class="field"><label for="start">Inicio de la jornada</label><div class="control" data-error-in="validation-order"><input id="start" type="time" step="60" data-state-value data-value-pending="08:00" data-value-validation-pair="08:00" data-value-validation-order="18:00" data-value-validation-window="08:00" data-value-saving="08:00" data-value-success="08:00" data-value-save-error="08:00" data-value-conflict="08:00" data-value-refreshing="08:00" aria-describedby="planning-help"></div></div>
+                  <div class="field"><label for="end">Fin de la jornada</label><div class="control" data-error-in="validation-pair validation-order"><input id="end" type="time" step="60" data-state-value data-value-pending="18:00" data-value-validation-order="08:00" data-value-validation-window="18:00" data-value-saving="18:00" data-value-success="18:00" data-value-save-error="18:00" data-value-conflict="18:00" data-value-refreshing="18:00" aria-describedby="planning-help"></div></div>
+                </div></fieldset>
+                <p id="planning-help" class="field-help" data-show="unchanged pending validation-window saving success save-error conflict refreshing readonly">Ambos horarios deben quedar vacíos o completos; el inicio debe ser anterior al fin.</p>
+                <p id="pair-error" class="field-error" role="alert" data-show="validation-pair">Completa el inicio y el fin de la jornada.</p>
+                <p id="order-error" class="field-error" role="alert" data-show="validation-order">El inicio de la jornada debe ser anterior al fin.</p>
+              </section>
+              <section class="settings-section" aria-labelledby="sales-title"><div class="settings-section-head"><h3 id="sales-title">Corrección de ventas</h3><p>Plazo para corregir una venta registrada.</p></div><div class="field"><label for="sale-window">Plazo en minutos</label><div class="control" data-error-in="validation-window"><input id="sale-window" type="number" min="0" max="10080" step="1" value="30" data-value-validation-window="10081" data-disable-in="saving refreshing conflict readonly" aria-describedby="window-help"></div><p class="field-help" id="window-help" data-show="unchanged pending validation-pair validation-order saving success save-error conflict refreshing readonly">Número entero de 0 a 10 080 minutos.</p><p id="window-error" class="field-error" role="alert" data-show="validation-window">El plazo debe ser un número entero entre 0 y 10 080 minutos.</p></div></section>
+              <section class="settings-section" aria-labelledby="company-data-title"><div class="settings-section-head"><h3 id="company-data-title">Datos de la empresa</h3><p>Se consultan aquí; la pantalla actual no permite cambiarlos.</p></div><dl class="settings-static"><div><dt>Zona horaria</dt><dd>America/Lima</dd></div><div><dt>Moneda</dt><dd>PEN</dd></div></dl></section>
+              <footer class="settings-actions" data-show="unchanged pending validation-pair validation-order validation-window saving success save-error conflict refreshing"><p>Los cambios se guardan sobre la versión consultada. Si otra sesión la actualiza, tendrás que recargar y revisar.</p><button class="btn btn-primary" type="button" data-go-state="saving" data-disable-in="unchanged validation-pair validation-order validation-window saving conflict refreshing success"><span data-show="unchanged pending validation-pair validation-order validation-window success save-error conflict refreshing">Guardar cambios</span><span data-show="saving"><span class="spinner" aria-hidden="true"></span> Guardando…</span></button></footer>
+            </form>
+          </section>
+          <aside class="panel settings-card policy-card" aria-labelledby="policy-title"><header class="settings-card-head"><div><h2 id="policy-title">Geocerca y tracking</h2><p>Políticas vigentes del MVP. Son informativas y no se editan en esta pantalla.</p></div><span class="badge neutral">Política vigente</span></header><dl class="policy-list">
+            <div class="policy-row"><dt>Radio de geocerca <strong>100 m</strong></dt><dd>El servidor usa este radio para validar la proximidad de una visita.</dd></div>
+            <div class="policy-row"><dt>Frecuencia de captura <strong>60 s</strong></dt><dd>Se toma una muestra cada 60 segundos únicamente durante la jornada activa.</dd></div>
+            <div class="policy-row"><dt>Retención de ubicación <strong>90 días</strong></dt><dd>El historial exacto aceptado se elimina físicamente al vencer este plazo.</dd></div>
+          </dl><div class="alert alert-info policy-note"><svg class="icon"><use href="#i-info"></use></svg><div><strong>Privacidad de ubicación</strong><p>Esta pantalla solo muestra la política. No presenta coordenadas, personas ni ubicaciones actuales.</p></div></div></aside>
+        </div>
+      </div>
+
+      <aside class="settings-gap" aria-label="Brechas funcionales pendientes"><strong>Anotación del mockup · no es UI de producto</strong><p><b>Confirmación:</b> la historia dice “Confirma”, pero no define si exige aprobación previa. Hoy el formulario envía el PATCH directamente; solo hay acuse de resultado. Queda pendiente aclarar ese criterio antes de agregar otro flujo.</p><p><b>Auditoría:</b> el backend registra <code>COMPANY_SETTINGS_UPDATED</code>; esta pantalla no consulta ni muestra historial. Falta definir si la auditoría debe verse aquí y con qué acceso.</p><p><b>Permisos:</b> el contrato y backend permiten GET a <code>COMPANY_ADMIN</code>, <code>SUPERVISOR</code> y <code>SELLER</code>; la página React actual deniega <code>SELLER</code>. La discrepancia queda abierta y este mockup no cambia permisos.</p><p><b>Radio configurable:</b> RN-006 habla de configuración por empresa, mientras ADR-016 y el contrato fijan 100 m para el MVP. Aquí se refleja la política vigente; el alcance futuro requiere definición.</p></aside>
+    </div>
+  </main>
+  <aside class="preview-toolbar" aria-label="Controles de previsualización del mockup"><label for="state">Estado</label><select id="state" aria-label="Elegir estado de Configuración"></select><button class="btn btn-icon btn-compact" type="button" id="theme-toggle" aria-label="Cambiar tema" title="Cambiar tema"><svg class="icon"><use href="#i-moon"></use></svg></button></aside>
+  <script src="assets/golden-states.js"></script>
+  <script>
+    (() => {
+      const body = document.body;
+      const labels = { unchanged: "Sin cambios", pending: "Cambios pendientes", "validation-pair": "Validación · pareja", "validation-order": "Validación · orden", "validation-window": "Validación · plazo", saving: "Guardando", success: "Éxito", "save-error": "Error al guardar", conflict: "Conflicto de versión", loading: "Carga inicial", refreshing: "Actualización", "load-error": "Error de carga", readonly: "Solo lectura · supervisor", forbidden: "Acceso denegado" };
+      const selector = document.querySelector("#state");
+      selector.replaceChildren(...Object.entries(labels).map(([value, label]) => { const option = document.createElement("option"); option.value = value; option.textContent = label; option.selected = value === body.dataset.state; return option; }));
+      selector.addEventListener("change", () => { const url = new URL(location.href); url.searchParams.set("state", selector.value); location.href = url.toString(); });
+      document.querySelector("#theme-toggle").addEventListener("click", () => { const url = new URL(location.href); url.searchParams.set("theme", body.dataset.theme === "dark" ? "light" : "dark"); location.href = url.toString(); });
+      document.querySelectorAll("[data-go-state]").forEach(button => button.addEventListener("click", () => { const url = new URL(location.href); url.searchParams.set("state", button.dataset.goState); location.href = url.toString(); }));
+      document.querySelectorAll("fieldset[data-disable-in]").forEach(fieldset => { fieldset.disabled = fieldset.dataset.disableIn.split(/\s+/).includes(body.dataset.state); });
+      document.querySelectorAll(".control[data-error-in]").forEach(control => { const invalid = control.dataset.errorIn.split(/\s+/).includes(body.dataset.state); control.classList.toggle("is-error", invalid); control.querySelector("input")?.setAttribute("aria-invalid", String(invalid)); });
+      const planningError = { "validation-pair": "pair-error", "validation-order": "order-error" }[body.dataset.state];
+      if (planningError) { document.querySelector("#start").setAttribute("aria-describedby", planningError); document.querySelector("#end").setAttribute("aria-describedby", planningError); }
+      if (body.dataset.state === "validation-window") document.querySelector("#sale-window").setAttribute("aria-describedby", "window-error");
+      document.querySelectorAll("input[data-value-validation-window]").forEach(input => { if (body.dataset.state === "validation-window") input.value = input.dataset.valueValidationWindow; });
+      document.querySelectorAll("input[data-disable-in]").forEach(input => { input.disabled = input.dataset.disableIn.split(/\s+/).includes(body.dataset.state); });
+      if (body.dataset.state === "readonly") document.querySelectorAll(".settings-form input").forEach(input => { input.disabled = true; });
+      if (new URLSearchParams(location.search).get("guide") !== "0") body.dataset.guide = "true";
+    })();
+  </script>
+</body>
+</html>

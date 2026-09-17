@@ -1,4 +1,5 @@
-import { Search } from "lucide-react";
+import { DataTableToolbar, SearchField } from "../../../shared/ui/DataTableWorkspace";
+import { FilterField } from "../../../shared/ui/FilterField";
 import { VisualSelect } from "../../../shared/ui/VisualSelect";
 
 type Props<T extends string> = {
@@ -15,8 +16,7 @@ function Filter<T extends string>({
   onChange,
 }: Props<T>) {
   return (
-    <div className="filter-field">
-      <span>{label}</span>
+    <FilterField label={label}>
       <VisualSelect
         variant="golden"
         ariaLabel={label}
@@ -24,7 +24,7 @@ function Filter<T extends string>({
         options={values.map((value) => ({ value, label: value }))}
         onChange={onChange}
       />
-    </div>
+    </FilterField>
   );
 }
 
@@ -46,16 +46,14 @@ export function CompanyUsersFilters({
   ) => void;
 }) {
   return (
-    <div className="company-users__toolbar">
-      <label className="company-users__search">
-        <span>Buscar por nombre o correo</span>
-        <div className="company-users__search-control"><Search aria-hidden="true" /><input
-          type="search"
-          value={query}
-          onChange={(event) => onQueryChange(event.target.value)}
-          placeholder="Nombre o correo"
-        /></div>
-      </label>
+    <DataTableToolbar filterCount={2}>
+      <SearchField
+        id="company-user-search"
+        label="Buscar por nombre o correo"
+        value={query}
+        onChange={onQueryChange}
+        placeholder="Nombre o correo"
+      />
       <Filter
         label="Rol"
         values={["Todos", "Administrador", "Supervisor"]}
@@ -110,6 +108,6 @@ export function CompanyUsersFilters({
           )
         }
       />
-    </div>
+    </DataTableToolbar>
   );
 }

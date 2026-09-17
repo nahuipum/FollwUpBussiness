@@ -1,4 +1,5 @@
-import { Search } from "lucide-react";
+import { DataTableToolbar, SearchField } from "../../../shared/ui/DataTableWorkspace";
+import { FilterField } from "../../../shared/ui/FilterField";
 import { VisualSelect } from "../../../shared/ui/VisualSelect";
 import type { SellerStatus } from "../types";
 
@@ -28,22 +29,15 @@ export function SellerFilters({
   onTerritoryChange: (value: string | null) => void;
 }) {
   return (
-    <div className="seller-list__toolbar">
-      <div className="seller-list__search-field">
-        <label htmlFor="seller-search">Buscar por nombre, correo o código</label>
-        <div className="seller-list__search">
-          <Search aria-hidden="true" />
-          <input
-            id="seller-search"
-            type="search"
-            value={query}
-            onChange={(event) => onQueryChange(event.target.value)}
-            placeholder="Nombre, correo o código"
-          />
-        </div>
-      </div>
-      <div className="filter-field">
-        <span>Supervisor</span>
+    <DataTableToolbar filterCount={3}>
+      <SearchField
+        id="seller-search"
+        label="Buscar por nombre, correo o código"
+        value={query}
+        onChange={onQueryChange}
+        placeholder="Nombre, correo o código"
+      />
+      <FilterField label="Supervisor">
         <VisualSelect
           variant="golden"
           ariaLabel="Supervisor"
@@ -56,9 +50,8 @@ export function SellerFilters({
             onSupervisorChange(value === "ALL" ? null : value)
           }
         />
-      </div>
-      <div className="filter-field">
-        <span>Zona/territorio</span>
+      </FilterField>
+      <FilterField label="Zona/territorio">
         <VisualSelect
           variant="golden"
           ariaLabel="Zona / territorio"
@@ -71,9 +64,8 @@ export function SellerFilters({
             onTerritoryChange(value === "ALL" ? null : value)
           }
         />
-      </div>
-      <div className="filter-field">
-        <span>Estado</span>
+      </FilterField>
+      <FilterField label="Estado">
         <VisualSelect
           variant="golden"
           ariaLabel="Estado"
@@ -88,7 +80,7 @@ export function SellerFilters({
             onStatusChange(value === "ALL" ? null : (value as SellerStatus))
           }
         />
-      </div>
-    </div>
+      </FilterField>
+    </DataTableToolbar>
   );
 }

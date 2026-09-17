@@ -113,24 +113,20 @@ for (const viewport of [
       page.getByRole("heading", { name: "Clientes", exact: true }),
     ).toBeVisible();
     await expect(
-      page.getByLabel("Buscar cliente por nombre o segmento"),
+      page.getByLabel("Buscar por nombre o segmento"),
     ).toBeVisible();
     await expect(page.getByLabel("Sin visita desde")).toHaveCSS(
       "border-radius",
-      "10px",
+      "12px",
     );
     await expect(page.getByLabel("Sin compra desde")).toHaveCSS(
       "min-height",
-      "43px",
+      "44px",
     );
     if (viewport.name === "desktop") {
       const controls = [
-        page.locator(".client-list__search"),
-        page.getByLabel("Zona"),
-        page.getByLabel("Vendedor"),
-        page.getByLabel("Estado"),
-        page.getByLabel("Sin visita desde"),
-        page.getByLabel("Sin compra desde"),
+        page.locator('[data-ui="search-field"]'),
+        ...await page.locator('[data-ui="filter-field"]').all(),
       ];
       const tops = await Promise.all(
         controls.map(async (control) =>
@@ -142,7 +138,7 @@ for (const viewport of [
     await page.getByLabel("Sin visita desde").click();
     await expect(
       page.getByRole("dialog", { name: "Calendario de Sin visita desde" }),
-    ).toHaveCSS("border-radius", "14px");
+    ).toHaveCSS("border-radius", "16px");
     await page.screenshot({
       path: `test-results/visual/client-filters-${viewport.name}.png`,
       fullPage: true,

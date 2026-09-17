@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>followUp Business · FE-010 Mapa general de clientes</title>
+  <link rel="stylesheet" href="assets/golden-system.css">
+  <script src="assets/golden-icons.js" defer></script>
+  <style>
+    /* Solo composición propia de FE-010: mapa/lista, marcadores, popup y responsive. */
+    .company-sidebar { overflow: hidden; }
+    .sidebar-nav-region { min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+    .company-sidebar .sidebar-brand { flex: 0 0 auto; }
+    .company-sidebar .sidebar-context { margin-top: -14px; }
+    .company-sidebar .nav { gap: var(--space-1); }
+    .company-sidebar .nav-item,
+    .nav-group-trigger { width: 100%; min-height: 42px; display: flex; align-items: center; gap: 11px; padding: 9px 11px; border: 0; border-radius: 9px; color: var(--text-soft); background: transparent; font-weight: 600; text-align: left; text-decoration: none; }
+    .company-sidebar .nav-item:hover,
+    .nav-group-trigger:hover { color: var(--text-strong); background: var(--surface-subtle); }
+    .company-sidebar .nav-item.active,
+    .nav-group-trigger.active { color: var(--brand-strong); background: var(--brand-soft); }
+    .company-sidebar .nav-item[aria-disabled="true"] { color: var(--text-muted); cursor: default; opacity: .72; }
+    .nav-group-trigger .nav-chevron { width: 16px; height: 16px; margin-left: auto; transform: rotate(180deg); }
+    .nav-children { display: grid; gap: 2px; margin: 3px 0 5px 18px; padding-left: 12px; border-left: 1px solid var(--border); }
+    .nav-children .nav-item { min-height: 40px; padding: 8px 10px; font-size: 13px; }
+    .dashboard-profile-card { display: grid; flex: 0 0 auto; grid-template-columns: auto minmax(0, 1fr); gap: 4px 10px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-subtle); }
+    .dashboard-profile-card .avatar { grid-row: 1 / span 2; }
+    .dashboard-profile-card strong,
+    .dashboard-profile-card small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dashboard-profile-card strong { color: var(--text-strong); font-size: 13px; }
+    .dashboard-profile-card small { color: var(--text-muted); font-size: 12px; }
+    .dashboard-profile-card p { grid-column: 1 / -1; margin: 8px 0 0; padding-top: 9px; color: var(--text-muted); border-top: 1px solid var(--border); font-size: 12px; }
+    .sidebar-logout { grid-column: 1 / -1; width: 100%; margin-top: 5px; }
+    .top-profile-trigger { min-height: 44px; display: flex; align-items: center; gap: 9px; padding: 4px 7px; border: 0; border-radius: 10px; background: transparent; }
+    .top-profile-trigger:hover { background: var(--surface-subtle); }
+    .top-profile-trigger .nav-chevron { width: 16px; height: 16px; color: var(--text-muted); }
+    .mobile-backdrop { display: none; }
+
+    .map-page-head { margin-bottom: 20px; }
+    .map-page-head p { max-width: 760px; }
+    .map-page-head .page-updated { display: flex; align-items: center; gap: 7px; margin-top: 8px; color: var(--text-muted); font-size: 12px; }
+    .map-page-head .page-updated::before { width: 7px; height: 7px; border-radius: 50%; background: var(--success); box-shadow: 0 0 0 4px var(--success-bg); content: ""; }
+    .map-shell { position: relative; overflow: visible; }
+    .map-filterbar { grid-template-columns: minmax(260px, 1.35fr) repeat(3, minmax(150px, .72fr)); align-items: end; padding-bottom: 18px; }
+    .map-filterbar[aria-disabled="true"] { opacity: .66; pointer-events: none; }
+    .app-select { position: relative; min-width: 0; }
+    .app-select[open] .select-trigger { border-color: var(--brand); box-shadow: var(--ring); }
+    .app-select[open] .select-trigger .icon { transform: rotate(180deg); }
+    .select-trigger .icon { transition: transform .16s ease; }
+    .select-menu { position: fixed; z-index: 90; top: 0; left: 0; visibility: hidden; min-width: 184px; max-width: min(280px, calc(100vw - 24px)); display: grid; gap: 3px; padding: 6px; border: 1px solid var(--border); border-radius: 11px; background: var(--surface-raised); box-shadow: var(--shadow-md); }
+    .select-menu[data-positioned="true"] { visibility: visible; }
+    .select-option { width: 100%; min-height: 40px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 9px; border: 0; border-radius: var(--radius-sm); color: var(--text-soft); background: transparent; text-align: left; }
+    .select-option:hover,
+    .select-option:focus-visible,
+    .select-option.is-hover { color: var(--text-strong); background: var(--surface-muted); }
+    .select-option[aria-selected="true"] { color: var(--brand-strong); background: var(--brand-soft); font-weight: 700; }
+    .select-option[aria-selected="true"]::after { width: 7px; height: 12px; border: solid currentColor; border-width: 0 2px 2px 0; content: ""; transform: rotate(45deg); }
+    .date-trigger { width: 100%; min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); padding: 0 var(--space-3); color: var(--text-muted); border: 1px solid var(--control); border-radius: var(--radius-md); background: var(--surface); text-align: left; }
+    .date-trigger:hover { border-color: var(--text-muted); }
+    .date-trigger[aria-expanded="true"],
+    .date-trigger:focus-visible { border-color: var(--brand); box-shadow: var(--ring); }
+    .date-popover { position: fixed; z-index: 95; top: 0; left: 0; visibility: hidden; width: min(304px, calc(100vw - 24px)); padding: 14px; border: 1px solid var(--border); border-radius: var(--radius-lg); color: var(--text); background: var(--surface-raised); box-shadow: var(--shadow-lg); }
+    .date-popover[data-positioned="true"] { visibility: visible; }
+    .calendar-head,
+    .calendar-head div,
+    .calendar-foot { display: flex; align-items: center; }
+    .calendar-head { justify-content: space-between; gap: var(--space-3); }
+    .calendar-head strong { color: var(--text-strong); }
+    .calendar-head div { gap: var(--space-1); }
+    .calendar-head button { width: 34px; height: 34px; display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--radius-sm); color: var(--text-soft); background: transparent; }
+    .calendar-head button:hover { color: var(--brand-strong); background: var(--brand-soft); }
+    .calendar-weekdays,
+    .calendar-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .calendar-weekdays { margin: 12px 0 6px; }
+    .calendar-weekdays span { color: var(--text-muted); font-size: 11px; font-weight: 700; text-align: center; }
+    .calendar-days button { aspect-ratio: 1; padding: 0; border: 0; border-radius: 9px; color: var(--text-soft); background: transparent; font-size: 12px; }
+    .calendar-days button:hover,
+    .calendar-days button.is-hover { color: var(--brand-strong); background: var(--brand-soft); }
+    .calendar-days button[aria-pressed="true"] { color: #fff; background: var(--brand); font-weight: 700; }
+    .calendar-days .outside { opacity: .42; }
+    .calendar-foot { justify-content: space-between; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+    .calendar-foot button { min-height: 34px; padding: 0 9px; border: 0; border-radius: var(--radius-sm); color: var(--brand-strong); background: transparent; font-size: 12px; font-weight: 700; }
+    .calendar-foot button:disabled { cursor: not-allowed; opacity: .45; }
+    .read-only-notice { display: flex; align-items: flex-start; gap: var(--space-3); margin: 0 18px var(--space-4); padding: 12px 14px; color: var(--info); border: 1px solid var(--brand-border); border-radius: var(--radius-md); background: var(--info-bg); }
+    .read-only-notice strong { display: block; margin-bottom: 2px; }
+    .read-only-notice p { margin: 0; font-size: 13px; }
+    .map-shell > .alert { margin-top: 0; }
+    .active-filters { border-top: 1px solid var(--border); border-bottom: 0; padding-top: var(--space-3); }
+    .active-filters .btn { margin-left: auto; }
+
+    .map-workspace { display: grid; min-height: 520px; grid-template-columns: minmax(0, 1.7fr) minmax(300px, .62fr); overflow: hidden; border-top: 1px solid var(--border); }
+    .map-region { min-width: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); padding: 18px; border-right: 1px solid var(--border); }
+    .map-region-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); margin-bottom: 14px; }
+    .map-region-head h2,
+    .client-rail h2 { margin: 0; font-size: 17px; line-height: 24px; }
+    .map-region-head p,
+    .client-rail-head p { margin: 4px 0 0; color: var(--text-muted); font-size: 12px; line-height: 18px; }
+    .map-status { min-height: 28px; display: inline-flex; flex: 0 0 auto; align-items: center; gap: 7px; padding: 5px 9px; color: var(--success); border-radius: var(--radius-pill); background: var(--success-bg); font-size: 11px; font-weight: 700; }
+    .map-status::before { width: 6px; height: 6px; border-radius: 50%; background: currentColor; content: ""; }
+    .map-canvas { position: relative; min-height: 410px; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-muted); isolation: isolate; }
+    .map-canvas::before { position: absolute; inset: 0; opacity: .72; background-image: linear-gradient(31deg, transparent 46%, var(--border) 47%, var(--border) 49%, transparent 50%), linear-gradient(-24deg, transparent 46%, var(--border) 47%, var(--border) 49%, transparent 50%); background-size: 122px 88px, 154px 112px; content: ""; }
+    .map-canvas::after { position: absolute; inset: 13% 8%; z-index: -1; border: 24px solid var(--surface-subtle); border-radius: 42% 58% 36% 64%; content: ""; transform: rotate(-8deg); }
+    .map-water { position: absolute; inset: auto -8% -30% 46%; height: 72%; opacity: .62; border: 18px solid color-mix(in srgb, var(--brand-border) 60%, var(--surface)); border-radius: 52% 48% 0 0; transform: rotate(13deg); }
+    .map-controls { position: absolute; z-index: 5; top: var(--space-3); right: var(--space-3); display: grid; gap: 6px; }
+    .map-controls button { width: 38px; height: 38px; display: grid; place-items: center; padding: 0; border: 1px solid var(--border); border-radius: 10px; color: var(--text-soft); background: var(--surface); box-shadow: var(--shadow-sm); font-weight: 800; }
+    .map-jump-link { position: absolute; z-index: 8; top: 12px; left: 12px; padding: 8px 10px; color: var(--brand-strong); border-radius: var(--radius-sm); background: var(--surface); box-shadow: var(--shadow-md); font-size: 12px; font-weight: 700; text-decoration: none; transform: translateY(-180%); }
+    .map-jump-link:focus { transform: translateY(0); }
+    .marker-layer { position: absolute; inset: 0; z-index: 3; }
+    .map-marker { position: absolute; width: 34px; height: 38px; display: grid; place-items: center; padding: 0 0 5px; color: #fff; border: 0; background: transparent; filter: drop-shadow(0 5px 5px rgb(15 23 42 / 24%)); transform: translate(-50%, -100%); }
+    .map-marker::before { position: absolute; inset: 2px 3px 6px; z-index: -1; border: 3px solid var(--surface); border-radius: 50% 50% 50% 10%; background: var(--brand); content: ""; transform: rotate(-45deg); }
+    .map-marker::after { width: 7px; height: 7px; border-radius: 50%; background: currentColor; content: ""; }
+    .map-marker[data-status="inactive"] { color: var(--warning); }
+    .map-marker[data-status="inactive"]::before { border: 3px solid var(--warning); background: var(--surface); }
+    .map-marker:hover,
+    .map-marker.is-hover { z-index: 5; transform: translate(-50%, -100%) scale(1.14); }
+    .map-marker:focus-visible,
+    .map-marker.is-focus { z-index: 6; outline: 0; filter: drop-shadow(0 0 0 var(--surface)) drop-shadow(0 0 5px var(--brand)); transform: translate(-50%, -100%) scale(1.14); }
+    .map-marker[aria-pressed="true"] { z-index: 7; width: 43px; height: 47px; color: #fff; filter: drop-shadow(0 7px 8px rgb(15 23 42 / 30%)); }
+    .map-marker[aria-pressed="true"]::before { border-width: 4px; background: var(--brand-deep); box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand) 28%, transparent); }
+    .map-marker[aria-pressed="true"]::after { width: 9px; height: 9px; }
+    .map-marker.is-dense { width: 20px; height: 23px; padding-bottom: 3px; }
+    .map-marker.is-dense::before { inset: 1px 2px 4px; border-width: 2px; }
+    .map-marker.is-dense::after { width: 4px; height: 4px; }
+    .map-popup { position: absolute; z-index: 7; width: min(220px, calc(100% - 28px)); padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-lg); color: var(--text); background: var(--surface-raised); box-shadow: var(--shadow-lg); transform: translate(-50%, calc(-100% - 52px)); }
+    .map-popup::after { position: absolute; bottom: -7px; left: 50%; width: 13px; height: 13px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); background: var(--surface-raised); content: ""; transform: translateX(-50%) rotate(45deg); }
+    .map-popup strong { display: block; overflow: hidden; color: var(--text-strong); font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+    .map-popup p { margin: 3px 0 9px; color: var(--text-muted); font-size: 12px; }
+    .map-popup .badge { min-height: 24px; padding-block: 3px; }
+    .map-legend { position: absolute; z-index: 5; right: var(--space-3); bottom: 30px; display: flex; flex-wrap: wrap; gap: 10px; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-pill); color: var(--text-soft); background: var(--surface); box-shadow: var(--shadow-sm); font-size: 11px; }
+    .legend-item { display: inline-flex; align-items: center; gap: 6px; }
+    .legend-symbol { position: relative; width: 14px; height: 14px; border: 2px solid var(--surface); border-radius: 50% 50% 50% 10%; background: var(--brand); transform: rotate(-45deg); }
+    .legend-symbol.inactive { border-color: var(--warning); background: var(--surface); }
+    .legend-symbol.selected { background: var(--brand-deep); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 25%, transparent); }
+    .map-attribution { position: absolute; z-index: 5; right: 8px; bottom: 6px; padding: 2px 5px; color: var(--text-muted); border-radius: 5px; background: color-mix(in srgb, var(--surface) 92%, transparent); font-size: 9px; }
+    .map-inline-state { position: absolute; inset: 0; z-index: 9; display: grid; place-items: center; padding: var(--space-5); background: color-mix(in srgb, var(--surface) 94%, transparent); text-align: center; }
+    .map-inline-state > div { max-width: 390px; }
+    .map-inline-state .state-icon { margin-bottom: var(--space-3); }
+    .map-inline-state h3 { margin-bottom: var(--space-2); font-size: 17px; }
+    .map-inline-state p { margin-bottom: var(--space-4); color: var(--text-muted); font-size: 13px; }
+    .map-inline-state.loading { background: color-mix(in srgb, var(--surface) 76%, transparent); }
+    .map-inline-state.loading .state-icon { color: var(--brand-strong); background: var(--brand-soft); }
+    .map-empty-note { position: absolute; z-index: 6; top: 50%; left: 50%; width: min(390px, calc(100% - 36px)); padding: 13px 15px; color: var(--info); border: 1px solid var(--brand-border); border-radius: var(--radius-md); background: var(--info-bg); text-align: center; transform: translate(-50%, -50%); }
+
+    .client-rail { min-width: 0; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; background: var(--surface); }
+    .client-rail-head { position: sticky; top: 0; z-index: 2; display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); padding: 18px; border-bottom: 1px solid var(--border); background: var(--surface); }
+    .client-total { flex: 0 0 auto; padding: 5px 8px; color: var(--brand-strong); border-radius: var(--radius-pill); background: var(--brand-soft); font-size: 11px; font-weight: 800; }
+    .client-list-viewport { min-height: 0; max-height: 438px; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--control) transparent; }
+    .client-list { display: grid; gap: 8px; margin: 0; padding: 10px; list-style: none; }
+    .client-list-item { min-width: 0; }
+    .client-list-item button { width: 100%; min-height: 52px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 10px; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-md); color: var(--text-soft); background: var(--surface); text-align: left; }
+    .client-list-item button:hover,
+    .client-list-item button.is-hover { border-color: var(--brand-border); background: var(--surface-subtle); }
+    .client-list-item button:focus-visible,
+    .client-list-item button.is-focus { border-color: var(--brand); box-shadow: var(--ring); }
+    .client-list-item button[aria-pressed="true"] { color: var(--text-strong); border-color: var(--brand); background: var(--brand-soft); box-shadow: inset 3px 0 var(--brand); }
+    .client-list-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 700; }
+    .client-list-empty { display: grid; min-height: 250px; place-items: center; padding: var(--space-5); color: var(--text-muted); text-align: center; }
+    .client-rail-foot { min-height: 44px; display: flex; align-items: center; gap: 8px; padding: 10px 14px; color: var(--text-muted); border-top: 1px solid var(--border); background: var(--surface-subtle); font-size: 11px; }
+    .client-rail-foot .icon { color: var(--brand-strong); }
+    .map-refreshing { display: flex; align-items: center; gap: 8px; padding: 11px 18px; color: var(--info); border-top: 1px solid var(--border); font-size: 12px; font-weight: 700; }
+    .map-refreshing .spinner { width: 14px; height: 14px; }
+    .initial-loading { min-height: 510px; }
+    .initial-loading .skeleton-row { grid-template-columns: 1.6fr .7fr .7fr .7fr; }
+
+    @media (max-width: 1180px) {
+      .map-filterbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .map-filterbar .search { grid-column: 1 / -1; }
+      .map-workspace { grid-template-columns: minmax(0, 1.45fr) minmax(280px, .72fr); }
+    }
+    @media (max-width: 1060px) {
+      .company-sidebar { overflow-y: auto; }
+      .sidebar-nav-region { overflow: visible; }
+      body[data-nav="open"] .mobile-backdrop { position: fixed; inset: 0; z-index: 29; display: block; border: 0; background: var(--overlay); }
+      .map-workspace { grid-template-columns: 1fr; }
+      .map-region { border-right: 0; border-bottom: 1px solid var(--border); }
+      .client-list-viewport { max-height: 360px; }
+    }
+    @media (max-width: 620px) {
+      .top-left { flex: 1 1 auto; overflow: hidden; }
+      .top-profile-trigger { width: 44px; padding: 4px; }
+      .top-profile-trigger .nav-chevron { display: none; }
+      .app-main { padding-top: 28px; }
+      .map-page-head h1 { font-size: 27px; line-height: 34px; }
+      .map-filterbar { grid-template-columns: 1fr; padding: 14px; }
+      .map-filterbar .search { grid-column: auto; }
+      .read-only-notice { margin: 0 14px 14px; }
+      .active-filters { flex-wrap: nowrap; overflow-x: auto; padding: 12px 14px; }
+      .active-filters .btn { flex: 0 0 auto; margin-left: 0; }
+      .map-region { padding: 14px; }
+      .map-region-head { align-items: flex-start; flex-direction: column; }
+      .map-canvas { min-height: 330px; }
+      .map-legend { right: 10px; left: 10px; justify-content: center; border-radius: var(--radius-md); }
+      .client-rail-head { padding: 14px; }
+      .client-list-viewport { max-height: 360px; }
+      .map-popup { width: min(190px, calc(100% - 24px)); }
+      .state-card { min-height: 390px; padding: var(--space-5) var(--space-4); }
+      .initial-loading { min-height: 430px; }
+      .initial-loading .skeleton-row { grid-template-columns: 42px 1fr; }
+      .initial-loading .skeleton-row > :nth-child(n+3) { display: none; }
+    }
+    body[data-state^="mobile-"] { background: var(--surface-muted); }
+    body[data-state^="mobile-"] .app-shell { width: min(100%, 390px); min-height: 844px; grid-template-columns: 1fr; grid-template-rows: 68px minmax(0, 1fr); margin: 0 auto; background: var(--canvas); box-shadow: var(--shadow-lg); }
+    body[data-state^="mobile-"] .sidebar { position: fixed; left: 0; visibility: hidden; width: min(300px, 86vw); transform: translateX(-100%); }
+    body[data-state^="mobile-"][data-nav="open"] .sidebar { visibility: visible; transform: translateX(0); }
+    body[data-state^="mobile-"] .topbar,
+    body[data-state^="mobile-"] .app-main { grid-column: 1; }
+    body[data-state^="mobile-"] .topbar { padding: 0 14px; }
+    body[data-state^="mobile-"] .menu-control { display: grid; }
+    body[data-state^="mobile-"] .person-copy,
+    body[data-state^="mobile-"] .crumb span,
+    body[data-state^="mobile-"] .top-actions .icon-btn { display: none; }
+    body[data-state^="mobile-"] .top-profile-trigger { width: 44px; padding: 4px; }
+    body[data-state^="mobile-"] .top-profile-trigger .nav-chevron { display: none; }
+    body[data-state^="mobile-"] .app-main { padding: 28px 14px 36px; }
+    body[data-state^="mobile-"] .map-page-head { display: grid; gap: var(--space-4); margin-bottom: 20px; }
+    body[data-state^="mobile-"] .map-page-head h1 { font-size: 27px; line-height: 34px; }
+    body[data-state^="mobile-"] .map-filterbar { grid-template-columns: 1fr; padding: 14px; }
+    body[data-state^="mobile-"] .map-filterbar .search { grid-column: auto; }
+    body[data-state^="mobile-"] .map-workspace { grid-template-columns: 1fr; }
+    body[data-state^="mobile-"] .map-region { padding: 14px; border-right: 0; border-bottom: 1px solid var(--border); }
+    body[data-state^="mobile-"] .map-region-head { align-items: flex-start; flex-direction: column; }
+    body[data-state^="mobile-"] .map-canvas { min-height: 330px; }
+    body[data-state^="mobile-"] .map-legend { right: 10px; left: 10px; justify-content: center; border-radius: var(--radius-md); }
+    body[data-state^="mobile-"] .client-rail-head { padding: 14px; }
+    body[data-state^="mobile-"] .client-list-viewport { max-height: 360px; }
+    body[data-state^="mobile-"] .map-popup { width: min(190px, calc(100% - 24px)); }
+    body[data-state^="mobile-"] .mockup-guide { display: none; }
+    @media (prefers-reduced-motion: reduce) {
+      .select-trigger .icon,
+      .map-marker { transition: none !important; }
+    }
+  </style>
+</head>
+<body data-states="ready-admin ready-supervisor loading-initial refreshing filters-active no-results empty-admin empty-supervisor initial-error refresh-error-stale forbidden map-loading map-active map-provider-error map-unconfigured marker-active marker-inactive marker-selected client-selected-from-list client-selected-from-marker status-filter-open visit-date-open purchase-date-open long-list long-client-name mobile-ready mobile-client-selected mobile-map-provider-error dark-ready">
+  <!--
+    FE-010 · Inventario funcional preservado antes de dibujar
+    1. Consume la colección autorizada de clientes con id interno solo para sincronización, nombre, segmento, estado y punto geográfico.
+    2. Filtros reales: nombre/segmento, estado, sin visita desde y sin compra desde; no Zona ni Vendedor.
+    3. Mapa y lista nacen de la misma colección filtrada; no hay búsquedas locales divergentes.
+    4. Seleccionar en cualquiera enfoca marcador, resalta fila y abre el mismo contexto; limpiar revierte ambos.
+    5. Marcadores diferencian activo, inactivo, hover, foco y selección con forma, borde, escala e iconografía además de color.
+    6. La API acumula todas las páginas autorizadas (200 por petición); la lista alternativa se virtualiza y conserva scroll/selección.
+    7. Error inicial reemplaza resultados por un estado recuperable; error de actualización conserva datos stale y fecha conocida.
+    8. Fallo del proveedor solo degrada la región del mapa; filtros y lista permanecen funcionales.
+    9. Sin configuración, el mapa explica indisponibilidad sin revelar claves ni nombres técnicos; la lista permanece.
+    10. Administrador: solo clientes de la empresa actual; la UI no elige tenant ni amplía autoridad.
+    11. Supervisor: solo carteras vigentes de vendedores asignados; sin asignación recibe vacío, nunca ampliación.
+    12. El cambio de sesión/empresa/usuario invalida peticiones y limpia filtros, datos, fecha y selección al remontar la página.
+    13. El mapa/popup omite teléfono, email, documento, dirección completa, ids, sellerId, tenantId y coordenadas técnicas.
+    14. FE-008 y FE-010 deben compartir MapLibre, Geoapify, worker, estilo, atribución, tokens, carga/error/reintento; mantienen componentes de dominio distintos.
+
+    Estado: ?state=<estado>. Tema: &theme=dark. Guía: &guide=1.
+    long-list genera 120 clientes y marcadores sincronizados para validar volumen. El golden prescribe virtualización productiva, no paginación ni clustering.
+  -->
+  <div class="app-shell">
+    <aside id="company-sidebar" class="sidebar company-sidebar" aria-label="Navegación principal">
+      <a class="sidebar-brand brand-plate" href="/company/dashboard" aria-label="followUp Business, ir al resumen"><img class="brand-logo" src="assets/brand/followup-logo.png" alt=""></a>
+      <span class="sidebar-context">Comercial Andina</span>
+      <div class="sidebar-nav-region">
+        <p class="nav-label">Empresa</p>
+        <nav class="nav" aria-label="Secciones de la empresa">
+          <a class="nav-item" href="/company/dashboard"><svg class="icon"><use href="#i-grid"></use></svg>Resumen</a>
+          <a class="nav-item" href="/company/administrators-supervisors"><svg class="icon"><use href="#i-users"></use></svg>Administradores y supervisores</a>
+          <a class="nav-item" href="/company/sellers"><svg class="icon"><use href="#i-users"></use></svg>Vendedores</a>
+          <a class="nav-item" href="/company/territories"><svg class="icon"><use href="#i-pin"></use></svg>Zonas</a>
+          <section class="nav-group" aria-labelledby="clients-group-label">
+            <button id="clients-group-label" class="nav-group-trigger active" type="button" aria-expanded="true" aria-controls="clients-navigation" data-clients-toggle><svg class="icon"><use href="#i-client"></use></svg><span>Clientes</span><svg class="icon nav-chevron"><use href="#i-chevron"></use></svg></button>
+            <div id="clients-navigation" class="nav-children" role="group" aria-label="Opciones de Clientes">
+              <a class="nav-item" href="/company/clients"><svg class="icon"><use href="#i-client"></use></svg>Gestión de clientes</a>
+              <a class="nav-item active" href="/company/clients/map" aria-current="page"><svg class="icon"><use href="#i-map"></use></svg>Mapa general</a>
+              <a class="nav-item" href="/company/customer-imports"><svg class="icon"><use href="#i-empty"></use></svg>Carga de clientes</a>
+            </div>
+          </section>
+          <a class="nav-item" href="/company/customer-assignments"><svg class="icon"><use href="#i-client"></use></svg>Asignar cartera</a>
+          <a class="nav-item" href="/company/routes"><svg class="icon"><use href="#i-route"></use></svg>Rutas</a>
+          <span class="nav-item" aria-disabled="true"><svg class="icon"><use href="#i-report"></use></svg>Auditoría</span>
+          <a class="nav-item" href="/company/settings"><svg class="icon"><use href="#i-settings"></use></svg>Configuración</a>
+        </nav>
+      </div>
+      <section class="dashboard-profile-card" aria-label="Contexto de usuario"><span class="avatar">AM</span><span><strong>Alex Medina</strong><small data-profile-role>Administración de empresa</small></span><p>Comercial Andina</p><button class="btn btn-compact sidebar-logout" type="button"><svg class="icon icon-sm"><use href="#i-arrow"></use></svg>Cerrar sesión</button></section>
+    </aside>
+
+    <header class="topbar">
+      <div class="top-left"><button class="menu-control" type="button" data-nav-toggle aria-label="Abrir menú" aria-expanded="false" aria-controls="company-sidebar"><svg class="icon"><use href="#i-menu"></use></svg></button><nav class="crumb" aria-label="Breadcrumbs"><span>Comercial Andina</span><span aria-hidden="true">/</span><strong aria-current="page">Mapa general de clientes</strong></nav></div>
+      <div class="top-actions"><button class="theme-control" type="button" data-theme-toggle role="switch" aria-checked="false" aria-label="Activar modo oscuro"><svg class="icon"><use href="#i-moon"></use></svg></button><button class="icon-btn" type="button" aria-label="Notificaciones"><svg class="icon"><use href="#i-bell"></use></svg></button><button class="top-profile-trigger" type="button" aria-label="Opciones del perfil de Alex Medina" aria-haspopup="menu"><span class="avatar">AM</span><span class="person-copy"><strong>Alex Medina</strong><span data-profile-role>Administrador</span></span><svg class="icon nav-chevron"><use href="#i-chevron"></use></svg></button></div>
+    </header>
+
+    <main class="app-main" id="main-content">
+      <div class="page">
+        <header class="page-head map-page-head">
+          <div><span class="eyebrow">Cartera comercial</span><h1>Mapa general de clientes</h1><p>Consulta la ubicación registrada de los clientes autorizados sin exponer datos de contacto.</p><p class="page-updated" data-show="ready-admin ready-supervisor refreshing filters-active no-results refresh-error-stale map-loading map-active map-provider-error map-unconfigured marker-active marker-inactive marker-selected client-selected-from-list client-selected-from-marker status-filter-open visit-date-open purchase-date-open long-list long-client-name mobile-ready mobile-client-selected mobile-map-provider-error dark-ready">Última actualización: <time datetime="2026-09-14T15:11:00-05:00">hoy, 15:11</time></p></div>
+        </header>
+
+        <section class="panel map-shell" aria-label="Consulta geográfica de clientes">
+          <div class="filterbar map-filterbar" aria-label="Filtros del mapa de clientes" data-disable-in="loading-initial" data-filter-toolbar>
+            <div class="field search"><label for="client-search">Buscar por nombre o segmento</label><div class="control"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input id="client-search" type="search" maxlength="120" placeholder="Nombre o segmento" data-search-input></div></div>
+            <div class="field"><span id="status-filter-label">Estado</span><details class="app-select" data-open-state="status-filter-open"><summary class="select-trigger" aria-labelledby="status-filter-label" aria-haspopup="listbox" aria-expanded="false" aria-controls="status-filter-options"><span data-status-value>Todos</span><svg class="icon icon-sm"><use href="#i-chevron"></use></svg></summary><div id="status-filter-options" class="select-menu" role="listbox" aria-label="Estado"><button class="select-option" type="button" role="option" aria-selected="true">Todos</button><button class="select-option is-hover" type="button" role="option" aria-selected="false">Activo</button><button class="select-option" type="button" role="option" aria-selected="false">Inactivo</button></div></details></div>
+            <div class="field"><span id="visit-filter-label">Sin visita desde</span><button class="date-trigger" type="button" aria-labelledby="visit-filter-label" aria-haspopup="dialog" aria-expanded="false" data-date-trigger="visit" data-open-state="visit-date-open"><span data-date-value="visit">dd/mm/aaaa</span><svg class="icon icon-sm"><use href="#i-calendar"></use></svg></button></div>
+            <div class="field"><span id="purchase-filter-label">Sin compra desde</span><button class="date-trigger" type="button" aria-labelledby="purchase-filter-label" aria-haspopup="dialog" aria-expanded="false" data-date-trigger="purchase" data-open-state="purchase-date-open"><span data-date-value="purchase">dd/mm/aaaa</span><svg class="icon icon-sm"><use href="#i-calendar"></use></svg></button></div>
+          </div>
+
+          <aside class="read-only-notice" role="status" data-show="ready-supervisor"><svg class="icon"><use href="#i-eye"></use></svg><div><strong>Consulta de alcance asignado</strong><p>Como supervisor ves únicamente clientes de las carteras vigentes de tus vendedores asignados. Los filtros nunca amplían este alcance.</p></div></aside>
+
+          <div class="active-filters" data-show="filters-active no-results"><span>Filtros activos:</span><span class="chip">Estado: Activo ×</span><span class="chip">Sin visita: 10 ago ×</span><button class="btn btn-ghost btn-compact" type="button" data-go-state="ready-admin">Limpiar filtros</button></div>
+
+          <div class="alert alert-danger" role="alert" data-show="refresh-error-stale"><svg class="icon"><use href="#i-alert"></use></svg><div><strong>Ocurrió un problema temporal</strong><p>No pudimos actualizar los clientes. Conservamos la última versión disponible, que puede no estar vigente.</p><div class="alert-actions"><button class="alert-link" type="button" data-go-state="refreshing">Reintentar</button></div></div></div>
+
+          <div class="map-workspace" data-show="ready-admin ready-supervisor refreshing filters-active no-results refresh-error-stale map-loading map-active map-provider-error map-unconfigured marker-active marker-inactive marker-selected client-selected-from-list client-selected-from-marker status-filter-open visit-date-open purchase-date-open long-list long-client-name mobile-ready mobile-client-selected mobile-map-provider-error dark-ready" data-stale-in="refreshing refresh-error-stale">
+            <section class="map-region" aria-labelledby="map-region-title">
+              <header class="map-region-head"><div><h2 id="map-region-title">Mapa de clientes</h2><p>Las ubicaciones se muestran como registradas. Verifica su vigencia antes de usarlas como referencia operativa.</p></div><span class="map-status" role="status" data-show="ready-admin ready-supervisor filters-active no-results map-active marker-active marker-inactive marker-selected client-selected-from-list client-selected-from-marker status-filter-open visit-date-open purchase-date-open long-list long-client-name mobile-ready mobile-client-selected dark-ready">Mapa activo</span></header>
+              <div class="map-canvas" aria-label="Mapa general con los mismos clientes de la lista" role="region">
+                <a class="map-jump-link" href="#client-map-list">Saltar a la lista de clientes</a>
+                <span class="map-water" aria-hidden="true"></span>
+                <div class="map-controls" aria-label="Controles del mapa"><button type="button" aria-label="Acercar">+</button><button type="button" aria-label="Alejar">−</button><button type="button" aria-label="Centrar mapa"><svg class="icon icon-sm"><use href="#i-locate"></use></svg></button></div>
+                <div class="marker-layer" data-marker-layer></div>
+                <div class="map-legend" aria-label="Leyenda de marcadores"><span class="legend-item"><i class="legend-symbol"></i>Activo</span><span class="legend-item"><i class="legend-symbol inactive"></i>Inactivo</span><span class="legend-item"><i class="legend-symbol selected"></i>Seleccionado</span></div>
+                <span class="map-attribution">© OpenStreetMap contributors · Geoapify</span>
+                <div class="map-empty-note" role="status" data-show="no-results"><strong>No encontramos clientes con estos filtros.</strong><br>El mapa permanece disponible para una nueva búsqueda.</div>
+                <section class="map-inline-state loading" role="status" aria-live="polite" data-show="map-loading"><div><span class="state-icon"><span class="spinner" aria-hidden="true"></span></span><h3>Cargando mapa</h3><p>La lista ya está disponible mientras preparamos la vista geográfica.</p></div></section>
+                <section class="map-inline-state" role="status" data-show="map-provider-error mobile-map-provider-error"><div><span class="state-icon"><svg class="icon"><use href="#i-map"></use></svg></span><h3>No pudimos cargar el mapa</h3><p>La lista de clientes sigue disponible. Puedes seleccionar un cliente desde allí.</p><button class="btn btn-primary" type="button" data-go-state="map-loading">Reintentar mapa</button></div></section>
+                <section class="map-inline-state" role="status" data-show="map-unconfigured"><div><span class="state-icon"><svg class="icon"><use href="#i-map"></use></svg></span><h3>Mapa no disponible</h3><p>La vista geográfica no está habilitada en este momento. La lista de clientes permanece disponible.</p></div></section>
+              </div>
+            </section>
+
+            <section class="client-rail" id="client-map-list" aria-labelledby="client-list-title">
+              <header class="client-rail-head"><div><h2 id="client-list-title">Clientes en el mapa</h2><p>Selecciona uno para ubicarlo</p></div><span class="client-total" aria-live="polite" data-client-total>8</span></header>
+              <div class="client-list-viewport" role="list" aria-label="Clientes visibles en el mapa" tabindex="0" data-list-viewport><ul class="client-list" data-client-list></ul></div>
+              <footer class="client-rail-foot"><svg class="icon icon-sm"><use href="#i-info"></use></svg><span data-volume-note>La lista conserva selección y navegación por teclado.</span></footer>
+            </section>
+          </div>
+
+          <div class="map-refreshing" role="status" data-show="refreshing"><span class="spinner" aria-hidden="true"></span>Actualizando clientes; mantenemos los resultados anteriores mientras termina la consulta.</div>
+
+          <div class="initial-loading" role="status" aria-busy="true" data-show="loading-initial"><div class="table-title"><div><strong>Preparando mapa y lista</strong><span>Cargando clientes autorizados</span></div></div><div class="skeleton-list"><div class="skeleton-row"><i class="skeleton block"></i><i class="skeleton"></i><i class="skeleton"></i><i class="skeleton"></i></div><div class="skeleton-row"><i class="skeleton block"></i><i class="skeleton"></i><i class="skeleton"></i><i class="skeleton"></i></div><div class="skeleton-row"><i class="skeleton block"></i><i class="skeleton"></i><i class="skeleton"></i><i class="skeleton"></i></div><div class="skeleton-row"><i class="skeleton block"></i><i class="skeleton"></i><i class="skeleton"></i><i class="skeleton"></i></div></div><span class="sr-only">Cargando clientes autorizados</span></div>
+          <article class="state-card" data-show="empty-admin"><div><span class="state-icon"><svg class="icon"><use href="#i-empty"></use></svg></span><h2>Aún no hay clientes</h2><p>Cuando existan clientes de Comercial Andina aparecerán en este mapa.</p></div></article>
+          <article class="state-card" data-show="empty-supervisor"><div><span class="state-icon"><svg class="icon"><use href="#i-empty"></use></svg></span><h2>No hay clientes disponibles para tu equipo</h2><p>No tienes vendedores con carteras vigentes asignadas, o esas carteras aún no tienen clientes. Tu alcance no se amplió.</p></div></article>
+          <article class="state-card danger" role="alert" data-show="initial-error"><div><span class="state-icon"><svg class="icon"><use href="#i-alert"></use></svg></span><h2>No pudimos cargar los clientes</h2><p>No logramos obtener los clientes autorizados para el mapa. Reintenta en unos segundos.</p><button class="btn btn-primary" type="button" data-go-state="loading-initial">Reintentar</button></div></article>
+          <article class="state-card danger" role="alert" data-show="forbidden"><div><span class="state-icon"><svg class="icon"><use href="#i-shield"></use></svg></span><h2>No tienes permisos</h2><p>No tienes permiso para consultar el mapa de clientes en esta empresa.</p><button class="btn" type="button">Volver al resumen</button></div></article>
+        </section>
+      </div>
+    </main>
+    <button class="mobile-backdrop" type="button" data-nav-close aria-label="Cerrar menú"></button>
+  </div>
+
+  <div class="date-popover" role="dialog" aria-modal="false" aria-label="Calendario de Sin visita desde" data-show="visit-date-open" data-calendar="visit">
+    <header class="calendar-head"><strong>Agosto de 2026</strong><div><button type="button" aria-label="Mes anterior">‹</button><button type="button" aria-label="Mes siguiente">›</button></div></header><div class="calendar-weekdays" aria-hidden="true"><span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span></div><div class="calendar-days"><button class="outside" type="button">27</button><button class="outside" type="button">28</button><button class="outside" type="button">29</button><button class="outside" type="button">30</button><button class="outside" type="button">31</button><button type="button">1</button><button type="button">2</button><button type="button">3</button><button type="button">4</button><button type="button">5</button><button type="button">6</button><button type="button">7</button><button type="button">8</button><button type="button">9</button><button type="button" aria-pressed="true">10</button><button class="is-hover" type="button">11</button><button type="button">12</button><button type="button">13</button><button type="button">14</button><button type="button">15</button><button type="button">16</button><button type="button">17</button><button type="button">18</button><button type="button">19</button><button type="button">20</button><button type="button">21</button><button type="button">22</button><button type="button">23</button><button type="button">24</button><button type="button">25</button><button type="button">26</button><button type="button">27</button><button type="button">28</button><button type="button">29</button><button type="button">30</button><button type="button">31</button><button class="outside" type="button">1</button><button class="outside" type="button">2</button><button class="outside" type="button">3</button><button class="outside" type="button">4</button><button class="outside" type="button">5</button><button class="outside" type="button">6</button></div><footer class="calendar-foot"><button type="button">Borrar</button><button type="button">Hoy</button></footer>
+  </div>
+  <div class="date-popover" role="dialog" aria-modal="false" aria-label="Calendario de Sin compra desde" data-show="purchase-date-open" data-calendar="purchase">
+    <header class="calendar-head"><strong>Septiembre de 2026</strong><div><button type="button" aria-label="Mes anterior">‹</button><button type="button" aria-label="Mes siguiente">›</button></div></header><div class="calendar-weekdays" aria-hidden="true"><span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span></div><div class="calendar-days"><button class="outside" type="button">31</button><button type="button">1</button><button type="button">2</button><button type="button">3</button><button type="button">4</button><button type="button">5</button><button type="button">6</button><button type="button">7</button><button type="button">8</button><button type="button">9</button><button type="button">10</button><button type="button">11</button><button type="button" aria-pressed="true">12</button><button class="is-hover" type="button">13</button><button type="button">14</button><button type="button">15</button><button type="button">16</button><button type="button">17</button><button type="button">18</button><button type="button">19</button><button type="button">20</button><button type="button">21</button><button type="button">22</button><button type="button">23</button><button type="button">24</button><button type="button">25</button><button type="button">26</button><button type="button">27</button><button type="button">28</button><button type="button">29</button><button type="button">30</button><button class="outside" type="button">1</button><button class="outside" type="button">2</button><button class="outside" type="button">3</button><button class="outside" type="button">4</button></div><footer class="calendar-foot"><button type="button" disabled>Borrar</button><button type="button">Hoy</button></footer>
+  </div>
+
+  <aside class="mockup-guide" aria-label="Controles del mockup"><label for="state">Estado</label><select id="state" data-state-selector></select><button class="btn btn-icon btn-compact" type="button" data-theme-toggle aria-label="Cambiar tema"><svg class="icon"><use href="#i-moon"></use></svg></button></aside>
+  <script src="assets/golden-states.js"></script>
+  <script>
+    (function () {
+      "use strict";
+      const body = document.body;
+      const state = body.dataset.state || "ready-admin";
+      const supervisorStates = new Set(["ready-supervisor", "empty-supervisor"]);
+      const selectedStates = new Set(["marker-selected", "client-selected-from-list", "client-selected-from-marker", "mobile-client-selected"]);
+      const providerErrorStates = new Set(["map-provider-error", "mobile-map-provider-error"]);
+      const baseClients = [
+        { name: "Mercado Aurora", segment: "Minorista", status: "active", x: 48, y: 49 },
+        { name: "Botica Horizonte", segment: "Salud", status: "inactive", x: 66, y: 33 },
+        { name: "Distribuidora Cauce", segment: "Distribuidor", status: "active", x: 30, y: 30 },
+        { name: "Comercial Pinar", segment: "Mayorista", status: "active", x: 74, y: 65 },
+        { name: "Café Nube", segment: "Gastronomía", status: "active", x: 37, y: 69 },
+        { name: "Librería Central", segment: "Comercio", status: "inactive", x: 58, y: 74 },
+        { name: "Ferretería El Puente", segment: "Construcción", status: "active", x: 21, y: 52 },
+        { name: "Almacenes Rivera", segment: "Mayorista", status: "active", x: 82, y: 45 }
+      ];
+
+      let clients = baseClients;
+      if (state === "filters-active") clients = baseClients.filter(function (client) { return client.status === "active"; }).slice(0, 5);
+      if (state === "no-results") clients = [];
+      if (state === "long-client-name") clients = [{ name: "Distribuidora Internacional de Productos Naturales y Servicios Comerciales del Pacífico", segment: "Distribuidor", status: "active", x: 48, y: 49 }].concat(baseClients.slice(1));
+      if (state === "long-list") {
+        clients = Array.from({ length: 120 }, function (_, index) {
+          const source = baseClients[index % baseClients.length];
+          return {
+            name: `${source.name} · Sucursal ${String(index + 1).padStart(3, "0")}`,
+            segment: source.segment,
+            status: index % 7 === 0 ? "inactive" : "active",
+            x: 12 + ((index * 23) % 76),
+            y: 18 + ((index * 31) % 66)
+          };
+        });
+      }
+
+      const selectedIndex = selectedStates.has(state) ? 0 : -1;
+      const markerLayer = document.querySelector("[data-marker-layer]");
+      const list = document.querySelector("[data-client-list]");
+      const total = document.querySelector("[data-client-total]");
+      const volumeNote = document.querySelector("[data-volume-note]");
+      const viewport = document.querySelector("[data-list-viewport]");
+
+      function statusLabel(status) { return status === "active" ? "Activo" : "Inactivo"; }
+      function buildMarker(client, index) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "map-marker";
+        if (state === "long-list") button.classList.add("is-dense");
+        if (state === "marker-active" && index === 0) button.classList.add("is-hover");
+        if (state === "marker-inactive" && index === 1) button.classList.add("is-focus");
+        button.dataset.status = client.status;
+        button.style.left = `${client.x}%`;
+        button.style.top = `${client.y}%`;
+        button.setAttribute("aria-label", `Seleccionar ${client.name}, ${statusLabel(client.status)}`);
+        button.setAttribute("aria-pressed", String(index === selectedIndex));
+        button.addEventListener("click", function () { goToState("client-selected-from-marker"); });
+        if (index === selectedIndex) {
+          const popup = document.createElement("article");
+          popup.className = "map-popup";
+          popup.dataset.clientMapSelection = "true";
+          popup.style.left = `${client.x}%`;
+          popup.style.top = `${client.y}%`;
+          const strong = document.createElement("strong");
+          strong.textContent = client.name;
+          const segment = document.createElement("p");
+          segment.textContent = client.segment || "Sin segmento";
+          const badge = document.createElement("span");
+          badge.className = `badge ${client.status === "active" ? "success" : "warning"}`;
+          badge.textContent = statusLabel(client.status);
+          popup.append(strong, segment, badge);
+          markerLayer.append(popup);
+        }
+        markerLayer.append(button);
+      }
+      function buildListItem(client, index) {
+        const item = document.createElement("li");
+        item.className = "client-list-item";
+        item.setAttribute("role", "listitem");
+        const button = document.createElement("button");
+        button.type = "button";
+        button.setAttribute("aria-pressed", String(index === selectedIndex));
+        button.setAttribute("aria-label", `${client.name}, ${statusLabel(client.status)}`);
+        if (state === "client-selected-from-list" && index === 0) button.classList.add("is-focus");
+        const name = document.createElement("span");
+        name.className = "client-list-name";
+        name.textContent = client.name;
+        name.title = client.name;
+        const badge = document.createElement("span");
+        badge.className = `badge ${client.status === "active" ? "success" : "warning"}`;
+        badge.textContent = statusLabel(client.status);
+        button.append(name, badge);
+        button.addEventListener("click", function () { goToState("client-selected-from-list"); });
+        item.append(button);
+        list.append(item);
+      }
+      if (markerLayer && list) {
+        clients.forEach(function (client, index) { buildMarker(client, index); buildListItem(client, index); });
+      }
+      if (clients.length === 0 && list) {
+        const item = document.createElement("li");
+        item.className = "client-list-empty";
+        item.textContent = "No encontramos clientes con estos filtros.";
+        list.append(item);
+      }
+      if (total) {
+        total.textContent = String(clients.length);
+        total.setAttribute("aria-label", `${clients.length} clientes visibles`);
+      }
+      if (state === "long-list" && volumeNote) volumeNote.textContent = "120 clientes de prueba. En producción: ventana virtualizada, sin paginación.";
+      if (selectedStates.has(state) && viewport) viewport.scrollTop = 0;
+
+      if (supervisorStates.has(state)) {
+        document.querySelectorAll("[data-profile-role]").forEach(function (node) { node.textContent = node.closest(".dashboard-profile-card") ? "Supervisor de empresa" : "Supervisor"; });
+      }
+      if (state === "filters-active" || state === "no-results") {
+        const search = document.querySelector("[data-search-input]");
+        if (search instanceof HTMLInputElement) search.value = state === "no-results" ? "Cliente inexistente" : "Comercial";
+        const status = document.querySelector("[data-status-value]");
+        if (status) status.textContent = "Activo";
+        const visit = document.querySelector('[data-date-value="visit"]');
+        if (visit) visit.textContent = "10/08/2026";
+      }
+      if (state === "dark-ready") body.dataset.theme = "dark";
+      if (providerErrorStates.has(state) || state === "map-unconfigured") {
+        document.querySelectorAll(".marker-layer, .map-legend, .map-attribution, .map-controls").forEach(function (node) { node.hidden = true; });
+      }
+      if (state === "loading-initial") {
+        const toolbar = document.querySelector("[data-filter-toolbar]");
+        toolbar?.setAttribute("aria-disabled", "true");
+        toolbar?.querySelectorAll("input, button, summary").forEach(function (control) {
+          control.setAttribute("aria-disabled", "true");
+          if (control instanceof HTMLInputElement || control instanceof HTMLButtonElement) control.disabled = true;
+        });
+      }
+
+      function stateUrl(nextState) { const next = new URL(window.location.href); next.searchParams.set("state", nextState); return next; }
+      function goToState(nextState) { window.location.href = stateUrl(nextState).toString(); }
+      document.querySelectorAll("[data-go-state]").forEach(function (control) { control.addEventListener("click", function () { goToState(control.getAttribute("data-go-state") || "ready-admin"); }); });
+      document.querySelectorAll("[data-date-trigger]").forEach(function (control) { control.addEventListener("click", function () { goToState(control.getAttribute("data-open-state") || "ready-admin"); }); });
+
+      const openFilter = document.querySelector(`[data-open-state="${state}"]`);
+      if (openFilter instanceof HTMLDetailsElement) openFilter.open = true;
+      document.querySelectorAll("details.app-select").forEach(function (select) { const trigger = select.querySelector("summary"); const sync = function () { trigger?.setAttribute("aria-expanded", String(select.open)); }; sync(); select.addEventListener("toggle", sync); });
+      function placeFloating(element, anchor) {
+        if (!(element instanceof HTMLElement) || !(anchor instanceof HTMLElement)) return;
+        const bounds = anchor.getBoundingClientRect();
+        const width = Math.min(Math.max(bounds.width, element.offsetWidth || 184), window.innerWidth - 24);
+        element.style.width = `${width}px`;
+        const height = element.offsetHeight || 320;
+        const below = window.innerHeight - bounds.bottom - 12;
+        const above = bounds.top - 12;
+        const openAbove = below < height && above > below;
+        element.style.left = `${Math.max(12, Math.min(bounds.left, window.innerWidth - width - 12))}px`;
+        element.style.top = `${openAbove ? Math.max(12, bounds.top - height - 7) : Math.min(bounds.bottom + 7, window.innerHeight - height - 12)}px`;
+        element.dataset.positioned = "true";
+      }
+      if (openFilter instanceof HTMLDetailsElement) window.setTimeout(function () { placeFloating(openFilter.querySelector(".select-menu"), openFilter.querySelector("summary")); openFilter.querySelector(".select-option[aria-selected='true']")?.focus(); }, 0);
+      const activeCalendar = document.querySelector(`.date-popover[data-show~="${state}"]`);
+      if (activeCalendar instanceof HTMLElement) {
+        const trigger = document.querySelector(`[data-date-trigger="${activeCalendar.dataset.calendar}"]`);
+        trigger?.setAttribute("aria-expanded", "true");
+        window.setTimeout(function () { placeFloating(activeCalendar, trigger); activeCalendar.querySelector("button[aria-pressed='true']")?.focus(); }, 0);
+      }
+      document.querySelector("[data-clients-toggle]")?.addEventListener("click", function (event) {
+        const control = event.currentTarget;
+        if (!(control instanceof HTMLElement)) return;
+        const open = control.getAttribute("aria-expanded") !== "true";
+        control.setAttribute("aria-expanded", String(open));
+        const region = document.querySelector("#clients-navigation");
+        if (region instanceof HTMLElement) region.hidden = !open;
+      });
+      document.querySelector("[data-nav-close]")?.addEventListener("click", function () { body.dataset.nav = "closed"; });
+    })();
+  </script>
+</body>
+</html>

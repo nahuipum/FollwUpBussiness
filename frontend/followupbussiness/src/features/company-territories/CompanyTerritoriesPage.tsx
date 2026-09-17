@@ -1,9 +1,13 @@
-import { Plus, Search } from "lucide-react";
-import { getSessionIdentity } from "../auth/auth";
+import { Plus, Shield } from "lucide-react";
+import { navigate } from "../../app/navigation";
 import { AsyncStateCard } from "../../shared/ui/AsyncStateCard";
+import { Button } from "../../shared/ui/Button";
+import { DataTablePanel, DataTableResultsHeader } from "../../shared/ui/DataTableWorkspace";
 import { ReadOnlyNotice } from "../../shared/ui/ReadOnlyNotice";
 import { TableLoadingIndicator } from "../../shared/ui/TableLoadingIndicator";
-import { VisualSelect } from "../../shared/ui/VisualSelect";
+import { InlineAlert } from "../../shared/ui/error-ui/components";
+import { getSessionIdentity } from "../auth/auth";
+import { TerritoryFilters } from "./components/TerritoryFilters";
 import { TerritoryFormDialog } from "./components/TerritoryFormDialog";
 import { TerritoryTable } from "./components/TerritoryTable";
 import { useTerritoryForm } from "./hooks/useTerritoryForm";
@@ -16,13 +20,28 @@ export function CompanyTerritoriesPage() {
   const form = useTerritoryForm(territories.retry);
   const items = territories.result?.items ?? [];
   const filtered = Boolean(territories.search || territories.status);
+  const error = territories.error;
+
+  const header = <header className="territory-list__heading">
+    <div><span className="territory-list__eyebrow">Organización comercial</span><h1 id="territory-list-title">Zonas</h1><p>Consulta y organiza las zonas comerciales disponibles para el equipo de ventas.</p></div>
+    {canManage && error?.status !== 403 && <Button variant="primary" className="territory-list__create" leadingIcon={<Plus aria-hidden="true" />} onClick={() => form.open(null)}>Crear zona</Button>}
+  </header>;
+
+  if (error?.status === 403) return <section className="territory-list" aria-labelledby="territory-list-title">
+    {header}
+    <AsyncStateCard variant="golden" tone="error" icon={<Shield />} title="No tienes permisos" description="No tienes permiso para consultar las zonas de esta empresa." correlationId={error.correlationId} actionLabel="Volver al resumen" onAction={() => navigate("/company/dashboard")} />
+  </section>;
+
   return <section className="territory-list" aria-labelledby="territory-list-title">
-    <header className="territory-list__heading"><div><h1 id="territory-list-title">Zonas</h1><p>Consulta y organiza las zonas comerciales disponibles para el equipo de ventas.</p></div>{canManage && <button className="territory-list__primary" type="button" onClick={() => form.open(null)}><Plus aria-hidden="true" />Crear zona</button>}</header>
-    <section className="territory-list__card" aria-label="Listado de zonas">
-      <div className="territory-list__toolbar"><label className="territory-list__search"><Search aria-hidden="true" /><span className="sr-only">Buscar zonas</span><input value={territories.search} onChange={(event) => territories.changeSearch(event.target.value)} placeholder="Buscar por nombre o código" /></label><div className="filter-field"><span>Estado</span><VisualSelect ariaLabel="Estado" value={territories.status ?? "ALL"} options={[{ value: "ALL", label: "Todos" }, { value: "ACTIVE", label: "Activas" }, { value: "INACTIVE", label: "Inactivas" }]} onChange={(value) => territories.changeStatus(value === "ALL" ? null : value)} /></div></div>
-      {!canManage && <ReadOnlyNotice />}
-      {territories.error ? <AsyncStateCard tone="error" title={territories.error.status === 403 ? "No tienes permisos" : "Ocurrió un problema temporal"} description={territories.error.status === 403 ? "No tienes permiso para consultar zonas." : "No pudimos mostrar las zonas. Inténtalo más tarde."} actionLabel="Reintentar" onAction={territories.retry} /> : territories.loading && items.length === 0 ? <TableLoadingIndicator label="Cargando zonas" /> : items.length === 0 ? <AsyncStateCard title={filtered ? "No encontramos zonas" : "Aún no hay zonas"} description={filtered ? "Prueba con otros filtros o términos de búsqueda." : "Cuando existan zonas aparecerán en este listado."} {...(filtered ? { actionLabel: "Limpiar filtros", onAction: territories.clearFilters } : {})} /> : <><TerritoryTable territories={items} page={territories.page} pageSize={territories.pageSize} totalPages={territories.result?.page.totalPages ?? 0} totalElements={territories.result?.page.totalElements ?? items.length} lastUpdated={territories.lastUpdated} canManage={canManage} onPageChange={territories.goToPage} onPageSizeChange={territories.changePageSize} onEdit={form.open} />{territories.loading && <div className="territory-list__stale"><TableLoadingIndicator label="Actualizando zonas" compact /></div>}</>}
-    </section>
+    {header}
+    <DataTablePanel ariaLabel="Listado de zonas">
+      <TerritoryFilters search={territories.search} status={territories.status} onSearchChange={territories.changeSearch} onStatusChange={territories.changeStatus} />
+      {!canManage && <ReadOnlyNotice variant="golden" />}
+      {error && items.length === 0 ? <AsyncStateCard variant="golden" tone="error" title="Ocurrió un problema temporal" description="No pudimos mostrar las zonas. Inténtalo más tarde." correlationId={error.correlationId} actionLabel="Reintentar" onAction={territories.retry} /> : territories.loading && items.length === 0 ? <><DataTableResultsHeader description="Cargando zonas" /><TableLoadingIndicator variant="golden" columns={canManage ? 6 : 5} label="Cargando zonas" /></> : items.length === 0 ? <AsyncStateCard variant="golden" title={filtered ? "No encontramos zonas" : "Aún no hay zonas"} description={filtered ? "Cambia la búsqueda o ajusta el filtro de estado para ver otros resultados." : "Crea la primera zona para comenzar a organizar las asignaciones comerciales."} {...(filtered ? { actionLabel: "Limpiar filtros", onAction: territories.clearFilters } : canManage ? { actionLabel: "Crear zona", actionIcon: <Plus aria-hidden="true" />, onAction: () => form.open(null) } : {})} /> : <>
+        {error && <InlineAlert visual="golden" variant="error" className="territory-list__stale-error" title="Ocurrió un problema temporal" message="No pudimos actualizar las zonas. Mostramos la última versión disponible." {...(error.correlationId ? { correlationId: error.correlationId } : {})} action={{ label: "Reintentar", onClick: territories.retry }} />}
+        <TerritoryTable territories={items} page={territories.result?.page.page ?? territories.page} pageSize={territories.pageSize} totalPages={territories.result?.page.totalPages ?? 0} totalElements={territories.result?.page.totalElements ?? items.length} lastUpdated={territories.lastUpdated} canManage={canManage} loading={territories.loading} error={error} onPageChange={territories.goToPage} onPageSizeChange={territories.changePageSize} onEdit={form.open} />
+      </>}
+    </DataTablePanel>
     {canManage && form.territory !== undefined && <TerritoryFormDialog territory={form.territory} busy={form.busy} error={form.error} conflict={form.conflict} onClose={form.close} onReload={form.reloadAfterConflict} onSubmit={form.submit} />}
   </section>;
 }

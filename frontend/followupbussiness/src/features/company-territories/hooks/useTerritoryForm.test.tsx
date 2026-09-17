@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { afterEach, expect, test, vi } from "vitest";
 import { useTerritoryForm } from "./useTerritoryForm";
 
@@ -11,7 +11,12 @@ const input = { name: "Lima Centro", code: "LIM", description: null, status: "IN
 
 function Harness() {
   const form = useTerritoryForm(() => undefined);
-  useEffect(() => form.open(null), []);
+  const opened = useRef(false);
+  useEffect(() => {
+    if (opened.current) return;
+    opened.current = true;
+    form.open(null);
+  }, [form]);
   return <button type="button" onClick={() => void form.submit(input)}>Confirmar inactivación</button>;
 }
 

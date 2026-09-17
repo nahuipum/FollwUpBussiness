@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>followUp Business · FE-008 Gestión de clientes</title>
+  <link rel="stylesheet" href="assets/golden-system.css">
+  <script src="assets/golden-icons.js" defer></script>
+  <style>
+    /* Extensiones locales de composición; todos los valores visuales consumen tokens golden. */
+    .company-sidebar { overflow: hidden; }
+    .sidebar-nav-region { min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+    .company-sidebar .sidebar-brand { flex: 0 0 auto; }
+    .company-sidebar .sidebar-context { margin-top: -14px; }
+    .company-sidebar .nav { gap: var(--space-1); }
+    .company-sidebar .nav-item,
+    .nav-group-trigger { width: 100%; min-height: 42px; display: flex; align-items: center; gap: 11px; padding: 9px 11px; border: 0; border-radius: 9px; color: var(--text-soft); background: transparent; font-weight: 600; text-align: left; text-decoration: none; }
+    .company-sidebar .nav-item:hover,
+    .nav-group-trigger:hover { color: var(--text-strong); background: var(--surface-subtle); }
+    .company-sidebar .nav-item.active { color: var(--brand-strong); background: var(--brand-soft); }
+    .company-sidebar .nav-item[aria-disabled="true"] { color: var(--text-muted); cursor: default; opacity: .72; }
+    .nav-group-trigger .nav-chevron { width: 16px; height: 16px; margin-left: auto; transition: transform .16s ease; }
+    .nav-group-trigger[aria-expanded="true"] .nav-chevron { transform: rotate(180deg); }
+    .nav-children { display: grid; gap: 2px; margin: 3px 0 5px 18px; padding-left: 12px; border-left: 1px solid var(--border); }
+    .nav-children .nav-item { min-height: 40px; padding: 8px 10px; font-size: 13px; }
+    .dashboard-profile-card { display: grid; flex: 0 0 auto; grid-template-columns: auto minmax(0, 1fr); gap: 4px 10px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-subtle); }
+    .dashboard-profile-card .avatar { grid-row: 1 / span 2; }
+    .dashboard-profile-card strong,
+    .dashboard-profile-card small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dashboard-profile-card strong { color: var(--text-strong); font-size: 13px; }
+    .dashboard-profile-card small { color: var(--text-muted); font-size: 12px; }
+    .dashboard-profile-card p { grid-column: 1 / -1; margin: 8px 0 0; padding-top: 9px; color: var(--text-muted); border-top: 1px solid var(--border); font-size: 12px; }
+    .sidebar-logout { grid-column: 1 / -1; width: 100%; margin-top: 5px; }
+    .top-profile-wrap { position: relative; }
+    .top-profile-trigger { min-height: 44px; display: flex; align-items: center; gap: 9px; padding: 4px 7px; border: 0; border-radius: 10px; background: transparent; }
+    .top-profile-trigger:hover { background: var(--surface-subtle); }
+    .top-profile-trigger .nav-chevron { width: 16px; height: 16px; color: var(--text-muted); }
+    .profile-menu { position: absolute; z-index: 45; top: calc(100% + 8px); right: 0; width: 224px; padding: 7px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-raised); box-shadow: var(--shadow-md); }
+    .profile-menu-head { padding: 9px 10px 11px; border-bottom: 1px solid var(--border); }
+    .profile-menu-head strong,
+    .profile-menu-head span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .profile-menu-head strong { color: var(--text-strong); font-size: 13px; }
+    .profile-menu-head span { margin-top: 2px; color: var(--text-muted); font-size: 12px; }
+    .profile-menu button { width: 100%; margin-top: 6px; justify-content: flex-start; border-color: transparent; background: transparent; }
+    .mobile-backdrop { display: none; }
+
+    .clients-page-head { margin-bottom: 20px; }
+    .clients-page-head p { max-width: 680px; }
+    .clients-shell { position: relative; overflow: visible; }
+    .clients-filterbar { grid-template-columns: minmax(230px, 1.45fr) repeat(3, minmax(128px, .72fr)) repeat(2, minmax(150px, .86fr)); align-items: end; }
+    .app-select { position: relative; min-width: 0; }
+    .app-select[open] .select-trigger { border-color: var(--brand); box-shadow: var(--ring); }
+    .app-select[open] .select-trigger .icon { transform: rotate(180deg); }
+    .select-trigger .icon { transition: transform .16s ease; }
+    .select-trigger[aria-disabled="true"] { cursor: not-allowed; color: var(--text-muted); background: var(--surface-muted); opacity: .66; }
+    .select-menu { position: fixed; z-index: 90; top: 0; left: 0; visibility: hidden; min-width: 184px; max-width: min(280px, calc(100vw - 24px)); display: grid; gap: 3px; padding: 6px; border: 1px solid var(--border); border-radius: 11px; background: var(--surface-raised); box-shadow: var(--shadow-md); }
+    .select-menu[data-positioned="true"] { visibility: visible; }
+    .select-option { width: 100%; min-height: 40px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 9px; border: 0; border-radius: var(--radius-sm); color: var(--text-soft); background: transparent; text-align: left; }
+    .select-option:hover,
+    .select-option:focus-visible,
+    .select-option.is-hover { color: var(--text-strong); background: var(--surface-muted); }
+    .select-option[aria-selected="true"] { color: var(--brand-strong); background: var(--brand-soft); font-weight: 700; }
+    .select-option[aria-selected="true"]::after { width: 7px; height: 12px; border: solid currentColor; border-width: 0 2px 2px 0; content: ""; transform: rotate(45deg); }
+    .select-option:disabled { cursor: not-allowed; opacity: .48; }
+    .date-trigger { width: 100%; min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); padding: 0 var(--space-3); color: var(--text-muted); border: 1px solid var(--control); border-radius: var(--radius-md); background: var(--surface); text-align: left; }
+    .date-trigger:hover { border-color: var(--text-muted); }
+    .date-trigger[aria-expanded="true"],
+    .date-trigger:focus-visible { border-color: var(--brand); box-shadow: var(--ring); }
+    .date-trigger:disabled { cursor: not-allowed; background: var(--surface-muted); opacity: .62; }
+    .date-popover { position: fixed; z-index: 95; top: 0; left: 0; visibility: hidden; width: min(304px, calc(100vw - 24px)); padding: 14px; border: 1px solid var(--border); border-radius: var(--radius-lg); color: var(--text); background: var(--surface-raised); box-shadow: var(--shadow-lg); }
+    .date-popover[data-positioned="true"] { visibility: visible; }
+    .calendar-head,
+    .calendar-head div,
+    .calendar-foot { display: flex; align-items: center; }
+    .calendar-head { justify-content: space-between; gap: var(--space-3); }
+    .calendar-head strong { color: var(--text-strong); }
+    .calendar-head div { gap: var(--space-1); }
+    .calendar-head button { width: 34px; height: 34px; display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--radius-sm); color: var(--text-soft); background: transparent; }
+    .calendar-head button:hover { color: var(--brand-strong); background: var(--brand-soft); }
+    .calendar-weekdays,
+    .calendar-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .calendar-weekdays { margin: 12px 0 6px; }
+    .calendar-weekdays span { color: var(--text-muted); font-size: 11px; font-weight: 700; text-align: center; }
+    .calendar-days button { aspect-ratio: 1; padding: 0; border: 0; border-radius: 9px; color: var(--text-soft); background: transparent; font-size: 12px; }
+    .calendar-days button:hover,
+    .calendar-days button.is-hover { color: var(--brand-strong); background: var(--brand-soft); }
+    .calendar-days button[aria-pressed="true"] { color: #fff; background: var(--brand); font-weight: 700; }
+    .calendar-days .outside { opacity: .42; }
+    .calendar-foot { justify-content: space-between; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+    .calendar-foot button { min-height: 34px; padding: 0 9px; border: 0; border-radius: var(--radius-sm); color: var(--brand-strong); background: transparent; font-size: 12px; font-weight: 700; }
+    .calendar-foot button:disabled { cursor: not-allowed; opacity: .45; }
+    .read-only-notice { display: flex; align-items: flex-start; gap: var(--space-3); margin: 18px 18px 0; padding: 12px 14px; color: var(--info); border: 1px solid var(--brand-border); border-radius: var(--radius-md); background: var(--info-bg); }
+    .read-only-notice strong { display: block; margin-bottom: 2px; }
+    .read-only-notice p { margin: 0; font-size: 13px; }
+    .clients-shell > .alert { margin-top: 2px; }
+    .clients-table { min-width: 860px; table-layout: fixed; }
+    .clients-table th:nth-child(1) { width: 32%; }
+    .clients-table th:nth-child(2) { width: 21%; }
+    .clients-table th:nth-child(3) { width: 22%; }
+    .clients-table th:nth-child(4) { width: 16%; }
+    .clients-table th:last-child { width: 76px; text-align: center; }
+    .clients-table td:last-child { position: relative; overflow: visible; }
+    .clients-table .more { margin: 0 auto; }
+    .table-updating { display: inline-flex; align-items: center; gap: 7px; color: var(--info); font-size: 12px; font-weight: 700; }
+    .table-updating .spinner { width: 14px; height: 14px; }
+    .action-menu { position: fixed; z-index: 92; top: 0; left: 0; visibility: hidden; width: max-content; min-width: 210px; max-width: min(280px, calc(100vw - 24px)); display: grid; gap: 2px; padding: 6px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-raised); box-shadow: var(--shadow-md); }
+    .action-menu[data-positioned="true"] { visibility: visible; }
+    .action-menu button { min-height: 40px; display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 0; border-radius: var(--radius-sm); color: var(--text-soft); background: transparent; text-align: left; }
+    .action-menu button:hover,
+    .action-menu button:focus-visible { color: var(--text-strong); background: var(--surface-muted); }
+    .action-menu button.danger { color: var(--danger); }
+    .action-menu button.danger:hover { background: var(--danger-bg); }
+    .action-menu .icon { width: 18px; height: 18px; }
+    .clients-pagination { align-items: flex-end; border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
+    .pagination-meta { display: grid; gap: 2px; }
+    .pagination-meta strong { color: var(--text-soft); font-size: 12px; }
+    .pagination-meta time { color: var(--text-muted); font-size: 11px; }
+    .pagination-tools { display: flex; align-items: flex-end; gap: var(--space-3); }
+    .page-size { min-width: 154px; }
+    .page-size .select-trigger { min-height: 36px; }
+    .page-prev .icon { transform: rotate(90deg); }
+    .page-next .icon { transform: rotate(-90deg); }
+
+    .wide-drawer { width: min(760px, 100%); }
+    .drawer-section { display: grid; gap: var(--space-4); padding: 18px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); }
+    .drawer-section + .drawer-section { margin-top: var(--space-4); }
+    .drawer-section.location-section { background: var(--surface-subtle); }
+    .section-heading { display: flex; align-items: flex-start; gap: var(--space-3); }
+    .section-heading-icon { width: 38px; height: 38px; display: grid; flex: 0 0 auto; place-items: center; color: var(--brand-strong); border-radius: 11px; background: var(--brand-soft); }
+    .section-heading h3 { margin: 0; font-size: 16px; line-height: 22px; }
+    .section-heading p { margin: 3px 0 0; color: var(--text-muted); font-size: 12px; }
+    .form-stack { display: grid; gap: var(--space-4); }
+    .form-grid-three { display: grid; grid-template-columns: .8fr 1.2fr 1fr; gap: var(--space-3); }
+    .form-grid-two { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+    .form-grid-two > .field,
+    .form-grid-three > .field { align-self: start; align-content: start; }
+    .control input { min-height: 42px; }
+    .field-group { display: grid; align-content: start; gap: 6px; }
+    .checkbox-card { display: flex; align-items: flex-start; gap: 10px; padding: 12px; border: 1px solid var(--control); border-radius: var(--radius-md); background: var(--surface); color: var(--text-soft); font-size: 13px; font-weight: 600; }
+    .checkbox-card input { width: 18px; height: 18px; flex: 0 0 auto; margin: 1px 0 0; accent-color: var(--brand); }
+    .checkbox-card.is-error { border-color: var(--danger); background: var(--danger-bg); }
+    .map-card { position: relative; min-height: 270px; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-muted); isolation: isolate; }
+    .map-card::before { position: absolute; inset: 0; opacity: .76; background-image: linear-gradient(28deg, transparent 46%, var(--border) 47%, var(--border) 50%, transparent 51%), linear-gradient(-22deg, transparent 46%, var(--border) 47%, var(--border) 50%, transparent 51%); background-size: 104px 82px, 142px 105px; content: ""; }
+    .map-card::after { position: absolute; inset: 15% 8%; z-index: -1; border: 24px solid var(--surface-subtle); border-radius: 42% 58% 36% 64%; content: ""; transform: rotate(-8deg); }
+    .map-label { position: absolute; z-index: 3; top: var(--space-3); left: var(--space-3); padding: 7px 10px; border: 1px solid var(--border); border-radius: var(--radius-pill); color: var(--text-soft); background: var(--surface); box-shadow: var(--shadow-sm); font-size: 12px; }
+    .map-marker { position: absolute; z-index: 3; top: 48%; left: 54%; width: 34px; height: 34px; display: grid; place-items: center; color: #fff; border: 3px solid var(--surface); border-radius: 50% 50% 50% 10%; background: var(--brand); box-shadow: var(--shadow-md); transform: translate(-50%, -50%) rotate(-45deg); }
+    .map-marker .icon { width: 16px; transform: rotate(45deg); }
+    .map-coordinate { position: absolute; z-index: 3; right: var(--space-3); bottom: var(--space-3); padding: 7px 10px; border: 1px solid var(--border); border-radius: var(--radius-md); color: var(--text-muted); background: var(--surface); box-shadow: var(--shadow-sm); font-size: 11px; }
+    .duplicate-list { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+    .duplicate-item { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-subtle); }
+    .duplicate-item strong,
+    .duplicate-item small { display: block; }
+    .duplicate-item small { margin-top: 2px; color: var(--text-muted); }
+    .drawer-status { min-height: 100%; display: grid; place-items: center; padding: var(--space-5); text-align: center; }
+    .drawer-status > div { max-width: 410px; }
+    .drawer-status .state-icon { margin-bottom: var(--space-3); }
+    .drawer-status h3 { margin-bottom: var(--space-2); }
+    .drawer-status p { margin-bottom: var(--space-4); color: var(--text-muted); }
+    .detail-identity { display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-5); }
+    .detail-identity .identity-mark { width: 46px; height: 46px; border-radius: var(--radius-md); font-size: 13px; }
+    .detail-identity strong,
+    .detail-identity span { display: block; }
+    .detail-identity strong { color: var(--text-strong); }
+    .detail-identity span { margin-top: 2px; color: var(--text-muted); font-size: 12px; }
+    .definition-grid .wide { grid-column: 1 / -1; }
+    .detail-map { margin-top: var(--space-5); }
+    .confirm-icon { width: 48px; height: 48px; display: grid; place-items: center; margin-bottom: var(--space-4); color: var(--danger); border-radius: 14px; background: var(--danger-bg); }
+    .confirm-icon.info { color: var(--brand-strong); background: var(--brand-soft); }
+    .confirm-identity { display: flex; align-items: center; gap: var(--space-3); margin: var(--space-3) 0; padding: var(--space-3); border-radius: var(--radius-md); background: var(--surface-subtle); }
+    .confirm-identity strong,
+    .confirm-identity small { display: block; }
+    .confirm-identity small { color: var(--text-muted); }
+    .confirmation-copy { margin-bottom: 0; color: var(--text-muted); font-size: 13px; }
+    .confirm-note { display: flex; gap: var(--space-2); margin: var(--space-4) 0 0; padding: var(--space-3); color: var(--text-soft); border-radius: var(--radius-md); background: var(--surface-subtle); font-size: 13px; }
+    .confirm-note .icon { color: var(--danger); }
+    .confirm-error { margin-top: var(--space-4); }
+    .operation-dialog .dialog-body { text-align: center; }
+    .operation-dialog .confirm-icon { margin-inline: auto; }
+    .operation-dialog .dialog-body p { margin-bottom: 0; color: var(--text-muted); }
+
+    @media (max-width: 1340px) {
+      .clients-filterbar { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .clients-filterbar .search { grid-column: 1 / -1; }
+    }
+    @media (max-width: 1060px) {
+      .company-sidebar { overflow-y: auto; }
+      .sidebar-nav-region { overflow: visible; }
+      body[data-nav="open"] .mobile-backdrop { position: fixed; inset: 0; z-index: 29; display: block; border: 0; background: var(--overlay); }
+      .clients-filterbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .clients-filterbar .search { grid-column: 1 / -1; }
+    }
+    @media (max-width: 620px) {
+      .top-left { flex: 1 1 auto; overflow: hidden; }
+      .top-profile-trigger { width: 44px; padding: 4px; }
+      .top-profile-trigger .nav-chevron { display: none; }
+      .profile-menu { position: fixed; top: 62px; right: 14px; }
+      .app-main { padding-top: 28px; }
+      .clients-page-head h1 { font-size: 27px; line-height: 34px; }
+      .clients-filterbar { grid-template-columns: 1fr; }
+      .clients-filterbar .search { grid-column: auto; }
+      .read-only-notice { margin: 14px 14px 0; }
+      .clients-table { min-width: 0; table-layout: auto; }
+      .clients-table tbody { padding-bottom: 18px; }
+      .clients-table tbody tr { padding-right: 52px; }
+      .clients-table td:first-child { display: block; text-align: left; }
+      .clients-table td:last-child { position: absolute; top: 8px; right: 4px; width: auto; padding: 0; }
+      .clients-table .more { width: 44px; height: 44px; }
+      .action-menu { min-width: min(226px, calc(100vw - 24px)); }
+      .action-menu button { min-height: 44px; }
+      .clients-pagination { align-items: stretch; }
+      .pagination-tools { width: 100%; display: grid; grid-template-columns: 1fr; }
+      .pagination-tools .pages { width: 100%; }
+      .page-size { width: 100%; }
+      .page-size .select-trigger,
+      .select-option,
+      .page-btn { min-height: 44px; }
+      .page-btn { height: 44px; }
+      .form-grid-three,
+      .form-grid-two,
+      .definition-grid { grid-template-columns: 1fr; }
+      .wide-drawer { width: 100%; }
+      .drawer-section { padding: 14px; }
+      body[data-state="mobile-location"] .drawer-section:not(.location-section) { display: none; }
+      .map-card { min-height: 300px; }
+      .duplicate-item { align-items: flex-start; flex-direction: column; }
+      .state-card { min-height: 330px; padding: var(--space-5) var(--space-4); }
+      body[data-state="ready-supervisor"] .clients-table tbody tr { padding-right: 12px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .nav-chevron,
+      .select-trigger .icon { transition: none !important; }
+    }
+  </style>
+</head>
+<body data-states="ready-admin ready-supervisor loading refreshing empty no-results error forbidden filters-active territory-filter-open seller-filter-open status-filter-open visit-date-open purchase-date-open form-territory-open actions-admin-active actions-admin-inactive actions-supervisor detail-loading detail-ready detail-error create-loading create-ready create-validation create-location-unconfirmed create-duplicates create-duplicates-none create-duplicates-error create-saving create-error territories-error edit-loading edit-ready edit-validation edit-conflict unsaved-changes confirm-inactivate confirm-inactivate-saving confirm-inactivate-error confirm-activate operation-success mobile-ready mobile-actions mobile-create mobile-location pagination-last">
+  <!--
+    Golden autoritativo FE-008. Estado: ?state=<estado>. Tema oscuro: &theme=dark. Guía: &guide=1.
+    Los datos son ficticios pero todos los campos, permisos, acciones y estados proceden de FE-008/FE-009,
+    OpenAPI y comportamiento productivo vigente. No se representa mapa general, carga, cartera, rutas ni historiales.
+  -->
+  <div class="app-shell">
+    <aside id="company-sidebar" class="sidebar company-sidebar" aria-label="Navegación principal">
+      <a class="sidebar-brand brand-plate" href="/company/dashboard" aria-label="followUp Business, ir al resumen"><img class="brand-logo" src="assets/brand/followup-logo.png" alt=""></a>
+      <span class="sidebar-context">Comercial Andina</span>
+      <div class="sidebar-nav-region">
+        <p class="nav-label">Empresa</p>
+        <nav class="nav" aria-label="Secciones de la empresa">
+          <a class="nav-item" href="/company/dashboard"><svg class="icon"><use href="#i-grid"></use></svg>Resumen</a>
+          <a class="nav-item" href="/company/administrators-supervisors"><svg class="icon"><use href="#i-users"></use></svg>Administradores y supervisores</a>
+          <a class="nav-item" href="/company/sellers"><svg class="icon"><use href="#i-users"></use></svg>Vendedores</a>
+          <a class="nav-item" href="/company/territories"><svg class="icon"><use href="#i-pin"></use></svg>Zonas</a>
+          <section class="nav-group" aria-labelledby="clients-group-label"><button id="clients-group-label" class="nav-group-trigger active" type="button" aria-expanded="true" aria-controls="clients-navigation" data-clients-toggle><svg class="icon"><use href="#i-client"></use></svg><span>Clientes</span><svg class="icon nav-chevron"><use href="#i-chevron"></use></svg></button><div id="clients-navigation" class="nav-children" role="group" aria-label="Opciones de Clientes"><a class="nav-item active" href="/company/clients" aria-current="page"><svg class="icon"><use href="#i-client"></use></svg>Gestión de clientes</a><a class="nav-item" href="/company/clients/map"><svg class="icon"><use href="#i-map"></use></svg>Mapa general</a><a class="nav-item" href="/company/customer-imports"><svg class="icon"><use href="#i-empty"></use></svg>Carga de clientes</a></div></section>
+          <a class="nav-item" href="/company/customer-assignments"><svg class="icon"><use href="#i-client"></use></svg>Asignar cartera</a>
+          <a class="nav-item" href="/company/routes"><svg class="icon"><use href="#i-route"></use></svg>Rutas</a>
+          <span class="nav-item" aria-disabled="true"><svg class="icon"><use href="#i-report"></use></svg>Auditoría</span>
+          <a class="nav-item" href="/company/settings"><svg class="icon"><use href="#i-settings"></use></svg>Configuración</a>
+        </nav>
+      </div>
+      <section class="dashboard-profile-card" aria-label="Contexto de usuario"><span class="avatar">AM</span><span><strong>Alex Medina</strong><small data-profile-role>Administración de empresa</small></span><p>Comercial Andina</p><button class="btn btn-compact sidebar-logout" type="button"><svg class="icon icon-sm"><use href="#i-arrow"></use></svg>Cerrar sesión</button></section>
+    </aside>
+
+    <header class="topbar">
+      <div class="top-left"><button class="menu-control" type="button" data-nav-toggle aria-label="Abrir menú" aria-expanded="false" aria-controls="company-sidebar"><svg class="icon"><use href="#i-menu"></use></svg></button><nav class="crumb" aria-label="Breadcrumbs"><span>Comercial Andina</span><span aria-hidden="true">/</span><strong aria-current="page">Clientes</strong></nav></div>
+      <div class="top-actions"><span class="updated"><i></i><span class="updated-long">Última actualización: </span>15:11</span><button class="theme-control" type="button" data-theme-toggle role="switch" aria-checked="false" aria-label="Activar modo oscuro"><svg class="icon"><use href="#i-moon"></use></svg></button><button class="icon-btn" type="button" aria-label="Notificaciones"><svg class="icon"><use href="#i-bell"></use></svg></button><div class="top-profile-wrap"><button class="top-profile-trigger" type="button" aria-label="Abrir opciones del perfil de Alex Medina, Administrador" aria-expanded="false" aria-controls="profile-menu" data-profile-toggle><span class="avatar">AM</span><span class="person-copy"><strong>Alex Medina</strong><span data-profile-role>Administrador</span></span><svg class="icon nav-chevron"><use href="#i-chevron"></use></svg></button><div id="profile-menu" class="profile-menu" hidden><div class="profile-menu-head"><strong>Alex Medina</strong><span>alex.medina@comercialandina.example</span></div><button class="btn btn-compact" type="button">Cerrar sesión</button></div></div></div>
+    </header>
+
+    <main class="app-main" id="main-content">
+      <div class="page">
+        <header class="page-head clients-page-head"><div><span class="eyebrow">Cartera comercial</span><h1>Clientes</h1><p>Consulta y organiza la cartera de clientes de la empresa.</p></div><button class="btn btn-primary" type="button" data-admin-action data-go-state="create-ready"><svg class="icon icon-sm"><use href="#i-plus"></use></svg>Crear cliente</button></header>
+
+        <section class="panel table-shell clients-shell" aria-label="Listado de clientes">
+          <div class="filterbar clients-filterbar" aria-label="Filtros de clientes">
+            <div class="field search"><label for="client-search">Buscar por nombre o segmento</label><div class="control"><svg class="icon icon-sm"><use href="#i-search"></use></svg><input id="client-search" type="search" maxlength="120" placeholder="Nombre o segmento" data-search-input></div></div>
+            <div class="field"><span id="territory-filter-label">Zona</span><details class="app-select" data-filter-select="territory" data-open-state="territory-filter-open"><summary class="select-trigger" aria-labelledby="territory-filter-label" aria-haspopup="listbox" aria-expanded="false" aria-controls="territory-filter-options">Todas<svg class="icon icon-sm"><use href="#i-chevron"></use></svg></summary><div id="territory-filter-options" class="select-menu" role="listbox" aria-label="Zona"><button class="select-option" type="button" role="option" aria-selected="true">Todas</button><button class="select-option is-hover" type="button" role="option" aria-selected="false">Lima Centro</button><button class="select-option" type="button" role="option" aria-selected="false">Lima Norte</button><button class="select-option" type="button" role="option" aria-selected="false">Lima Sur</button><button class="select-option" type="button" role="option" disabled>Zona archivada</button></div></details></div>
+            <div class="field"><span id="seller-filter-label">Vendedor</span><details class="app-select" data-filter-select="seller" data-open-state="seller-filter-open"><summary class="select-trigger" aria-labelledby="seller-filter-label" aria-haspopup="listbox" aria-expanded="false" aria-controls="seller-filter-options">Todos<svg class="icon icon-sm"><use href="#i-chevron"></use></svg></summary><div id="seller-filter-options" class="select-menu" role="listbox" aria-label="Vendedor"><button class="select-option" type="button" role="option" aria-selected="true">Todos</button><button class="select-option is-hover" type="button" role="option" aria-selected="false">Lucía Calderón</button><button class="select-option" type="button" role="option" aria-selected="false">Diego Luna</button><button class="select-option" type="button" role="option" aria-selected="false">Mateo Salazar</button></div></details></div>
+            <div class="field"><span id="status-filter-label">Estado</span><details class="app-select" data-filter-select="status" data-open-state="status-filter-open"><summary class="select-trigger" aria-labelledby="status-filter-label" aria-haspopup="listbox" aria-expanded="false" aria-controls="status-filter-options">Todos<svg class="icon icon-sm"><use href="#i-chevron"></use></svg></summary><div id="status-filter-options" class="select-menu" role="listbox" aria-label="Estado"><button class="select-option" type="button" role="option" aria-selected="true">Todos</button><button class="select-option is-hover" type="button" role="option" aria-selected="false">Activo</button><button class="select-option" type="button" role="option" aria-selected="false">Inactivo</button></div></details></div>
+            <div class="field"><span id="visit-filter-label">Sin visita desde</span><button class="date-trigger" type="button" aria-labelledby="visit-filter-label" aria-haspopup="dialog" aria-expanded="false" data-date-trigger="visit" data-open-state="visit-date-open"><span data-date-value="visit">dd/mm/aaaa</span><svg class="icon icon-sm"><use href="#i-calendar"></use></svg></button></div>
+            <div class="field"><span id="purchase-filter-label">Sin compra desde</span><button class="date-trigger" type="button" aria-labelledby="purchase-filter-label" aria-haspopup="dialog" aria-expanded="false" data-date-trigger="purchase" data-open-state="purchase-date-open"><span data-date-value="purchase">dd/mm/aaaa</span><svg class="icon icon-sm"><use href="#i-calendar"></use></svg></button></div>
+          </div>
+
+          <aside class="read-only-notice" role="status" data-show="ready-supervisor actions-supervisor"><svg class="icon"><use href="#i-eye"></use></svg><div><strong>Consulta de solo lectura</strong><p>Como supervisor puedes consultar los clientes de las carteras vigentes de tus vendedores, aplicar filtros y cambiar de página. La administración corresponde a un administrador.</p></div></aside>
+          <div class="active-filters" data-show="filters-active no-results"><span>Filtros activos:</span><span class="chip">Zona: Lima Centro ×</span><span class="chip">Estado: Activo ×</span><span class="chip">Sin visita: 10 ago ×</span><button class="btn btn-ghost btn-compact" type="button" data-go-state="ready-admin">Limpiar filtros</button></div>
+          <div class="alert alert-danger" role="alert" data-show="error"><svg class="icon"><use href="#i-alert"></use></svg><div><strong>Ocurrió un problema temporal</strong><p>No pudimos actualizar los clientes. Mostramos la última versión disponible, que puede no estar vigente.</p><div class="alert-actions"><button class="alert-link" type="button" data-go-state="refreshing">Reintentar</button></div></div></div>
+
+          <div data-show="ready-admin ready-supervisor refreshing error filters-active territory-filter-open seller-filter-open status-filter-open visit-date-open purchase-date-open form-territory-open actions-admin-active actions-admin-inactive actions-supervisor detail-loading detail-ready detail-error create-loading create-ready create-validation create-location-unconfirmed create-duplicates create-duplicates-none create-duplicates-error create-saving create-error territories-error edit-loading edit-ready edit-validation edit-conflict unsaved-changes confirm-inactivate confirm-inactivate-saving confirm-inactivate-error confirm-activate operation-success mobile-ready mobile-actions mobile-create mobile-location pagination-last" data-stale-in="refreshing error">
+            <header class="table-title"><div><strong>Resultados</strong><span>128 clientes</span></div><span class="table-updating" data-show="refreshing"><span class="spinner" aria-hidden="true"></span>Actualizando resultados</span></header>
+            <div class="table-scroll">
+              <table class="clients-table" aria-label="Clientes">
+                <thead><tr><th scope="col">Cliente</th><th scope="col">Segmento</th><th scope="col">Vendedores asignados</th><th scope="col">Estado</th><th scope="col"><span class="sr-only">Acciones</span></th></tr></thead>
+                <tbody>
+                  <tr><td data-label="Cliente"><span class="identity"><span class="identity-mark">MA</span><span><strong>Mercado Aurora</strong></span></span></td><td data-label="Segmento">Minorista</td><td data-label="Vendedores asignados">2</td><td data-label="Estado"><span class="badge success">Activo</span></td><td data-label="Acciones"><button class="more" type="button" aria-label="Más acciones para Mercado Aurora" aria-haspopup="menu" aria-expanded="false" data-menu-trigger="actions-admin-active"><svg class="icon"><use href="#i-more"></use></svg></button></td></tr>
+                  <tr><td data-label="Cliente"><span class="identity"><span class="identity-mark">BH</span><span><strong>Botica Horizonte</strong></span></span></td><td data-label="Segmento">Salud</td><td data-label="Vendedores asignados">1</td><td data-label="Estado"><span class="badge danger">Inactivo</span></td><td data-label="Acciones"><button class="more" type="button" aria-label="Más acciones para Botica Horizonte" aria-haspopup="menu" aria-expanded="false" data-menu-trigger="actions-admin-inactive"><svg class="icon"><use href="#i-more"></use></svg></button></td></tr>
+                  <tr><td data-label="Cliente"><span class="identity"><span class="identity-mark">DC</span><span><strong>Distribuidora Cauce</strong></span></span></td><td data-label="Segmento">Distribuidor</td><td data-label="Vendedores asignados">3</td><td data-label="Estado"><span class="badge success">Activo</span></td><td data-label="Acciones"><button class="more" type="button" aria-label="Más acciones para Distribuidora Cauce" aria-haspopup="menu" aria-expanded="false" data-menu-trigger="actions-supervisor"><svg class="icon"><use href="#i-more"></use></svg></button></td></tr>
+                  <tr><td data-label="Cliente"><span class="identity"><span class="identity-mark">CP</span><span><strong>Comercial Pinar</strong></span></span></td><td data-label="Segmento">Mayorista</td><td data-label="Vendedores asignados">1</td><td data-label="Estado"><span class="badge success">Activo</span></td><td data-label="Acciones"><button class="more" type="button" aria-label="Más acciones para Comercial Pinar" aria-haspopup="menu" aria-expanded="false" data-menu-trigger="actions-admin-active"><svg class="icon"><use href="#i-more"></use></svg></button></td></tr>
+                  <tr><td data-label="Cliente"><span class="identity"><span class="identity-mark">CN</span><span><strong>Café Nube</strong></span></span></td><td data-label="Segmento">Gastronomía</td><td data-label="Vendedores asignados">0</td><td data-label="Estado"><span class="badge success">Activo</span></td><td data-label="Acciones"><button class="more" type="button" aria-label="Más acciones para Café Nube" aria-haspopup="menu" aria-expanded="false" data-menu-trigger="actions-admin-active"><svg class="icon"><use href="#i-more"></use></svg></button></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <footer class="pagination clients-pagination">
+              <div class="pagination-meta"><strong data-pagination-summary>Mostrando 1–5 de 128 clientes</strong><time datetime="2026-09-12T15:11:00-05:00" role="status">Actualizado hoy, 15:11</time></div>
+              <div class="pagination-tools"><div class="field page-size"><span id="page-size-label">Registros por página</span><details class="app-select"><summary class="select-trigger" aria-labelledby="page-size-label">5<svg class="icon icon-sm"><use href="#i-chevron"></use></svg></summary></details></div><nav class="pages" aria-label="Paginación de clientes"><button class="page-btn page-prev" type="button" aria-label="Página anterior" disabled><svg class="icon icon-sm"><use href="#i-chevron"></use></svg></button><button class="page-btn current" type="button" aria-label="Página 1" aria-current="page">1</button><span class="page-ellipsis" aria-hidden="true">…</span><button class="page-btn" type="button" aria-label="Página 26">26</button><button class="page-btn page-next" type="button" aria-label="Página siguiente"><svg class="icon icon-sm"><use href="#i-chevron"></use></svg></button></nav></div>
+            </footer>
+          </div>
+
+          <div data-show="loading"><header class="table-title"><div><strong>Resultados</strong><span>Cargando clientes</span></div></header><div class="skeleton-list" aria-busy="true" aria-live="polite"><div class="skeleton-row"><i class="skeleton block"></i><i class="skeleton"></i><i class="skeleton"></i><i class="skeleton"></i></div><div class="skeleton-row"><i class="skeleton block"></i><i class="skeleton"></i><i class="skeleton"></i><i class="skeleton"></i></div><div class="skeleton-row"><i class="skeleton block"></i><i class="skeleton"></i><i class="skeleton"></i><i class="skeleton"></i></div><div class="skeleton-row"><i class="skeleton block"></i><i class="skeleton"></i><i class="skeleton"></i><i class="skeleton"></i></div><span class="sr-only">Cargando clientes</span></div></div>
+          <article class="state-card" data-show="empty"><div><span class="state-icon"><svg class="icon"><use href="#i-empty"></use></svg></span><h2>Aún no hay clientes</h2><p>Cuando existan clientes aparecerán en este listado.</p></div></article>
+          <article class="state-card" data-show="no-results"><div><span class="state-icon"><svg class="icon"><use href="#i-search"></use></svg></span><h2>No encontramos clientes</h2><p>Prueba con otros filtros o términos de búsqueda.</p><button class="btn btn-primary" type="button" data-go-state="ready-admin">Limpiar filtros</button></div></article>
+          <article class="state-card danger" data-show="forbidden"><div><span class="state-icon"><svg class="icon"><use href="#i-shield"></use></svg></span><h2>No tienes permisos</h2><p>No tienes permiso para consultar clientes.</p><button class="btn" type="button">Reintentar</button></div></article>
+        </section>
+      </div>
+    </main>
+    <button class="mobile-backdrop" type="button" data-nav-close aria-label="Cerrar menú"></button>
+  </div>
+
+  <div class="action-menu" role="menu" aria-label="Acciones de Mercado Aurora" data-show="actions-admin-active mobile-actions"><button type="button" role="menuitem" data-go-state="detail-ready"><svg class="icon"><use href="#i-eye"></use></svg>Ver cliente</button><button type="button" role="menuitem" data-go-state="edit-ready"><svg class="icon"><use href="#i-settings"></use></svg>Editar cliente</button><button class="danger" type="button" role="menuitem" data-go-state="confirm-inactivate"><svg class="icon"><use href="#i-alert"></use></svg>Inactivar cliente</button></div>
+  <div class="action-menu" role="menu" aria-label="Acciones de Botica Horizonte" data-show="actions-admin-inactive"><button type="button" role="menuitem" data-go-state="detail-ready"><svg class="icon"><use href="#i-eye"></use></svg>Ver cliente</button><button type="button" role="menuitem" data-go-state="edit-ready"><svg class="icon"><use href="#i-settings"></use></svg>Editar cliente</button><button type="button" role="menuitem" data-go-state="confirm-activate"><svg class="icon"><use href="#i-arrow"></use></svg>Activar cliente</button></div>
+  <div class="action-menu" role="menu" aria-label="Acciones de Distribuidora Cauce" data-show="actions-supervisor"><button type="button" role="menuitem" data-go-state="detail-ready"><svg class="icon"><use href="#i-eye"></use></svg>Ver cliente</button></div>
+
+  <div class="date-popover" role="dialog" aria-modal="false" aria-label="Calendario de Sin visita desde" data-show="visit-date-open" data-calendar="visit">
+    <header class="calendar-head"><strong>Agosto de 2026</strong><div><button type="button" aria-label="Mes anterior">‹</button><button type="button" aria-label="Mes siguiente">›</button></div></header><div class="calendar-weekdays" aria-hidden="true"><span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span></div><div class="calendar-days"><button class="outside" type="button">27</button><button class="outside" type="button">28</button><button class="outside" type="button">29</button><button class="outside" type="button">30</button><button class="outside" type="button">31</button><button type="button">1</button><button type="button">2</button><button type="button">3</button><button type="button">4</button><button type="button">5</button><button type="button">6</button><button type="button">7</button><button type="button">8</button><button type="button">9</button><button type="button" aria-pressed="true">10</button><button class="is-hover" type="button">11</button><button type="button">12</button><button type="button">13</button><button type="button">14</button><button type="button">15</button><button type="button">16</button><button type="button">17</button><button type="button">18</button><button type="button">19</button><button type="button">20</button><button type="button">21</button><button type="button">22</button><button type="button">23</button><button type="button">24</button><button type="button">25</button><button type="button">26</button><button type="button">27</button><button type="button">28</button><button type="button">29</button><button type="button">30</button><button type="button">31</button><button class="outside" type="button">1</button><button class="outside" type="button">2</button><button class="outside" type="button">3</button><button class="outside" type="button">4</button><button class="outside" type="button">5</button><button class="outside" type="button">6</button></div><footer class="calendar-foot"><button type="button">Borrar</button><button type="button">Hoy</button></footer>
+  </div>
+  <div class="date-popover" role="dialog" aria-modal="false" aria-label="Calendario de Sin compra desde" data-show="purchase-date-open" data-calendar="purchase">
+    <header class="calendar-head"><strong>Septiembre de 2026</strong><div><button type="button" aria-label="Mes anterior">‹</button><button type="button" aria-label="Mes siguiente">›</button></div></header><div class="calendar-weekdays" aria-hidden="true"><span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span></div><div class="calendar-days"><button class="outside" type="button">31</button><button type="button">1</button><button type="button">2</button><button type="button">3</button><button type="button">4</button><button type="button">5</button><button type="button">6</button><button type="button">7</button><button type="button">8</button><button type="button">9</button><button type="button">10</button><button type="button">11</button><button type="button" aria-pressed="true">12</button><button class="is-hover" type="button">13</button><button type="button">14</button><button type="button">15</button><button type="button">16</button><button type="button">17</button><button type="button">18</button><button type="button">19</button><button type="button">20</button><button type="button">21</button><button type="button">22</button><button type="button">23</button><button type="button">24</button><button type="button">25</button><button type="button">26</button><button type="button">27</button><button type="button">28</button><button type="button">29</button><button type="button">30</button><button class="outside" type="button">1</button><button class="outside" type="button">2</button><button class="outside" type="button">3</button><button class="outside" type="button">4</button></div><footer class="calendar-foot"><button type="button" disabled>Borrar</button><button type="button">Hoy</button></footer>
+  </div>
+
+  <div data-show="detail-loading detail-ready detail-error">
+    <div class="scrim" data-dialog-dismiss aria-hidden="true"></div>
+    <section class="drawer wide-drawer" role="dialog" aria-modal="true" aria-labelledby="client-detail-title" aria-describedby="client-detail-description" data-overlay>
+      <header class="drawer-head"><div><span class="eyebrow">Clientes</span><h2 id="client-detail-title">Detalle de cliente</h2><p id="client-detail-description">Información actual del registro seleccionado.</p></div><button class="btn btn-icon" type="button" aria-label="Cerrar detalle" data-dialog-close><svg class="icon"><use href="#i-x"></use></svg></button></header>
+      <div class="drawer-body drawer-status" data-show="detail-loading"><div aria-busy="true" aria-live="polite"><span class="state-icon"><span class="spinner" aria-hidden="true"></span></span><h3>Cargando cliente</h3><p>Estamos obteniendo la información más reciente.</p></div></div>
+      <div class="drawer-body drawer-status" data-show="detail-error"><div><span class="state-icon"><svg class="icon"><use href="#i-alert"></use></svg></span><h3>No pudimos cargar el cliente</h3><p>No logramos obtener la información actual. Reintenta en unos segundos.</p><button class="btn btn-primary" type="button" data-go-state="detail-loading">Reintentar</button><button class="btn" type="button" data-dialog-close>Cerrar</button></div></div>
+      <div class="drawer-body" data-show="detail-ready"><div class="detail-identity"><span class="identity-mark">MA</span><span><strong>Mercado Aurora</strong><span>Cliente activo de la cartera comercial</span></span></div><dl class="definition-grid"><div><dt>Nombre</dt><dd>Mercado Aurora</dd></div><div><dt>Estado</dt><dd><span class="badge success">Activo</span></dd></div><div><dt>Tipo de documento</dt><dd>RUC</dd></div><div><dt>Número de documento</dt><dd>20601234567</dd></div><div><dt>Teléfono</dt><dd>987 654 321</dd></div><div><dt>Email</dt><dd>contacto@mercadoaurora.example</dd></div><div><dt>Segmento</dt><dd>Minorista</dd></div><div><dt>Frecuencia de visita</dt><dd>Cada 15 días</dd></div><div><dt>Territorio</dt><dd>LIM-CEN — Lima Centro</dd></div><div><dt>Vendedores asignados</dt><dd>2</dd></div><div class="wide"><dt>Dirección</dt><dd>Av. Arequipa 2450, Lince, Lima</dd></div></dl><section class="drawer-section detail-map" aria-labelledby="detail-map-title"><div class="section-heading"><span class="section-heading-icon"><svg class="icon"><use href="#i-map"></use></svg></span><div><h3 id="detail-map-title">Ubicación registrada</h3><p>Mapa de solo lectura.</p></div></div><div class="map-card" role="img" aria-label="Mapa de solo lectura con la ubicación de Mercado Aurora en Lima"><span class="map-label">Lince · Lima</span><span class="map-marker"><svg class="icon"><use href="#i-pin"></use></svg></span><span class="map-coordinate">-12.0864, -77.0365</span></div></section></div>
+      <footer class="drawer-foot" data-show="detail-ready"><button class="btn" type="button" data-dialog-close>Cerrar</button></footer>
+    </section>
+  </div>
+
+  <div data-show="create-loading create-ready create-validation create-location-unconfirmed create-duplicates create-duplicates-none create-duplicates-error create-saving create-error territories-error form-territory-open edit-loading edit-ready edit-validation edit-conflict mobile-create mobile-location">
+    <div class="scrim" data-dialog-dismiss aria-hidden="true"></div>
+    <section class="drawer wide-drawer" role="dialog" aria-modal="true" aria-labelledby="client-form-title" aria-describedby="client-form-description" data-overlay>
+      <header class="drawer-head"><div><span class="eyebrow">Clientes</span><h2 id="client-form-title"><span data-show="create-loading create-ready create-validation create-location-unconfirmed create-duplicates create-duplicates-none create-duplicates-error create-saving create-error territories-error form-territory-open mobile-create mobile-location">Crear cliente</span><span data-show="edit-loading edit-ready edit-validation edit-conflict">Editar cliente</span></h2><p id="client-form-description">Completa los datos y confirma la ubicación real del cliente.</p></div><button class="btn btn-icon" type="button" aria-label="Cerrar formulario" data-dialog-close data-disable-in="create-saving"><svg class="icon"><use href="#i-x"></use></svg></button></header>
+      <div class="drawer-body drawer-status" data-show="create-loading edit-loading"><div aria-busy="true" aria-live="polite"><span class="state-icon"><span class="spinner" aria-hidden="true"></span></span><h3><span data-show="create-loading">Cargando territorios activos</span><span data-show="edit-loading">Cargando cliente y territorios</span></h3><p>Estamos preparando el formulario con la información vigente.</p></div></div>
+      <div class="drawer-body drawer-status" data-show="territories-error"><div><span class="state-icon"><svg class="icon"><use href="#i-alert"></use></svg></span><h3>No pudimos cargar los territorios</h3><p>No es posible preparar el formulario sin consultar los territorios activos.</p><button class="btn btn-primary" type="button" data-go-state="create-loading">Reintentar</button><button class="btn" type="button" data-dialog-close>Cerrar</button></div></div>
+      <div class="drawer-body" data-show="create-ready create-validation create-location-unconfirmed create-duplicates create-duplicates-none create-duplicates-error create-saving create-error form-territory-open edit-ready edit-validation edit-conflict mobile-create mobile-location">
+        <div class="alert alert-danger" role="alert" data-show="create-error"><svg class="icon"><use href="#i-alert"></use></svg><div><strong>No pudimos guardar el cliente</strong><p>Conservamos todos los datos. Revisa la información e inténtalo nuevamente.</p></div></div>
+        <div class="alert alert-warning" role="alert" data-show="edit-conflict"><svg class="icon"><use href="#i-alert"></use></svg><div><strong>El cliente cambió mientras editabas</strong><p>Otra persona guardó una versión más reciente. Tus cambios siguen visibles; actualiza los datos antes de intentar guardarlos.</p><div class="alert-actions"><button class="alert-link" type="button" data-go-state="edit-loading">Cargar versión actual</button></div></div></div>
+        <form class="form-stack" aria-label="Formulario de cliente">
+          <section class="drawer-section" aria-labelledby="client-information-title"><div class="section-heading"><span class="section-heading-icon"><svg class="icon"><use href="#i-client"></use></svg></span><div><h3 id="client-information-title">Información del cliente</h3><p>Los campos de contacto y clasificación son opcionales salvo que se indique lo contrario.</p></div></div>
+            <div class="field"><label for="client-name">Nombre</label><div class="control" data-error-control="name"><input id="client-name" required minlength="2" maxlength="200" value="Mercado Aurora" aria-describedby="client-name-error"></div><p class="field-error" id="client-name-error" data-show="create-validation edit-validation">Ingresa un nombre de al menos 2 caracteres.</p></div>
+            <div class="field"><label for="client-address">Dirección</label><div class="control" data-error-control="address"><input id="client-address" required minlength="3" maxlength="300" value="Av. Arequipa 2450, Lince, Lima" aria-describedby="client-address-help client-address-error"></div><p class="field-help" id="client-address-help">La búsqueda automática de dirección no está disponible. Ubica y confirma el punto real.</p><p class="field-error" id="client-address-error" data-show="create-validation edit-validation">Ingresa una dirección de al menos 3 caracteres.</p></div>
+            <div class="form-grid-three"><div class="field"><span id="document-type-label">Tipo de documento</span><details class="app-select"><summary class="select-trigger" aria-labelledby="document-type-label">RUC<svg class="icon icon-sm"><use href="#i-chevron"></use></svg></summary></details></div><div class="field"><label for="document-number">Número de documento</label><div class="control" data-error-control="document"><input id="document-number" inputmode="numeric" value="20601234567" aria-describedby="document-number-error"></div><p class="field-error" id="document-number-error" data-show="create-validation edit-validation">El RUC debe contener exactamente 11 dígitos.</p></div><div class="field"><label for="client-phone">Teléfono</label><div class="control" data-error-control="phone"><input id="client-phone" type="tel" inputmode="numeric" value="987654321" aria-describedby="client-phone-error"></div><p class="field-error" id="client-phone-error" data-show="create-validation edit-validation">Ingresa un móvil peruano válido de 9 dígitos.</p></div></div>
+            <div class="form-grid-two"><div class="field"><label for="client-email">Email</label><div class="control" data-error-control="email"><input id="client-email" type="email" value="contacto@mercadoaurora.example" aria-describedby="client-email-error"></div><p class="field-error" id="client-email-error" data-show="create-validation edit-validation">Ingresa un email válido o deja el campo vacío.</p></div><div class="field"><label for="client-segment">Segmento</label><div class="control"><input id="client-segment" maxlength="80" value="Minorista"></div></div></div>
+            <div class="form-grid-two"><div class="field"><label for="visit-frequency">Frecuencia de visita en días</label><div class="control" data-error-control="frequency"><input id="visit-frequency" type="number" min="1" max="365" value="15" aria-describedby="visit-frequency-error"></div><p class="field-error" id="visit-frequency-error" data-show="create-validation edit-validation">Ingresa un número entero entre 1 y 365.</p></div><div class="field"><span id="form-territory-label">Territorio activo</span><details class="app-select" data-open-state="form-territory-open"><summary class="select-trigger" aria-labelledby="form-territory-label" aria-haspopup="listbox" aria-expanded="false" aria-controls="form-territory-options">LIM-CEN — Lima Centro<svg class="icon icon-sm"><use href="#i-chevron"></use></svg></summary><div id="form-territory-options" class="select-menu" role="listbox" aria-label="Territorio activo"><button class="select-option" type="button" role="option" aria-selected="false">Sin territorio</button><button class="select-option" type="button" role="option" aria-selected="true">LIM-CEN — Lima Centro</button><button class="select-option is-hover" type="button" role="option" aria-selected="false">LIM-NOR — Lima Norte</button><button class="select-option" type="button" role="option" aria-selected="false">LIM-SUR — Lima Sur</button><button class="select-option" type="button" role="option" disabled>Territorio inactivo</button></div></details><p class="field-help">Solo se muestran territorios activos; también puedes dejarlo sin asignar.</p></div></div>
+          </section>
+          <section class="drawer-section location-section" aria-labelledby="client-location-title"><div class="section-heading"><span class="section-heading-icon"><svg class="icon"><use href="#i-pin"></use></svg></span><div><h3 id="client-location-title">Ubicación</h3><p>Lima es solo el punto visual inicial; confirma siempre la ubicación real.</p></div></div><div class="form-grid-two"><div class="field"><label for="client-latitude">Latitud</label><div class="control" data-error-control="latitude"><input id="client-latitude" type="number" step="any" min="-90" max="90" value="-12.0864" aria-describedby="latitude-help latitude-error"></div><p class="field-help" id="latitude-help">Valor entre -90 y 90.</p><p class="field-error" id="latitude-error" data-show="create-validation edit-validation">Ingresa una latitud válida entre -90 y 90.</p></div><div class="field"><label for="client-longitude">Longitud</label><div class="control" data-error-control="longitude"><input id="client-longitude" type="number" step="any" min="-180" max="180" value="-77.0365" aria-describedby="longitude-help longitude-error"></div><p class="field-help" id="longitude-help">Valor entre -180 y 180.</p><p class="field-error" id="longitude-error" data-show="create-validation edit-validation">Ingresa una longitud válida entre -180 y 180.</p></div></div><label class="checkbox-card" data-confirmation-card><input type="checkbox" checked><span>Confirmo que estas coordenadas representan la ubicación real del cliente.</span></label><p class="field-error" data-show="create-validation create-location-unconfirmed mobile-location">Confirma explícitamente las coordenadas antes de guardar.</p><div class="map-card" role="img" aria-label="Mapa para seleccionar la ubicación del cliente en Lima"><span class="map-label">Selecciona un punto en el mapa</span><span class="map-marker"><svg class="icon"><use href="#i-pin"></use></svg></span><span class="map-coordinate">-12.0864, -77.0365</span></div>
+          </section>
+          <section class="drawer-section" aria-labelledby="duplicate-check-title"><div class="section-heading"><span class="section-heading-icon"><svg class="icon"><use href="#i-search"></use></svg></span><div><h3 id="duplicate-check-title">Comprobación de duplicados</h3><p>La comprobación es informativa y no reemplaza la validación del servidor al guardar.</p></div></div><div class="alert alert-warning" role="status" data-show="create-duplicates"><svg class="icon"><use href="#i-alert"></use></svg><div><strong>Encontramos posibles duplicados</strong><p>Revisa las coincidencias antes de continuar. La advertencia no bloquea el guardado.</p></div></div><ul class="duplicate-list" data-show="create-duplicates"><li class="duplicate-item"><span><strong>Mercado La Aurora</strong><small>Coincide en nombre y ubicación aproximada</small></span><span class="badge warning">Posible coincidencia</span></li><li class="duplicate-item"><span><strong>Comercial Aurora</strong><small>Coincide en teléfono</small></span><span class="badge warning">Posible coincidencia</span></li></ul><div class="alert alert-info" role="status" data-show="create-duplicates-none"><svg class="icon"><use href="#i-info"></use></svg><div><strong>Sin coincidencias visibles</strong><p>No encontramos coincidencias en esta comprobación informativa. El servidor volverá a validar al guardar.</p></div></div><div class="alert alert-danger" role="alert" data-show="create-duplicates-error"><svg class="icon"><use href="#i-alert"></use></svg><div><strong>No pudimos comprobar duplicados</strong><p>Puedes continuar; el servidor validará la información al guardar.</p></div></div><button class="btn" type="button" data-go-state="create-duplicates"><svg class="icon icon-sm"><use href="#i-search"></use></svg>Comprobar duplicados</button></section>
+        </form>
+      </div>
+      <footer class="drawer-foot" data-show="create-ready create-validation create-location-unconfirmed create-duplicates create-duplicates-none create-duplicates-error create-error form-territory-open edit-ready edit-validation edit-conflict mobile-create mobile-location"><button class="btn" type="button" data-dialog-close>Cancelar</button><button class="btn btn-primary" type="button" data-show="create-ready create-validation create-location-unconfirmed create-duplicates create-duplicates-none create-duplicates-error create-error form-territory-open mobile-create mobile-location" data-go-state="create-saving">Crear cliente</button><button class="btn btn-primary" type="button" data-show="edit-ready edit-validation">Guardar cambios</button><button class="btn btn-primary" type="button" data-show="edit-conflict" data-go-state="edit-loading">Cargar versión actual</button></footer>
+      <footer class="drawer-foot" data-show="create-saving"><button class="btn" type="button" disabled>Cancelar</button><button class="btn btn-primary" type="button" disabled aria-busy="true"><span class="spinner" aria-hidden="true"></span>Guardando…</button></footer>
+    </section>
+  </div>
+
+  <div data-show="unsaved-changes">
+    <div class="scrim" aria-hidden="true"></div><section class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="unsaved-title" aria-describedby="unsaved-description" data-overlay><header class="dialog-head"><div><span class="eyebrow">Clientes</span><h2 id="unsaved-title">Descartar cambios</h2><p>Confirma antes de cerrar el formulario.</p></div><button class="btn btn-icon" type="button" aria-label="Cerrar confirmación"><svg class="icon"><use href="#i-x"></use></svg></button></header><div class="dialog-body"><span class="confirm-icon"><svg class="icon"><use href="#i-alert"></use></svg></span><p id="unsaved-description" class="confirmation-copy">Tienes cambios sin guardar. Si sales ahora, se perderán los datos y la ubicación seleccionada.</p></div><footer class="dialog-foot"><button class="btn" type="button" data-initial-focus data-go-state="create-ready">Continuar editando</button><button class="btn btn-danger" type="button" data-go-state="ready-admin">Descartar cambios</button></footer></section>
+  </div>
+
+  <div data-show="confirm-inactivate confirm-inactivate-saving confirm-inactivate-error confirm-activate">
+    <div class="scrim" data-dialog-dismiss aria-hidden="true"></div><section class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="status-dialog-title" aria-describedby="status-dialog-description" data-overlay><header class="dialog-head"><div><span class="eyebrow">Clientes</span><h2 id="status-dialog-title"><span data-show="confirm-inactivate confirm-inactivate-saving confirm-inactivate-error">Inactivar cliente</span><span data-show="confirm-activate">Activar cliente</span></h2><p>Confirma el cambio de estado.</p></div><button class="btn btn-icon" type="button" aria-label="Cerrar confirmación" data-dialog-close data-disable-in="confirm-inactivate-saving"><svg class="icon"><use href="#i-x"></use></svg></button></header><div class="dialog-body"><span class="confirm-icon" data-show="confirm-inactivate confirm-inactivate-saving confirm-inactivate-error"><svg class="icon"><use href="#i-alert"></use></svg></span><span class="confirm-icon info" data-show="confirm-activate"><svg class="icon"><use href="#i-arrow"></use></svg></span><div class="confirm-identity"><span class="identity-mark">MA</span><span><strong>Mercado Aurora</strong><small>Minorista · 2 vendedores asignados</small></span></div><div id="status-dialog-description"><p class="confirmation-copy" data-show="confirm-inactivate confirm-inactivate-saving confirm-inactivate-error">El cliente quedará inactivo. No se eliminará ni se borrarán sus asignaciones o datos históricos.</p><p class="confirmation-copy" data-show="confirm-activate">El cliente volverá a estar activo. Esta acción no crea asignaciones ni modifica la ubicación registrada.</p></div><p class="confirm-note" data-show="confirm-inactivate confirm-inactivate-saving confirm-inactivate-error"><svg class="icon"><use href="#i-shield"></use></svg><span>Inactivar no equivale a eliminar el cliente.</span></p><div class="alert alert-danger confirm-error" role="alert" aria-live="assertive" data-show="confirm-inactivate-error"><svg class="icon"><use href="#i-alert"></use></svg><div><strong>El cliente cambió durante la operación</strong><p>No se aplicó ningún cambio. Actualiza el listado antes de volver a intentarlo.</p></div></div></div><footer class="dialog-foot"><button class="btn" type="button" data-initial-focus data-dialog-close data-disable-in="confirm-inactivate-saving">Cancelar</button><button class="btn btn-danger" type="button" data-show="confirm-inactivate confirm-inactivate-error" data-go-state="confirm-inactivate-saving">Inactivar cliente</button><button class="btn btn-danger" type="button" disabled aria-busy="true" data-show="confirm-inactivate-saving"><span class="spinner" aria-hidden="true"></span>Inactivando…</button><button class="btn btn-primary" type="button" data-show="confirm-activate" data-go-state="operation-success">Activar cliente</button></footer></section>
+  </div>
+
+  <div data-show="operation-success"><div class="scrim" data-dialog-dismiss aria-hidden="true"></div><section class="dialog operation-dialog" role="dialog" aria-modal="true" aria-labelledby="operation-title" data-overlay><header class="dialog-head"><div><span class="eyebrow">Clientes</span><h2 id="operation-title">Operación completada</h2></div><button class="btn btn-icon" type="button" aria-label="Cerrar mensaje" data-dialog-close><svg class="icon"><use href="#i-x"></use></svg></button></header><div class="dialog-body"><span class="confirm-icon info"><svg class="icon"><use href="#i-shield"></use></svg></span><p role="status">El cliente fue actualizado correctamente.</p></div><footer class="dialog-foot"><button class="btn btn-primary" type="button" data-dialog-close>Aceptar</button></footer></section></div>
+
+  <aside class="mockup-guide" aria-label="Controles del mockup"><label for="state">Estado</label><select id="state" data-state-selector></select><button class="btn btn-icon btn-compact" type="button" data-theme-toggle aria-label="Cambiar tema"><svg class="icon"><use href="#i-moon"></use></svg></button></aside>
+  <script src="assets/golden-states.js"></script>
+  <script>
+    (function () {
+      "use strict";
+      const body = document.body;
+      const state = body.dataset.state || "ready-admin";
+      const menuButton = document.querySelector("[data-nav-toggle]");
+      const closeNavButton = document.querySelector("[data-nav-close]");
+      const clientsButton = document.querySelector("[data-clients-toggle]");
+      const clientsNavigation = document.querySelector("#clients-navigation");
+      const profileButton = document.querySelector("[data-profile-toggle]");
+      const profileMenu = document.querySelector("#profile-menu");
+      const savingStates = ["create-saving", "confirm-inactivate-saving"];
+      function stateUrl(nextState) { const next = new URL(window.location.href); next.searchParams.set("state", nextState); return next; }
+      function goToState(nextState) { window.location.href = stateUrl(nextState).toString(); }
+      function setNavigation(open, restoreFocus) { body.dataset.nav = open ? "open" : "closed"; menuButton?.setAttribute("aria-expanded", String(open)); menuButton?.setAttribute("aria-label", open ? "Cerrar menú" : "Abrir menú"); if (!open && restoreFocus && menuButton instanceof HTMLElement) menuButton.focus(); }
+      function setProfileOpen(open, restoreFocus) { profileButton?.setAttribute("aria-expanded", String(open)); if (profileMenu instanceof HTMLElement) profileMenu.hidden = !open; if (!open && restoreFocus && profileButton instanceof HTMLElement) profileButton.focus(); }
+      setNavigation(false, false);
+      clientsButton?.addEventListener("click", function () { const open = clientsButton.getAttribute("aria-expanded") !== "true"; clientsButton.setAttribute("aria-expanded", String(open)); if (clientsNavigation instanceof HTMLElement) clientsNavigation.hidden = !open; });
+      menuButton?.addEventListener("click", function () { setNavigation(body.dataset.nav !== "open", false); });
+      closeNavButton?.addEventListener("click", function () { setNavigation(false, true); });
+      profileButton?.addEventListener("click", function () { setProfileOpen(profileButton.getAttribute("aria-expanded") !== "true", false); });
+
+      const supervisorView = state === "ready-supervisor" || state === "actions-supervisor";
+      if (supervisorView) {
+        document.querySelectorAll("[data-profile-role]").forEach(function (node) { node.textContent = node.closest(".dashboard-profile-card") ? "Supervisor de empresa" : "Supervisor"; });
+        document.querySelectorAll("[data-admin-action]").forEach(function (node) { node.hidden = true; });
+        document.querySelectorAll("[data-menu-trigger]").forEach(function (control) { control.setAttribute("data-menu-trigger", "actions-supervisor"); });
+        profileButton?.setAttribute("aria-label", "Abrir opciones del perfil de Alex Medina, Supervisor");
+      }
+      if (state === "no-results") { const input = document.querySelector("[data-search-input]"); if (input instanceof HTMLInputElement) input.value = "Cliente inexistente"; }
+      if (state === "filters-active") { document.querySelector('[data-date-value="visit"]').textContent = "10/08/2026"; }
+      if (state === "pagination-last") { const next = document.querySelector(".page-next"); next?.setAttribute("disabled", ""); const prev = document.querySelector(".page-prev"); prev?.removeAttribute("disabled"); const summary = document.querySelector("[data-pagination-summary]"); if (summary) summary.textContent = "Mostrando 126–128 de 128 clientes"; }
+      if (["loading", "create-loading", "edit-loading"].includes(state)) document.querySelectorAll(".clients-filterbar input, .clients-filterbar button, .clients-filterbar summary").forEach(function (node) { node.setAttribute("aria-disabled", "true"); if (node instanceof HTMLInputElement || node instanceof HTMLButtonElement) node.disabled = true; });
+
+      const validationState = state === "create-validation" || state === "edit-validation";
+      if (validationState) {
+        document.querySelectorAll("[data-error-control]").forEach(function (node) { node.classList.add("is-error"); });
+        const values = { "client-name": "M", "client-address": "A", "document-number": "20601", "client-phone": "123", "client-email": "correo@", "visit-frequency": "400", "client-latitude": "-120", "client-longitude": "220" };
+        Object.entries(values).forEach(function ([id, value]) { const input = document.getElementById(id); if (input instanceof HTMLInputElement) { input.value = value; input.setAttribute("aria-invalid", "true"); } });
+      }
+      if (["create-location-unconfirmed", "mobile-location", "create-validation"].includes(state)) { const confirmation = document.querySelector("[data-confirmation-card]"); confirmation?.classList.add("is-error"); const input = confirmation?.querySelector("input"); if (input instanceof HTMLInputElement) input.checked = false; }
+      if (state === "create-saving") document.querySelectorAll(".drawer input, .drawer summary, .drawer button").forEach(function (node) { node.setAttribute("aria-disabled", "true"); if (node instanceof HTMLInputElement || node instanceof HTMLButtonElement) node.disabled = true; });
+
+      const openFilter = document.querySelector(`[data-open-state="${state}"]`);
+      if (openFilter instanceof HTMLDetailsElement) openFilter.open = true;
+      document.querySelectorAll("details.app-select").forEach(function (select) { const trigger = select.querySelector("summary"); const sync = function () { trigger?.setAttribute("aria-expanded", String(select.open)); }; sync(); select.addEventListener("toggle", sync); });
+      function placeFloating(element, anchor, preferAbove) { if (!(element instanceof HTMLElement) || !(anchor instanceof HTMLElement)) return; const bounds = anchor.getBoundingClientRect(); const width = Math.min(Math.max(bounds.width, element.offsetWidth || 184), window.innerWidth - 24); element.style.width = `${width}px`; const height = element.offsetHeight || 220; const below = window.innerHeight - bounds.bottom - 12; const openAbove = preferAbove || (below < height && bounds.top > below); element.style.left = `${Math.max(12, Math.min(bounds.left, window.innerWidth - width - 12))}px`; element.style.top = `${openAbove ? Math.max(12, bounds.top - height - 7) : Math.min(bounds.bottom + 7, window.innerHeight - height - 12)}px`; element.dataset.positioned = "true"; }
+      if (openFilter instanceof HTMLDetailsElement) window.setTimeout(function () { placeFloating(openFilter.querySelector(".select-menu"), openFilter.querySelector("summary"), false); openFilter.querySelector(".select-option[aria-selected='true']")?.focus(); }, 0);
+      const activeCalendar = document.querySelector(`.date-popover[data-show~="${state}"]`);
+      if (activeCalendar instanceof HTMLElement) { const kind = activeCalendar.dataset.calendar; const trigger = document.querySelector(`[data-date-trigger="${kind}"]`); trigger?.setAttribute("aria-expanded", "true"); window.setTimeout(function () { placeFloating(activeCalendar, trigger, false); activeCalendar.querySelector("button[aria-pressed='true']")?.focus(); }, 0); }
+      const activeMenu = document.querySelector(`.action-menu[data-show~="${state}"]`);
+      const activeMenuTrigger = state === "actions-admin-inactive" ? document.querySelector('[data-menu-trigger="actions-admin-inactive"]') : state === "actions-supervisor" ? document.querySelector('[data-menu-trigger="actions-supervisor"]') : document.querySelector('[data-menu-trigger="actions-admin-active"]');
+      if (activeMenu instanceof HTMLElement && activeMenuTrigger instanceof HTMLElement) window.setTimeout(function () { activeMenuTrigger.setAttribute("aria-expanded", "true"); placeFloating(activeMenu, activeMenuTrigger, false); activeMenu.querySelector("[role=menuitem]")?.focus(); }, 0);
+
+      document.querySelectorAll("[data-go-state]").forEach(function (control) { control.addEventListener("click", function () { goToState(control.getAttribute("data-go-state") || "ready-admin"); }); });
+      document.querySelectorAll("[data-menu-trigger]").forEach(function (control) { control.addEventListener("click", function () { goToState(control.getAttribute("data-menu-trigger") || "ready-admin"); }); });
+      document.querySelectorAll("[data-date-trigger]").forEach(function (control) { control.addEventListener("click", function () { goToState(control.getAttribute("data-open-state") || "ready-admin"); }); });
+      document.querySelectorAll("[data-filter-select]").forEach(function (select) { select.addEventListener("toggle", function () { const nextState = select.getAttribute("data-open-state") || "ready-admin"; if (select.open && state !== nextState) goToState(nextState); }); });
+      if (activeMenu instanceof HTMLElement) { const items = Array.from(activeMenu.querySelectorAll("[role=menuitem]")); activeMenu.addEventListener("keydown", function (event) { const index = items.indexOf(document.activeElement); if (event.key === "ArrowDown" || event.key === "ArrowUp") { event.preventDefault(); const step = event.key === "ArrowDown" ? 1 : items.length - 1; items[(Math.max(index, 0) + step) % items.length]?.focus(); } }); }
+
+      const visibleOverlay = Array.from(document.querySelectorAll("[data-overlay]")).find(function (node) { return node instanceof HTMLElement && node.getClientRects().length > 0; });
+      if (visibleOverlay instanceof HTMLElement) {
+        const focusable = Array.from(visibleOverlay.querySelectorAll("button:not(:disabled), input:not(:disabled), summary, [href], [tabindex]:not([tabindex='-1'])")).filter(function (node) { return node instanceof HTMLElement && node.getClientRects().length > 0 && node.getAttribute("aria-disabled") !== "true"; });
+        const initial = state === "mobile-location" ? visibleOverlay.querySelector("[data-dialog-close]") : visibleOverlay.querySelector("[data-initial-focus]") || focusable.find(function (node) { return node instanceof HTMLInputElement; }) || focusable[0];
+        if (initial instanceof HTMLElement) window.setTimeout(function () { initial.focus(); }, 0);
+        if (["create-duplicates", "create-duplicates-none", "create-duplicates-error"].includes(state)) window.setTimeout(function () { const drawerBody = Array.from(visibleOverlay.querySelectorAll(".drawer-body")).find(function (node) { return node instanceof HTMLElement && node.getClientRects().length > 0; }); const duplicateSection = drawerBody?.querySelector('[aria-labelledby="duplicate-check-title"]'); if (drawerBody instanceof HTMLElement && duplicateSection instanceof HTMLElement) drawerBody.scrollTop = duplicateSection.offsetTop; }, 0);
+        const closeOverlay = function () { if (savingStates.includes(state)) return; window.location.href = stateUrl("ready-admin").toString(); };
+        visibleOverlay.querySelectorAll("[data-dialog-close]").forEach(function (control) { control.addEventListener("click", closeOverlay); });
+        document.querySelectorAll("[data-dialog-dismiss]").forEach(function (control) { if (control.getClientRects().length > 0) control.addEventListener("click", closeOverlay); });
+        visibleOverlay.addEventListener("keydown", function (event) { if (event.key === "Escape") { event.preventDefault(); closeOverlay(); } if (event.key === "Tab" && focusable.length) { const first = focusable[0]; const last = focusable[focusable.length - 1]; if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); } else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); } } });
+      }
+      document.addEventListener("click", function (event) { if (!(event.target instanceof Node)) return; if (profileMenu instanceof HTMLElement && !profileMenu.hidden && !profileMenu.contains(event.target) && !profileButton?.contains(event.target)) setProfileOpen(false, false); });
+      document.addEventListener("keydown", function (event) { if (event.key !== "Escape") return; if (profileMenu instanceof HTMLElement && !profileMenu.hidden) setProfileOpen(false, true); else if (body.dataset.nav === "open") setNavigation(false, true); });
+    })();
+  </script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, expect, test, vi } from "vitest";
 import { useCustomerAssignments } from "./useCustomerAssignments";
 
@@ -40,4 +40,37 @@ test("limpia la cartera anterior y carga la del nuevo tenant tras cambiar de emp
   await act(async () => { resolve?.(tenantB); });
   expect(result.current.clients.map((client) => client.id)).toEqual(["customer-b"]);
   expect(state.load).toHaveBeenCalledTimes(loadsBeforeChange + 1);
+});
+
+const previous = { response: new Response(null, { status: 200 }), clients: [{ id: "customer-a", name: "Cliente A", status: "ACTIVE" as const, territoryId: null, assignedSellerIds: [] }], sellers: [{ id: "seller-a", displayName: "Vendedora A", status: "ACTIVE" as const }], territories: [] };
+const denied = { response: new Response(null, { status: 403 }), clients: null, sellers: null, territories: null };
+const input = { customerIds: ["customer-a"], sellerIds: ["seller-a"], effectiveFrom: "2026-08-20", reason: "" };
+
+test("GET 403 tras una carga válida elimina cartera, resultados y fecha", async () => {
+  state.load.mockResolvedValueOnce(previous).mockResolvedValueOnce(denied);
+  const { result } = renderHook(() => useCustomerAssignments());
+  await waitFor(() => expect(result.current.clients.map(client => client.id)).toEqual(["customer-a"]));
+  act(() => result.current.reload());
+  await waitFor(() => expect(result.current.error?.status).toBe(403));
+  expect(result.current.clients).toEqual([]);
+  expect(result.current.sellers).toEqual([]);
+  expect(result.current.territories).toEqual([]);
+  expect(result.current.results).toEqual([]);
+  expect(result.current.lastUpdated).toBeNull();
+  expect(await result.current.submit(input, "intent-a")).toBe(false);
+  expect(state.one).not.toHaveBeenCalled();
+});
+
+test("PUT 403 revoca la cartera y evita repetir la operación", async () => {
+  state.load.mockResolvedValueOnce(previous);
+  state.one.mockResolvedValue({ status: 403, correlationId: null, fieldErrors: [] });
+  const { result } = renderHook(() => useCustomerAssignments());
+  await waitFor(() => expect(result.current.clients.map(client => client.id)).toEqual(["customer-a"]));
+  await act(async () => { expect(await result.current.submit(input, "intent-a")).toBe(false); });
+  expect(result.current.error?.status).toBe(403);
+  expect(result.current.clients).toEqual([]);
+  expect(result.current.sellers).toEqual([]);
+  expect(result.current.lastUpdated).toBeNull();
+  await act(async () => { expect(await result.current.submit(input, "intent-a")).toBe(false); });
+  expect(state.one).toHaveBeenCalledTimes(1);
 });

@@ -8,13 +8,14 @@ const clients: readonly Client[] = [
   { id: "client-sur", name: "Comercial Sur", segment: null, territoryId: null, assignedSellerIds: [], status: "ACTIVE", location: { latitude: -12.05, longitude: -77.04 }, createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z", version: 1 },
 ];
 let mapState: { result: { items: readonly Client[]; page: { page: number; pageSize: number; totalElements: number; totalPages: number } } | null; loading: boolean; error: { status: number; correlationId: null; fieldErrors: never[] } | null } = { result: { items: clients, page: { page: 0, pageSize: 20, totalElements: clients.length, totalPages: 1 } }, loading: false, error: null };
+let sessionRole = "COMPANY_ADMIN";
 
 vi.mock("./components/ClientMap", () => ({
-  ClientMap: ({ clients: mapClients }: { clients: readonly Client[] }) => <div aria-label="Marcadores del mapa">{mapClients.map((client) => <span key={client.id}>Marcador {client.name}</span>)}</div>,
+  ClientMap: ({ clients: mapClients, onSelect }: { clients: readonly Client[]; onSelect: (id: string) => void }) => <div aria-label="Marcadores del mapa">{mapClients.map((client) => <button key={client.id} type="button" data-client-map-selection onClick={() => onSelect(client.id)}>Marcador {client.name}</button>)}</div>,
 }));
 vi.mock("./hooks/useClients", () => ({ clientSessionKey: () => "session" }));
 vi.mock("../auth/auth", () => ({
-  getSessionIdentity: () => ({ roles: ["COMPANY_ADMIN"] }),
+  getSessionIdentity: () => ({ roles: [sessionRole] }),
   subscribeToSession: () => () => undefined,
 }));
 vi.mock("./hooks/useClientMap", async () => {
@@ -44,7 +45,7 @@ vi.mock("./hooks/useClientMap", async () => {
   };
 });
 
-afterEach(() => { cleanup(); mapState = { result: { items: clients, page: { page: 0, pageSize: 20, totalElements: clients.length, totalPages: 1 } }, loading: false, error: null }; });
+afterEach(() => { cleanup(); sessionRole = "COMPANY_ADMIN"; mapState = { result: { items: clients, page: { page: 0, pageSize: 20, totalElements: clients.length, totalPages: 1 } }, loading: false, error: null }; });
 
 test("comparte la búsqueda autorizada entre la lista y los marcadores", () => {
   render(<CompanyClientsMapPage />);
@@ -53,19 +54,27 @@ test("comparte la búsqueda autorizada entre la lista y los marcadores", () => {
   expect(screen.getByText("2 clientes. Selecciona uno para ubicarlo.")).toBeTruthy();
   expect(screen.queryByPlaceholderText("Buscar en el mapa")).toBeNull();
 
-  fireEvent.change(screen.getByRole("searchbox", { name: "Buscar cliente por nombre o segmento" }), { target: { value: "Sur" } });
+  fireEvent.change(screen.getByRole("searchbox", { name: "Buscar por nombre o segmento" }), { target: { value: "Sur" } });
 
   expect(screen.queryByText("Marcador Comercial Norte")).toBeNull();
   expect(screen.getByText("Marcador Comercial Sur")).toBeTruthy();
   expect(screen.getByText("1 clientes. Selecciona uno para ubicarlo.")).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Comercial Norte" })).toBeNull();
-  expect(screen.getByRole("button", { name: /Comercial Sur/ })).toBeTruthy();
+  expect(screen.getAllByRole("button", { name: /Comercial Sur/ }).some((button) => button.classList.contains("client-map-list__item"))).toBe(true);
 });
 
 test("advierte cuando la actualización falla", () => {
   render(<CompanyClientsMapPage />);
-  fireEvent.change(screen.getByRole("searchbox", { name: "Buscar cliente por nombre o segmento" }), { target: { value: "fallo" } });
+  fireEvent.change(screen.getByRole("searchbox", { name: "Buscar por nombre o segmento" }), { target: { value: "fallo" } });
   expect(screen.getByText("No pudimos actualizar los clientes. El mapa mostrado puede no estar vigente.")).toBeTruthy();
+});
+
+test("explica el alcance asignado al supervisor", () => {
+  sessionRole = "SUPERVISOR";
+  render(<CompanyClientsMapPage />);
+
+  expect(screen.getByText("Consulta de alcance asignado")).toBeTruthy();
+  expect(screen.getByText(/Los filtros nunca amplían este alcance/)).toBeTruthy();
 });
 
 test("muestra la última respuesta y conserva el aviso stale durante la recarga", () => {
@@ -85,4 +94,18 @@ test("presenta un error inicial recuperable sin anunciar un mapa vacío", () => 
   expect(screen.getByRole("button", { name: "Reintentar" })).toBeTruthy();
   expect(screen.queryByText("Aún no hay clientes")).toBeNull();
   expect(screen.queryByText("No encontramos clientes.")).toBeNull();
+});
+
+test("revela la fila virtualizada al seleccionar un marcador sin mover el foco", () => {
+  const manyClients = Array.from({ length: 20 }, (_, index) => ({
+    ...clients[0]!, id: `client-${index}`, name: `Cliente ${index}`,
+  }));
+  mapState = { result: { items: manyClients, page: { page: 0, pageSize: 20, totalElements: manyClients.length, totalPages: 1 } }, loading: false, error: null };
+  render(<CompanyClientsMapPage />);
+
+  fireEvent.click(screen.getByRole("button", { name: "Marcador Cliente 19" }));
+
+  const selectedRow = screen.getAllByRole("button", { name: /Cliente 19/ }).find((button) => button.classList.contains("client-map-list__item"));
+  expect(selectedRow?.getAttribute("aria-pressed")).toBe("true");
+  expect(document.activeElement).not.toBe(selectedRow);
 });

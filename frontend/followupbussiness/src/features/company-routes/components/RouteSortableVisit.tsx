@@ -1,10 +1,10 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ArrowDown, ArrowUp, GripVertical } from "lucide-react";
+import { ArrowDown, ArrowUp, GripVertical, X } from "lucide-react";
 import { routeDragOriginStyle } from "../route-ordering";
 import type { RoutePoint } from "../types";
 
-export function RouteSortableVisit({ sortableId, point, index, total, saving, onMove }: { sortableId: string; point: RoutePoint; index: number; total: number; saving: boolean; onMove: (index: number, direction: -1 | 1) => void }) {
+export function RouteSortableVisit({ sortableId, point, index, total, saving, onMove, onRemove }: { sortableId: string; point: RoutePoint; index: number; total: number; saving: boolean; onMove: (index: number, direction: -1 | 1) => void; onRemove?: ((index: number) => void) | undefined }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: sortableId, disabled: saving });
   const name = point.customerName ?? "Cliente no disponible";
   const role = total === 1 ? "Inicio y final" : index === 0 ? "Inicio" : index === total - 1 ? "Final" : null;
@@ -16,6 +16,7 @@ export function RouteSortableVisit({ sortableId, point, index, total, saving, on
     <div className="route-order-editor__move-actions" aria-label={`Mover ${name}`}>
       <button type="button" aria-label={`Subir ${name}`} title="Subir visita" disabled={saving || index === 0} onClick={() => onMove(index, -1)}><ArrowUp aria-hidden="true" size={16} /></button>
       <button type="button" aria-label={`Bajar ${name}`} title="Bajar visita" disabled={saving || index === total - 1} onClick={() => onMove(index, 1)}><ArrowDown aria-hidden="true" size={16} /></button>
+      {onRemove && <button className="route-order-editor__remove" type="button" aria-label={`Quitar ${name}`} title="Quitar visita" disabled={saving} onClick={() => onRemove(index)}><X aria-hidden="true" size={16} /></button>}
     </div>
   </li>;
 }

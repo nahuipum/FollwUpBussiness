@@ -1,5 +1,5 @@
 import { beforeEach, expect, test, vi } from "vitest";
-import { assignBatch, assignOne } from "./api";
+import { assignBatch, assignOne, loadAssignmentOptions } from "./api";
 const state = vi.hoisted(() => ({ request: vi.fn(), normalize: vi.fn() }));
 vi.mock("../../lib/api", () => ({ apiRequest: state.request, normalizeApiError: state.normalize }));
 vi.mock("../auth/auth", () => ({ getSessionAuthorization: () => ({ Authorization: "Bearer test" }), getSessionMutationAuthorization: () => ({ Authorization: "Bearer test", "X-CSRF-Token": "csrf" }) }));
@@ -8,3 +8,25 @@ const input = { customerIds: ["customer-1", "customer-2"], sellerIds: ["seller-1
 test("envía asignación individual con sellerIds plural y opcionales normalizados", async () => { state.request.mockResolvedValue(new Response("{}", { status: 200 })); await expect(assignOne("customer-1", input)).resolves.toBeNull(); expect(state.request).toHaveBeenCalledWith("/customers/customer-1/assignment", expect.objectContaining({ method: "PUT", body: JSON.stringify({ sellerIds: ["seller-1", "seller-2"], effectiveFrom: "2026-08-20", reason: "Ajuste" }) }), { publishErrors: false }); });
 test("envía clave idempotente y conserva rechazos parciales", async () => { state.request.mockResolvedValue(new Response(JSON.stringify({ results: [{ customerId: "customer-1", status: "ASSIGNED" }, { customerId: "customer-2", status: "REJECTED", errorCode: "CONFLICT" }] }), { status: 200 })); const result = await assignBatch(input, "intent-key"); expect(state.request).toHaveBeenCalledWith("/customer-assignments/batch", expect.objectContaining({ headers: expect.objectContaining({ "Idempotency-Key": "intent-key" }), body: JSON.stringify({ customerIds: ["customer-1", "customer-2"], sellerIds: ["seller-1", "seller-2"], effectiveFrom: "2026-08-20", reason: "Ajuste" }) }), { publishErrors: false }); expect(result.results).toEqual([{ customerId: "customer-1", status: "ASSIGNED", errorCode: null }, { customerId: "customer-2", status: "REJECTED", errorCode: "CONFLICT" }]); });
 test("bloquea un lote de 1001 clientes antes de solicitar la API", async () => { const customerIds = Array.from({ length: 1001 }, (_, index) => `customer-${index}`); const result = await assignBatch({ ...input, customerIds }, "intent-key"); expect(result).toEqual({ error: { status: 422, correlationId: null, fieldErrors: [{ field: "customerIds", code: "MAX_ITEMS_EXCEEDED" }] }, results: [] }); expect(state.request).not.toHaveBeenCalled(); });
+test("carga únicamente catálogos activos para la sesión actual", async () => {
+  state.request.mockImplementation((url: string) => {
+    const body = url.startsWith("/customers")
+      ? { items: [{ id: "customer-1", name: "Cliente", status: "ACTIVE", territoryId: null, assignedSellerIds: [] }], page: { totalPages: 1 } }
+      : url.startsWith("/sellers")
+        ? { items: [{ id: "seller-1", displayName: "Vendedora", status: "ACTIVE" }], page: { totalPages: 1 } }
+        : { items: [{ id: "territory-1", name: "Centro", status: "ACTIVE" }], page: { totalPages: 1 } };
+    return Promise.resolve(new Response(JSON.stringify(body), { status: 200 }));
+  });
+  await expect(loadAssignmentOptions()).resolves.toMatchObject({ clients: [{ id: "customer-1" }], sellers: [{ id: "seller-1" }], territories: [{ id: "territory-1" }] });
+  expect(state.request.mock.calls.map(([url]) => url)).toEqual(expect.arrayContaining([
+    "/customers?status=ACTIVE&page=0&pageSize=200",
+    "/sellers?status=ACTIVE&page=0&pageSize=200",
+    "/territories?status=ACTIVE&page=0&pageSize=200",
+  ]));
+});
+test("prioriza 403 si cualquier catálogo pierde autorización", async () => {
+  state.request.mockImplementation((url: string) => Promise.resolve(new Response(null, { status: url.startsWith("/customers") ? 500 : url.startsWith("/sellers") ? 403 : 200 })));
+  const result = await loadAssignmentOptions();
+  expect(result.response.status).toBe(403);
+  expect(result.clients).toBeNull();
+});

@@ -5,6 +5,8 @@ import { ClientFormDialog } from "./components/ClientFormDialog";
 import { useClientForm } from "./hooks/useClientForm";
 import { InlineAlert } from "../../shared/ui/error-ui/components";
 import { TableLoadingIndicator } from "../../shared/ui/TableLoadingIndicator";
+import { DataTablePanel, DataTableResultsHeader } from "../../shared/ui/DataTableWorkspace";
+import { ReadOnlyNotice } from "../../shared/ui/ReadOnlyNotice";
 import { OperationDialog } from "../../shared/ui/OperationDialog";
 import { ClientFilters } from "./components/ClientFilters";
 import { ClientTable } from "./components/ClientTable";
@@ -29,11 +31,18 @@ export function CompanyClientsPage() {
     clients.withoutVisitSince ||
     clients.withoutPurchaseSince,
   );
+  const territoryFilterLabel = clients.options.territories.find(
+    (territory) => territory.id === clients.territoryId,
+  )?.label;
+  const sellerFilterLabel = clients.options.sellers.find(
+    (seller) => seller.id === clients.sellerId,
+  )?.label;
 
   return (
     <section className="client-list" aria-labelledby="client-list-title">
       <header className="client-list__heading">
         <div>
+          <span className="client-list__eyebrow">Cartera comercial</span>
           <h1 id="client-list-title">Clientes</h1>
           <p>Consulta y organiza la cartera de clientes de la empresa.</p>
         </div>
@@ -48,8 +57,9 @@ export function CompanyClientsPage() {
           </button>
         )}
       </header>
-      <section className="client-list__card" aria-label="Listado de clientes">
+      <DataTablePanel ariaLabel="Listado de clientes">
         <ClientFilters
+          variant="golden"
           query={clients.search}
           status={clients.status}
           territoryId={clients.territoryId}
@@ -64,37 +74,52 @@ export function CompanyClientsPage() {
           onWithoutVisitSinceChange={clients.changeWithoutVisitSince}
           onWithoutPurchaseSinceChange={clients.changeWithoutPurchaseSince}
         />
-        {clients.error && (
-          <InlineAlert
-            variant="error"
-            title={
-              clients.error.status === 403
-                ? "No tienes permisos"
-                : "Ocurrió un problema temporal"
-            }
-            message={
-              clients.error.status === 403
-                ? "No tienes permiso para consultar clientes."
-                : "No pudimos actualizar los clientes. Los datos mostrados pueden no estar vigentes."
-            }
-            action={{ label: "Reintentar", onClick: clients.retry }}
-            {...(clients.error.correlationId
-              ? { correlationId: clients.error.correlationId }
-              : {})}
+        {!canManage && (
+          <ReadOnlyNotice
+            variant="golden"
+            title="Consulta de solo lectura"
+            description="Como supervisor puedes consultar los clientes de las carteras vigentes de tus vendedores, aplicar filtros y cambiar de página. La administración corresponde a un administrador."
           />
+        )}
+        {hasFilters && (
+          <div className="client-list__active-filters" aria-label="Filtros activos">
+            <span>Filtros activos:</span>
+            {clients.territoryId && <span className="client-list__filter-chip">Zona: {territoryFilterLabel ?? clients.territoryId}</span>}
+            {clients.sellerId && <span className="client-list__filter-chip">Vendedor: {sellerFilterLabel ?? clients.sellerId}</span>}
+            {clients.status && <span className="client-list__filter-chip">Estado: {clients.status === "ACTIVE" ? "Activo" : "Inactivo"}</span>}
+            {clients.withoutVisitSince && <span className="client-list__filter-chip">Sin visita: {clients.withoutVisitSince}</span>}
+            {clients.withoutPurchaseSince && <span className="client-list__filter-chip">Sin compra: {clients.withoutPurchaseSince}</span>}
+            {clients.search && <span className="client-list__filter-chip">Búsqueda: {clients.search}</span>}
+            <button type="button" onClick={clients.clearFilters}>Limpiar filtros</button>
+          </div>
         )}
         {clients.forbidden ? (
           <AsyncStateCard
+            variant="golden"
             tone="error"
             title="No tienes permisos"
             description="No tienes permiso para consultar clientes."
             actionLabel="Reintentar"
             onAction={clients.retry}
           />
+        ) : clients.error && items.length === 0 ? (
+          <AsyncStateCard
+            variant="golden"
+            tone="error"
+            title="Ocurrió un problema temporal"
+            description="No pudimos mostrar los clientes. Inténtalo nuevamente."
+            actionLabel="Reintentar"
+            onAction={clients.retry}
+            correlationId={clients.error.correlationId}
+          />
         ) : clients.loading && items.length === 0 ? (
-          <TableLoadingIndicator label="Cargando clientes" />
+          <>
+            <DataTableResultsHeader description="Cargando clientes" />
+            <TableLoadingIndicator variant="golden" columns={5} label="Cargando clientes" />
+          </>
         ) : !clients.error && items.length === 0 ? (
           <AsyncStateCard
+            variant="golden"
             title={
               hasFilters ? "No encontramos clientes" : "Aún no hay clientes"
             }
@@ -113,6 +138,20 @@ export function CompanyClientsPage() {
         ) : (
           items.length > 0 && (
             <>
+              {clients.error && (
+                <InlineAlert
+                  className="client-list__stale-error"
+                  variant="error"
+                  title="Ocurrió un problema temporal"
+                  message="No pudimos actualizar los clientes. Mostramos la última versión disponible, que puede no estar vigente."
+                  action={{ label: "Reintentar", onClick: clients.retry }}
+                  {...(clients.error.correlationId ? { correlationId: clients.error.correlationId } : {})}
+                />
+              )}
+              <DataTableResultsHeader
+                description={`${clients.result?.page.totalElements ?? items.length} clientes`}
+                status={clients.loading ? <div className="client-list__updating"><TableLoadingIndicator label="Actualizando resultados" compact /><span>Actualizando resultados</span></div> : undefined}
+              />
               <ClientTable
                 clients={items}
                 page={clients.page}
@@ -129,20 +168,13 @@ export function CompanyClientsPage() {
                 onPageChange={clients.goToPage}
                 onPageSizeChange={clients.changePageSize}
               />
-              {clients.loading && (
-                <div className="client-list__stale">
-                  <TableLoadingIndicator
-                    label="Actualizando clientes; los datos mostrados pueden no estar vigentes"
-                    compact
-                  />
-                </div>
-              )}
             </>
           )
         )}
-      </section>
+      </DataTablePanel>
       {form.client !== undefined && (
         <ClientFormDialog
+          key={`${form.client?.id ?? "create"}:${form.loading ? "loading" : form.client?.version ?? "ready"}`}
           client={form.client}
           territories={form.territories}
           loading={form.loading}
@@ -185,6 +217,8 @@ export function CompanyClientsPage() {
       )}
       {form.notice && (
         <OperationDialog
+          appearance="golden"
+          module="Clientes"
           titleId="client-operation-title"
           tone="success"
           title={form.notice.title}

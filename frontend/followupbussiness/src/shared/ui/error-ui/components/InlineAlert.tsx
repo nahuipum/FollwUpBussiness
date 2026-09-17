@@ -1,13 +1,14 @@
-import { CircleAlert, Info } from "lucide-react";
+import { CircleAlert, Info, TriangleAlert } from "lucide-react";
 import type { ReactNode } from "react";
 import { CorrelationId } from "./CorrelationId";
 import "../styles/error-ui.css";
 
-export type InlineAlertVariant = "warning" | "error";
+export type InlineAlertVariant = "info" | "warning" | "error";
 
 export type VisualAction = {
   label: string;
   onClick?: () => void;
+  disabled?: boolean;
 };
 
 type InlineAlertProps = {
@@ -17,20 +18,22 @@ type InlineAlertProps = {
   action?: VisualAction;
   correlationId?: string;
   className?: string;
+  icon?: ReactNode;
+  visual?: "default" | "golden";
 };
 
-export function InlineAlert({ variant, title, message, action, correlationId, className }: InlineAlertProps) {
-  const Icon = variant === "warning" ? CircleAlert : Info;
+export function InlineAlert({ variant, title, message, action, correlationId, className, icon, visual = "default" }: InlineAlertProps) {
+  const Icon = variant === "info" ? Info : visual === "golden" ? TriangleAlert : CircleAlert;
 
   return (
-    <section className={`error-ui-inline-alert error-ui-inline-alert--${variant}${className ? ` ${className}` : ""}`} role="alert">
-      <span className="error-ui-inline-alert__icon" aria-hidden="true"><Icon /></span>
+    <section className={`error-ui-inline-alert error-ui-inline-alert--${variant} error-ui-inline-alert--${visual}${className ? ` ${className}` : ""}`} role={variant === "info" ? "status" : "alert"}>
+      <span className="error-ui-inline-alert__icon" aria-hidden="true">{icon ?? <Icon />}</span>
       <div className="error-ui-inline-alert__content">
         {title && <h2>{title}</h2>}
         <p>{message}</p>
         {correlationId && <CorrelationId correlationId={correlationId} />}
       </div>
-      {action && <button className="error-ui-inline-alert__action" type="button" onClick={action.onClick}>{action.label}</button>}
+      {action && <button className="error-ui-inline-alert__action" type="button" onClick={action.onClick} disabled={action.disabled}>{action.label}</button>}
     </section>
   );
 }

@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { FormAlert } from "../../../shared/ui/FormAlert";
 import { handleMissingStyleImages } from "./map-style";
+import { loadMapLibre } from "./maplibre-loader";
+import { createMapMarker } from "./map-marker";
 
 type MapState = "LOADING" | "ACTIVE" | "LIMITED" | "DISABLED";
 const DEFAULT_LIMA_POINT = { latitude: -12.0464, longitude: -77.0428 } as const;
@@ -40,13 +42,9 @@ export function ClientLocationMap({
 
     let disposed = false;
     setState("LOADING");
-    void Promise.all([
-      import("maplibre-gl"),
-      import("maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url"),
-    ])
-      .then(([{ Map, Marker, setWorkerUrl }, { default: workerUrl }]) => {
+    void loadMapLibre()
+      .then(({ Map, Marker }) => {
         if (disposed || !container.current) return;
-        setWorkerUrl(workerUrl);
         const initialPoint = pointRef.current;
         const instance = new Map({
           container: container.current,
@@ -56,10 +54,13 @@ export function ClientLocationMap({
         });
         map.current = instance;
         handleMissingStyleImages(instance);
-        const markerElement = document.createElement("span");
-        markerElement.className = "client-location-map__marker";
-        markerElement.setAttribute("aria-hidden", "true");
-        const markerInstance = new Marker({ draggable: !readOnly, element: markerElement })
+        const markerElement = createMapMarker();
+        markerElement.classList.add("client-location-map__marker");
+        const markerInstance = new Marker({
+          anchor: "bottom",
+          draggable: !readOnly,
+          element: markerElement,
+        })
           .setLngLat([initialPoint.longitude, initialPoint.latitude])
           .addTo(instance);
         marker.current = markerInstance;
@@ -96,19 +97,21 @@ export function ClientLocationMap({
   }, [latitude, longitude]);
 
   return (
-    <section className={`client-form__map${readOnly ? " client-location-map--readonly" : ""}`} aria-labelledby="client-location-map-title">
-      <h3 id="client-location-map-title">{readOnly ? "Ubicación del cliente" : "Seleccionar ubicación"}</h3>
+    <section className={`client-form__map${readOnly ? " client-location-map--readonly" : ""}`} aria-label={readOnly ? "Ubicación del cliente" : "Seleccionar ubicación"}>
       <p>{readOnly ? "Mueve o acerca el mapa para explorar los alrededores. El punto guardado no puede modificarse desde esta vista." : selected ? "Arrastra el marcador o haz clic en el mapa para ajustar el punto." : "El mapa inicia en Lima como referencia. Arrastra el marcador, haz clic en el mapa o ingresa coordenadas para elegir un punto."}</p>
-      {configured && <div ref={container} className="client-form__map-canvas" aria-label={readOnly ? "Mapa de ubicación del cliente" : "Mapa para confirmar ubicación"} />}
-      {configured && state === "LOADING" && <p role="status">Cargando mapa…</p>}
-      {state === "ACTIVE" && <p role="status">{readOnly ? "Mapa disponible en modo consulta." : "Mapa activo. Incluye atribución del proveedor."}</p>}
+      <div className="client-form__map-frame">
+        {configured && <div ref={container} className="client-form__map-canvas" aria-label={readOnly ? "Mapa de ubicación del cliente" : "Mapa para confirmar ubicación"} />}
+        {configured && state === "LOADING" && <span className="client-form__map-state" role="status">Cargando mapa…</span>}
+        {!configured && <span className="client-form__map-state" role="status">{readOnly ? "Mapa no disponible: faltan los mosaicos configurados." : "Mapa deshabilitado: falta configurar los mosaicos. Usa las coordenadas manuales."}</span>}
+        {selected && <span className="client-location-map__coordinates">{latitude?.toFixed(4)}, {longitude?.toFixed(4)}</span>}
+      </div>
+      {state === "ACTIVE" && <span className="sr-only" role="status">{readOnly ? "Mapa disponible en modo consulta." : "Mapa activo. Incluye atribución del proveedor."}</span>}
       {configured && state === "LIMITED" && (
         <FormAlert>
           <p>{readOnly ? "No pudimos cargar el mapa. Intenta nuevamente para consultar la ubicación registrada." : "No pudimos cargar los mosaicos del mapa. Conserva o ingresa las coordenadas manualmente."}</p>
           <button className="client-form__secondary" type="button" onClick={() => setRetry((value) => value + 1)}>Reintentar mapa</button>
         </FormAlert>
       )}
-      {!configured && <p role="status">{readOnly ? "Mapa no disponible: faltan los mosaicos configurados." : "Mapa deshabilitado: falta configurar los mosaicos. Usa las coordenadas manuales."}</p>}
     </section>
   );
 }

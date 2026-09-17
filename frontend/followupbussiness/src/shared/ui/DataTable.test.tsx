@@ -27,6 +27,16 @@ test("aplica golden solo cuando se solicita, incluida la paginación", () => {
   expect(screen.getByRole("contentinfo").className).toContain("data-table__pagination--golden");
 });
 
+test("permite composición compacta sin selector de tamaño", () => {
+  render(<DataTablePagination page={4} totalPages={20} pageSize={5} onPageChange={() => undefined} onPageSizeChange={() => undefined} ariaLabel="Paginación compacta" showPageSize={false} density="compact" />);
+  expect(screen.queryByRole("button", { name: "Registros por página" })).toBeNull();
+  expect(screen.getByRole("navigation", { name: "Paginación compacta" }).parentElement?.className).toContain("data-table__pagination--compact");
+  expect(screen.queryByText("…")).toBeNull();
+  expect(screen.getByRole("button", { name: "Página 5" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Página 6" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Página 20" })).toBeNull();
+});
+
 function renderPagination(page: number, totalPages: number) {
   render(<DataTablePagination page={page} totalPages={totalPages} pageSize={5} onPageChange={() => undefined} onPageSizeChange={() => undefined} ariaLabel="Paginación de prueba" />);
 }
@@ -41,7 +51,9 @@ test("muestra primera, elipsis y última en la primera página", () => {
 test("muestra ambas elipsis alrededor de una página intermedia", () => {
   renderPagination(12, 26);
   expect(screen.getAllByText("…")).toHaveLength(2);
+  expect(screen.getByRole("button", { name: "Página 12" })).not.toBeNull();
   expect(screen.getByRole("button", { name: "Página 13" }).getAttribute("aria-current")).toBe("page");
+  expect(screen.getByRole("button", { name: "Página 14" })).not.toBeNull();
   expect(screen.getByRole("button", { name: "Página 1" })).not.toBeNull();
   expect(screen.getByRole("button", { name: "Página 26" })).not.toBeNull();
 });
@@ -59,4 +71,10 @@ test("no muestra elipsis cuando hay una sola página", () => {
   expect(screen.getByRole("button", { name: "Página 1" }).getAttribute("aria-current")).toBe("page");
   expect((screen.getByRole("button", { name: "Página anterior" }) as HTMLButtonElement).disabled).toBe(true);
   expect((screen.getByRole("button", { name: "Página siguiente" }) as HTMLButtonElement).disabled).toBe(true);
+});
+
+test("no inserta elipsis entre páginas contiguas", () => {
+  renderPagination(1, 3);
+  expect(screen.queryByText("…")).toBeNull();
+  expect(screen.getAllByRole("button", { name: /Página [1-3]$/ })).toHaveLength(3);
 });

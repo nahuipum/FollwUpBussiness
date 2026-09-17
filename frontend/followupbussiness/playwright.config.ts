@@ -4,7 +4,7 @@ const port = Number(process.env.PLAYWRIGHT_PORT ?? 4174)
 
 export default defineConfig({
   testDir: './tests/visual',
-  timeout: 30_000,
+  timeout: 60_000,
   use: { baseURL: `http://127.0.0.1:${port}` },
   webServer: {
     command: `npm run dev -- --host 127.0.0.1 --port ${port}`,

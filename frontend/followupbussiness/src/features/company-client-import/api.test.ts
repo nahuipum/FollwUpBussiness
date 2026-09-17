@@ -29,6 +29,10 @@ test("envía multipart, CSRF e idempotencia y valida el trabajo aceptado", async
   const init = state.request.mock.calls[0]?.[1] as RequestInit;
   expect(init.headers).toMatchObject({ "Idempotency-Key": "00000000-0000-4000-8000-000000000099", "X-CSRF-Token": "csrf" });
   expect(init.body).toBeInstanceOf(FormData);
+  const form = init.body as FormData;
+  expect(form.get("templateVersion")).toBe("1.0");
+  expect(form.get("partialAcceptance")).toBe("true");
+  expect(form.get("file")).toBeInstanceOf(File);
   expect(result.job).toEqual(job);
 });
 

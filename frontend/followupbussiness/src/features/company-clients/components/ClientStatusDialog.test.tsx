@@ -12,7 +12,7 @@ test("usa la confirmación compartida con cabecera de Clientes", () => {
   render(<ClientStatusDialog client={client} busy={false} error={null} onClose={close} onConfirm={confirm} />);
   expect(screen.getByText("Clientes")).toBeTruthy();
   expect(screen.getByRole("heading", { name: "Inactivar cliente" })).toBeTruthy();
-  expect(screen.getByText(/Su estado cambiará a Inactivo/)).toBeTruthy();
+  expect(screen.getByText(/No se eliminará ni se borrarán/)).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Inactivar cliente" }));
   fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
   expect(confirm).toHaveBeenCalledOnce();
@@ -21,6 +21,6 @@ test("usa la confirmación compartida con cabecera de Clientes", () => {
 
 test("deshabilita las acciones mientras guarda", () => {
   render(<ClientStatusDialog client={client} busy error={null} onClose={() => undefined} onConfirm={() => undefined} />);
-  expect(screen.getByRole("button", { name: "Guardando…" })).toHaveProperty("disabled", true);
+  expect(screen.getByRole("button", { name: "Inactivando…" })).toHaveProperty("disabled", true);
   expect(screen.getByRole("button", { name: "Cancelar" })).toHaveProperty("disabled", true);
 });

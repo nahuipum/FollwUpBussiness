@@ -33,6 +33,18 @@ test("explica 410 y deshabilita una nueva descarga", async () => {
   expect(state.download).toHaveBeenCalledOnce();
 });
 
+test("un 404 de descarga conserva el resumen y marca solo el archivo como no disponible", async () => {
+  state.get.mockResolvedValue({ response: new Response(JSON.stringify(job), { status: 200 }), job, correlationId: null });
+  state.download.mockResolvedValue({ response: new Response(null, { status: 404 }), blob: null, correlationId: "corr-file-404" });
+  const { result } = renderHook(() => useCustomerImportResult(job.id));
+  await act(async () => {});
+  await act(async () => { await result.current.downloadErrors(); });
+  expect(result.current.job).toEqual(job);
+  expect(result.current.forbidden).toBe(false);
+  expect(result.current.fileUnavailable).toBe(true);
+  expect(result.current.expired).toBe(false);
+});
+
 test("borra el resultado cuando cambia la empresa o sesión", async () => {
   state.get.mockResolvedValue({ response: new Response(JSON.stringify(job), { status: 200 }), job, correlationId: null });
   const { result } = renderHook(() => useCustomerImportResult(job.id));

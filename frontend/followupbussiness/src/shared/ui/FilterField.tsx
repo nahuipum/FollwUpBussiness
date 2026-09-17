@@ -4,14 +4,17 @@ import "./filter-field.css";
 export function FilterField({
   label,
   children,
-  className = "",
+  layout = "stacked",
 }: {
   label: string;
   children: ReactNode;
-  className?: string;
+  layout?: "stacked" | "inline";
 }) {
   return (
-    <div className={`filter-field ${className}`.trim()}>
+    <div
+      className={`filter-field filter-field--${layout}`}
+      data-ui="filter-field"
+    >
       <span>{label}</span>
       {children}
     </div>

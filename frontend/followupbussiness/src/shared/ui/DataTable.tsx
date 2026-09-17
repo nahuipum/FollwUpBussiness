@@ -30,7 +30,11 @@ export function DataTable<T>({
 }) {
   return (
     <div className={`data-table__wrap data-table__wrap--${responsive}`}>
-      <table className={`data-table data-table--${responsive} data-table--${variant}`} aria-label={ariaLabel}>
+      <table
+        className={`data-table data-table--${responsive} data-table--${variant}`}
+        aria-label={ariaLabel}
+        data-ui="data-table"
+      >
         <thead>
           <tr>
             {columns.map((column) => (
@@ -75,6 +79,8 @@ export function DataTablePagination({
   summary,
   lastUpdated,
   variant = "default",
+  showPageSize = true,
+  density = "default",
 }: {
   page: number;
   totalPages: number;
@@ -85,12 +91,17 @@ export function DataTablePagination({
   summary?: ReactNode;
   lastUpdated?: Date | null | undefined;
   variant?: "default" | "golden";
+  showPageSize?: boolean;
+  density?: "default" | "compact";
 }) {
   if (totalPages < 1) return null;
   const lastPage = totalPages - 1;
-  const pages = paginationPages(page, lastPage);
+  const pages = density === "compact" ? compactPaginationPages(page, lastPage) : paginationPages(page, lastPage);
   return (
-    <footer className={`data-table__pagination data-table__pagination--${variant}`}>
+    <footer
+      className={`data-table__pagination data-table__pagination--${variant} data-table__pagination--${density}`}
+      data-ui="data-table-pagination"
+    >
       {(summary || lastUpdated) && (
         <div className="data-table__metadata">
           {summary && <span className="data-table__summary">{summary}</span>}
@@ -101,7 +112,7 @@ export function DataTablePagination({
           )}
         </div>
       )}
-      <label className="data-table__page-size">
+      {showPageSize && <label className="data-table__page-size">
         <span>Registros por página</span>
         <VisualSelect
           variant={variant}
@@ -110,7 +121,7 @@ export function DataTablePagination({
           options={dataTablePageSizes.map((size) => ({ value: String(size), label: String(size) }))}
           onChange={(value) => onPageSizeChange(Number(value) as DataTablePageSize)}
         />
-      </label>
+      </label>}
       <nav aria-label={ariaLabel}>
         <button
           type="button"
@@ -146,6 +157,11 @@ export function DataTablePagination({
   );
 }
 
+function compactPaginationPages(page: number, lastPage: number): number[] {
+  if (lastPage === 0) return [0];
+  return page === lastPage ? [Math.max(0, page - 1), page] : [page, page + 1];
+}
+
 function formatTime(value: Date) {
   return new Intl.DateTimeFormat("es-PE", {
     hour: "2-digit",
@@ -156,14 +172,19 @@ function formatTime(value: Date) {
 
 function paginationPages(page: number, lastPage: number): Array<number | "ellipsis"> {
   if (lastPage === 0) return [0];
+  if (lastPage <= 2) return Array.from({ length: lastPage + 1 }, (_, index) => index);
   if (page === 0) return [0, "ellipsis", lastPage];
   if (page === lastPage) return [0, "ellipsis", lastPage];
 
+  const nearby = [page - 1, page, page + 1].filter((value) => value > 0 && value < lastPage);
+  const firstNearby = nearby[0] ?? page;
+  const lastNearby = nearby[nearby.length - 1] ?? page;
+
   return [
     0,
-    ...(page > 1 ? ["ellipsis" as const] : []),
-    page,
-    ...(page < lastPage - 1 ? ["ellipsis" as const] : []),
+    ...(firstNearby > 1 ? ["ellipsis" as const] : []),
+    ...nearby,
+    ...(lastNearby < lastPage - 1 ? ["ellipsis" as const] : []),
     lastPage,
   ];
 }

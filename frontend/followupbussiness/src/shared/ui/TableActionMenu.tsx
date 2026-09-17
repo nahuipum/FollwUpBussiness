@@ -38,10 +38,27 @@ export function TableActionMenu({
     if (event.key === "Escape") {
       event.preventDefault();
       onDismiss?.();
+      anchor?.focus();
+      return;
+    }
+    const items = Array.from(activeRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? []);
+    const current = items.indexOf(document.activeElement as HTMLButtonElement);
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      const step = event.key === "ArrowDown" ? 1 : -1;
+      items[(Math.max(current, 0) + step + items.length) % items.length]?.focus();
+      return;
+    }
+    if (event.key === "Home" || event.key === "End") {
+      event.preventDefault();
+      items[event.key === "Home" ? 0 : items.length - 1]?.focus();
       return;
     }
     onKeyDown?.(event);
   };
+  useEffect(() => {
+    activeRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus();
+  }, [activeRef]);
   useEffect(() => {
     const closeOnOutsidePointer = (event: PointerEvent) => {
       if (

@@ -3,11 +3,9 @@ import { useRef, type KeyboardEvent, type MutableRefObject } from "react";
 import {
   DataTable,
   DataTableIdentity,
-  DataTablePagination,
   DataTableStatus,
   type DataTableColumn,
 } from "../../../shared/ui/DataTable";
-import type { DataTablePageSize } from "../../../shared/ui/data-table-pagination";
 import { TableActionMenu } from "../../../shared/ui/TableActionMenu";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 import type { CompanyUser, CompanyUserStatus } from "../types";
@@ -25,11 +23,6 @@ const statusLabel = {
 
 export function CompanyUsersTable({
   users,
-  page,
-  totalPages,
-  totalElements,
-  lastUpdated,
-  pageSize,
   readOnly,
   menuUser,
   menuTriggers,
@@ -38,15 +31,8 @@ export function CompanyUsersTable({
   onEdit,
   onResendInvitation,
   onStatus,
-  onPageChange,
-  onPageSizeChange,
 }: {
   users: readonly CompanyUser[];
-  page: number;
-  totalPages: number;
-  totalElements: number;
-  lastUpdated?: Date | null;
-  pageSize: DataTablePageSize;
   readOnly: boolean;
   menuUser: string | null;
   menuTriggers: MutableRefObject<Record<string, HTMLButtonElement | null>>;
@@ -55,12 +41,9 @@ export function CompanyUsersTable({
   onEdit: (user: CompanyUser) => void;
   onResendInvitation: (user: CompanyUser) => void;
   onStatus: (user: CompanyUser) => void;
-  onPageChange: (page: number) => void;
-  onPageSizeChange: (pageSize: DataTablePageSize) => void;
 }) {
   return (
-    <>
-      <DataTable
+    <DataTable
         ariaLabel="Administradores y supervisores"
         items={users}
         rowKey={(user) => user.id}
@@ -76,19 +59,7 @@ export function CompanyUsersTable({
           onResendInvitation,
           onStatus,
         })}
-      />
-      <DataTablePagination
-        page={page}
-        totalPages={totalPages}
-        pageSize={pageSize}
-        onPageChange={onPageChange}
-        onPageSizeChange={onPageSizeChange}
-        ariaLabel="Paginación de administradores y supervisores"
-        summary={`Mostrando ${page * pageSize + 1}–${Math.min((page + 1) * pageSize, totalElements)} de ${totalElements} usuarios`}
-        lastUpdated={lastUpdated}
-        variant="golden"
-      />
-    </>
+    />
   );
 }
 

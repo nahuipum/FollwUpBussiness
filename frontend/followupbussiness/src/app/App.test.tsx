@@ -419,6 +419,24 @@ test("restaura sesión al recargar la carga de clientes", async () => {
   expect(screen.queryByText("Inicia sesión para continuar")).toBeNull();
 });
 
+test("deniega la ruta directa de carga al supervisor sin montar el flujo ni conservar controles", async () => {
+  const fetchMock = vi.fn((url: string) => Promise.resolve(
+    url.endsWith("/me")
+      ? currentUserResponse("SUPERVISOR")
+      : new Response(JSON.stringify(webResponse("SUPERVISOR")), { status: 200 }),
+  ));
+  vi.stubGlobal("fetch", fetchMock);
+  await login({ identifier: "supervisor@example.com", password: "correct-password" });
+  window.history.replaceState({}, "", "/company/customer-imports");
+
+  render(<App />);
+
+  expect(await screen.findByRole("heading", { name: "No tienes permisos" })).toBeTruthy();
+  expect(screen.queryByLabelText("Elige un archivo para importar")).toBeNull();
+  expect(screen.queryByRole("button", { name: "Carga de clientes" })).toBeNull();
+  expect(fetchMock.mock.calls.some(([url]) => String(url).includes("/customers/import-template"))).toBe(false);
+});
+
 test("restaura sesión al recargar un resultado de importación autorizado", async () => {
   const importId = "00000000-0000-4000-8000-000000000013";
   window.history.replaceState({}, "", `/company/customer-imports/${importId}`);

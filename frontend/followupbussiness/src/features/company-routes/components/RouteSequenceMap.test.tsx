@@ -2,15 +2,26 @@ import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { RouteSequenceMap } from "./RouteSequenceMap";
 
-const maps: Array<{ listeners: Record<string, () => void>; addSource: ReturnType<typeof vi.fn>; addLayer: ReturnType<typeof vi.fn>; resize: ReturnType<typeof vi.fn>; remove: ReturnType<typeof vi.fn> }> = [];
+const maps: Array<{ style: string; listeners: Record<string, () => void>; addSource: ReturnType<typeof vi.fn>; addLayer: ReturnType<typeof vi.fn>; fitBounds: ReturnType<typeof vi.fn>; resize: ReturnType<typeof vi.fn>; remove: ReturnType<typeof vi.fn> }> = [];
 const markers: HTMLElement[] = [];
 vi.mock("maplibre-gl", () => ({
   setWorkerUrl: vi.fn(),
-  Map: class { readonly listeners: Record<string, () => void> = {}; readonly addSource = vi.fn(); readonly addLayer = vi.fn(); readonly resize = vi.fn(); readonly remove = vi.fn(); constructor() { maps.push(this); } on(event: string, listener: () => void) { this.listeners[event] = listener; } setMissingStyleImageResolver() {} hasImage() { return false; } addImage() {} },
+  Map: class { readonly style: string; readonly listeners: Record<string, () => void> = {}; readonly addSource = vi.fn(); readonly addLayer = vi.fn(); readonly fitBounds = vi.fn(); readonly resize = vi.fn(); readonly remove = vi.fn(); constructor({ style }: { style: string }) { this.style = style; maps.push(this); } on(event: string, listener: () => void) { this.listeners[event] = listener; } setMissingStyleImageResolver() {} hasImage() { return false; } addImage() {} },
   Marker: class { constructor({ element }: { element: HTMLElement }) { markers.push(element); } setLngLat() { return this; } addTo() { return this; } },
 }));
 vi.mock("maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url", () => ({ default: "/assets/maplibre-worker.js" }));
-afterEach(() => { cleanup(); maps.splice(0); markers.splice(0); vi.unstubAllEnvs(); });
+afterEach(() => { cleanup(); maps.splice(0); markers.splice(0); vi.unstubAllEnvs(); document.documentElement.dataset.theme = "light"; });
+
+test("usa el estilo vial oscuro del proveedor y vuelve al claro al cambiar de tema", async () => {
+  vi.stubEnv("VITE_GEOAPIFY_TILE_KEY", "test-key");
+  document.documentElement.dataset.theme = "dark";
+  render(<RouteSequenceMap points={[{ sequence: 1, customerName: "Norte", location: { latitude: -12.04, longitude: -77.03 } }]} />);
+  await waitFor(() => expect(maps).toHaveLength(1));
+  expect(maps[0]?.style).toContain("/styles/dark-matter/");
+  act(() => { document.documentElement.dataset.theme = "light"; });
+  await waitFor(() => expect(maps).toHaveLength(2));
+  expect(maps[1]?.style).toContain("/styles/osm-bright/");
+});
 
 test("explica que faltan ubicaciones y mantiene la lista como alternativa", () => {
   vi.stubEnv("VITE_GEOAPIFY_TILE_KEY", "");
@@ -21,7 +32,19 @@ test("explica que faltan ubicaciones y mantiene la lista como alternativa", () =
 test("explica que faltan ubicaciones aunque los mosaicos estén configurados", () => {
   vi.stubEnv("VITE_GEOAPIFY_TILE_KEY", "test-key");
   render(<RouteSequenceMap points={[{ sequence: 1, customerName: "Norte" }]} />);
-  expect(screen.getByRole("status").textContent).toContain("no tiene ubicaciones de clientes suficientes");
+  expect(screen.getAllByRole("status").some((status) => status.textContent?.includes("No hay ubicaciones válidas"))).toBe(true);
+  expect(screen.getByText("Norte")).toBeTruthy();
+});
+
+test("mantiene los marcadores válidos y enumera la visita sin ubicación", async () => {
+  vi.stubEnv("VITE_GEOAPIFY_TILE_KEY", "test-key");
+  render(<RouteSequenceMap points={[{ sequence: 1, customerName: "Norte", location: { latitude: -12.04, longitude: -77.03 } }, { sequence: 2, customerName: "Sin ubicación" }]} />);
+  await waitFor(() => expect(maps).toHaveLength(1));
+  act(() => maps[0]?.listeners.load?.());
+  expect(markers.map((marker) => marker.textContent)).toEqual(["1"]);
+  expect(screen.getByText("1 cliente sin ubicación")).toBeTruthy();
+  expect(screen.getByText("Sin ubicación")).toBeTruthy();
+  expect(document.body.textContent).not.toContain("-12.04");
 });
 
 test("muestra marcadores numerados sin dibujar vectores cuando no existe detalle vial", async () => {
@@ -30,6 +53,8 @@ test("muestra marcadores numerados sin dibujar vectores cuando no existe detalle
   await waitFor(() => expect(maps).toHaveLength(1));
   act(() => maps[0]?.listeners.load?.());
   expect(maps[0]?.addSource).not.toHaveBeenCalled(); expect(markers.map((marker) => marker.textContent)).toEqual(["1", "2"]); expect(document.body.textContent).not.toContain("-12.04");
+  expect(maps[0]?.fitBounds).toHaveBeenCalledOnce();
+  expect(screen.getByRole("heading", { name: "Mapa de ubicaciones" })).toBeTruthy();
 });
 
 test("renderiza la geometría vial recibida en lugar de la línea aproximada", async () => {
@@ -38,7 +63,8 @@ test("renderiza la geometría vial recibida en lugar de la línea aproximada", a
   await waitFor(() => expect(maps).toHaveLength(1));
   act(() => maps[0]?.listeners.load?.());
   expect(maps[0]?.addSource).toHaveBeenCalledWith("route-sequence", expect.objectContaining({ data: expect.objectContaining({ geometry: expect.objectContaining({ coordinates: [[-77.01, -12.01], [-77.02, -12.02], [-77.03, -12.03]] }) }) }));
-  expect(screen.getByText("Detalle vial")).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Mapa de ubicaciones" })).toBeTruthy();
+  expect(screen.getByText("Recorrido vial disponible: la geometría corresponde a una respuesta real del proveedor.")).toBeTruthy();
 });
 
 test("recalcula el mapa cuando el modal termina de asignar su tamaño", async () => {
@@ -49,12 +75,12 @@ test("recalcula el mapa cuando el modal termina de asignar su tamaño", async ()
   await waitFor(() => expect(maps[0]?.resize).toHaveBeenCalled());
 });
 
-test("ante 503 muestra el respaldo aproximado en una alerta inline y permite reintentar", () => {
+test("ante 503 conserva las ubicaciones en una alerta inline y permite reintentar", () => {
   const retry = vi.fn();
   vi.stubEnv("VITE_GEOAPIFY_TILE_KEY", "test-key");
   render(<RouteSequenceMap points={[{ sequence: 1, customerName: "Norte", location: { latitude: -12.04, longitude: -77.03 } }]} error={{ status: 503, correlationId: null, fieldErrors: [] }} retry={retry} />);
   expect(screen.getByRole("alert").textContent).toContain("El detalle vial no está disponible");
-  expect(screen.getByRole("alert").textContent).toContain("Mostramos una secuencia aproximada, no navegación.");
+  expect(screen.getByRole("alert").textContent).toContain("Las ubicaciones válidas permanecen visibles.");
   screen.getByRole("button", { name: "Reintentar detalle vial" }).click();
   expect(retry).toHaveBeenCalledOnce();
 });
@@ -72,7 +98,7 @@ test("ante 422 muestra una alerta inline con reintento sin exponer datos de la r
   vi.stubEnv("VITE_GEOAPIFY_TILE_KEY", "test-key");
   render(<RouteSequenceMap points={[{ sequence: 1, customerName: "Norte", location: { latitude: -12.04, longitude: -77.03 } }]} error={{ status: 422, correlationId: "corr-directions", fieldErrors: [] }} retry={vi.fn()} />);
   const alert = screen.getByRole("alert");
-  expect(alert.textContent).toContain("No pudimos calcular el recorrido vial con las visitas de esta ruta.");
+  expect(alert.textContent).toContain("No pudimos calcular el recorrido vial.");
   screen.getByRole("button", { name: "Reintentar detalle vial" }).click();
   expect(alert.textContent).not.toContain("-12.04");
   expect(alert.textContent).not.toContain("-77.03");

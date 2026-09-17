@@ -1,25 +1,29 @@
-# FE-033 — Development frontend
+# FE-033 — Desarrollo frontend visual
 
 **Estado:** READY_FOR_HANDOFF  
-**Candidate-ID:** `HEAD+babe434 diff:f0c0b0c6d6f4`
+**Candidate-ID:** `HEAD:574be0e+diff:d56c4e1c`
 
-## Entrega
+## Remediación
 
-Nueva feature `src/features/company-settings/`: lectura de `GET /company/settings`, `ETag` contractual conservado literalmente en `If-Match`, y reemplazo por el `ETag` de 200. Solo COMPANY_ADMIN puede guardar `timezone`, `currency` y `saleEditWindowMinutes`; los valores de geocerca, frecuencia y retención se muestran como política fija. Se añadieron rutas y navegación para empresa, supervisor y vendedor; el estado se limpia ante cambio de sesión/empresa.
+- Se cerró el hallazgo QA alto: `useCompanySettings.save` rechaza un nuevo PATCH si el último error es 403; la página bloquea formulario y guardar con ese estado hasta recargar.
+- Pruebas observables: primer PATCH 403 seguido de intento de guardado mantiene exactamente una invocación; la página muestra campos y acción deshabilitados.
+- `ReadOnlyNotice` golden tiene borde, radio y padding de referencia sin cambiar la variante default. Política de privacidad incorpora inset 18 px desktop / 14 px móvil; número conserva spinner; metadatos usan `HH:mm`; cabecera móvil ajustada.
+- Ajustes finales aprobados: margen de 24 px entre aviso de solo lectura y tarjeta, eyebrow alineado, acción golden a la izquierda en móvil, triángulo de aviso y relojes ocultos en horarios deshabilitados.
 
-## Estados y contratos
+## Superficie y contrato
 
-Cobiertos carga, error/red, 403, 422, 409 sin sobrescritura con recarga explícita, actualización obsoleta y última actualización. No hay GPS, mapas, WebSocket, geocercas cliente ni datos de ubicación. Se reutilizó FE-039 como patrón visual; no existe mockup FE-033.
+- `CompanySettingsPage.tsx`, hook, estilos y pruebas de `company-settings`; `ReadOnlyNotice`, `TimeField` y alertas golden compartidas.
+- Se mantienen GET/PATCH, ETag/If-Match, limpieza por sesión/empresa, null de plazo y el bloqueo previo para 409/stale.
+- `COMPANY_ADMIN` edita, `SUPERVISOR` consulta y `SELLER` sigue denegado en React. La discrepancia con GET permitido por OpenAPI/backend permanece reportada y fuera de alcance.
 
-## Verificación
+## Evidencia
 
-- Focalizadas: 5 pruebas PASS (`api`, página, layout).
-- `npm run typecheck`, `npm run lint`, `npm run build`: PASS.
-- `npm test -- --pool=threads --maxWorkers=1`: 257 pruebas PASS.
-- `git diff --check`: PASS (solo advertencias de fin de línea).
+- `npm test -- --run src/features/company-settings/CompanySettingsPage.test.tsx src/features/company-settings/hooks/useCompanySettings.test.tsx src/features/company-settings/api.test.ts src/shared/ui/TimeField.test.tsx src/shared/ui/error-ui/components/ErrorUi.test.tsx` — 22 aprobadas.
+- `npm run typecheck`, `npm run build`, `git diff --check` — aprobados.
+- `npm run lint` — sin errores; warning ajeno existente en `company-territories/hooks/useTerritoryForm.test.tsx`.
+- Comparación final: `test-results/fe033-actual/review2-readonly-390.png` (358×1804 frente a golden 362×1802; 4 px de shell) y `review2-conflict-1440.png` (1132×1120 frente a golden 1132×1127). Aviso, tarjetas, inset, controles, acción bajo texto y atenuación alineados; sin diferencia material.
+- Montaje final aprobado: `test-results/fe033-evidence/movil-conflicto.png` y `movil-solo-lectura.png`; coinciden triángulo, acción, campos bloqueados y separación del aviso.
 
-Remediación QA: al cambiar sesión/empresa se invalida el snapshot y ETag anterior, se conserva carga y se consulta la configuración del tenant vigente. La prueba de hook verifica la transición `"7"` → `"8"` sin reutilización. Focalizadas (5) y type-check PASS; `git diff --check` sin hallazgos. Riesgo residual: el warning de chunk de Vite es preexistente/no bloqueante.
+## Riesgo y reproducción
 
-Remediación Seguridad: el formulario se vincula al ETag del snapshot. Si cambia a B, no se renderiza ni permite submit hasta sincronizar sus valores; la prueba A→B descarta `USD` y solo envía `COP`/45. Focalizadas (4) y type-check PASS.
-
-Remediación Seguridad 2: además se vincula a generación de sesión. La prueba con ETags iguales A/`"7"`→B/`"7"` y generación 1→2 descarta render/envío de `USD` y solo guarda `COP`/45. Focalizadas (5) y type-check PASS.
+- Simular PATCH 403 tras editar: el primer rechazo deja visible el error, bloquea controles y evita un segundo PATCH hasta recargar.

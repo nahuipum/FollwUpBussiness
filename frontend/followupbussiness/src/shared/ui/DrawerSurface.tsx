@@ -13,6 +13,7 @@ type DrawerSurfaceProps = {
   busy?: boolean;
   initialFocusRef?: RefObject<HTMLElement | null>;
   className?: string;
+  dismissOnEscape?: boolean;
 };
 
 /** A right-side dialog with an independently scrolling body and fixed actions. */
@@ -26,11 +27,12 @@ export function DrawerSurface({
   busy = false,
   initialFocusRef,
   className,
+  dismissOnEscape = true,
 }: DrawerSurfaceProps) {
   const dismiss = () => {
     if (!busy) onDismiss();
   };
-  const { dialogRef } = useDialogFocus(dismiss, initialFocusRef, !busy);
+  const { dialogRef } = useDialogFocus(dismiss, initialFocusRef, dismissOnEscape && !busy);
 
   return createPortal(
     <div className="drawer-surface-layer">

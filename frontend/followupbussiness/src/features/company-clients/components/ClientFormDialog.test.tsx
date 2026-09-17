@@ -95,12 +95,12 @@ test("precarga la edición y mantiene tipo y número de documento en una fila re
   expect(screen.getByRole("button", { name: "Tipo de documento" }).textContent).toContain("DNI");
   expect((screen.getByLabelText("Número de documento") as HTMLInputElement).value).toBe("12345678");
   expect((screen.getByLabelText("Email") as HTMLInputElement).value).toBe("contacto@example.com");
-  expect((screen.getByLabelText("Frecuencia de visita (días)") as HTMLInputElement).value).toBe("30");
+  expect((screen.getByLabelText("Frecuencia de visita en días") as HTMLInputElement).value).toBe("30");
 
-  expect(screen.getByLabelText("Número de documento").closest(".client-form__document-fields")).toBeTruthy();
-  fireEvent.change(screen.getByLabelText("Frecuencia de visita (días)"), { target: { value: "366" } });
+  expect(screen.getByLabelText("Número de documento").closest(".client-form__grid--three")).toBeTruthy();
+  fireEvent.change(screen.getByLabelText("Frecuencia de visita en días"), { target: { value: "366" } });
   expect((screen.getByRole("button", { name: "Guardar cambios" }) as HTMLButtonElement).disabled).toBe(true);
-  fireEvent.change(screen.getByLabelText("Frecuencia de visita (días)"), { target: { value: "45" } });
+  fireEvent.change(screen.getByLabelText("Frecuencia de visita en días"), { target: { value: "45" } });
   fireEvent.click(screen.getByLabelText(/Confirmo que estas coordenadas/));
   fireEvent.click(screen.getByRole("button", { name: "Guardar cambios" }));
 
@@ -120,7 +120,7 @@ test("valida longitudes de DNI, RUC y carné, móvil y email antes de enviar", (
   fireEvent.click(type); fireEvent.click(screen.getByRole("option", { name: "DNI" }));
   fireEvent.change(number, { target: { value: "123a4567" } });
   expect(number.value).toBe("1234567");
-  expect(screen.getByRole("alert").closest(".client-form__document-fields")).toBeTruthy();
+  expect(screen.getByRole("alert").closest(".client-form__grid--three")).toBeTruthy();
   expect(save.disabled).toBe(true);
   fireEvent.change(number, { target: { value: "12345678" } });
   expect(save.disabled).toBe(false);
@@ -136,8 +136,8 @@ test("valida longitudes de DNI, RUC y carné, móvil y email antes de enviar", (
   fireEvent.change(phone, { target: { value: "812345678" } });
   const phoneAlert = screen.getByRole("alert");
   expect(phoneAlert.textContent).toContain("móvil peruano");
-  expect(phone.closest(".client-form__validated-field")?.contains(phoneAlert)).toBe(true);
-  expect(email.closest(".client-form__validated-field")?.contains(phoneAlert)).toBe(false);
+  expect(phone.closest(".client-form__field")?.contains(phoneAlert)).toBe(true);
+  expect(email.closest(".client-form__field")?.contains(phoneAlert)).toBe(false);
   expect(save.disabled).toBe(true);
   fireEvent.change(phone, { target: { value: "999999999" } });
   fireEvent.change(email, { target: { value: "invalido@" } });
@@ -169,7 +169,7 @@ test("ubica la comprobación después de ubicación y antes de las acciones de g
   expect(location.compareDocumentPosition(check) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(check.compareDocumentPosition(cancel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(cancel.compareDocumentPosition(create) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  expect(screen.getByText("Es una advertencia informativa y no es necesaria para crear o guardar el cliente.")).toBeTruthy();
+  expect(screen.getByText("La comprobación es informativa y no reemplaza la validación del servidor al guardar.")).toBeTruthy();
 });
 
 test("habilita la comprobación solo con captura válida y confirmada, sin exigirla para crear", () => {
@@ -219,17 +219,18 @@ test("pide confirmar en un popup antes de descartar cambios", () => {
   expect(close).toHaveBeenCalledTimes(1);
 });
 
-test("muestra errores y duplicados como popups accesibles", () => {
+test("muestra errores y duplicados dentro del drawer sin perder el formulario", () => {
   const dismissError = vi.fn();
   const { rerender } = render(<ClientFormDialog client={null} territories={[]} loading={false} busy={false} error="La solicitud no pudo completarse." duplicates={null} {...requiredCallbacks} onDismissError={dismissError} />);
 
   expect(screen.getByRole("alert").textContent).toContain("La solicitud no pudo completarse");
-  fireEvent.click(screen.getByRole("button", { name: "Volver al formulario" }));
+  expect(screen.getByRole("dialog", { name: "Crear cliente" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Cerrar aviso" }));
   expect(dismissError).toHaveBeenCalledTimes(1);
 
   rerender(<ClientFormDialog client={null} territories={[]} loading={false} busy={false} error={null} duplicates={[duplicate]} {...requiredCallbacks} />);
-  expect(screen.getByRole("heading", { name: "Posibles clientes duplicados" })).toBeTruthy();
-  expect(screen.getByRole("alert").textContent).toContain("no bloquea la creación");
+  expect(screen.getByText("Cliente similar")).toBeTruthy();
+  expect(screen.getByRole("alert").textContent).toContain("no bloquea el guardado");
 });
 
 test("lleva el foco al formulario, lo atrapa e ignora Escape hasta cerrar con la X", () => {
@@ -258,23 +259,11 @@ test("lleva el foco al formulario, lo atrapa e ignora Escape hasta cerrar con la
   expect(document.activeElement).toBe(trigger);
 });
 
-test("lleva el foco a los popups, conserva Tab inverso y lo devuelve al disparador", () => {
-  function PopupFlow() {
-    const [open, setOpen] = useState(false);
-    return <><button type="button" onClick={() => setOpen(true)}>Mostrar error</button>{open && <ClientFormDialog client={null} territories={[]} loading={false} busy={false} error="La solicitud no pudo completarse." duplicates={null} {...requiredCallbacks} onDismissError={() => setOpen(false)} />}</>;
-  }
-  render(<PopupFlow />);
-  const trigger = screen.getByRole("button", { name: "Mostrar error" });
-  trigger.focus();
-  fireEvent.click(trigger);
-
-  const primary = screen.getByRole("button", { name: "Volver al formulario" });
-  const close = screen.getByRole("button", { name: "Cerrar mensaje" });
-  expect(document.activeElement).toBe(primary);
-  fireEvent.keyDown(primary, { key: "Tab" });
-  expect(document.activeElement).toBe(close);
-  fireEvent.keyDown(close, { key: "Tab", shiftKey: true });
-  expect(document.activeElement).toBe(primary);
-  fireEvent.keyDown(primary, { key: "Escape" });
-  expect(document.activeElement).toBe(trigger);
+test("conserva los datos escritos al mostrar y cerrar un error inline", () => {
+  const dismissError = vi.fn();
+  render(<ClientFormDialog client={null} territories={[]} loading={false} busy={false} error="La solicitud no pudo completarse." duplicates={null} {...requiredCallbacks} onDismissError={dismissError} />);
+  fireEvent.change(screen.getByLabelText("Nombre"), { target: { value: "Cliente pendiente" } });
+  fireEvent.click(screen.getByRole("button", { name: "Cerrar aviso" }));
+  expect((screen.getByLabelText("Nombre") as HTMLInputElement).value).toBe("Cliente pendiente");
+  expect(dismissError).toHaveBeenCalledOnce();
 });

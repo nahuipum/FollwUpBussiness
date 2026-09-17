@@ -17,6 +17,18 @@ test("renders visual warning and error alerts", () => {
   expect(screen.getByRole("heading", { name: "No disponible" })).toBeTruthy();
 });
 
+test("renders a golden informational alert as a status", () => {
+  render(<InlineAlert visual="golden" variant="info" title="Cambios guardados" message="La configuración quedó actualizada." />);
+  expect(screen.getByRole("status").classList.contains("error-ui-inline-alert--golden")).toBe(true);
+});
+
+test("golden warning and error use the design system alert icon", () => {
+  const { rerender } = render(<InlineAlert visual="golden" variant="warning" message="Datos no vigentes" />);
+  expect(screen.getByRole("alert").querySelector(".lucide-triangle-alert")).toBeTruthy();
+  rerender(<InlineAlert visual="golden" variant="error" message="No pudimos completar la operación" />);
+  expect(screen.getByRole("alert").querySelector(".lucide-triangle-alert")).toBeTruthy();
+});
+
 test("renders session dialog as visual accessible dialog", () => {
   render(<SessionExpiredDialog title="Tu sesión terminó" message="Inicia sesión nuevamente." primaryAction={{ label: "Iniciar sesión" }} secondaryAction={{ label: "Volver al inicio" }} dismissAction={{ label: "Cerrar diálogo" }} />);
   expect(screen.getByRole("dialog", { name: "Tu sesión terminó" }).getAttribute("aria-modal")).toBe("true");

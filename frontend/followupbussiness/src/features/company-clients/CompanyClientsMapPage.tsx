@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type UIEvent } from "react";
 import { AsyncStateCard } from "../../shared/ui/AsyncStateCard";
 import { InlineAlert } from "../../shared/ui/error-ui/components";
 import { TableLoadingIndicator } from "../../shared/ui/TableLoadingIndicator";
+import { ReadOnlyNotice } from "../../shared/ui/ReadOnlyNotice";
 import { ClientFilters } from "./components/ClientFilters";
 import { ClientMap } from "./components/ClientMap";
 import { useClientMap } from "./hooks/useClientMap";
@@ -50,11 +51,9 @@ function ClientMapPageContent() {
       mapPointer.current = null;
     };
     window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", clearPointer);
     window.addEventListener("pointercancel", clearPointer);
     return () => {
       window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", clearPointer);
       window.removeEventListener("pointercancel", clearPointer);
     };
   }, []);
@@ -89,6 +88,7 @@ function ClientMapPageContent() {
     >
       <header className="client-list__heading">
         <div>
+          <span className="client-list__eyebrow">Cartera comercial</span>
           <h1 id="client-map-page-title">Mapa general de clientes</h1>
           <p>
             Consulta la ubicación registrada de los clientes autorizados sin
@@ -121,7 +121,15 @@ function ClientMapPageContent() {
           onWithoutVisitSinceChange={clients.changeWithoutVisitSince}
           onWithoutPurchaseSinceChange={clients.changeWithoutPurchaseSince}
           showAssignmentFilters={false}
+          variant="golden"
         />
+        {isSupervisor && (
+          <ReadOnlyNotice
+            variant="scope"
+            title="Consulta de alcance asignado"
+            description="Como supervisor ves únicamente clientes de las carteras vigentes de tus vendedores asignados. Los filtros nunca amplían este alcance."
+          />
+        )}
         {clients.error && !initialError && (
           <InlineAlert
             variant="error"
@@ -204,6 +212,7 @@ function ClientMapList({
   onSelect: (clientId: string) => void;
 }) {
   const [scrollTop, setScrollTop] = useState(0);
+  const viewport = useRef<HTMLDivElement>(null);
   const start = Math.max(
     0,
     Math.floor(scrollTop / MAP_LIST_ROW_HEIGHT) - MAP_LIST_OVERSCAN,
@@ -215,6 +224,18 @@ function ClientMapList({
   );
   const onScroll = (event: UIEvent<HTMLDivElement>) =>
     setScrollTop(event.currentTarget.scrollTop);
+  useEffect(() => {
+    if (!selectedId || !viewport.current) return;
+    const index = clients.findIndex((client) => client.id === selectedId);
+    if (index < 0) return;
+    const rowTop = index * MAP_LIST_ROW_HEIGHT;
+    const rowBottom = rowTop + MAP_LIST_ROW_HEIGHT;
+    const viewportBottom = viewport.current.scrollTop + MAP_LIST_HEIGHT;
+    if (rowTop < viewport.current.scrollTop || rowBottom > viewportBottom) {
+      viewport.current.scrollTop = rowTop;
+      setScrollTop(rowTop);
+    }
+  }, [clients, selectedId]);
   return (
     <section
       className="client-map-list"
@@ -234,6 +255,7 @@ function ClientMapList({
           role="list"
           aria-label="Clientes visibles en el mapa"
           onScroll={onScroll}
+          ref={viewport}
         >
           <div style={{ height: clients.length * MAP_LIST_ROW_HEIGHT }}>
             <ul

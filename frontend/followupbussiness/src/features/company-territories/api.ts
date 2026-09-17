@@ -33,7 +33,7 @@ export async function listTerritories(filters: TerritoryFilters): Promise<{ resp
   const query = new URLSearchParams({ page: String(filters.page), pageSize: String(filters.pageSize) });
   if (filters.search.trim()) query.set("search", filters.search.trim());
   if (filters.status) query.set("status", filters.status);
-  const response = await apiRequest(`/territories?${query}`, { method: "GET", headers: getSessionAuthorization() });
+  const response = await apiRequest(`/territories?${query}`, { method: "GET", headers: getSessionAuthorization() }, { publishErrors: false });
   return { response, page: response.status === 200 ? parsePage(await response.json().catch(() => null)) : null };
 }
 
@@ -42,9 +42,9 @@ function mutationHeaders(version?: number): HeadersInit {
 }
 export function createTerritory(input: TerritoryFormInput) {
   const body = { name: input.name, ...(input.code ? { code: input.code } : {}), ...(input.description ? { description: input.description } : {}) };
-  return apiRequest("/territories", { method: "POST", headers: mutationHeaders(), body: JSON.stringify(body) });
+  return apiRequest("/territories", { method: "POST", headers: mutationHeaders(), body: JSON.stringify(body) }, { publishErrors: false });
 }
 export function updateTerritory(territory: Territory, input: TerritoryFormInput) {
   const body = { name: input.name, ...(input.code ? { code: input.code } : {}), ...(input.description ? { description: input.description } : {}), status: input.status };
-  return apiRequest(`/territories/${encodeURIComponent(territory.id)}`, { method: "PATCH", headers: mutationHeaders(territory.version), body: JSON.stringify(body) });
+  return apiRequest(`/territories/${encodeURIComponent(territory.id)}`, { method: "PATCH", headers: mutationHeaders(territory.version), body: JSON.stringify(body) }, { publishErrors: false });
 }

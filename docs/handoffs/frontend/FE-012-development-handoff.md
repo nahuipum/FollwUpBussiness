@@ -1,19 +1,13 @@
 # FE-012 — Handoff de Desarrollo Frontend
 
 - **Estado:** READY_FOR_HANDOFF
-- **Candidate-ID:** `3c13280+dafdabcf8d32`
-- **Alcance:** ruta `/company/customer-imports`, submenú de Clientes y feature `company-client-import` (UI, hook, API, tipos y pruebas).
+- **Candidate-ID:** `574be0e+2c60f01eba4f`
+- **Alcance:** migración golden de `/company/customer-imports`; FE-013 permanece fuera de alcance.
 
-Implementado: acceso UI exclusivo `COMPANY_ADMIN`; descarga de plantilla y conservación de `X-Template-Version`; multipart con CSRF e `Idempotency-Key`; validación sin parsear ni exponer contenido/nombre del archivo (CSV/XLSX, 10 MiB); selección explícita de aceptación parcial; un POST por intento; polling hasta estado terminal; limpieza por cambio de sesión/empresa y estados accesibles de carga, error, prohibido y resultado.
+Implementado: flujo visual de cuatro pasos conforme a `docs/frontendMockups/FE-012.html`; estados de versión/descarga, CSV/XLSX, nombre largo, validación 413/415, aceptación parcial, envío, errores, transición 202 y forbidden; responsive y tema oscuro. Se reutilizaron application shell, `FileUploadField`, `InlineAlert` y `AsyncStateCard`; el uploader compartido evolucionó con input nativo, asociaciones ARIA y retorno de foco.
 
-Remediación QA P1: `Carga de clientes` ahora se añade al submenú sólo cuando `canManage` es verdadero. La regresión prueba que un `SUPERVISOR` no ve la opción en layout de empresa y que `COMPANY_ADMIN` sí la ve.
+Se preservan endpoint/métodos, Blob, multipart (`templateVersion`, `partialAcceptance`, `file`), CSRF, `Idempotency-Key`, límite exacto de 10 MiB, no lectura del archivo, un POST por intento, Correlation ID, descarte de solicitudes obsoletas, limpieza de sesión/empresa y navegación `replace` a FE-013. El acceso directo de `SUPERVISOR` no monta el hook ni consulta la plantilla.
 
-| Criterio | Evidencia |
-|---|---|
-| Plantilla/versionado/transporte | `api.test.ts` (3 pruebas) |
-| Tipo/tamaño, no duplicación, polling, limpieza | `useCustomerImport.test.tsx` (3 pruebas) |
-| Ruta, rol y submenú | `App.tsx`, `auth.ts`, `CompanyWorkspaceLayout.tsx`, `CompanyWorkspaceLayout.test.tsx` |
+Evidencia: suite serial 74 archivos/419 pruebas PASS; grupo FE-012/FE-013/autorización 7 archivos/100 pruebas PASS; visual FE-012 19/19 PASS; `npm run typecheck` PASS; `npm run lint` sin errores (una advertencia preexistente en `useTerritoryForm.test.tsx`); `npm run build` PASS con aviso conocido de chunks >500 kB; `git diff --check` PASS.
 
-Comandos correctos: `npm test -- --run src/app/components/CompanyWorkspaceLayout.test.tsx src/features/company-client-import/api.test.ts src/features/company-client-import/hooks/useCustomerImport.test.tsx` (7/7), `npm run typecheck`, `npm run build`, `git diff --check`. El build mantiene aviso existente de bundle >500 kB.
-
-Riesgo/reproducción: inicie sesión como `COMPANY_ADMIN`, abra Clientes → Carga de clientes, descargue plantilla, seleccione CSV/XLSX <=10 MiB y envíe; observe polling. Un 403/401 limpia el flujo; 409/413/415/422 no reenvían. Se abrió sólo el fragmento OpenAPI de imports/`CustomerImportJob` por ambigüedad de tipado. Referencia visual: layout y `company-clients`; no había mockup FE-012.
+Comparación lado a lado revisada en 1440×900, 1280×800, 768×1024 y 390×844, además de oscuro. Divergencias restantes limitadas al shell compartido preexistente: campana/etiqueta de rol y breadcrumb móvil; no se reconstruyó el shell por delimitación. Los archivos y estilos de resultado/polling FE-013 no fueron modificados; sus pruebas focalizadas y la suite completa pasan.

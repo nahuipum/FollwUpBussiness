@@ -49,6 +49,13 @@ test("inhabilita el guardado cuando no hay territorios activos", () => {
   expect(submit).not.toHaveBeenCalled();
 });
 
+test("nombra el recurso específico durante la carga de asignación", () => {
+  const { rerender } = render(<SellerAssignmentDialog seller={seller} kind="supervisor" options={null} loading={true} busy={false} error={null} onClose={() => undefined} onRetry={() => undefined} onSubmit={() => undefined} />);
+  expect(screen.getByText("Cargando supervisores")).toBeTruthy();
+  rerender(<SellerAssignmentDialog seller={seller} kind="territories" options={null} loading={true} busy={false} error={null} onClose={() => undefined} onRetry={() => undefined} onSubmit={() => undefined} />);
+  expect(screen.getByText("Cargando territorios")).toBeTruthy();
+});
+
 test("muestra localmente el correlation ID validado de una asignación rechazada", () => {
   render(<SellerAssignmentDialog seller={seller} kind="supervisor" options={{ supervisors: [], territories: [] }} loading={false} busy={false} error={{ status: 422, correlationId: "00000000-0000-4000-8000-000000000006", fieldErrors: [] }} onClose={() => undefined} onRetry={() => undefined} onSubmit={() => undefined} />);
   expect(screen.getByText("Correlation ID: 00000000-0000-4000-8000-000000000006")).toBeTruthy();

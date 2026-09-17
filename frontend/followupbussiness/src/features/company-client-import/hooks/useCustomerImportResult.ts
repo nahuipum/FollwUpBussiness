@@ -15,6 +15,8 @@ export function useCustomerImportResult(importId: string) {
   const [error, setError] = useState<ImportFailure | null>(null);
   const [stale, setStale] = useState(false);
   const [expired, setExpired] = useState(false);
+  const [fileUnavailable, setFileUnavailable] = useState(false);
+  const [downloaded, setDownloaded] = useState(false);
   const [forbidden, setForbidden] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
   const keyRef = useRef(sessionKey());
@@ -32,7 +34,7 @@ export function useCustomerImportResult(importId: string) {
     downloadControllerRef.current = null;
     inFlightRef.current = false;
     jobRef.current = null;
-    setJob(null); setLoading(false); setDownloading(false); setError(null); setStale(false); setExpired(false); setForbidden(false); setLastUpdatedAt(null);
+    setJob(null); setLoading(false); setDownloading(false); setDownloaded(false); setError(null); setStale(false); setExpired(false); setFileUnavailable(false); setForbidden(false); setLastUpdatedAt(null);
   }, []);
 
   const refresh = useCallback(async () => {
@@ -58,7 +60,7 @@ export function useCustomerImportResult(importId: string) {
       if (current !== requestRef.current) return;
       if (result.response.status === 200 && result.job !== null) {
         jobRef.current = result.job;
-        setJob(result.job); setError(null); setStale(false); setForbidden(false); setLastUpdatedAt(new Date().toISOString());
+        setJob(result.job); setError(null); setStale(false); setExpired(false); setFileUnavailable(false); setDownloaded(false); setForbidden(false); setLastUpdatedAt(new Date().toISOString());
       } else if (result.response.status === 403 || result.response.status === 404) {
         jobRef.current = null;
         setJob(null); setError(result.response.status === 404 ? { status: 404, correlationId: result.correlationId } : null); setStale(false); setForbidden(result.response.status === 403);
@@ -95,9 +97,12 @@ export function useCustomerImportResult(importId: string) {
       if (result.response.status === 200 && result.blob !== null) {
         const url = URL.createObjectURL(result.blob);
         const anchor = document.createElement("a"); anchor.href = url; anchor.download = "errores-importacion-clientes.csv"; anchor.click(); URL.revokeObjectURL(url);
+        setDownloaded(true);
       } else if (result.response.status === 410) {
         setExpired(true);
-      } else if (result.response.status === 403 || result.response.status === 404) {
+      } else if (result.response.status === 404) {
+        setFileUnavailable(true);
+      } else if (result.response.status === 403) {
         jobRef.current = null;
         setJob(null); setError(null); setStale(false); setForbidden(result.response.status === 403);
       } else {
@@ -108,5 +113,5 @@ export function useCustomerImportResult(importId: string) {
     } finally { setDownloading(false); }
   };
 
-  return { job, loading, downloading, error, stale, expired, forbidden, lastUpdatedAt, polling: job !== null && !terminal.has(job.status), refresh, downloadErrors };
+  return { job, loading, downloading, downloaded, error, stale, expired, fileUnavailable, forbidden, lastUpdatedAt, polling: job !== null && !terminal.has(job.status), refresh, downloadErrors };
 }

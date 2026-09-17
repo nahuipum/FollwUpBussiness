@@ -1,8 +1,8 @@
 # FE-033 — Definition of Finished
 
 **Estado:** PASS  
-**Candidate-ID:** `HEAD+babe434 diff:f0c0b0c6d6f4`
+**Candidate-ID:** `HEAD:574be0e+diff:d56c4e1c`
 
-Development frontend, QA y Seguridad están en estado permitido y trazados al candidato. Seguridad no tiene hallazgos abiertos. Las validaciones frontend/QA, la reproducción de abuso y CI Backend están declaradas PASS; la evidencia Backend queda conciliada explícitamente al candidato final, pues los deltas posteriores fueron solo frontend/artefactos sin superficie Backend.
+Development `READY_FOR_HANDOFF`, QA `PASS` y Seguridad `PASS` están trazados al mismo candidato; la revisión de Seguridad concilia los ajustes posteriores de presentación sin cambio de amenaza. No quedan hallazgos aplicables abiertos. Las 22 pruebas focalizadas, typecheck, build, lint sin errores y comparación visual declaradas están completas; `git diff --check` aprobó. El alcance conserva `CompanyWorkspaceLayout`, GET/PATCH tenant-bound y ETag/If-Match.
 
-`git diff --check` finalizó sin errores (solo avisos CRLF). No quedan gates aplicables pendientes.
+Brechas separadas: GET de SELLER permitido por OpenAPI/Backend pero bloqueado en React; confirmación previa y consulta de auditoría sin definición suficiente. No se simularon en esta entrega.

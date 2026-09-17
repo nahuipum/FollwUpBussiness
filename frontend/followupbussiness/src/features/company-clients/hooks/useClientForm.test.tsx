@@ -4,6 +4,7 @@ import { useClientForm } from "./useClientForm";
 
 const state = vi.hoisted(() => ({
   create: vi.fn(),
+  getClient: vi.fn(),
   territories: vi.fn(),
   listener: undefined as (() => void) | undefined,
   generation: 1,
@@ -22,18 +23,20 @@ vi.mock("../api", () => ({
   createClient: state.create,
   listActiveTerritories: state.territories,
   checkClientDuplicate: vi.fn(),
-  getClient: vi.fn(),
+  getClient: state.getClient,
   updateClient: vi.fn(),
 }));
 
 const response = (status: number) => new Response(null, { status });
 const input = { name: "Comercial Norte", address: "Av. Lima 1", documentType: "", documentNumber: "", phone: "", email: "", segment: "", visitFrequencyDays: null, territoryId: null, latitude: -12.04, longitude: -77.03 };
 const customer = { id: "customer-1", name: "Comercial Norte", segment: null, territoryId: null, assignedSellerIds: [], status: "ACTIVE" as const, location: { latitude: -12.04, longitude: -77.03 }, createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z", version: 1 };
+const customerDetail = { ...customer, address: "Av. Lima 1", documentType: null, documentNumber: null, phone: null, email: null, visitFrequencyDays: null };
 
 beforeEach(() => {
   state.generation = 1;
   state.identity = { id: "admin-1", roles: ["COMPANY_ADMIN"], company: { id: "company-1" } };
   state.create.mockReset();
+  state.getClient.mockReset();
   state.territories.mockReset().mockResolvedValue({ response: response(200), territories: [] });
 });
 
@@ -88,4 +91,20 @@ test("limpia el formulario cuando cambia realmente el usuario o tenant", async (
 
   expect(result.current.client).toBeUndefined();
   expect(result.current.territories).toBeNull();
+});
+
+test("abre la edición durante la carga y reintenta también el detalle", async () => {
+  state.getClient
+    .mockResolvedValueOnce({ response: response(500), client: null })
+    .mockResolvedValueOnce({ response: response(200), client: customerDetail });
+  const { result } = renderHook(() => useClientForm(vi.fn()));
+
+  act(() => result.current.open(customer));
+  expect(result.current.client?.id).toBe(customer.id);
+  expect(result.current.loading).toBe(true);
+  await waitFor(() => expect(result.current.error).toContain("datos actuales"));
+
+  act(() => result.current.retry());
+  await waitFor(() => expect(result.current.client).toEqual(customerDetail));
+  expect(state.getClient).toHaveBeenCalledTimes(2);
 });

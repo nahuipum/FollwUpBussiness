@@ -25,7 +25,7 @@ export function ClientTable({ clients, page, pageSize, totalPages, totalElements
     { id: "client", header: "Cliente", label: "Cliente", width: "32%", render: (client) => <DataTableIdentity mark={initials(client.name)} primary={client.name} /> },
     { id: "segment", header: "Segmento", label: "Segmento", width: "23%", render: (client) => client.segment ?? "—" },
     { id: "sellers", header: "Vendedores asignados", label: "Vendedores asignados", width: "21%", render: (client) => client.assignedSellerIds.length },
-    { id: "status", header: "Estado", label: "Estado", width: "15%", render: (client) => <DataTableStatus label={client.status === "ACTIVE" ? "Activo" : "Inactivo"} tone={client.status === "ACTIVE" ? "success" : "warning"} /> },
+    { id: "status", header: "Estado", label: "Estado", width: "15%", render: (client) => <DataTableStatus label={client.status === "ACTIVE" ? "Activo" : "Inactivo"} tone={client.status === "ACTIVE" ? "success" : "danger"} /> },
     {
       id: "actions",
       header: "Acciones",
@@ -36,9 +36,10 @@ export function ClientTable({ clients, page, pageSize, totalPages, totalElements
         <div className="client-list__actions">
           <button
             ref={(node) => { triggers.current[client.id] = node; }}
-            className="data-table__icon-button"
+            className="data-table__icon-button data-table__icon-button--golden"
             type="button"
             aria-label={`Más acciones para ${client.name}`}
+            aria-haspopup="menu"
             aria-expanded={menuClient?.id === client.id}
             onClick={() => setMenuClient(menuClient?.id === client.id ? null : client)}
           >
@@ -49,6 +50,7 @@ export function ClientTable({ clients, page, pageSize, totalPages, totalElements
               anchor={triggers.current[client.id] ?? null}
               ariaLabel={`Acciones de ${client.name}`}
               onDismiss={() => setMenuClient(null)}
+              variant="golden"
               items={[
                 {
                   label: "Ver cliente",
@@ -80,7 +82,7 @@ export function ClientTable({ clients, page, pageSize, totalPages, totalElements
     },
   ];
   return <>
-    <DataTable ariaLabel="Clientes" items={clients} rowKey={(client) => client.id} columns={columns} />
+    <DataTable ariaLabel="Clientes" items={clients} rowKey={(client) => client.id} columns={columns} responsive="cards" variant="golden" />
     <DataTablePagination
       page={page}
       pageSize={pageSize}
@@ -88,10 +90,19 @@ export function ClientTable({ clients, page, pageSize, totalPages, totalElements
       onPageChange={onPageChange}
       onPageSizeChange={onPageSizeChange}
       ariaLabel="Paginación de clientes"
-      summary={<>Mostrando {clients.length} de {totalElements} clientes</>}
+      summary={<>Mostrando {firstResult(page, pageSize, totalElements)}–{lastResult(page, pageSize, totalElements)} de {totalElements} clientes</>}
       lastUpdated={lastUpdated}
+      variant="golden"
     />
   </>;
+}
+
+function firstResult(page: number, pageSize: number, totalElements: number) {
+  return totalElements === 0 ? 0 : Math.min(page * pageSize + 1, totalElements);
+}
+
+function lastResult(page: number, pageSize: number, totalElements: number) {
+  return totalElements === 0 ? 0 : Math.min((page + 1) * pageSize, totalElements);
 }
 
 function initials(name: string) {

@@ -22,6 +22,7 @@ function sessionScopeKey() {
 export function useClientForm(onSaved: () => void) {
   const request = useRef(0);
   const mutation = useRef(0);
+  const openTarget = useRef<Client | null>(null);
   const sessionScope = useRef(sessionScopeKey());
   const [client, setClient] = useState<ClientFormTarget | null | undefined>(undefined);
   const [territories, setTerritories] = useState<readonly TerritoryOption[] | null>(null);
@@ -33,6 +34,7 @@ export function useClientForm(onSaved: () => void) {
 
   const reset = () => {
     request.current += 1;
+    openTarget.current = null;
     setClient(undefined);
     setTerritories(null);
     setError(null);
@@ -58,6 +60,7 @@ export function useClientForm(onSaved: () => void) {
   };
   const open = (next: Client | null) => {
     if (!canManage()) return;
+    openTarget.current = next;
     setNotice(null);
     setDuplicates(null);
     if (next === null) {
@@ -65,6 +68,15 @@ export function useClientForm(onSaved: () => void) {
       load();
       return;
     }
+    setClient({
+      ...next,
+      address: "",
+      documentType: null,
+      documentNumber: null,
+      phone: null,
+      email: null,
+      visitFrequencyDays: null,
+    });
     const id = ++request.current;
     setLoading(true);
     setError(null);
@@ -146,7 +158,7 @@ export function useClientForm(onSaved: () => void) {
     notice,
     open,
     close: () => !busy && reset(),
-    retry: load,
+    retry: () => openTarget.current ? open(openTarget.current) : load(),
     submit,
     duplicateCheck,
     dismissError: () => setError(null),

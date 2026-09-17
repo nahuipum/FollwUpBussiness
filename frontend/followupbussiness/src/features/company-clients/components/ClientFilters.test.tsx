@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { expect, test, vi } from "vitest";
 import { ClientFilters } from "./ClientFilters";
 
@@ -36,4 +36,29 @@ test("busca por nombre o segmento y usa calendario visual accesible", () => {
   expect(screen.getByLabelText("Sin compra desde").getAttribute("aria-haspopup")).toBe(
     "dialog",
   );
+});
+
+test("compone el toolbar denso golden con los seis controles compartidos", () => {
+  const { container } = render(
+    <ClientFilters
+      variant="golden"
+      query=""
+      status={null}
+      territoryId={null}
+      sellerId={null}
+      withoutVisitSince=""
+      withoutPurchaseSince=""
+      options={{ territories: [{ id: "territory-1", label: "Lima Centro" }], sellers: [{ id: "seller-1", label: "Lucía" }] }}
+      onQueryChange={() => undefined}
+      onStatusChange={() => undefined}
+      onTerritoryChange={() => undefined}
+      onSellerChange={() => undefined}
+      onWithoutVisitSinceChange={() => undefined}
+      onWithoutPurchaseSinceChange={() => undefined}
+    />,
+  );
+
+  expect(container.querySelector('[data-ui="data-table-toolbar"]')?.getAttribute("data-filter-count")).toBe("5");
+  expect(container.querySelector('[data-ui="search-field"]')).toBeTruthy();
+  expect(within(container).getAllByRole("button")).toHaveLength(5);
 });

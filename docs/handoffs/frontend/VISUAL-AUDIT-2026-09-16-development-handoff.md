@@ -1,0 +1,8 @@
+# Auditoría visual transversal · Development
+
+- **Candidate-ID:** `574be0e+95213aa8c07b`.
+- **Estado:** `READY_FOR_HANDOFF`.
+- **Cambios:** componentes compartidos Button, DataTableWorkspace, DataTablePagination, VisualSelect, InlineAlert, ReadOnlyNotice, superficies modal/drawer y tokens golden aplicados en pantallas migradas; se corrigieron overrides oscuros, avisos de datos no vigentes/denegación, botones de carga y zonas, alcance de mapa, oclusión del selector de prioridad, altura del campo de configuración, ancho del filtro y tipografía del código de Zonas. GET/PUT 403 de configuración/asignación revoca datos y opciones; se bloquean respuestas obsoletas.
+- **Residual demostrado:** reglas de botones locales de carga/resultado y zonas eliminadas tras migrar sus consumidores a Button; alertas locales de zonas sustituidas por InlineAlert. Se conservan ModalDialog (AuthErrorDialog), dashboard-primitives (dashboard), FloatingMenu (TableActionMenu) y WorkflowStepper (rutas) por referencias vigentes.
+- **Verificación:** Vitest 79 archivos/489 pruebas PASS con dos workers y timeout 15 s; typecheck, lint, build y `git diff --check` PASS. Playwright integral: 252 PASS/1 omitida por entorno cartográfico no configurado; comparaciones golden en FE-001, FE-002, dashboard, FE-004/005/008/010/012/013/014–017/033/036/037, móvil y oscuro. Focal FE-037 + FE-036: 45 PASS; regresión de contraste claro/oscuro y de paginación PASS. Tras el último ajuste de tipos: Vitest de DataTable 8 PASS y Playwright focal 3 PASS.
+- **Pendiente:** QA independiente del último delta y DoF. La alerta de FE-037 hereda 14 px en su mockup pero usa 13 px según `_design-system.html`, autoridad visual.

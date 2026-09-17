@@ -1,5 +1,5 @@
-import { Search } from "lucide-react";
 import { DateFilterField } from "../../../shared/ui/DateFilterField";
+import { DataTableToolbar, SearchField } from "../../../shared/ui/DataTableWorkspace";
 import { FilterField } from "../../../shared/ui/FilterField";
 import { VisualSelect } from "../../../shared/ui/VisualSelect";
 import type { ClientFilterOptions, ClientStatus } from "../types";
@@ -19,6 +19,7 @@ type Props = {
   onWithoutVisitSinceChange: (value: string) => void;
   onWithoutPurchaseSinceChange: (value: string) => void;
   showAssignmentFilters?: boolean;
+  variant?: "legacy" | "golden";
 };
 
 export function ClientFilters({
@@ -36,20 +37,16 @@ export function ClientFilters({
   onWithoutVisitSinceChange,
   onWithoutPurchaseSinceChange,
   showAssignmentFilters = true,
+  variant = "legacy",
 }: Props) {
-  return (
-    <div className="client-list__toolbar">
-      <label className="client-list__search">
-        <Search aria-hidden="true" />
-        <span className="sr-only">Buscar cliente por nombre o segmento</span>
-        <input
-          aria-label="Buscar cliente por nombre o segmento"
-          type="search"
-          value={query}
-          onChange={(event) => onQueryChange(event.target.value)}
-          placeholder="Buscar por nombre o segmento"
-        />
-      </label>
+  const searchField = variant === "golden" ? <SearchField
+        id="client-search"
+        label="Buscar por nombre o segmento"
+        value={query}
+        placeholder="Nombre o segmento"
+        onChange={onQueryChange}
+      /> : <label className="client-list__search"><Search aria-hidden="true" /><span className="sr-only">Buscar cliente por nombre o segmento</span><input aria-label="Buscar cliente por nombre o segmento" type="search" value={query} onChange={(event) => onQueryChange(event.target.value)} placeholder="Buscar por nombre o segmento" /></label>;
+  const filters = <>
       {showAssignmentFilters && <FilterField label="Zona">
         <VisualSelect
           ariaLabel="Zona"
@@ -64,6 +61,7 @@ export function ClientFilters({
           onChange={(value) =>
             onTerritoryChange(value === "ALL" ? null : value)
           }
+          variant={variant === "golden" ? "golden" : "default"}
         />
       </FilterField>}
       {showAssignmentFilters && <FilterField label="Vendedor">
@@ -80,6 +78,7 @@ export function ClientFilters({
           onChange={(value) =>
             onSellerChange(value === "ALL" ? null : value)
           }
+          variant={variant === "golden" ? "golden" : "default"}
         />
       </FilterField>}
       <FilterField label="Estado">
@@ -96,18 +95,22 @@ export function ClientFilters({
               value === "ALL" ? null : (value as ClientStatus),
             )
           }
+          variant={variant === "golden" ? "golden" : "default"}
         />
       </FilterField>
       <DateFilterField
         label="Sin visita desde"
         value={withoutVisitSince}
         onValueChange={onWithoutVisitSinceChange}
+        variant={variant === "golden" ? "golden" : "default"}
       />
       <DateFilterField
         label="Sin compra desde"
         value={withoutPurchaseSince}
         onValueChange={onWithoutPurchaseSinceChange}
+        variant={variant === "golden" ? "golden" : "default"}
       />
-    </div>
-  );
+  </>;
+  return variant === "golden" ? <DataTableToolbar filterCount={showAssignmentFilters ? 5 : 3}>{searchField}{filters}</DataTableToolbar> : <div className="client-list__toolbar">{searchField}{filters}</div>;
 }
+import { Search } from "lucide-react";

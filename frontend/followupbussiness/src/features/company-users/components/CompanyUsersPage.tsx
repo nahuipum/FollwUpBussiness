@@ -19,7 +19,12 @@ import { TableLoadingIndicator } from "../../../shared/ui/TableLoadingIndicator"
 import { ReadOnlyNotice } from "../../../shared/ui/ReadOnlyNotice";
 import { AsyncStateCard } from "../../../shared/ui/AsyncStateCard";
 import { ConfirmationDialog } from "../../../shared/ui/ConfirmationDialog";
-import { CorrelationId } from "../../../shared/ui/error-ui/components/CorrelationId";
+import { InlineAlert } from "../../../shared/ui/error-ui/components";
+import { DataTablePagination } from "../../../shared/ui/DataTable";
+import {
+  DataTablePanel,
+  DataTableResultsHeader,
+} from "../../../shared/ui/DataTableWorkspace";
 import { navigate } from "../../../app/navigation";
 
 export function CompanyUsersPage() {
@@ -125,10 +130,7 @@ export function CompanyUsersPage() {
             {users.notice}
           </p>
         )}
-        <section
-          className="company-users__card"
-          aria-label="Lista de administradores y supervisores"
-        >
+        <DataTablePanel ariaLabel="Lista de administradores y supervisores">
           {!users.canManage && <ReadOnlyNotice variant="golden" />}
           <CompanyUsersFilters
             query={users.search}
@@ -145,20 +147,27 @@ export function CompanyUsersPage() {
               actionLabel="Reintentar"
               onAction={users.retry}
               tone="error" variant="golden" icon={<AlertTriangle />}
-              correlationId={users.error.correlationId}
+              {...(users.error.correlationId ? { correlationId: users.error.correlationId } : {})}
             />
           ) : <>
           {users.error && items.length > 0 && (
-            <div className="company-users__stale-notice" role="status">
-              <span>Actualización pendiente. Conservamos los últimos datos disponibles.</span>
-              {users.error.correlationId && <CorrelationId correlationId={users.error.correlationId} />}
-            </div>
+            <InlineAlert
+              visual="golden"
+              variant="error"
+              className="company-users__stale-notice"
+              title="Ocurrió un problema temporal"
+              message="No pudimos actualizar los usuarios. Los datos mostrados pueden no estar vigentes."
+              {...(users.error.correlationId ? { correlationId: users.error.correlationId } : {})}
+              action={{ label: "Reintentar", onClick: users.retry }}
+            />
           )}
-          {showResults && <header className="company-users__results" aria-live="polite">
-            <div><strong>Resultados</strong><span>{users.loading ? "Cargando usuarios" : `${users.result?.page.totalElements ?? 0} administradores y supervisores`}</span></div>
-            {users.error && items.length > 0 && <span className="company-users__updating">Actualización pendiente</span>}
-          </header>}
-          {users.loading ? (
+          {showResults && (
+            <DataTableResultsHeader
+              description={users.loading ? "Cargando usuarios" : `${users.result?.page.totalElements ?? 0} administradores y supervisores`}
+              status={users.error && items.length > 0 ? "Actualización pendiente" : undefined}
+            />
+          )}
+          {users.loading && items.length === 0 ? (
             <TableLoadingIndicator label="Cargando usuarios" variant="golden" columns={5} />
           ) : items.length === 0 ? (
             <AsyncStateCard
@@ -185,11 +194,6 @@ export function CompanyUsersPage() {
           ) : (
             <CompanyUsersTable
               users={items}
-              page={users.result?.page.page ?? users.page}
-              pageSize={users.pageSize}
-              totalPages={users.result?.page.totalPages ?? 0}
-              totalElements={users.result?.page.totalElements ?? items.length}
-              lastUpdated={users.lastUpdated}
               readOnly={!users.canManage}
               menuUser={users.menuUser}
               menuTriggers={users.menuTriggers}
@@ -210,12 +214,23 @@ export function CompanyUsersPage() {
                 users.setMenuUser(null);
                 users.setStatusUser(user);
               }}
+            />
+          )}
+          {items.length > 0 && (
+            <DataTablePagination
+              page={users.result?.page.page ?? users.page}
+              totalPages={users.result?.page.totalPages ?? 0}
+              pageSize={users.pageSize}
               onPageChange={users.goToPage}
               onPageSizeChange={users.changePageSize}
+              ariaLabel="Paginación de administradores y supervisores"
+              summary={`Mostrando ${(users.result?.page.page ?? users.page) * users.pageSize + 1}–${Math.min(((users.result?.page.page ?? users.page) + 1) * users.pageSize, users.result?.page.totalElements ?? items.length)} de ${users.result?.page.totalElements ?? items.length} usuarios`}
+              lastUpdated={users.lastUpdated}
+              variant="golden"
             />
           )}
           </>}
-        </section>
+        </DataTablePanel>
         {(users.inviteOpen || users.editingUser || users.resendingUser) && (
           <CompanyUserFormDrawer
             user={users.resendingUser ?? users.editingUser}

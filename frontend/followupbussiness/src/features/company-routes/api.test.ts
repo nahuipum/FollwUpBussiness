@@ -56,10 +56,10 @@ test("envía windows vacío cuando una visita no tiene restricción, deriva el t
   expect(state.request).toHaveBeenCalledWith("/routes/optimize", expect.objectContaining({ method: "POST", body: expect.not.stringContaining("territoryId") }), { publishErrors: false });
 });
 
-test("consulta cartera completa y sugerencias como fuentes separadas, conservando solo el territorio necesario", async () => {
-  state.request.mockResolvedValueOnce(new Response(JSON.stringify({ items: [{ id: "customer-1", name: "Comercial Norte", territoryId: "territory-1", phone: "secreto" }], page: { page: 0, pageSize: 100, totalElements: 1, totalPages: 1 } }), { status: 200 })).mockResolvedValueOnce(new Response(JSON.stringify({ items: [{ customer: { id: "customer-2", name: "Comercial Sur", territoryId: "territory-1", address: "secreto" }, priority: 1, reason: "Vencido" }], page: { page: 0, pageSize: 100, totalElements: 1, totalPages: 1 } }), { status: 200 }));
-  await expect(listRouteCustomers("seller-1", 0)).resolves.toMatchObject({ page: { items: [{ id: "customer-1", label: "Comercial Norte", territoryId: "territory-1", suggested: false }] } });
-  await expect(listSuggestedRouteCustomers("seller-1", "2026-08-26", 0)).resolves.toMatchObject({ page: { items: [{ id: "customer-2", label: "Comercial Sur", territoryId: "territory-1", suggested: true }] } });
+test("consulta cartera y sugerencias en lote, conservando territorio y ubicación solo en memoria", async () => {
+  state.request.mockResolvedValueOnce(new Response(JSON.stringify({ items: [{ id: "customer-1", name: "Comercial Norte", territoryId: "territory-1", location: { latitude: -12.04, longitude: -77.03 }, phone: "secreto" }], page: { page: 0, pageSize: 100, totalElements: 1, totalPages: 1 } }), { status: 200 })).mockResolvedValueOnce(new Response(JSON.stringify({ items: [{ customer: { id: "customer-2", name: "Comercial Sur", territoryId: "territory-1", location: { latitude: -12.05, longitude: -77.04 }, address: "secreto" }, priority: 1, reason: "Vencido" }], page: { page: 0, pageSize: 100, totalElements: 1, totalPages: 1 } }), { status: 200 }));
+  await expect(listRouteCustomers("seller-1", 0)).resolves.toMatchObject({ page: { items: [{ id: "customer-1", label: "Comercial Norte", territoryId: "territory-1", suggested: false, location: { latitude: -12.04, longitude: -77.03 } }] } });
+  await expect(listSuggestedRouteCustomers("seller-1", "2026-08-26", 0)).resolves.toMatchObject({ page: { items: [{ id: "customer-2", label: "Comercial Sur", territoryId: "territory-1", suggested: true, location: { latitude: -12.05, longitude: -77.04 } }] } });
   expect(state.request).toHaveBeenNthCalledWith(1, "/customers?sellerId=seller-1&page=0&pageSize=100", expect.anything(), { publishErrors: false });
   expect(state.request).toHaveBeenNthCalledWith(2, "/routes/suggested-customers?sellerId=seller-1&date=2026-08-26&page=0&pageSize=100", expect.anything(), { publishErrors: false });
 });

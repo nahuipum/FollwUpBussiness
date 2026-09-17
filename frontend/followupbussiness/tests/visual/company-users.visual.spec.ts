@@ -93,7 +93,9 @@ async function open(
     window.Date = VisualDate as DateConstructor;
   });
   await page.route("**/api/**", async (route) => {
-    const path = new URL(route.request().url()).pathname;
+    const requestUrl = new URL(route.request().url());
+    const path = requestUrl.pathname;
+    const requestedPage = Number(requestUrl.searchParams.get("page") ?? 0);
     if (path.includes("/company/users/") && detail === "loading") {
       await new Promise((resolve) => setTimeout(resolve, 10_000));
       return;
@@ -118,7 +120,7 @@ async function open(
       : path.endsWith("/company/users")
         ? {
             items,
-            page: { page: 0, pageSize: 5, totalElements: 128, totalPages: 26 },
+            page: { page: requestedPage, pageSize: 5, totalElements: 128, totalPages: 26 },
           }
         : path.includes("/company/users/")
           ? items[0]
@@ -162,7 +164,7 @@ async function open(
 
 const variants = [
   ["ready-admin", 1440, 900, "COMPANY_ADMIN", 200, readyUsers],
-  ["tablet", 900, 900, "COMPANY_ADMIN", 200, readyUsers],
+  ["tablet", 1024, 768, "COMPANY_ADMIN", 200, readyUsers],
   ["mobile-390", 390, 844, "COMPANY_ADMIN", 200, readyUsers],
   ["mobile-360", 360, 800, "COMPANY_ADMIN", 200, readyUsers],
   ["dark", 1440, 900, "COMPANY_ADMIN", 200, readyUsers],
@@ -262,6 +264,17 @@ test("FE-004 loading inicial", async ({ page }) => {
     page.locator(".table-loading-indicator__skeleton span"),
   ).toHaveCount(25);
   await expect(page).toHaveScreenshot("fe-004-loading.png", {
+    animations: "disabled",
+    maxDiffPixelRatio: 0.02,
+  });
+});
+
+test("FE-004 página intermedia", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page, "COMPANY_ADMIN", 200, readyUsers);
+  await page.getByRole("button", { name: "Página siguiente" }).click();
+  await expect(page.getByText(/Mostrando 6.*10 de 128 usuarios/)).toBeVisible();
+  await expect(page).toHaveScreenshot("fe-004-intermediate-page.png", {
     animations: "disabled",
     maxDiffPixelRatio: 0.02,
   });
@@ -393,7 +406,7 @@ async function expectGoldenConfirmationGeometry(
 
 async function expectContinuousTablePanel(page: Page) {
   const geometry = await page
-    .locator(".company-users__card")
+    .locator(".data-table-panel")
     .evaluate((panel) => {
       const footer = panel.querySelector<HTMLElement>(
         ".data-table__pagination--golden",

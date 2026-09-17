@@ -3,24 +3,15 @@ import { useRef, useState } from "react";
 import {
   DataTable,
   DataTableIdentity,
-  DataTablePagination,
   DataTableStatus,
   type DataTableColumn,
 } from "../../../shared/ui/DataTable";
-import type { DataTablePageSize } from "../../../shared/ui/data-table-pagination";
 import { TableActionMenu } from "../../../shared/ui/TableActionMenu";
 import type { Seller } from "../types";
 
 export function SellerTable({
   sellers,
-  page,
-  totalPages,
-  totalElements,
-  lastUpdated,
-  pageSize,
   canManage,
-  onPageChange,
-  onPageSizeChange,
   onDetail,
   onEdit,
   onAssign,
@@ -28,14 +19,7 @@ export function SellerTable({
   onResendInvitation,
 }: {
   sellers: readonly Seller[];
-  page: number;
-  totalPages: number;
-  totalElements: number;
-  lastUpdated?: Date | null;
-  pageSize: DataTablePageSize;
   canManage: boolean;
-  onPageChange: (page: number) => void;
-  onPageSizeChange: (pageSize: DataTablePageSize) => void;
   onDetail: (seller: Seller) => void;
   onEdit: (seller: Seller) => void;
   onAssign: (seller: Seller, kind: "supervisor" | "territories") => void;
@@ -200,32 +184,14 @@ export function SellerTable({
     },
   ];
   return (
-    <>
-      <DataTable
+    <DataTable
         ariaLabel="Vendedores"
         items={sellers}
         rowKey={(seller) => seller.id}
         columns={columns}
         responsive="cards"
         variant="golden"
-      />
-      <DataTablePagination
-        page={page}
-        totalPages={totalPages}
-        pageSize={pageSize}
-        onPageChange={onPageChange}
-        onPageSizeChange={onPageSizeChange}
-        ariaLabel="Paginación de vendedores"
-        summary={
-          <>
-            Mostrando {firstResult(page, pageSize, totalElements)}–
-            {lastResult(page, pageSize, totalElements)} de {totalElements} vendedores
-          </>
-        }
-        lastUpdated={lastUpdated}
-        variant="golden"
-      />
-    </>
+    />
   );
 }
 const statusLabel = {
@@ -240,13 +206,3 @@ const initials = (name: string) =>
     .map((part) => part[0])
     .join("")
     .toUpperCase();
-
-function firstResult(page: number, pageSize: number, totalElements: number) {
-  if (totalElements === 0) return 0;
-  return Math.min(page * pageSize + 1, totalElements);
-}
-
-function lastResult(page: number, pageSize: number, totalElements: number) {
-  if (totalElements === 0) return 0;
-  return Math.min((page + 1) * pageSize, totalElements);
-}

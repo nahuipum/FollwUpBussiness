@@ -9,8 +9,8 @@ const seller = {
   createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z", version: 1,
 };
 const props = (canManage: boolean) => ({
-  sellers: [seller], page: 0, pageSize: 5 as const, totalPages: 1, totalElements: 1, canManage,
-  onPageChange: () => undefined, onPageSizeChange: () => undefined, onDetail: () => undefined, onEdit: () => undefined, onAssign: () => undefined,
+  sellers: [seller], canManage,
+  onDetail: () => undefined, onEdit: () => undefined, onAssign: () => undefined,
   onChangeStatus: vi.fn(), onResendInvitation: vi.fn(),
 });
 
@@ -40,14 +40,6 @@ test("solo ofrece reenviar invitación a COMPANY_ADMIN para vendedores invitados
   render(<SellerTable {...props(true)} />);
   fireEvent.click(screen.getByRole("button", { name: "Más acciones para Ana" }));
   expect(screen.queryByRole("menuitem", { name: "Reenviar invitación" })).toBeNull();
-});
-
-test("permite elegir cantidad de registros por página", () => {
-  const onPageSizeChange = vi.fn();
-  render(<SellerTable {...props(true)} onPageSizeChange={onPageSizeChange} />);
-  fireEvent.click(screen.getByRole("button", { name: "Registros por página" }));
-  fireEvent.click(screen.getByRole("option", { name: "10" }));
-  expect(onPageSizeChange).toHaveBeenCalledWith(10);
 });
 
 test("el menú declara su tipo, se cierra con Escape y devuelve el foco", () => {

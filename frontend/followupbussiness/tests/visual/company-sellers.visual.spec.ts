@@ -50,7 +50,10 @@ async function open(
     window.Date = VisualDate as DateConstructor;
   });
   await page.route("**/api/**", async (route) => {
-    const path = new URL(route.request().url()).pathname;
+    const requestUrl = new URL(route.request().url());
+    const path = requestUrl.pathname;
+    const requestedPage = Number(requestUrl.searchParams.get("page") ?? 0);
+    const noResults = requestUrl.searchParams.get("search") === "sin-coincidencias";
     if (path.endsWith("/status") && options.statusConflict) {
       await route.fulfill({
         status: 409,
@@ -70,7 +73,7 @@ async function open(
     const body = path.endsWith("/me")
       ? current.user
       : path.endsWith("/sellers")
-        ? { items: options.items ?? sellers, page: { page: 0, pageSize: 5, totalElements: 128, totalPages: 26 } }
+        ? { items: noResults ? [] : options.items ?? sellers, page: { page: requestedPage, pageSize: 5, totalElements: noResults ? 0 : 128, totalPages: noResults ? 0 : 26 } }
         : path.startsWith("/api/territories")
           ? { items: [{ id: "territory-norte", code: "NOR", name: "Norte" }], page: { page: 0, pageSize: 100, totalElements: 1, totalPages: 1 } }
           : path.startsWith("/api/company/users")
@@ -102,7 +105,7 @@ async function screenshot(page: Page, name: string) {
   await expect(page).toHaveScreenshot(`fe-005-${name}.png`, { animations: "disabled", maxDiffPixelRatio: 0.02 });
 }
 
-for (const [name, width, height] of [["desktop-1440", 1440, 900], ["desktop-1024", 1024, 900], ["tablet-768", 768, 900], ["mobile-390", 390, 844]] as const) {
+for (const [name, width, height] of [["desktop-1440", 1440, 900], ["desktop-1024", 1024, 768], ["tablet-768", 768, 900], ["mobile-390", 390, 844]] as const) {
   test(`FE-005 listado ${name}`, async ({ page }) => {
     await page.setViewportSize({ width, height });
     await open(page);
@@ -124,6 +127,22 @@ test("FE-005 loading", async ({ page }) => {
   await open(page, { loading: true });
   await expect(page.getByRole("status", { name: "Cargando vendedores" })).toBeVisible();
   await screenshot(page, "loading");
+});
+
+test("FE-005 no-results", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page);
+  await page.getByRole("searchbox", { name: "Buscar por nombre, correo o código" }).fill("sin-coincidencias");
+  await expect(page.getByRole("heading", { name: "No encontramos vendedores" })).toBeVisible();
+  await screenshot(page, "no-results");
+});
+
+test("FE-005 página intermedia", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page);
+  await page.getByRole("button", { name: "Página siguiente" }).click();
+  await expect(page.getByText("Mostrando 6–10 de 128 vendedores")).toBeVisible();
+  await screenshot(page, "intermediate-page");
 });
 
 test("FE-005 empty, error y forbidden", async ({ page }) => {

@@ -14,3 +14,12 @@ export type CustomerImportJob = Readonly<{
 }>;
 
 export type ImportFailure = Readonly<{ status: number; correlationId: string | null }>;
+
+export type TemplateFailure = ImportFailure & Readonly<{
+  operation: "check" | "download";
+}>;
+
+export type FileValidationFailure = Readonly<{
+  status: 413 | 415;
+  code: "TOO_LARGE" | "INVALID_EXTENSION" | "INVALID_MIME" | "MACROS_NOT_ALLOWED";
+}>;

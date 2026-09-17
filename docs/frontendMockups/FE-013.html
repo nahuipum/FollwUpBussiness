@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>followUp Business · FE-013 Resultado de importación</title>
+  <link rel="stylesheet" href="assets/golden-system.css">
+  <script src="assets/golden-icons.js" defer></script>
+  <style>
+    /* Extensiones locales: resultado asíncrono de FE-013 sobre el shell golden. */
+    .company-sidebar { overflow: hidden; }
+    .sidebar-nav-region { min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+    .company-sidebar .sidebar-brand { flex: 0 0 auto; }
+    .company-sidebar .sidebar-context { margin-top: -14px; }
+    .company-sidebar .nav { gap: var(--space-1); }
+    .company-sidebar .nav-item,
+    .nav-group-trigger { width: 100%; min-height: 42px; display: flex; align-items: center; gap: 11px; padding: 9px 11px; border: 0; border-radius: 9px; color: var(--text-soft); background: transparent; font-weight: 600; text-align: left; text-decoration: none; }
+    .company-sidebar .nav-item:hover,
+    .nav-group-trigger:hover { color: var(--text-strong); background: var(--surface-subtle); }
+    .company-sidebar .nav-item.active,
+    .nav-group-trigger.active { color: var(--brand-strong); background: var(--brand-soft); }
+    .company-sidebar .nav-item[aria-disabled="true"] { color: var(--text-muted); cursor: default; opacity: .72; }
+    .nav-group-trigger .nav-chevron { width: 16px; height: 16px; margin-left: auto; transform: rotate(180deg); }
+    .nav-children { display: grid; gap: 2px; margin: 3px 0 5px 18px; padding-left: 12px; border-left: 1px solid var(--border); }
+    .nav-children .nav-item { min-height: 40px; padding: 8px 10px; font-size: 13px; }
+    .dashboard-profile-card { display: grid; flex: 0 0 auto; grid-template-columns: auto minmax(0, 1fr); gap: 4px 10px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-subtle); }
+    .dashboard-profile-card .avatar { grid-row: 1 / span 2; }
+    .dashboard-profile-card strong,
+    .dashboard-profile-card small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dashboard-profile-card strong { color: var(--text-strong); font-size: 13px; }
+    .dashboard-profile-card small { color: var(--text-muted); font-size: 12px; }
+    .dashboard-profile-card p { grid-column: 1 / -1; margin: 8px 0 0; padding-top: 9px; color: var(--text-muted); border-top: 1px solid var(--border); font-size: 12px; }
+    .sidebar-logout { grid-column: 1 / -1; width: 100%; margin-top: 5px; }
+    .top-profile-trigger { min-height: 44px; display: flex; align-items: center; gap: 9px; padding: 4px 7px; border: 0; border-radius: 10px; background: transparent; }
+    .top-profile-trigger:hover { background: var(--surface-subtle); }
+    .top-profile-trigger .nav-chevron { width: 16px; height: 16px; color: var(--text-muted); }
+    .crumb a { color: var(--text-muted); text-decoration: none; }
+    .crumb a:hover { color: var(--brand-strong); text-decoration: underline; text-underline-offset: 3px; }
+    .mobile-backdrop { display: none; }
+
+    .result-page { width: min(100%, 960px); margin: 0 auto; }
+    .result-page-head { margin-bottom: 20px; }
+    .result-page-head p { max-width: 760px; }
+    .result-panel { overflow: hidden; }
+    .result-panel-inner { min-width: 0; }
+    .result-status { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--space-4); align-items: start; padding: 24px; border-bottom: 1px solid var(--border); }
+    .status-icon { width: 48px; height: 48px; display: grid; place-items: center; color: var(--text-soft); border-radius: 14px; background: var(--surface-muted); }
+    .status-icon .icon { width: 24px; height: 24px; }
+    .status-icon.info { color: var(--info); background: var(--info-bg); }
+    .status-icon.success { color: var(--success); background: var(--success-bg); }
+    .status-icon.warning { color: var(--warning); background: var(--warning-bg); }
+    .status-icon.danger { color: var(--danger); background: var(--danger-bg); }
+    .job-announcement { min-width: 0; }
+    .job-announcement h2 { margin: 0 0 var(--space-1); font-size: 20px; line-height: 28px; }
+    .job-announcement p { margin: 0; color: var(--text-muted); font-size: 14px; line-height: 20px; }
+    .status-meta { display: grid; justify-items: end; gap: var(--space-2); }
+    .polling-status { display: inline-flex; min-height: 28px; align-items: center; gap: 7px; color: var(--info); font-size: 12px; font-weight: 700; white-space: nowrap; }
+    .polling-status .spinner { width: 15px; height: 15px; }
+    .updated-at { margin: 0; color: var(--text-muted); font-size: 12px; line-height: 18px; text-align: right; white-space: nowrap; }
+    .updated-at time { color: var(--text-soft); font-weight: 650; }
+
+    .result-body { display: grid; gap: 20px; padding: 24px; }
+    .result-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); margin: 0; }
+    .result-metric { min-width: 0; padding: 16px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-subtle); }
+    .result-metric dt { color: var(--text-muted); font-size: 12px; line-height: 16px; font-weight: 700; }
+    .result-metric dd { margin: var(--space-2) 0 0; color: var(--text-strong); font-size: 24px; line-height: 30px; font-weight: 750; overflow-wrap: anywhere; }
+    .result-metric.success { border-color: color-mix(in srgb, var(--success) 28%, var(--border)); background: color-mix(in srgb, var(--success-bg) 72%, var(--surface)); }
+    .result-metric.success dd { color: var(--success); }
+    .result-metric.warning { border-color: color-mix(in srgb, var(--warning) 30%, var(--border)); background: color-mix(in srgb, var(--warning-bg) 74%, var(--surface)); }
+    .result-metric.warning dd { color: var(--warning); }
+    .result-alert { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; }
+    .result-alert > .icon { margin-top: 1px; }
+    .result-alert-copy { min-width: 0; }
+    .result-alert-copy strong { color: currentColor; }
+    .result-alert .alert-link { min-height: 36px; white-space: nowrap; }
+    .correlation { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-2); align-items: center; margin-top: var(--space-2); padding-top: var(--space-2); border-top: 1px dashed color-mix(in srgb, currentColor 28%, transparent); color: var(--text-muted); }
+    .correlation code { min-width: 0; font: 500 11px/16px ui-monospace, SFMono-Regular, Consolas, monospace; overflow-wrap: anywhere; }
+    .correlation .btn { min-height: 34px; }
+
+    .server-note { display: flex; align-items: flex-start; gap: var(--space-3); margin: 0; color: var(--text-soft); font-size: 13px; line-height: 19px; }
+    .server-note .icon { margin-top: 1px; color: var(--info); }
+    .errors-file { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-4); align-items: center; padding: 18px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-subtle); }
+    .errors-file-copy { min-width: 0; }
+    .errors-file-heading { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+    .errors-file h3 { margin: 0; font-size: 16px; line-height: 22px; }
+    .errors-file p { margin: 6px 0 0; color: var(--text-muted); font-size: 13px; line-height: 19px; }
+    .errors-file p strong { color: var(--text-soft); }
+    .errors-file-actions { display: flex; flex: 0 0 auto; align-items: center; gap: var(--space-2); }
+    .download-button .download-icon { transform: rotate(90deg); }
+    .result-actions { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); padding: 16px 24px; border-top: 1px solid var(--border); background: var(--surface-subtle); }
+    .result-actions-copy { margin: 0; color: var(--text-muted); font-size: 12px; line-height: 18px; }
+    .result-actions-buttons { display: flex; flex: 0 0 auto; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-2); }
+    .result-actions .back-icon { transform: rotate(180deg); }
+
+    .standalone-state { min-height: 460px; }
+    .standalone-state .state-icon.loading { color: var(--info); background: var(--info-bg); }
+    .standalone-state .state-icon .spinner { width: 22px; height: 22px; }
+    .standalone-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-2); }
+    .standalone-state .correlation { width: min(100%, 430px); margin: var(--space-4) auto 0; text-align: left; }
+
+    body[data-state="forbidden"] [data-admin-only] { display: none !important; }
+    body[data-state="forbidden"] .nav-group-trigger { color: var(--text-soft); background: transparent; }
+    body[data-state="forbidden"] .result-page-head { display: none; }
+    body[data-state="forbidden"] .status-page-shell { width: min(100%, 960px); margin: 0 auto; }
+    body[data-state^="mobile-"] { background: var(--surface-muted); }
+    body[data-state^="mobile-"] .app-shell { width: min(100%, 390px); min-height: 844px; grid-template-columns: 1fr; grid-template-rows: 68px minmax(0, 1fr); margin: 0 auto; background: var(--canvas); box-shadow: var(--shadow-lg); }
+    body[data-state^="mobile-"] .sidebar { position: fixed; left: 0; visibility: hidden; width: min(300px, 86vw); transform: translateX(-100%); }
+    body[data-state^="mobile-"][data-nav="open"] .sidebar { visibility: visible; transform: translateX(0); }
+    body[data-state^="mobile-"] .topbar,
+    body[data-state^="mobile-"] .app-main { grid-column: 1; }
+    body[data-state^="mobile-"] .topbar { padding: 0 14px; }
+    body[data-state^="mobile-"] .menu-control { display: grid; }
+    body[data-state^="mobile-"] .person-copy,
+    body[data-state^="mobile-"] .crumb span,
+    body[data-state^="mobile-"] .crumb .crumb-parent,
+    body[data-state^="mobile-"] .top-actions .icon-btn { display: none; }
+    body[data-state^="mobile-"] .top-profile-trigger { width: 44px; padding: 4px; }
+    body[data-state^="mobile-"] .top-profile-trigger .nav-chevron { display: none; }
+    body[data-state^="mobile-"] .app-main { padding: 28px 14px 36px; }
+    body[data-state^="mobile-"] .result-page-head h1 { font-size: 27px; line-height: 34px; }
+    body[data-state^="mobile-"] .result-status { grid-template-columns: auto minmax(0, 1fr); padding: 18px 16px; }
+    body[data-state^="mobile-"] .status-meta { grid-column: 1 / -1; width: 100%; justify-items: start; padding-top: var(--space-3); border-top: 1px solid var(--border); }
+    body[data-state^="mobile-"] .updated-at { text-align: left; white-space: normal; }
+    body[data-state^="mobile-"] .result-body { padding: 18px 16px; }
+    body[data-state^="mobile-"] .result-metrics { grid-template-columns: 1fr; }
+    body[data-state^="mobile-"] .result-alert { grid-template-columns: auto minmax(0, 1fr); }
+    body[data-state^="mobile-"] .result-alert .alert-link { grid-column: 1 / -1; justify-self: start; }
+    body[data-state^="mobile-"] .errors-file { grid-template-columns: 1fr; }
+    body[data-state^="mobile-"] .errors-file-actions,
+    body[data-state^="mobile-"] .errors-file-actions .btn { width: 100%; }
+    body[data-state^="mobile-"] .result-actions { align-items: stretch; flex-direction: column; padding: 16px; }
+    body[data-state^="mobile-"] .result-actions-buttons,
+    body[data-state^="mobile-"] .result-actions-buttons .btn { width: 100%; }
+    body[data-state^="mobile-"] .mockup-guide { display: none; }
+
+    @media (max-width: 1060px) {
+      .company-sidebar { overflow-y: auto; }
+      .sidebar-nav-region { overflow: visible; }
+      body[data-nav="open"] .mobile-backdrop { position: fixed; inset: 0 0 0 min(300px, 86vw); z-index: 29; display: block; border: 0; background: var(--overlay); }
+    }
+    @media (max-width: 620px) {
+      .top-left { flex: 1 1 auto; overflow: hidden; }
+      .crumb .crumb-parent { display: none; }
+      .top-profile-trigger { width: 44px; padding: 4px; }
+      .top-profile-trigger .nav-chevron { display: none; }
+      .app-main { padding-top: 28px; }
+      .result-page-head h1 { font-size: 27px; line-height: 34px; }
+      .result-status { grid-template-columns: auto minmax(0, 1fr); padding: 18px 16px; }
+      .status-icon { width: 42px; height: 42px; border-radius: 12px; }
+      .status-meta { grid-column: 1 / -1; width: 100%; justify-items: start; padding-top: var(--space-3); border-top: 1px solid var(--border); }
+      .updated-at { text-align: left; white-space: normal; }
+      .result-body { padding: 18px 16px; }
+      .result-metrics { grid-template-columns: 1fr; }
+      .result-alert { grid-template-columns: auto minmax(0, 1fr); }
+      .result-alert .alert-link { grid-column: 1 / -1; justify-self: start; }
+      .errors-file { grid-template-columns: 1fr; }
+      .errors-file-actions,
+      .errors-file-actions .btn { width: 100%; }
+      .result-actions { align-items: stretch; flex-direction: column; padding: 16px; }
+      .result-actions-buttons,
+      .result-actions-buttons .btn { width: 100%; }
+      .standalone-state { min-height: 390px; padding: var(--space-5) var(--space-4); }
+    }
+  </style>
+</head>
+<body data-states="loading-initial initial-error not-found forbidden pending pending-total-unknown processing processing-stale completed completed-empty completed-with-errors failed failed-invalid-template errors-file-ready errors-file-downloading errors-file-downloaded errors-file-error errors-file-expired errors-file-not-found long-values mobile-pending mobile-processing mobile-completed mobile-with-errors mobile-error dark-pending dark-completed dark-with-errors">
+  <!--
+    Golden definitivo de FE-013. Estado: ?state=<estado>. Tema: &theme=dark. Guía: &guide=1.
+    Ruta productiva representada: /company/customer-imports/{importId}; el UUID nunca aparece en el contenido.
+
+    Inventario funcional preservado antes de diseñar:
+    1. Ruta dinámica protegida; solo COMPANY_ADMIN puede consultarla y descargar errores.
+    2. Estados del trabajo: PENDING, PROCESSING, COMPLETED, COMPLETED_WITH_ERRORS y FAILED.
+    3. Polling inmediato y controlado aproximadamente cada 2 s, sin solapamiento y con timeout; no se comunica el intervalo al usuario.
+    4. CustomerImportJob ofrece id, status, totalRows, acceptedRows, rejectedRows, createdAt, completedAt y errorFileExpiresAt.
+    5. Terminales: COMPLETED, COMPLETED_WITH_ERRORS y FAILED; allí se detiene el polling.
+    6. Un error inicial muestra estado completo sin métricas; permite reintentar o volver a cargas.
+    7. Un refresh fallido conserva trabajo y métricas, marca stale, detiene polling y ofrece Actualizar con Correlation ID seguro.
+    8. Un 403 elimina cualquier dato previo, muestra acceso exclusivo y oculta Carga de clientes al supervisor.
+    9. Un 404 de trabajo no distingue inexistencia, borrado o falta de acceso: "no existe o ya no está disponible".
+    10. Descarga solo con rejectedRows > 0, trabajo terminal y recurso consultable; evita descargas concurrentes.
+    11. Un 410 marca el archivo vencido y no reintenta; un 404 de archivo se comunica neutralmente y no se presenta como vencimiento.
+    12. El archivo CSV UTF-8 contiene únicamente row_number y error_code; no se inspecciona para producir métricas.
+    13. Desmontaje, cambio de importId o cambio de sesión/empresa aborta consultas y descarga y limpia datos locales.
+    14. No se exponen UUID, tenant, nombres, documentos, direcciones, teléfonos, emails, filas originales, fórmulas ni detalles de parser.
+    15. El trabajo continúa en servidor aunque la persona salga; no existe cancelación contractual.
+
+    Contradicciones pendientes, no resueltas por este mockup:
+    - FE-013 solicita duplicados, pero CustomerImportJob no expone duplicateRows. No se dibuja ni calcula esa métrica.
+    - OpenAPI declara totalRows obligatorio y entero, mientras la implementación admite null/ausente y el alcance exige representarlo como No disponible.
+    - La implementación interpreta failureReason=INVALID_TEMPLATE, pero el CustomerImportJob vigente no declara failureReason.
+    - Las historias FE-012/FE-013 nombran /customers/imports en su trazabilidad, mientras OpenAPI e implementación vigentes usan /customer-imports.
+    - La implementación actual no activa Carga de clientes ni genera el breadcrumb completo en la ruta dinámica.
+    - Un 404 durante descarga limpia el job en la implementación actual; este golden conserva el resultado y muestra indisponibilidad neutral del recurso.
+    Nota no productiva: una futura métrica de duplicados requerirá primero un campo contractual propio; no se reserva un valor ficticio en UI.
+  -->
+
+  <div class="app-shell">
+    <aside id="company-sidebar" class="sidebar company-sidebar" aria-label="Navegación principal">
+      <a class="sidebar-brand brand-plate" href="/company/dashboard" aria-label="followUp Business, ir al resumen"><img class="brand-logo" src="assets/brand/followup-logo.png" alt=""></a>
+      <span class="sidebar-context">Comercial Andina</span>
+      <div class="sidebar-nav-region">
+        <p class="nav-label">Empresa</p>
+        <nav class="nav" aria-label="Secciones de la empresa">
+          <a class="nav-item" href="/company/dashboard"><svg class="icon"><use href="#i-grid"></use></svg>Resumen</a>
+          <a class="nav-item" href="/company/administrators-supervisors" data-admin-only><svg class="icon"><use href="#i-users"></use></svg>Administradores y supervisores</a>
+          <a class="nav-item" href="/company/sellers"><svg class="icon"><use href="#i-users"></use></svg>Vendedores</a>
+          <a class="nav-item" href="/company/territories"><svg class="icon"><use href="#i-pin"></use></svg>Zonas</a>
+          <section class="nav-group" aria-labelledby="clients-group-label">
+            <button id="clients-group-label" class="nav-group-trigger active" type="button" aria-expanded="true" aria-controls="clients-navigation" data-clients-toggle><svg class="icon"><use href="#i-client"></use></svg><span>Clientes</span><svg class="icon nav-chevron"><use href="#i-chevron"></use></svg></button>
+            <div id="clients-navigation" class="nav-children" role="group" aria-label="Opciones de Clientes">
+              <a class="nav-item" href="/company/clients"><svg class="icon"><use href="#i-client"></use></svg>Gestión de clientes</a>
+              <a class="nav-item" href="/company/clients/map"><svg class="icon"><use href="#i-map"></use></svg>Mapa general</a>
+              <a class="nav-item active" href="/company/customer-imports" aria-current="page" data-admin-only><svg class="icon"><use href="#i-empty"></use></svg>Carga de clientes</a>
+            </div>
+          </section>
+          <a class="nav-item" href="/company/customer-assignments" data-admin-only><svg class="icon"><use href="#i-client"></use></svg>Asignar cartera</a>
+          <a class="nav-item" href="/company/routes"><svg class="icon"><use href="#i-route"></use></svg>Rutas</a>
+          <span class="nav-item" aria-disabled="true"><svg class="icon"><use href="#i-report"></use></svg>Auditoría</span>
+          <a class="nav-item" href="/company/settings"><svg class="icon"><use href="#i-settings"></use></svg>Configuración</a>
+        </nav>
+      </div>
+      <section class="dashboard-profile-card" aria-label="Contexto de usuario"><span class="avatar">AM</span><span><strong>Alex Medina</strong><small data-show="forbidden">Supervisión</small><small data-admin-only>Administración de empresa</small></span><p>Comercial Andina</p><button class="btn btn-compact sidebar-logout" type="button"><svg class="icon icon-sm"><use href="#i-arrow"></use></svg>Cerrar sesión</button></section>
+    </aside>
+
+    <header class="topbar">
+      <div class="top-left"><button class="menu-control" type="button" data-menu-button aria-label="Abrir menú" aria-expanded="false" aria-controls="company-sidebar"><svg class="icon"><use href="#i-menu"></use></svg></button><nav class="crumb" aria-label="Breadcrumbs"><span>Comercial Andina</span><span aria-hidden="true">/</span><a class="crumb-parent" href="/company/customer-imports" data-admin-only>Carga de clientes</a><span aria-hidden="true" data-admin-only>/</span><strong aria-current="page" data-admin-only>Resultado</strong><strong aria-current="page" data-show="forbidden">Acceso restringido</strong></nav></div>
+      <div class="top-actions"><button class="theme-control" type="button" data-theme-toggle role="switch" aria-checked="false" aria-label="Activar modo oscuro"><svg class="icon"><use href="#i-moon"></use></svg></button><button class="icon-btn" type="button" aria-label="Notificaciones"><svg class="icon"><use href="#i-bell"></use></svg></button><button class="top-profile-trigger" type="button" aria-label="Opciones del perfil de Alex Medina" aria-haspopup="menu"><span class="avatar">AM</span><span class="person-copy"><strong>Alex Medina</strong><span data-show="forbidden">Supervisor</span><span data-admin-only>Administrador</span></span><svg class="icon nav-chevron"><use href="#i-chevron"></use></svg></button></div>
+    </header>
+
+    <main class="app-main" id="main-content">
+      <div class="result-page">
+        <header class="page-head result-page-head">
+          <div><span class="eyebrow">Importación de clientes</span><h1>Resultado de importación</h1><p>Consulta el avance y el resumen del archivo enviado.</p></div>
+        </header>
+
+        <section class="panel result-panel" aria-label="Resultado de la importación" data-busy-in="loading-initial">
+          <div class="state-card standalone-state" data-show="loading-initial" aria-busy="true">
+            <div><span class="state-icon loading"><span class="spinner" aria-hidden="true"></span></span><h2>Cargando resultado</h2><p>Estamos consultando el estado de la importación.</p><span class="sr-only" role="status">Cargando resultado de importación</span></div>
+          </div>
+
+          <div class="state-card standalone-state danger" data-show="initial-error mobile-error" role="alert">
+            <div><span class="state-icon"><svg class="icon"><use href="#i-alert"></use></svg></span><h2>No pudimos consultar el resultado</h2><p>No pudimos obtener la información. Inténtalo nuevamente.</p><div class="standalone-actions"><button class="btn btn-primary" type="button" data-go-state="pending"><svg class="icon icon-sm"><use href="#i-activity"></use></svg>Reintentar</button><a class="btn" href="/company/customer-imports"><svg class="icon icon-sm back-icon"><use href="#i-arrow"></use></svg>Volver a cargas</a></div><div class="correlation"><code>Correlation ID: 62a2897e-b2c6-4f68-9e75-e3417f154ddb</code><button class="btn btn-icon btn-compact" type="button" aria-label="Copiar ID de seguimiento"><svg class="icon icon-sm"><use href="#i-empty"></use></svg></button></div></div>
+          </div>
+
+          <div class="state-card standalone-state" data-show="not-found" role="alert">
+            <div><span class="state-icon"><svg class="icon"><use href="#i-empty"></use></svg></span><h2>No encontramos la importación</h2><p>La importación no existe o ya no está disponible.</p><a class="btn btn-primary" href="/company/customer-imports"><svg class="icon icon-sm back-icon"><use href="#i-arrow"></use></svg>Volver a la carga</a></div>
+          </div>
+
+          <div class="result-panel-inner" data-show="pending pending-total-unknown processing processing-stale completed completed-empty completed-with-errors failed failed-invalid-template errors-file-ready errors-file-downloading errors-file-downloaded errors-file-error errors-file-expired errors-file-not-found long-values mobile-pending mobile-processing mobile-completed mobile-with-errors dark-pending dark-completed dark-with-errors">
+            <header class="result-status">
+              <span class="status-icon info" data-show="pending pending-total-unknown mobile-pending dark-pending"><svg class="icon"><use href="#i-clock"></use></svg></span>
+              <span class="status-icon info" data-show="processing processing-stale mobile-processing"><svg class="icon"><use href="#i-activity"></use></svg></span>
+              <span class="status-icon success" data-show="completed completed-empty mobile-completed dark-completed"><svg class="icon"><use href="#i-shield"></use></svg></span>
+              <span class="status-icon warning" data-show="completed-with-errors errors-file-ready errors-file-downloading errors-file-downloaded errors-file-error errors-file-expired errors-file-not-found long-values mobile-with-errors dark-with-errors"><svg class="icon"><use href="#i-alert"></use></svg></span>
+              <span class="status-icon danger" data-show="failed failed-invalid-template"><svg class="icon"><use href="#i-alert"></use></svg></span>
+
+              <div class="job-announcement" aria-live="polite" aria-atomic="true">
+                <div data-show="pending pending-total-unknown mobile-pending dark-pending"><h2>Importación pendiente</h2><p>Recibimos el archivo y estamos preparando su procesamiento.</p></div>
+                <div data-show="processing processing-stale mobile-processing"><h2>Procesando importación</h2><p>Estamos validando las filas del archivo.</p></div>
+                <div data-show="completed completed-empty mobile-completed dark-completed"><h2>Importación completada</h2><p>El procesamiento terminó correctamente.</p></div>
+                <div data-show="completed-with-errors errors-file-ready errors-file-downloading errors-file-downloaded errors-file-error errors-file-expired errors-file-not-found long-values mobile-with-errors dark-with-errors"><h2>Importación completada con rechazos</h2><p>Puedes revisar las filas rechazadas en el archivo de errores.</p></div>
+                <div data-show="failed"><h2>No pudimos procesar el archivo</h2><p>El procesamiento terminó sin completar la importación.</p></div>
+                <div data-show="failed-invalid-template"><h2>La plantilla no tiene el formato esperado</h2><p>Descarga una plantilla vigente y copia los datos sin modificar la fila de versión ni las cabeceras.</p></div>
+              </div>
+
+              <div class="status-meta">
+                <span class="badge neutral" data-show="pending pending-total-unknown mobile-pending dark-pending">Pendiente</span>
+                <span class="badge info" data-show="processing processing-stale mobile-processing">Procesando</span>
+                <span class="badge success" data-show="completed completed-empty mobile-completed dark-completed">Completada</span>
+                <span class="badge warning" data-show="completed-with-errors errors-file-ready errors-file-downloading errors-file-downloaded errors-file-error errors-file-expired errors-file-not-found long-values mobile-with-errors dark-with-errors">Con rechazos</span>
+                <span class="badge danger" data-show="failed failed-invalid-template">Fallida</span>
+                <span class="polling-status" role="status" data-show="pending pending-total-unknown processing mobile-pending mobile-processing dark-pending"><span class="spinner" aria-hidden="true"></span>Actualizando estado</span>
+                <p class="updated-at">Última actualización<br><time datetime="2026-09-15T10:42:00-05:00">15 sept 2026, 10:42</time></p>
+              </div>
+            </header>
+
+            <div class="result-body">
+              <div class="alert alert-warning result-alert" role="alert" data-show="processing-stale">
+                <svg class="icon"><use href="#i-alert"></use></svg><div class="result-alert-copy"><strong>Información sin actualizar</strong><p>Conservamos el último resultado disponible. Intenta actualizarlo nuevamente.</p><div class="correlation"><code>Correlation ID: 93d4470b-4625-4d1b-b747-46ddb31c83a8</code><button class="btn btn-icon btn-compact" type="button" aria-label="Copiar ID de seguimiento"><svg class="icon icon-sm"><use href="#i-empty"></use></svg></button></div></div><button class="alert-link" type="button" data-go-state="processing">Actualizar</button>
+              </div>
+
+              <dl class="result-metrics" aria-label="Resumen de filas">
+                <div class="result-metric"><dt>Filas recibidas</dt><dd data-show="pending processing processing-stale completed completed-with-errors errors-file-ready errors-file-downloading errors-file-downloaded errors-file-error errors-file-expired errors-file-not-found mobile-pending mobile-processing mobile-completed mobile-with-errors dark-pending dark-completed dark-with-errors">126</dd><dd data-show="pending-total-unknown failed failed-invalid-template">No disponible</dd><dd data-show="completed-empty">0</dd><dd data-show="long-values">1.234.567</dd></div>
+                <div class="result-metric success"><dt>Aceptadas</dt><dd data-show="pending pending-total-unknown mobile-pending dark-pending failed failed-invalid-template completed-empty">0</dd><dd data-show="processing processing-stale mobile-processing">78</dd><dd data-show="completed mobile-completed dark-completed">126</dd><dd data-show="completed-with-errors errors-file-ready errors-file-downloading errors-file-downloaded errors-file-error errors-file-expired errors-file-not-found mobile-with-errors dark-with-errors">118</dd><dd data-show="long-values">1.227.105</dd></div>
+                <div class="result-metric warning"><dt>Rechazadas</dt><dd data-show="pending pending-total-unknown mobile-pending dark-pending completed completed-empty mobile-completed dark-completed failed failed-invalid-template">0</dd><dd data-show="processing processing-stale mobile-processing">7</dd><dd data-show="completed-with-errors errors-file-ready errors-file-downloading errors-file-downloaded errors-file-error errors-file-expired errors-file-not-found mobile-with-errors dark-with-errors">8</dd><dd data-show="long-values">7.462</dd></div>
+              </dl>
+
+              <p class="server-note" data-show="pending pending-total-unknown processing processing-stale mobile-pending mobile-processing dark-pending"><svg class="icon"><use href="#i-info"></use></svg><span>El proceso continúa en el servidor aunque salgas de esta pantalla.</span></p>
+
+              <div class="alert alert-danger result-alert" role="alert" data-show="failed"><svg class="icon"><use href="#i-alert"></use></svg><div class="result-alert-copy"><strong>No se completó la importación</strong><p>Vuelve a Carga de clientes para crear una importación nueva. Si el problema continúa, comparte el Correlation ID con soporte.</p></div></div>
+              <div class="alert alert-danger result-alert" role="alert" data-show="failed-invalid-template"><svg class="icon"><use href="#i-alert"></use></svg><div class="result-alert-copy"><strong>Usa una plantilla vigente</strong><p>Vuelve a Carga de clientes, descarga la plantilla actual y crea una importación nueva.</p></div></div>
+
+              <section class="errors-file" aria-labelledby="errors-file-title" data-show="completed-with-errors errors-file-ready errors-file-downloading errors-file-downloaded errors-file-error errors-file-expired errors-file-not-found long-values mobile-with-errors dark-with-errors">
+                <div class="errors-file-copy">
+                  <div class="errors-file-heading"><h3 id="errors-file-title">Archivo de filas rechazadas</h3><span class="badge success" data-show="completed-with-errors errors-file-ready errors-file-downloaded errors-file-error long-values mobile-with-errors dark-with-errors">Disponible</span><span class="badge info" data-show="errors-file-downloading">Descargando</span><span class="badge neutral" data-show="errors-file-expired">Vencido</span><span class="badge neutral" data-show="errors-file-not-found">No disponible</span></div>
+                  <p data-show="completed-with-errors errors-file-ready errors-file-downloading errors-file-downloaded errors-file-error long-values mobile-with-errors dark-with-errors">Disponible hasta <time datetime="2026-10-15T10:44:00-05:00">15 oct 2026, 10:44</time>.</p>
+                  <p data-show="errors-file-expired"><strong>Archivo vencido.</strong> El periodo de disponibilidad terminó y ya no puede descargarse.</p>
+                  <p data-show="errors-file-not-found"><strong>Archivo no disponible.</strong> El recurso no existe o ya no está disponible.</p>
+                </div>
+                <div class="errors-file-actions">
+                  <button class="btn download-button" type="button" data-download-button data-disable-in="errors-file-downloading errors-file-expired errors-file-not-found" data-busy-in="errors-file-downloading"><svg class="icon icon-sm download-icon" data-show="completed-with-errors errors-file-ready errors-file-downloaded errors-file-error long-values mobile-with-errors dark-with-errors"><use href="#i-arrow"></use></svg><span class="spinner" aria-hidden="true" data-show="errors-file-downloading"></span><span data-show="completed-with-errors errors-file-ready errors-file-downloaded errors-file-error long-values mobile-with-errors dark-with-errors">Descargar errores</span><span data-show="errors-file-downloading">Descargando…</span><span data-show="errors-file-expired">Archivo vencido</span><span data-show="errors-file-not-found">No disponible</span></button>
+                </div>
+              </section>
+
+              <div class="alert alert-info result-alert" role="status" data-show="errors-file-downloaded"><svg class="icon"><use href="#i-shield"></use></svg><div class="result-alert-copy"><strong>Descarga completada</strong><p>El archivo CSV se guardó en tu dispositivo.</p></div></div>
+              <div class="alert alert-danger result-alert" role="alert" data-show="errors-file-error"><svg class="icon"><use href="#i-alert"></use></svg><div class="result-alert-copy"><strong>No pudimos descargar el archivo</strong><p>El resultado permanece disponible. Intenta la descarga nuevamente.</p><div class="correlation"><code>Correlation ID: e02171dd-6f55-4c67-a14a-e59a93522ec9</code><button class="btn btn-icon btn-compact" type="button" aria-label="Copiar ID de seguimiento"><svg class="icon icon-sm"><use href="#i-empty"></use></svg></button></div></div><button class="alert-link" type="button" data-go-state="errors-file-downloading">Reintentar</button></div>
+              <div class="alert alert-warning result-alert" role="alert" data-show="errors-file-expired"><svg class="icon"><use href="#i-clock"></use></svg><div class="result-alert-copy"><strong>Archivo vencido</strong><p>El archivo de errores ya venció y no puede descargarse.</p></div></div>
+              <div class="alert alert-warning result-alert" role="alert" data-show="errors-file-not-found"><svg class="icon"><use href="#i-info"></use></svg><div class="result-alert-copy"><strong>Archivo no disponible</strong><p>El archivo no existe o ya no está disponible.</p></div></div>
+            </div>
+
+            <footer class="result-actions">
+              <p class="result-actions-copy" data-show="pending pending-total-unknown processing mobile-pending mobile-processing dark-pending">Puedes actualizar manualmente sin interrumpir el procesamiento.</p>
+              <p class="result-actions-copy" data-show="processing-stale">Mostramos la última información confirmada.</p>
+              <p class="result-actions-copy" data-show="completed completed-empty completed-with-errors failed failed-invalid-template errors-file-ready errors-file-downloading errors-file-downloaded errors-file-error errors-file-expired errors-file-not-found long-values mobile-completed mobile-with-errors dark-completed dark-with-errors">El trabajo llegó a un estado terminal. La actualización automática está detenida.</p>
+              <div class="result-actions-buttons"><button class="btn" type="button" data-show="pending pending-total-unknown processing processing-stale mobile-pending mobile-processing dark-pending" data-go-state="processing"><svg class="icon icon-sm"><use href="#i-activity"></use></svg>Actualizar</button><a class="btn btn-primary" href="/company/customer-imports"><svg class="icon icon-sm back-icon"><use href="#i-arrow"></use></svg>Volver a cargas</a></div>
+            </footer>
+          </div>
+        </section>
+      </div>
+
+      <section class="status-page-shell" data-show="forbidden">
+        <div class="panel state-card standalone-state danger" role="alert"><div><span class="state-icon"><svg class="icon"><use href="#i-lock"></use></svg></span><h1>No tienes permisos</h1><p>El resultado de importación está disponible únicamente para administradores de empresa. No conservamos métricas ni datos previos al cambiar de sesión o perfil.</p><a class="btn btn-primary" href="/supervisor/clients">Volver a clientes</a></div></div>
+      </section>
+    </main>
+
+    <button class="mobile-backdrop" type="button" data-nav-close aria-label="Cerrar menú"></button>
+  </div>
+
+  <aside class="mockup-guide" aria-label="Controles del mockup"><label for="state">Estado</label><select id="state" data-state-selector></select><button class="btn btn-icon btn-compact" type="button" data-theme-toggle aria-label="Cambiar tema"><svg class="icon"><use href="#i-moon"></use></svg></button></aside>
+  <script src="assets/golden-states.js"></script>
+  <script>
+    (function () {
+      const body = document.body;
+      const state = body.dataset.state || "loading-initial";
+      const menuButton = document.querySelector("[data-menu-button]");
+      const closeNavButton = document.querySelector("[data-nav-close]");
+
+      if (state.startsWith("dark-")) body.dataset.theme = "dark";
+      document.querySelectorAll("[data-theme-toggle]").forEach(function (control) {
+        control.setAttribute("aria-checked", String(body.dataset.theme === "dark"));
+        control.setAttribute("aria-label", body.dataset.theme === "dark" ? "Activar modo claro" : "Activar modo oscuro");
+        control.addEventListener("click", function () {
+          document.querySelectorAll("[data-theme-toggle]").forEach(function (current) {
+            current.setAttribute("aria-checked", String(body.dataset.theme === "dark"));
+            current.setAttribute("aria-label", body.dataset.theme === "dark" ? "Activar modo claro" : "Activar modo oscuro");
+          });
+        });
+      });
+
+      document.querySelectorAll("[data-go-state]").forEach(function (control) {
+        control.addEventListener("click", function () {
+          const nextState = control.getAttribute("data-go-state");
+          if (!nextState) return;
+          const next = new URL(window.location.href);
+          next.searchParams.set("state", nextState);
+          window.location.href = next.toString();
+        });
+      });
+
+      function setNavigation(open, restoreFocus) {
+        body.dataset.nav = open ? "open" : "closed";
+        menuButton?.setAttribute("aria-expanded", String(open));
+        menuButton?.setAttribute("aria-label", open ? "Cerrar menú" : "Abrir menú");
+        if (!open && restoreFocus && menuButton instanceof HTMLElement) menuButton.focus();
+      }
+      setNavigation(false, false);
+      menuButton?.addEventListener("click", function () { setNavigation(body.dataset.nav !== "open", false); });
+      closeNavButton?.addEventListener("click", function () { setNavigation(false, true); });
+      document.addEventListener("keydown", function (event) { if (event.key === "Escape" && body.dataset.nav === "open") setNavigation(false, true); });
+    })();
+  </script>
+</body>
+</html>

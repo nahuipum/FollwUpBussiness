@@ -18,6 +18,13 @@ import { SellerAssignmentDialog } from "./components/SellerAssignmentDialog";
 import { SellerOperationDialog } from "./components/SellerOperationDialog";
 import { SellerInvitationDialog } from "./components/SellerInvitationDialog";
 import { useSellerInvitation } from "./hooks/useSellerInvitation";
+import { DataTablePagination } from "../../shared/ui/DataTable";
+import { InlineAlert } from "../../shared/ui/error-ui/components";
+import { navigate } from "../../app/navigation";
+import {
+  DataTablePanel,
+  DataTableResultsHeader,
+} from "../../shared/ui/DataTableWorkspace";
 import "./styles/company-sellers.css";
 
 export function CompanySellersPage() {
@@ -67,7 +74,8 @@ export function CompanySellersPage() {
           </button>
         )}
       </header>
-      {forbidden ? <AsyncStateCard tone="error" variant="golden" title="No tienes permisos" description="No tienes permiso para consultar vendedores." {...(sellers.error?.correlationId ? { correlationId: sellers.error.correlationId } : {})} /> : <section className="seller-list__card" aria-label="Listado de vendedores">
+      {forbidden ? <AsyncStateCard tone="error" variant="golden" title="No tienes permisos" description="No tienes permiso para consultar vendedores en esta empresa." actionLabel="Volver al resumen" onAction={() => navigate("/company/dashboard")} {...(sellers.error?.correlationId ? { correlationId: sellers.error.correlationId } : {})} /> : <DataTablePanel ariaLabel="Listado de vendedores">
+        {!canManage && <ReadOnlyNotice variant="golden" />}
         <SellerFilters
           query={sellers.search}
           status={sellers.status}
@@ -80,20 +88,32 @@ export function CompanySellersPage() {
           onSupervisorChange={sellers.changeSupervisor}
           onTerritoryChange={sellers.changeTerritory}
         />
-        {!canManage && <ReadOnlyNotice variant="golden" />}
         {sellers.error && items.length === 0 && (
           <AsyncStateCard
             tone="error"
             variant="golden"
             title="Ocurrió un problema temporal"
             description="No pudimos mostrar los vendedores. Inténtalo más tarde."
-            correlationId={sellers.error.correlationId}
+            {...(sellers.error.correlationId ? { correlationId: sellers.error.correlationId } : {})}
             actionLabel="Reintentar"
             onAction={sellers.retry}
           />
         )}
+        {sellers.error && items.length > 0 && (
+          <InlineAlert
+            visual="golden"
+            variant="error"
+            title="Ocurrió un problema temporal"
+            message="No pudimos actualizar los vendedores. Los datos mostrados pueden no estar vigentes."
+            {...(sellers.error.correlationId ? { correlationId: sellers.error.correlationId } : {})}
+            action={{ label: "Reintentar", onClick: sellers.retry }}
+          />
+        )}
         {sellers.loading && items.length === 0 ? (
-          <TableLoadingIndicator variant="golden" columns={6} label="Cargando vendedores" />
+          <>
+            <DataTableResultsHeader description="Cargando vendedores" />
+            <TableLoadingIndicator variant="golden" columns={6} label="Cargando vendedores" />
+          </>
         ) : !sellers.error && items.length === 0 ? (
           <AsyncStateCard
             variant="golden"
@@ -117,29 +137,34 @@ export function CompanySellersPage() {
         ) : (
           items.length > 0 && (
             <>
-              <div className="seller-list__results"><div><strong>Resultados</strong><span>{sellers.result?.page.totalElements ?? items.length} vendedores</span></div>{sellers.loading && <TableLoadingIndicator variant="golden" label="Actualizando vendedores" compact />}{sellers.error && <span role="status">Actualización pendiente</span>}</div>
+              <DataTableResultsHeader
+                description={`${sellers.result?.page.totalElements ?? items.length} vendedores`}
+                status={sellers.loading ? <TableLoadingIndicator variant="golden" label="Actualizando vendedores" compact /> : sellers.error ? <span role="status">Actualización pendiente</span> : undefined}
+              />
               <SellerTable
                 sellers={items}
-                page={sellers.page}
-                pageSize={sellers.pageSize}
-                totalPages={sellers.result?.page.totalPages ?? 0}
-                totalElements={
-                  sellers.result?.page.totalElements ?? items.length
-                }
-                lastUpdated={sellers.lastUpdated}
                 canManage={canManage}
-                onPageChange={sellers.goToPage}
-                onPageSizeChange={sellers.changePageSize}
                 onDetail={setDetail}
                 onEdit={form.open}
                 onAssign={assignment.open}
                 onChangeStatus={statusChange.open}
                 onResendInvitation={invitation.open}
               />
+              <DataTablePagination
+                page={sellers.result?.page.page ?? sellers.page}
+                totalPages={sellers.result?.page.totalPages ?? 0}
+                pageSize={sellers.pageSize}
+                onPageChange={sellers.goToPage}
+                onPageSizeChange={sellers.changePageSize}
+                ariaLabel="Paginación de vendedores"
+                summary={`Mostrando ${firstResult(sellers.result?.page.page ?? sellers.page, sellers.pageSize, sellers.result?.page.totalElements ?? items.length)}–${lastResult(sellers.result?.page.page ?? sellers.page, sellers.pageSize, sellers.result?.page.totalElements ?? items.length)} de ${sellers.result?.page.totalElements ?? items.length} vendedores`}
+                lastUpdated={sellers.lastUpdated}
+                variant="golden"
+              />
             </>
           )
         )}
-      </section>}
+      </DataTablePanel>}
       {detail && (
         <SellerDetailDialog seller={detail} onClose={() => setDetail(null)} />
       )}
@@ -198,4 +223,12 @@ export function CompanySellersPage() {
       )}
     </section>
   );
+}
+
+function firstResult(page: number, pageSize: number, totalElements: number) {
+  return totalElements === 0 ? 0 : Math.min(page * pageSize + 1, totalElements);
+}
+
+function lastResult(page: number, pageSize: number, totalElements: number) {
+  return totalElements === 0 ? 0 : Math.min((page + 1) * pageSize, totalElements);
 }

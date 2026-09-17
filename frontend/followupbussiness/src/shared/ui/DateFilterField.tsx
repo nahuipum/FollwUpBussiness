@@ -86,6 +86,9 @@ export function DateFilterField({
   disabled = false,
   withTime = false,
   required = false,
+  variant = "default",
+  invalid = false,
+  describedBy,
 }: {
   label: string;
   value: string;
@@ -94,6 +97,9 @@ export function DateFilterField({
   /** Combines the shared calendar with a local hour selector under one field label. */
   withTime?: boolean;
   required?: boolean;
+  variant?: "default" | "golden";
+  invalid?: boolean;
+  describedBy?: string;
 }) {
   const dateValue = withTime ? value.slice(0, 10) : value;
   const timeValue = withTime ? value.slice(11, 16) : "";
@@ -226,7 +232,7 @@ export function DateFilterField({
   const todayIso = toIsoDate(today);
 
   return (
-    <div className={`filter-field date-filter${withTime ? " date-filter--with-time" : ""}`}>
+    <div className={`filter-field date-filter date-filter--${variant}${withTime ? " date-filter--with-time" : ""}`}>
       <span id={labelId}>{label}</span>
       <button
         ref={triggerRef}
@@ -236,6 +242,8 @@ export function DateFilterField({
         aria-haspopup="dialog"
         aria-controls={dialogId}
         aria-expanded={open}
+        aria-invalid={invalid || undefined}
+        aria-describedby={describedBy}
         disabled={disabled}
         onClick={() => (open ? setOpen(false) : openCalendar())}
       >
@@ -253,7 +261,7 @@ export function DateFilterField({
           <div
             ref={popoverRef}
             id={dialogId}
-            className="date-filter__popover"
+            className={`date-filter__popover date-filter__popover--${variant}`}
             role="dialog"
             aria-modal="false"
             aria-label={`Calendario de ${label}`}

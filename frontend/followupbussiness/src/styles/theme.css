@@ -21,6 +21,8 @@
   --visual-success-background: #ecfdf3;
   --visual-warning: #b54708;
   --visual-warning-background: #fffaeb;
+  --visual-info: #175cd3;
+  --visual-info-background: #eff6ff;
   --visual-danger: #b42318;
   --visual-danger-action: #b42318;
   --visual-on-danger: #ffffff;
@@ -61,6 +63,8 @@
   --visual-success-background: #113526;
   --visual-warning: #fec84b;
   --visual-warning-background: #3a2a10;
+  --visual-info: #84adff;
+  --visual-info-background: #172554;
   --visual-danger: #fda29b;
   --visual-danger-action: #b42318;
   --visual-on-danger: #ffffff;
@@ -138,16 +142,14 @@
   .company-form-card,
   .company-summary,
   .company-success,
-  .company-users__card,
-  .seller-list__card,
   .territory-list__card,
   .client-list__card,
-  .async-state-card,
+  .async-state-card:where(:not(.async-state-card--golden)),
   .modal,
-  .modal-surface,
+  :where(.modal-surface-layer--default) .modal-surface,
   .territory-list__dialog,
-  .table-action-menu,
-  .visual-select__menu
+  .table-action-menu:where(:not(.table-action-menu--golden)),
+  .visual-select__menu:where(:not(.visual-select__menu--golden))
 ) {
   border-color: var(--theme-border-soft);
   color: var(--theme-text);
@@ -168,7 +170,7 @@
   .territory-list h1,
   .territory-list h2,
   .client-list h1,
-  .async-state-card h2,
+  .async-state-card:where(:not(.async-state-card--golden)) h2,
   .modal h2,
   .company-action-dialog--loading h2,
   .company-action-dialog--success h2
@@ -194,7 +196,7 @@
   .territory-list__stale,
   .client-list__heading p,
   .client-list__notice,
-  .async-state-card p,
+  .async-state-card:where(:not(.async-state-card--golden)) p,
   .modal p,
   .company-action-dialog__notice,
   .company-action-dialog--loading p,
@@ -212,17 +214,16 @@
   .company-action-dialog__reason textarea,
   .company-users__secondary,
   .seller-list__secondary,
-  .seller-list__search,
   .territory-list__secondary,
   .territory-list__search,
   .territory-list__dialog input,
   .territory-list__dialog select,
   .territory-list__dialog textarea,
   .client-list__search,
-  .async-state-card__action,
-  .visual-select__trigger,
-  .data-table__icon-button,
-  .data-table__pagination nav > button,
+  .async-state-card:where(:not(.async-state-card--golden)) .async-state-card__action,
+  .visual-select:where(:not(.visual-select--golden)) .visual-select__trigger,
+  .data-table__icon-button:where(:not(.data-table__icon-button--golden)),
+  .data-table__pagination:where(:not(.data-table__pagination--golden)) nav > button,
   .error-ui-button--secondary,
   .error-ui-correlation__copy
 ) {
@@ -239,13 +240,12 @@
 
 :root[data-theme="dark"] :is(
   .company-search input,
-  .seller-list__search input,
   .territory-list__search input,
   .client-list__search input
 ) { color: var(--theme-text); }
 
 :root[data-theme="dark"] :is(
-  .data-table th,
+  .data-table:where(:not(.data-table--golden)) th,
   .company-table th
 ) {
   border-color: var(--theme-border-soft);
@@ -253,14 +253,13 @@
   background: var(--theme-surface-muted);
 }
 
-:root[data-theme="dark"] :is(.data-table td, .company-table td) {
+:root[data-theme="dark"] :is(.data-table:where(:not(.data-table--golden)) td, .company-table td) {
   border-color: var(--theme-border-soft);
   color: var(--theme-text-form);
 }
 
 :root[data-theme="dark"] :is(
-  .filter-field,
-  .data-table__identity strong,
+  .data-table:where(:not(.data-table--golden)) .data-table__identity strong,
   .company-form-grid label,
   .company-form-field,
   .company-action-dialog__company strong,
@@ -276,13 +275,13 @@
 ) { color: var(--theme-text-form); }
 
 :root[data-theme="dark"] :is(
-  .data-table__identity small,
-  .data-table__pagination,
-  .data-table__page-size,
+  .data-table:where(:not(.data-table--golden)) .data-table__identity small,
+  .data-table__pagination:where(:not(.data-table__pagination--golden)),
+  .data-table__pagination:where(:not(.data-table__pagination--golden)) .data-table__page-size,
   .company-copy span
 ) { color: var(--theme-text-muted); }
 
-:root[data-theme="dark"] :is(.data-table__identity-mark, .company-mark) {
+:root[data-theme="dark"] :is(.data-table:where(:not(.data-table--golden)) .data-table__identity-mark, .company-mark) {
   color: #74d2d5;
   background: linear-gradient(145deg, #153844, #102c38);
 }
@@ -312,34 +311,34 @@
   background: var(--theme-accent-soft);
 }
 
-:root[data-theme="dark"] :is(.table-action-menu button, .visual-select__menu button) {
+:root[data-theme="dark"] :is(.table-action-menu:where(:not(.table-action-menu--golden)) button, .visual-select__menu:where(:not(.visual-select__menu--golden)) button) {
   color: var(--theme-text-form);
   background: var(--theme-surface-raised);
 }
 
-:root[data-theme="dark"] :is(.table-action-menu button:hover, .visual-select__menu button:hover, .visual-select__menu button[aria-selected="true"], .data-table__icon-button:hover) {
+:root[data-theme="dark"] :is(.table-action-menu:where(:not(.table-action-menu--golden)) button:hover, .visual-select__menu:where(:not(.visual-select__menu--golden)) button:hover, .visual-select__menu:where(:not(.visual-select__menu--golden)) button[aria-selected="true"], .data-table__icon-button:where(:not(.data-table__icon-button--golden)):hover) {
   color: #75d4d7;
   background: var(--theme-surface-hover);
 }
 
-:root[data-theme="dark"] :is(.company-toolbar, .company-users__toolbar, .seller-list__toolbar, .territory-list__toolbar, .client-list__toolbar, .data-table__pagination) {
+:root[data-theme="dark"] :is(.company-toolbar, .territory-list__toolbar, .client-list__toolbar, .data-table__pagination:where(:not(.data-table__pagination--golden))) {
   border-color: var(--theme-border-soft);
 }
 
 /* Semantic feedback keeps its meaning while reducing glare. */
-:root[data-theme="dark"] :is(.data-table__status--success, .company-status--active) {
+:root[data-theme="dark"] :is(.data-table:where(:not(.data-table--golden)) .data-table__status--success, .company-status--active) {
   border-color: #28684c;
   color: #72d6a5;
   background: #102c24;
 }
 
-:root[data-theme="dark"] :is(.data-table__status--warning, .error-ui-inline-alert--warning) {
+:root[data-theme="dark"] :is(.data-table:where(:not(.data-table--golden)) .data-table__status--warning, .error-ui-inline-alert--warning:where(:not(.error-ui-inline-alert--golden))) {
   border-color: #765a2c;
   color: #efc16f;
   background: #302513;
 }
 
-:root[data-theme="dark"] :is(.data-table__status--danger, .company-status--suspended, .form-alert, .error-ui-inline-alert--error) {
+:root[data-theme="dark"] :is(.data-table:where(:not(.data-table--golden)) .data-table__status--danger, .company-status--suspended, .form-alert, .error-ui-inline-alert--error:where(:not(.error-ui-inline-alert--golden))) {
   border-color: #7b4050;
   color: #ff91a7;
   background: #321b25;
@@ -355,11 +354,11 @@
 :root[data-theme="dark"] .company-empty h2 { color: var(--theme-text-strong); }
 :root[data-theme="dark"] .company-empty p { color: var(--theme-text-muted); }
 
-:root[data-theme="dark"] :is(.error-ui-inline-alert__icon, .error-ui-inline-alert__action) {
+:root[data-theme="dark"] .error-ui-inline-alert:where(:not(.error-ui-inline-alert--golden)) :is(.error-ui-inline-alert__icon, .error-ui-inline-alert__action) {
   background: rgb(255 255 255 / 7%);
 }
 
-:root[data-theme="dark"] .error-ui-inline-alert__action:hover { background: rgb(255 255 255 / 12%); }
+:root[data-theme="dark"] .error-ui-inline-alert:where(:not(.error-ui-inline-alert--golden)) .error-ui-inline-alert__action:hover { background: rgb(255 255 255 / 12%); }
 :root[data-theme="dark"] .error-ui-dialog__dismiss:hover { background: var(--theme-surface-hover); }
-:root[data-theme="dark"] .data-table__icon-button:disabled,
-:root[data-theme="dark"] .visual-select__trigger:disabled { color: #6d7f92; background: #152131; }
+:root[data-theme="dark"] .data-table__icon-button:where(:not(.data-table__icon-button--golden)):disabled,
+:root[data-theme="dark"] .visual-select:where(:not(.visual-select--golden)) .visual-select__trigger:disabled { color: #6d7f92; background: #152131; }

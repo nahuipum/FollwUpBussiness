@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>followUp Business · FE-014 Rutas</title>
+  <link rel="stylesheet" href="assets/golden-system.css">
+  <link rel="stylesheet" href="assets/route-planning.css?v=6">
+  <script src="assets/golden-icons.js" defer></script>
+</head>
+<body data-states="ready filters-active route-selected action-menu-draft action-menu-published-editable action-menu-published-locked detail-draft detail-published-editable detail-readonly loading refreshing-stale empty no-results forbidden error mobile-ready dark-ready" data-overlay-return="ready">
+  <!-- Mockup aprobable. La autoridad de permisos y transiciones permanece en Backend. -->
+  <div class="app-shell">
+    <aside class="sidebar routes-sidebar" aria-label="Navegación principal">
+      <a class="sidebar-brand brand-plate" href="#" aria-label="followUp Business, inicio"><img class="brand-logo" src="assets/brand/followup-logo.png" alt=""></a>
+      <div><p class="nav-label">Espacio de trabajo</p><nav class="nav">
+        <a href="#"><svg class="icon"><use href="#i-grid"></use></svg>Resumen</a>
+        <a href="#"><svg class="icon"><use href="#i-client"></use></svg>Clientes</a>
+        <a class="active" href="#" aria-current="page"><svg class="icon"><use href="#i-route"></use></svg>Rutas <small>100</small></a>
+        <a href="#"><svg class="icon"><use href="#i-pin"></use></svg>Visitas</a>
+        <a href="#"><svg class="icon"><use href="#i-calendar"></use></svg>Agenda</a>
+        <a href="#"><svg class="icon"><use href="#i-report"></use></svg>Reportes</a>
+      </nav></div>
+      <div><p class="nav-label">Administración</p><nav class="nav"><a href="#"><svg class="icon"><use href="#i-settings"></use></svg>Configuración</a></nav></div>
+      <div class="sidebar-foot"><div class="help-card"><strong>¿Necesitas ayuda?</strong>Consulta la guía de uso del espacio de trabajo.</div></div>
+    </aside>
+    <header class="topbar">
+      <div class="top-left"><button class="menu-control" type="button" data-nav-toggle aria-label="Abrir navegación"><svg class="icon"><use href="#i-menu"></use></svg></button><div class="crumb"><span>Comercial Andina</span><span aria-hidden="true">/</span><strong>Rutas</strong></div></div>
+      <div class="top-actions"><span class="updated"><i></i><span class="updated-long">Última actualización: </span>10:42</span><button class="theme-control" type="button" data-theme-toggle aria-label="Cambiar tema"><svg class="icon"><use href="#i-moon"></use></svg></button><button class="icon-btn" type="button" aria-label="Notificaciones"><svg class="icon"><use href="#i-bell"></use></svg></button><div class="person"><span class="avatar">AM</span><span class="person-copy"><strong>Ana Morales</strong><span>Administradora</span></span></div></div>
+    </header>
+
+    <main class="app-main">
+      <div class="page">
+        <header class="page-head routes-page-head">
+          <div><span class="eyebrow">Planificación operativa</span><h1>Rutas</h1><p>Planifica, revisa y publica las rutas asignadas a los vendedores de la empresa.</p></div>
+          <div class="routes-heading-actions"><button class="btn btn-primary" type="button" data-go-href="FE-015.html?state=choose-mode&amp;guide=1"><svg class="icon icon-sm"><use href="#i-plus"></use></svg>Planificar ruta</button></div>
+        </header>
+
+        <div class="alert alert-danger error-banner" role="alert" data-show="error" hidden><svg class="icon"><use href="#i-alert"></use></svg><div><strong>No pudimos actualizar las rutas</strong><p>Mostramos la última información disponible. Reintenta sin perder los filtros actuales.</p><div class="alert-actions"><button class="alert-link" type="button">Reintentar</button></div></div></div>
+        <div class="alert alert-info error-banner" role="status" data-show="refreshing-stale" hidden><span class="spinner" aria-hidden="true"></span><div><strong>Actualizando rutas</strong><p>Conservamos los resultados anteriores mientras termina la consulta.</p></div></div>
+
+        <section class="panel routes-panel" aria-label="Planificación y consulta de rutas" data-show="ready filters-active route-selected action-menu-draft action-menu-published-editable action-menu-published-locked detail-draft detail-published-editable detail-readonly refreshing-stale error mobile-ready dark-ready" data-stale-in="refreshing-stale error" hidden>
+          <div class="filterbar routes-filterbar">
+            <div class="field"><label for="route-date">Fecha</label><div class="control"><svg class="icon icon-sm"><use href="#i-calendar"></use></svg><input id="route-date" type="text" value="10/09/2026"></div></div>
+            <div class="field"><span>Vendedor</span><details class="routes-select"><summary class="select-trigger" aria-expanded="false">Todos<svg class="icon icon-sm"><use href="#i-chevron"></use></svg></summary><div class="routes-select-menu" role="listbox" aria-label="Vendedor"><button class="routes-select-option" role="option" aria-selected="true">Todos</button><button class="routes-select-option" role="option">Diego Luna</button><button class="routes-select-option" role="option">Sofía Ramos</button></div></details></div>
+            <div class="field"><span>Estado</span><details class="routes-select"><summary class="select-trigger" aria-expanded="false">Todos<svg class="icon icon-sm"><use href="#i-chevron"></use></svg></summary><div class="routes-select-menu" role="listbox" aria-label="Estado"><button class="routes-select-option" role="option" aria-selected="true">Todos</button><button class="routes-select-option" role="option">Borrador</button><button class="routes-select-option" role="option">Publicada</button><button class="routes-select-option" role="option">En curso</button><button class="routes-select-option" role="option">Completada</button><button class="routes-select-option" role="option">Cancelada</button></div></details></div>
+            <div class="filter-actions"><button class="btn" type="button"><svg class="icon icon-sm"><use href="#i-filter"></use></svg>Aplicar</button></div>
+          </div>
+          <div class="active-filters" data-show="filters-active" hidden><span>Filtros activos:</span><span class="chip">Vendedor: Diego Luna ×</span><span class="chip">Estado: Borrador ×</span><button class="btn btn-ghost btn-compact" type="button">Limpiar filtros</button></div>
+
+          <div class="mobile-view-toggle"><button class="btn" type="button" data-view-toggle="list" aria-pressed="true">Rutas</button><button class="btn" type="button" data-view-toggle="map" aria-pressed="false">Mapa</button></div>
+          <div class="route-workspace mobile-map-hidden" data-mobile-workspace>
+            <section class="route-map-region" aria-labelledby="routes-map-title">
+              <header class="route-region-head"><div><h2 id="routes-map-title">Mapa de rutas</h2><p>La selección del panel se refleja en el mapa.</p></div><span class="map-status">Recorrido vial disponible</span></header>
+              <div class="route-map" role="img" aria-label="Mapa complementario de Ruta Norte 04 con cuatro visitas; la secuencia textual está en el panel de detalle">
+                <svg class="route-line" viewBox="0 0 600 400" preserveAspectRatio="none" aria-hidden="true"><path d="M55 330 C138 315 148 122 245 148 S408 310 552 74"></path></svg>
+                <span class="route-marker one">1</span><span class="route-marker two">2</span><span class="route-marker three">3</span><span class="route-marker four">4</span>
+                <div class="route-map-tools"><button class="btn btn-compact" type="button"><svg class="icon icon-sm"><use href="#i-locate"></use></svg>Centrar ruta</button></div>
+                <div class="route-map-legend"><span class="badge info">Ruta seleccionada</span><span>Ruta Norte 04 · 4 puntos</span></div>
+              </div>
+            </section>
+
+            <aside class="route-rail" aria-label="Panel de rutas">
+              <header class="route-rail-head"><div><span class="eyebrow">Resultados</span><h2>Rutas del día</h2><p>Ordenadas por vendedor</p></div><span class="route-total">100</span></header>
+              <div class="route-list-cards" aria-label="Página 1 de rutas">
+                <article class="route-card selected" tabindex="0" aria-current="true"><div class="route-card-head"><div><h3>Ruta Norte 04</h3><p>Diego Luna · 10/09/2026</p></div><div class="route-card-actions"><span class="badge neutral">Borrador</span><button class="more" type="button" aria-label="Acciones de Ruta Norte 04" data-go-state="action-menu-draft"><svg class="icon"><use href="#i-more"></use></svg></button></div></div><div class="route-card-meta"><span>4 puntos</span><span>Versión 3</span><span>48 min</span></div></article>
+                <article class="route-card" tabindex="0"><div class="route-card-head"><div><h3>Ruta Centro 02</h3><p>Sofía Ramos · 10/09/2026</p></div><div class="route-card-actions"><span class="badge success">Publicada</span><button class="more" type="button" aria-label="Acciones de Ruta Centro 02" data-go-state="action-menu-published-editable"><svg class="icon"><use href="#i-more"></use></svg></button></div></div><div class="route-card-meta"><span>6 puntos</span><span>Versión 1</span><span>1 h 12 min</span></div></article>
+                <article class="route-card" tabindex="0"><div class="route-card-head"><div><h3>Ruta Este 01</h3><p>Marco Ruiz · 10/09/2026</p></div><div class="route-card-actions"><span class="badge warning">En curso</span><button class="more" type="button" aria-label="Acciones de Ruta Este 01" data-go-state="action-menu-published-locked"><svg class="icon"><use href="#i-more"></use></svg></button></div></div><div class="route-card-meta"><span>5 puntos</span><span>Versión 2</span><span>Solo lectura</span></div></article>
+                <article class="route-card" tabindex="0"><div class="route-card-head"><div><h3>Ruta Sur 06</h3><p>Lucía Vega · 10/09/2026</p></div><div class="route-card-actions"><span class="badge success">Completada</span><button class="more" type="button" aria-label="Acciones de Ruta Sur 06"><svg class="icon"><use href="#i-more"></use></svg></button></div></div><div class="route-card-meta"><span>7 puntos</span><span>Versión 2</span><span>Solo lectura</span></div></article>
+                <article class="route-card" tabindex="0"><div class="route-card-head"><div><h3>Ruta Oeste 03</h3><p>Bruno Díaz · 10/09/2026</p></div><div class="route-card-actions"><span class="badge danger">Cancelada</span><button class="more" type="button" aria-label="Acciones de Ruta Oeste 03"><svg class="icon"><use href="#i-more"></use></svg></button></div></div><div class="route-card-meta"><span>3 puntos</span><span>Versión 1</span><span>Solo lectura</span></div></article>
+              </div>
+              <footer class="route-rail-foot"><nav class="pagination" aria-label="Paginación de rutas"><span>1–5 de 100</span><span class="pages"><button class="page-btn" type="button" aria-label="Página anterior" disabled>‹</button><button class="page-btn current" type="button" aria-current="page">1</button><button class="page-btn" type="button">2</button><button class="page-btn" type="button" aria-label="Página siguiente">›</button></span></nav><div class="route-rail-actions"><button class="btn" type="button" data-go-state="detail-draft">Ver detalle</button><button class="btn btn-primary" type="button" data-go-href="FE-015.html?state=manual-order&amp;guide=1">Editar orden</button></div></footer>
+            </aside>
+          </div>
+          <div class="route-refresh" data-show="refreshing-stale" hidden><span class="spinner" aria-hidden="true"></span>Actualizando sin ocultar la última información disponible.</div>
+        </section>
+
+        <section class="panel" data-show="loading" hidden><header class="table-header"><div><strong>Rutas del día</strong><span>Cargando rutas y mapa</span></div></header><div class="skeleton-list" aria-busy="true"><div class="skeleton-row"><i class="skeleton block"></i><i class="skeleton"></i><i class="skeleton"></i><i class="skeleton"></i></div><div class="skeleton-row"><i class="skeleton block"></i><i class="skeleton"></i><i class="skeleton"></i><i class="skeleton"></i></div><div class="skeleton-row"><i class="skeleton block"></i><i class="skeleton"></i><i class="skeleton"></i><i class="skeleton"></i></div><span class="sr-only">Cargando rutas</span></div></section>
+        <section class="panel" data-show="empty" hidden><article class="state-card"><div><span class="state-icon"><svg class="icon"><use href="#i-empty"></use></svg></span><h2>Aún no hay rutas</h2><p>Planifica una ruta manualmente o genera una propuesta automática. Ninguna opción publicará por sí sola.</p><button class="btn btn-primary" type="button" data-go-href="FE-015.html?state=choose-mode&amp;guide=1">Planificar ruta</button></div></article></section>
+        <section class="panel" data-show="no-results" hidden><article class="state-card"><div><span class="state-icon"><svg class="icon"><use href="#i-search"></use></svg></span><h2>No encontramos rutas</h2><p>Prueba con otra fecha, vendedor o estado.</p><button class="btn btn-primary" type="button">Limpiar filtros</button></div></article></section>
+        <section class="panel" data-show="forbidden" hidden><article class="state-card danger"><div><span class="state-icon"><svg class="icon"><use href="#i-shield"></use></svg></span><h2>No tienes permisos</h2><p>No tienes permiso para consultar las rutas de esta empresa.</p><button class="btn" type="button">Volver al resumen</button></div></article></section>
+      </div>
+    </main>
+  </div>
+
+  <section class="route-action-menu" role="menu" aria-label="Acciones de Ruta Norte 04" data-show="action-menu-draft" hidden>
+    <button role="menuitem" type="button" data-go-state="detail-draft"><svg class="icon icon-sm"><use href="#i-eye"></use></svg>Ver detalle</button>
+    <button role="menuitem" type="button" data-go-href="FE-015.html?state=manual-order&amp;guide=1"><svg class="icon icon-sm"><use href="#i-route"></use></svg>Editar orden</button>
+    <button role="menuitem" type="button" data-go-href="FE-016.html?state=automatic-constraints&amp;guide=1"><svg class="icon icon-sm"><use href="#i-activity"></use></svg>Generar propuesta automática</button>
+    <button role="menuitem" type="button" data-go-href="FE-017.html?state=publish-review&amp;guide=1"><svg class="icon icon-sm"><use href="#i-arrow"></use></svg>Publicar ruta</button>
+  </section>
+  <section class="route-action-menu" role="menu" aria-label="Acciones de Ruta Centro 02" data-show="action-menu-published-editable" hidden>
+    <button role="menuitem" type="button" data-go-state="detail-published-editable"><svg class="icon icon-sm"><use href="#i-eye"></use></svg>Ver detalle</button>
+    <button role="menuitem" type="button" data-go-href="FE-015.html?state=published-order-warning&amp;guide=1"><svg class="icon icon-sm"><use href="#i-route"></use></svg>Editar orden</button>
+    <small>Se conservarán puntos, vendedor y fecha. El vendedor será notificado.</small>
+  </section>
+  <section class="route-action-menu" role="menu" aria-label="Acciones de Ruta Este 01" data-show="action-menu-published-locked" hidden>
+    <button role="menuitem" type="button" data-go-state="detail-readonly"><svg class="icon icon-sm"><use href="#i-eye"></use></svg>Ver detalle</button>
+    <button class="disabled" role="menuitem" type="button" disabled><svg class="icon icon-sm"><use href="#i-lock"></use></svg>Editar orden</button>
+    <small>La jornada ya inició. Esta ruta es de solo lectura.</small>
+  </section>
+
+  <div data-show="detail-draft detail-published-editable detail-readonly" hidden>
+    <div class="scrim" aria-hidden="true"></div>
+    <section class="drawer detail-drawer" role="dialog" aria-modal="true" aria-labelledby="route-detail-title" data-overlay>
+      <header class="drawer-head"><div><span class="eyebrow">Rutas</span><h2 id="route-detail-title">Detalle de ruta</h2><p>Información vigente y secuencia accesible.</p></div><button class="btn btn-icon" type="button" aria-label="Cerrar detalle" data-go-state="ready"><svg class="icon"><use href="#i-x"></use></svg></button></header>
+      <div class="drawer-body">
+        <div class="detail-hero"><div><h3>Ruta Norte 04</h3><p>Planificación del 10 de septiembre de 2026</p></div><span class="badge neutral" data-show="detail-draft">Borrador</span><span class="badge success" data-show="detail-published-editable">Publicada</span><span class="badge warning" data-show="detail-readonly">En curso</span></div>
+        <div class="alert alert-warning" data-show="detail-published-editable"><svg class="icon"><use href="#i-info"></use></svg><div><strong>Ruta publicada todavía editable</strong><p>Solo puedes cambiar el orden de los mismos puntos. Se conservarán vendedor, fecha, territorio y estado; el vendedor será notificado al guardar.</p></div></div>
+        <div class="alert alert-info" data-show="detail-readonly"><svg class="icon"><use href="#i-lock"></use></svg><div><strong>Ruta de solo lectura</strong><p>La jornada ya inició. El orden no puede modificarse en este estado.</p></div></div>
+        <dl class="definition-grid routes-definition"><div><dt>Fecha</dt><dd>10/09/2026</dd></div><div><dt>Vendedor</dt><dd>Diego Luna</dd></div><div><dt>Versión</dt><dd>3</dd></div><div><dt>Puntos</dt><dd>4 visitas</dd></div><div><dt>Estado</dt><dd data-show="detail-draft">Borrador</dd><dd data-show="detail-published-editable">Publicada</dd><dd data-show="detail-readonly">En curso</dd></div></dl>
+        <section class="detail-sequence" aria-labelledby="detail-sequence-title"><div class="review-head"><div><h2 id="detail-sequence-title">Secuencia de visitas</h2><p>Orden planificado y estimaciones disponibles.</p></div></div><ol class="sequence-timeline"><li><span class="sequence-index">1</span><span class="sequence-copy"><strong>Mercado Brisa</strong><small>08:30 · 15 min de atención</small></span><span class="sequence-role">Inicio</span></li><li><span class="sequence-index">2</span><span class="sequence-copy"><strong>Librería Sendero</strong><small>09:05 · 20 min de atención</small></span><span></span></li><li><span class="sequence-index">3</span><span class="sequence-copy"><strong>Distribuidora Cauce</strong><small>10:00 · 25 min de atención</small></span><span></span></li><li><span class="sequence-index">4</span><span class="sequence-copy"><strong>Comercial Pinar</strong><small>11:05 · 25 min de atención</small></span><span class="sequence-role">Final</span></li></ol></section>
+        <details class="detail-map-preview"><summary><span><strong id="detail-map-title">Vista previa del recorrido</strong><small>Mapa complementario; el mapa principal permanece visible detrás.</small></span><span class="map-status">Detalle vial</span></summary><div class="route-map" role="img" aria-label="Recorrido vial complementario de cuatro visitas"><svg class="route-line" viewBox="0 0 600 400" preserveAspectRatio="none" aria-hidden="true"><path d="M55 330 C138 315 148 122 245 148 S408 310 552 74"></path></svg><span class="route-marker one">1</span><span class="route-marker two">2</span><span class="route-marker three">3</span><span class="route-marker four">4</span></div></details>
+      </div>
+      <footer class="drawer-foot"><button class="btn" type="button" data-go-state="ready">Cerrar</button><button class="btn" type="button" data-show="detail-draft" data-go-href="FE-015.html?state=manual-order&amp;guide=1">Editar orden</button><button class="btn" type="button" data-show="detail-draft" data-go-href="FE-016.html?state=automatic-constraints&amp;guide=1">Generar propuesta</button><button class="btn btn-primary" type="button" data-show="detail-draft" data-go-href="FE-017.html?state=publish-review&amp;guide=1">Publicar</button><button class="btn btn-primary" type="button" data-show="detail-published-editable" data-go-href="FE-015.html?state=published-order-warning&amp;guide=1">Editar orden</button></footer>
+    </section>
+  </div>
+
+  <aside class="mockup-guide" aria-label="Controles del mockup"><label for="state">Estado</label><select id="state" data-state-selector></select><button class="btn btn-icon btn-compact" type="button" data-theme-toggle aria-label="Cambiar tema"><svg class="icon"><use href="#i-moon"></use></svg></button></aside>
+  <script src="assets/golden-states.js"></script>
+  <script src="assets/route-planning.js?v=3"></script>
+</body>
+</html>

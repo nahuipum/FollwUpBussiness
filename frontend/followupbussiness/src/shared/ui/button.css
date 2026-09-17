@@ -1,0 +1,35 @@
+.shared-button {
+  box-sizing: border-box;
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: var(--visual-space-2);
+  padding: 0 var(--visual-space-4);
+  border: 1px solid var(--visual-control);
+  border-radius: var(--visual-radius-md);
+  color: var(--visual-text-soft);
+  background: var(--visual-surface);
+  box-shadow: none;
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 20px;
+}
+
+.shared-button:hover:not(:disabled) { background: var(--visual-surface-subtle); }
+.shared-button:focus-visible { outline: 0; box-shadow: var(--visual-focus-ring); }
+.shared-button:disabled { cursor: not-allowed; box-shadow: none; opacity: .55; }
+.shared-button svg { width: 18px; height: 18px; flex: 0 0 auto; }
+.shared-button--primary { color: var(--visual-on-brand); border-color: var(--visual-brand-strong); background: var(--visual-brand); box-shadow: 0 4px 10px rgb(37 99 235 / 16%); }
+.shared-button--primary:hover:not(:disabled) { background: var(--visual-brand-hover); }
+.shared-button--ghost { color: var(--visual-brand-strong); border-color: transparent; background: transparent; box-shadow: none; }
+.shared-button--danger { color: var(--visual-on-danger); border-color: var(--visual-danger-action); background: var(--visual-danger-action); }
+.shared-button--compact { min-height: 36px; padding-inline: var(--visual-space-3); }
+.shared-button--icon { width: 44px; padding: 0; }
+.shared-button--icon.shared-button--compact { width: 36px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .shared-button { transition: none; }
+}
