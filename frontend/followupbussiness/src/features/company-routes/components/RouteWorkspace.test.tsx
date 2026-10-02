@@ -3,12 +3,13 @@ import { afterEach, expect, test, vi } from "vitest";
 import { RouteWorkspace } from "./RouteWorkspace";
 import type { Route } from "../types";
 
+const renderState = vi.hoisted(() => ({ mapPointReferences: [] as unknown[] }));
 vi.mock("../hooks/useRouteDirections", () => ({ useRouteDirections: () => ({ directions: null, loading: false, error: null, stale: false, retry: vi.fn() }) }));
-vi.mock("./RouteSequenceMap", () => ({ RouteSequenceMap: ({ points, variant }: { points: readonly Route["points"][number][]; variant?: string }) => <div data-testid="route-map" data-variant={variant}>{points[0]?.customerName}</div> }));
+vi.mock("./RouteSequenceMap", () => ({ RouteSequenceMap: ({ points, variant }: { points: readonly Route["points"][number][]; variant?: string }) => { renderState.mapPointReferences.push(points); return <div data-testid="route-map" data-variant={variant}>{points[0]?.customerName}</div>; } }));
 
 const route = (status: Route["status"]): Route => ({ id: `route-${status}`, name: `Ruta ${status}`, date: "2026-09-10", sellerId: "seller-1", status, points: [{ routePointId: "point-1", sequence: 1, customerName: "Cliente" }], updatedAt: "2026-09-10T10:00:00Z", version: 3 });
-const props = { sellers: [{ id: "seller-1", label: "Ana", status: "ACTIVE" as const, territoryIds: [] }], page: 0, pageSize: 5 as const, totalPages: 1, totalElements: 1, canManage: true, onDetail: vi.fn(), onOrder: vi.fn(), onProposal: vi.fn(), onPublish: vi.fn(), onPageChange: vi.fn() };
-afterEach(() => { cleanup(); vi.clearAllMocks(); });
+const props = { sellers: [{ id: "seller-1", label: "Ana", status: "ACTIVE" as const, territoryIds: [] }], page: 0, pageSize: 5 as const, totalPages: 1, totalElements: 1, canManage: true, onDetail: vi.fn(), onOrder: vi.fn(), onProposal: vi.fn(), onPublish: vi.fn(), onCopy: vi.fn(), onPageChange: vi.fn() };
+afterEach(() => { cleanup(); vi.clearAllMocks(); renderState.mapPointReferences.length = 0; });
 
 test("ofrece edición directa, propuesta y publicación para DRAFT", () => {
   const draft = route("DRAFT");
@@ -19,6 +20,23 @@ test("ofrece edición directa, propuesta y publicación para DRAFT", () => {
   fireEvent.click(screen.getByRole("button", { name: /Acciones de Ruta DRAFT/ }));
   expect(screen.getByRole("menuitem", { name: "Generar propuesta" })).toBeTruthy();
   expect(screen.getByRole("menuitem", { name: "Publicar ruta" })).toBeTruthy();
+});
+
+test("no ofrece publicación sin permiso de gestión", () => {
+  render(<RouteWorkspace {...props} canManage={false} routes={[route("DRAFT")]} />);
+  fireEvent.click(screen.getByRole("button", { name: /Acciones de Ruta DRAFT/ }));
+  expect(screen.queryByRole("menuitem", { name: "Publicar ruta" })).toBeNull();
+});
+
+test("distingue un borrador vencido, impide publicarlo y permite copiarlo", () => {
+  const expired = { ...route("DRAFT"), publicationEligibility: { eligible: false, reason: "OPERATIONAL_DATE_EXPIRED" as const } };
+  render(<RouteWorkspace {...props} routes={[expired]} />);
+  expect(screen.getByText("Borrador vencido")).toBeTruthy();
+  expect(screen.getByText("Copia para reprogramar")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: /Acciones de Ruta DRAFT/ }));
+  expect(screen.queryByRole("menuitem", { name: "Publicar ruta" })).toBeNull();
+  fireEvent.click(screen.getByRole("menuitem", { name: "Copiar ruta" }));
+  expect(props.onCopy).toHaveBeenCalledWith(expired);
 });
 
 test("PUBLISHED sólo permite intentar editar orden y los estados finales son lectura", () => {
@@ -46,6 +64,24 @@ test("sincroniza selección y cierra el menú al cambiar el conjunto de resultad
   expect(screen.getByTestId("route-map").textContent).toBe("Cliente siguiente");
   expect(screen.getByTestId("route-map").getAttribute("data-variant")).toBe("embedded");
   expect(document.querySelector(".route-card__select")?.getAttribute("aria-pressed")).toBe("true");
+});
+
+test("abrir y cerrar el menú de acciones no vuelve a montar ni recargar el mapa seleccionado", () => {
+  const selected = route("DRAFT");
+  const another = { ...route("PUBLISHED"), id: "route-next", name: "Ruta siguiente" };
+  render(<RouteWorkspace {...props} routes={[selected, another]} totalElements={2} />);
+  expect(renderState.mapPointReferences).toHaveLength(1);
+
+  const actions = screen.getByRole("button", { name: /Acciones de Ruta DRAFT/ });
+  fireEvent.click(actions);
+  expect(screen.getByRole("menu")).toBeTruthy();
+  fireEvent.click(actions);
+
+  expect(screen.queryByRole("menu")).toBeNull();
+  expect(renderState.mapPointReferences).toHaveLength(1);
+
+  fireEvent.click(screen.getByRole("button", { name: /^Ruta siguiente/ }));
+  expect(renderState.mapPointReferences).toHaveLength(2);
 });
 
 test("usa la paginación propia del rail y conserva su semántica accesible", () => {

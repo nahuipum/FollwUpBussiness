@@ -3,18 +3,22 @@ import type { Client } from "../types";
 import { loadMapLibre } from "./maplibre-loader";
 import { handleMissingStyleImages } from "./map-style";
 import { createMapMarker } from "./map-marker";
+import { currentGeoapifyMapStyleUrl, useGeoapifyMapStyleUrl } from "../../../shared/maps/geoapify-map-theme";
 type MapState = "LOADING" | "ACTIVE" | "LIMITED" | "DISABLED";
 
 export function ClientMap({ clients, selectedId, onSelect, empty = false, focusVersion = 0 }: { clients: readonly Client[]; selectedId: string | null; onSelect: (clientId: string | null) => void; empty?: boolean; focusVersion?: number }) {
-  const container = useRef<HTMLDivElement>(null); const mapRef = useRef<import("maplibre-gl").Map | null>(null); const markersRef = useRef<import("maplibre-gl").Marker[]>([]); const selectRef = useRef(onSelect); const [state, setState] = useState<MapState>("DISABLED"); const [retry, setRetry] = useState(0); const configured = Boolean(import.meta.env.VITE_GEOAPIFY_TILE_KEY);
+  const container = useRef<HTMLDivElement>(null); const mapRef = useRef<import("maplibre-gl").Map | null>(null); const mapStyleUrlRef = useRef<string | null>(null); const markersRef = useRef<import("maplibre-gl").Marker[]>([]); const selectRef = useRef(onSelect); const [state, setState] = useState<MapState>("DISABLED"); const [retry, setRetry] = useState(0); const key = import.meta.env.VITE_GEOAPIFY_TILE_KEY; const mapStyleUrl = useGeoapifyMapStyleUrl(key); const configured = Boolean(key);
   useEffect(() => { selectRef.current = onSelect; }, [onSelect]);
+  useEffect(() => { mapStyleUrlRef.current = mapStyleUrl; if (mapStyleUrl) mapRef.current?.setStyle(mapStyleUrl); }, [mapStyleUrl]);
   useEffect(() => {
-    const key = import.meta.env.VITE_GEOAPIFY_TILE_KEY;
-    if (!key || !container.current) { setState("DISABLED"); return; }
+    const initialMapStyleUrl = mapStyleUrlRef.current;
+    if (!initialMapStyleUrl || !container.current) { setState("DISABLED"); return; }
     let disposed = false; setState("LOADING");
     void loadMapLibre().then(({ Map, Marker, Popup }) => {
-      if (disposed || !container.current) return;
-      const selected = clients.find((client) => client.id === selectedId); const focus = selected?.location ?? clients[0]?.location; const instance = new Map({ container: container.current, center: focus ? [focus.longitude, focus.latitude] : [-77.0428, -12.0464], zoom: selected ? 15 : focus ? 11 : 9, style: `https://maps.geoapify.com/v1/styles/osm-bright/style.json?apiKey=${encodeURIComponent(key)}` }); mapRef.current = instance; handleMissingStyleImages(instance);
+      const latestMapStyleUrl = currentGeoapifyMapStyleUrl(key);
+      mapStyleUrlRef.current = latestMapStyleUrl;
+      if (disposed || !container.current || !latestMapStyleUrl) return;
+      const selected = clients.find((client) => client.id === selectedId); const focus = selected?.location ?? clients[0]?.location; const instance = new Map({ container: container.current, center: focus ? [focus.longitude, focus.latitude] : [-77.0428, -12.0464], zoom: selected ? 15 : focus ? 11 : 9, style: latestMapStyleUrl }); mapRef.current = instance; handleMissingStyleImages(instance);
       clients.forEach((client) => { const element = createMapMarker({ interactive: true, status: client.status, selected: selectedId === client.id, ariaLabel: `Seleccionar ${client.name}, ${client.status === "ACTIVE" ? "Activo" : "Inactivo"}`, onClick: (event) => { event.stopPropagation(); selectRef.current(client.id); } }); markersRef.current.push(new Marker({ anchor: "bottom", element }).setLngLat([client.location.longitude, client.location.latitude]).addTo(instance)); });
       if (selected) new Popup({
         closeButton: false,

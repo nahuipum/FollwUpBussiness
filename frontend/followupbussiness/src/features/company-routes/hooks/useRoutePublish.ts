@@ -28,14 +28,14 @@ export function useRoutePublish(sessionKey: string, onPublished: (route: Route) 
   }, [sessionKey]);
 
   const open = (next: Route) => {
-    if (next.status !== "DRAFT") return;
+    if (next.status !== "DRAFT" || next.publicationEligibility?.eligible === false) return;
     idempotencyKeyRef.current = crypto.randomUUID();
     setRoute(next); setNotifySeller(true); setError(null); setPublished(null);
   };
   const close = () => { if (!busy) reset(); };
   const submit = async () => {
     const current = route;
-    if (!current || current.status !== "DRAFT" || busyRef.current) return;
+    if (!current || current.status !== "DRAFT" || current.publicationEligibility?.eligible === false || busyRef.current) return;
     const mutationId = ++mutationRef.current;
     const currentSessionKey = sessionKeyRef.current;
     const idempotencyKey = idempotencyKeyRef.current ?? crypto.randomUUID();

@@ -98,6 +98,15 @@ test("preserva solo el código público de ubicación de extremos", async () => 
   expect(error).not.toHaveProperty("detail");
 });
 
+test("preserva el código público que distingue una planificación vencida", async () => {
+  const error = await normalizeApiError(
+    new Response(JSON.stringify({ code: "SNAPSHOT_EXPIRED", detail: "snapshot interno" }), { status: 409 }),
+  );
+
+  expect(error?.code).toBe("SNAPSHOT_EXPIRED");
+  expect(error).not.toHaveProperty("detail");
+});
+
 test("preserva solo el código público de visitas de territorios distintos", async () => {
   const error = await normalizeApiError(
     new Response(JSON.stringify({

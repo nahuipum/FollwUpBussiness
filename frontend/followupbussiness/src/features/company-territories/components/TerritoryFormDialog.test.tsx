@@ -40,7 +40,7 @@ test("muestra el contexto y las ayudas del catálogo al editar", () => {
   expect(screen.getByPlaceholderText("Ej. Lima Centro").getAttribute("aria-describedby")).toBe("territory-name-help");
   expect(screen.getByText(/Las zonas inactivas no aceptan asignaciones nuevas/)).toBeTruthy();
   expect(screen.getByRole("button", { name: "Guardar cambios" }).className).toContain("shared-button--primary");
-  expect(screen.getByRole("status").className).toContain("error-ui-inline-alert--golden");
+  expect(screen.getByRole("status").className).toContain("error-ui-inline-alert--info");
 });
 
 test("el error de conflicto comparte alerta y bloquea recarga durante guardado", () => {

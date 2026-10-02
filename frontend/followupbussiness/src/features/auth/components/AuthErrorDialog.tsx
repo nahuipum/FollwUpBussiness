@@ -1,5 +1,4 @@
-import { CircleAlert } from "lucide-react";
-import { ModalDialog } from "../../../shared/ui/ModalDialog";
+import { OperationDialog } from "../../../shared/ui/OperationDialog";
 
 type AuthErrorDialogProps = {
   message: string;
@@ -8,13 +7,15 @@ type AuthErrorDialogProps = {
 
 export function AuthErrorDialog({ message, onClose }: AuthErrorDialogProps) {
   return (
-    <ModalDialog
+    <OperationDialog
       titleId="auth-error-title"
+      tone="error"
       title="Inicio de sesión fallido"
-      description={message}
-      icon={<CircleAlert />}
-      primaryAction={{ label: "Cerrar", onClick: onClose }}
-      onDismiss={onClose}
+      message={message}
+      primaryLabel="Cerrar"
+      onClose={onClose}
+      appearance="golden"
+      showDismissButton={false}
     />
   );
 }

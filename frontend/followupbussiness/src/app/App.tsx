@@ -4,8 +4,18 @@ import { PasswordRecoveryScreen } from "../features/auth/components/PasswordReco
 import { SessionStatusPage } from "./components/SessionStatusPage";
 import { navigate } from "./navigation";
 import { useSessionRoute } from "./hooks/useSessionRoute";
-import { canAccessPath, getSessionHomePath, getSessionIdentity, hasSession, logout } from "../features/auth/auth";
-import { ErrorState, InlineAlert, SessionExpiredDialog } from "../shared/ui/error-ui/components";
+import {
+  canAccessPath,
+  getSessionHomePath,
+  getSessionIdentity,
+  hasSession,
+  logout,
+} from "../features/auth/auth";
+import {
+  ErrorState,
+  InlineAlert,
+  SessionExpiredDialog,
+} from "../shared/ui/error-ui/components";
 import { useGlobalApiError } from "../shared/ui/error-ui/useGlobalApiError";
 import { PlatformCompaniesPage } from "../features/platform-companies/PlatformCompaniesPage";
 import { PlatformDashboardPage } from "../features/platform-dashboard/PlatformDashboardPage";
@@ -16,7 +26,10 @@ import { CompanySellersPage } from "../features/company-sellers/CompanySellersPa
 import { CompanyUsersPageRoute } from "../features/company-users/CompanyUsersPageRoute";
 import { CompanyTerritoriesPage } from "../features/company-territories/CompanyTerritoriesPage";
 import { CustomerAssignmentPage } from "../features/company-customer-assignments/components/CustomerAssignmentPage";
-import { CompanyClientImportForbidden, CompanyClientImportPage } from "../features/company-client-import/CompanyClientImportPage";
+import {
+  CompanyClientImportForbidden,
+  CompanyClientImportPage,
+} from "../features/company-client-import/CompanyClientImportPage";
 import { CompanyClientImportResultPage } from "../features/company-client-import/CompanyClientImportResultPage";
 import { SupervisorDashboardPage } from "../features/supervisor-dashboard/SupervisorDashboardPage";
 import { CompanySettingsPage } from "../features/company-settings/CompanySettingsPage";
@@ -40,22 +53,64 @@ export function App() {
         <SessionExpiredDialog
           title="Tu sesión terminó"
           message="Por seguridad, inicia sesión nuevamente para continuar."
-          primaryAction={{ label: "Ir al inicio de sesión", onClick: clearError }}
+          primaryAction={{
+            label: "Ir al inicio de sesión",
+            onClick: clearError,
+          }}
           dismissAction={{ label: "Cerrar diálogo", onClick: clearError }}
-          {...(error.correlationId === null ? {} : { correlationId: error.correlationId })}
+          {...(error.correlationId === null
+            ? {}
+            : { correlationId: error.correlationId })}
         />
       </>
     );
   }
 
-  if (error?.status === 400 || error?.status === 403 || error?.status === 404 || error?.status === 500) {
+  if (
+    error?.status === 400 ||
+    error?.status === 403 ||
+    error?.status === 404 ||
+    error?.status === 500
+  ) {
     const configuration = {
-      400: { variant: "temporary" as const, title: "No pudimos procesar la solicitud", message: "No pudimos completar la operación. Inténtalo nuevamente." },
-      403: { variant: "forbidden" as const, title: "No tienes acceso a esta sección", message: "No tienes permiso para realizar esta acción." },
-      404: { variant: "not-found" as const, title: "No encontramos lo que buscas", message: "El recurso ya no está disponible o no existe." },
-      500: { variant: "temporary" as const, title: "Ocurrió un problema temporal", message: "No pudimos completar la operación. Inténtalo más tarde." },
+      400: {
+        variant: "temporary" as const,
+        title: "No pudimos procesar la solicitud",
+        message: "No pudimos completar la operación. Inténtalo nuevamente.",
+      },
+      403: {
+        variant: "forbidden" as const,
+        title: "No tienes acceso a esta sección",
+        message: "No tienes permiso para realizar esta acción.",
+      },
+      404: {
+        variant: "not-found" as const,
+        title: "No encontramos lo que buscas",
+        message: "El recurso ya no está disponible o no existe.",
+      },
+      500: {
+        variant: "temporary" as const,
+        title: "Ocurrió un problema temporal",
+        message: "No pudimos completar la operación. Inténtalo más tarde.",
+      },
     }[error.status];
-    return <ErrorState variant={configuration.variant} title={configuration.title} message={configuration.message} {...(error.correlationId === null ? {} : { correlationId: error.correlationId })} primaryAction={{ label: "Volver al panel", onClick: () => { clearError(); navigate(getSessionHomePath() ?? "/", { replace: true }); } }} />;
+    return (
+      <ErrorState
+        variant={configuration.variant}
+        title={configuration.title}
+        message={configuration.message}
+        {...(error.correlationId === null
+          ? {}
+          : { correlationId: error.correlationId })}
+        primaryAction={{
+          label: "Volver al panel",
+          onClick: () => {
+            clearError();
+            navigate(getSessionHomePath() ?? "/", { replace: true });
+          },
+        }}
+      />
+    );
   }
 
   if (path === "/password-recovery")
@@ -76,9 +131,18 @@ export function App() {
       <>
         <LoginScreen />
         <SessionExpiredDialog
-          title={unavailable ? "No pudimos renovar tu sesión" : "Tu sesión terminó"}
-          message={unavailable ? "No pudimos verificar tu sesión. Por seguridad, inicia sesión nuevamente para continuar." : "Tu sesión expiró, fue revocada o ya no está disponible. Inicia sesión nuevamente para continuar."}
-          primaryAction={{ label: "Ir al inicio de sesión", onClick: clearSessionNotice }}
+          title={
+            unavailable ? "No pudimos renovar tu sesión" : "Tu sesión terminó"
+          }
+          message={
+            unavailable
+              ? "No pudimos verificar tu sesión. Por seguridad, inicia sesión nuevamente para continuar."
+              : "Tu sesión expiró, fue revocada o ya no está disponible. Inicia sesión nuevamente para continuar."
+          }
+          primaryAction={{
+            label: "Ir al inicio de sesión",
+            onClick: clearSessionNotice,
+          }}
         />
       </>
     );
@@ -86,57 +150,208 @@ export function App() {
 
   if (path === "/") return <LoginScreen />;
 
-  const canAccessCompanyUsers = path === "/company/administrators-supervisors" &&
-    (getSessionIdentity()?.roles.includes("COMPANY_ADMIN") || getSessionIdentity()?.roles.includes("SUPERVISOR"));
-  const importResultId = /^\/company\/customer-imports\/([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i.exec(path)?.[1] ?? null;
-  if (hasSession() && path === "/company/customer-imports" && getSessionIdentity()?.roles.includes("SUPERVISOR"))
-    return <CompanyWorkspaceLayout workspace="supervisor" activeSection="clients" pageLabel="Acceso restringido"><CompanyClientImportForbidden returnPath="/supervisor/clients" /></CompanyWorkspaceLayout>;
+  const canAccessCompanyUsers =
+    path === "/company/administrators-supervisors" &&
+    (getSessionIdentity()?.roles.includes("COMPANY_ADMIN") ||
+      getSessionIdentity()?.roles.includes("SUPERVISOR"));
+  const importResultId =
+    /^\/company\/customer-imports\/([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i.exec(
+      path,
+    )?.[1] ?? null;
+  if (
+    hasSession() &&
+    path === "/company/customer-imports" &&
+    getSessionIdentity()?.roles.includes("SUPERVISOR")
+  )
+    return (
+      <CompanyWorkspaceLayout
+        workspace="supervisor"
+        activeSection="clients"
+        pageLabel="Acceso restringido"
+      >
+        <CompanyClientImportForbidden returnPath="/supervisor/clients" />
+      </CompanyWorkspaceLayout>
+    );
   if (hasSession() && (canAccessPath(path) || canAccessCompanyUsers)) {
     if (path === "/platform/dashboard")
-      return <PlatformWorkspaceLayout activeSection="dashboard"><PlatformDashboardPage /></PlatformWorkspaceLayout>;
+      return (
+        <PlatformWorkspaceLayout activeSection="dashboard">
+          <PlatformDashboardPage />
+        </PlatformWorkspaceLayout>
+      );
     if (path === "/platform/companies")
-      return <PlatformWorkspaceLayout activeSection="companies"><PlatformCompaniesPage /></PlatformWorkspaceLayout>;
+      return (
+        <PlatformWorkspaceLayout activeSection="companies">
+          <PlatformCompaniesPage />
+        </PlatformWorkspaceLayout>
+      );
     if (path === "/company/dashboard")
-      return <CompanyWorkspaceLayout workspace="company" activeSection="dashboard"><CompanyDashboardPage /></CompanyWorkspaceLayout>;
+      return (
+        <CompanyWorkspaceLayout workspace="company" activeSection="dashboard">
+          <CompanyDashboardPage />
+        </CompanyWorkspaceLayout>
+      );
     if (path === "/company/settings")
-      return <CompanyWorkspaceLayout workspace="company" activeSection="settings"><CompanySettingsPage /></CompanyWorkspaceLayout>;
+      return (
+        <CompanyWorkspaceLayout workspace="company" activeSection="settings">
+          <CompanySettingsPage />
+        </CompanyWorkspaceLayout>
+      );
     if (path === "/company/clients")
-      return <CompanyWorkspaceLayout workspace="company" activeSection="clients"><CompanyClientsPage /></CompanyWorkspaceLayout>;
+      return (
+        <CompanyWorkspaceLayout workspace="company" activeSection="clients">
+          <CompanyClientsPage />
+        </CompanyWorkspaceLayout>
+      );
     if (path === "/company/clients/map")
-      return <CompanyWorkspaceLayout workspace="company" activeSection="clients"><CompanyClientsMapPage /></CompanyWorkspaceLayout>;
+      return (
+        <CompanyWorkspaceLayout workspace="company" activeSection="clients">
+          <CompanyClientsMapPage />
+        </CompanyWorkspaceLayout>
+      );
     if (path === "/company/customer-imports")
-      return <CompanyWorkspaceLayout workspace="company" activeSection="clients" pageLabel="Carga de clientes"><CompanyClientImportPage /></CompanyWorkspaceLayout>;
+      return (
+        <CompanyWorkspaceLayout
+          workspace="company"
+          activeSection="clients"
+          pageLabel="Carga de clientes"
+        >
+          <CompanyClientImportPage />
+        </CompanyWorkspaceLayout>
+      );
     if (importResultId !== null)
-      return <CompanyWorkspaceLayout workspace="company" activeSection="clients" pageLabel="Carga de clientes / Resultado"><CompanyClientImportResultPage importId={importResultId} /></CompanyWorkspaceLayout>;
+      return (
+        <CompanyWorkspaceLayout
+          workspace="company"
+          activeSection="clients"
+          pageLabel="Carga de clientes / Resultado"
+        >
+          <CompanyClientImportResultPage importId={importResultId} />
+        </CompanyWorkspaceLayout>
+      );
     if (path === "/company/customer-assignments")
-      return <CompanyWorkspaceLayout workspace="company" activeSection="customer-assignments"><CustomerAssignmentPage /></CompanyWorkspaceLayout>;
+      return (
+        <CompanyWorkspaceLayout
+          workspace="company"
+          activeSection="customer-assignments"
+        >
+          <CustomerAssignmentPage />
+        </CompanyWorkspaceLayout>
+      );
     if (path === "/company/sellers")
-      return <CompanyWorkspaceLayout workspace="company" activeSection="sellers"><CompanySellersPage /></CompanyWorkspaceLayout>;
+      return (
+        <CompanyWorkspaceLayout workspace="company" activeSection="sellers">
+          <CompanySellersPage />
+        </CompanyWorkspaceLayout>
+      );
     if (path === "/company/territories")
-      return <CompanyWorkspaceLayout workspace="company" activeSection="territories"><CompanyTerritoriesPage /></CompanyWorkspaceLayout>;
+      return (
+        <CompanyWorkspaceLayout workspace="company" activeSection="territories">
+          <CompanyTerritoriesPage />
+        </CompanyWorkspaceLayout>
+      );
     if (path === "/company/routes")
-      return <CompanyWorkspaceLayout workspace="company" activeSection="routes"><CompanyRoutesPage /></CompanyWorkspaceLayout>;
+      return (
+        <CompanyWorkspaceLayout workspace="company" activeSection="routes">
+          <CompanyRoutesPage />
+        </CompanyWorkspaceLayout>
+      );
     if (path === "/supervisor/territories")
-      return <CompanyWorkspaceLayout workspace="supervisor" activeSection="territories"><CompanyTerritoriesPage /></CompanyWorkspaceLayout>;
+      return (
+        <CompanyWorkspaceLayout
+          workspace="supervisor"
+          activeSection="territories"
+        >
+          <CompanyTerritoriesPage />
+        </CompanyWorkspaceLayout>
+      );
     if (path === "/supervisor/dashboard")
-      return <CompanyWorkspaceLayout workspace="supervisor" activeSection="dashboard"><SupervisorDashboardPage view="dashboard" /></CompanyWorkspaceLayout>;
+      return (
+        <CompanyWorkspaceLayout
+          workspace="supervisor"
+          activeSection="dashboard"
+        >
+          <SupervisorDashboardPage view="dashboard" />
+        </CompanyWorkspaceLayout>
+      );
     if (path === "/supervisor/settings")
-      return <CompanyWorkspaceLayout workspace="supervisor" activeSection="settings"><CompanySettingsPage /></CompanyWorkspaceLayout>;
+      return (
+        <CompanyWorkspaceLayout workspace="supervisor" activeSection="settings">
+          <CompanySettingsPage />
+        </CompanyWorkspaceLayout>
+      );
     if (path === "/seller/settings")
-      return <CompanyWorkspaceLayout workspace="seller" activeSection="settings"><CompanySettingsPage /></CompanyWorkspaceLayout>;
+      return (
+        <CompanyWorkspaceLayout workspace="seller" activeSection="settings">
+          <CompanySettingsPage />
+        </CompanyWorkspaceLayout>
+      );
     if (path === "/supervisor/clients")
-      return <CompanyWorkspaceLayout workspace="supervisor" activeSection="clients"><CompanyClientsPage /></CompanyWorkspaceLayout>;
+      return (
+        <CompanyWorkspaceLayout workspace="supervisor" activeSection="clients">
+          <CompanyClientsPage />
+        </CompanyWorkspaceLayout>
+      );
     if (path === "/supervisor/clients/map")
-      return <CompanyWorkspaceLayout workspace="supervisor" activeSection="clients"><CompanyClientsMapPage /></CompanyWorkspaceLayout>;
+      return (
+        <CompanyWorkspaceLayout workspace="supervisor" activeSection="clients">
+          <CompanyClientsMapPage />
+        </CompanyWorkspaceLayout>
+      );
     if (path === "/supervisor/sellers")
-      return <CompanyWorkspaceLayout workspace="supervisor" activeSection="sellers"><CompanySellersPage /></CompanyWorkspaceLayout>;
+      return (
+        <CompanyWorkspaceLayout workspace="supervisor" activeSection="sellers">
+          <CompanySellersPage />
+        </CompanyWorkspaceLayout>
+      );
     if (path === "/supervisor/routes")
-      return <CompanyWorkspaceLayout workspace="supervisor" activeSection="routes"><CompanyRoutesPage /></CompanyWorkspaceLayout>;
+      return (
+        <CompanyWorkspaceLayout workspace="supervisor" activeSection="routes">
+          <CompanyRoutesPage />
+        </CompanyWorkspaceLayout>
+      );
     if (path === "/company/administrators-supervisors")
-      return <CompanyWorkspaceLayout workspace="company" activeSection="administrators-supervisors"><CompanyUsersPageRoute /></CompanyWorkspaceLayout>;
+      return (
+        <CompanyWorkspaceLayout
+          workspace="company"
+          activeSection="administrators-supervisors"
+        >
+          <CompanyUsersPageRoute />
+        </CompanyWorkspaceLayout>
+      );
     return (
       <>
-        {error && <InlineAlert variant={error.status === 409 ? "warning" : "error"} title={error.status === 409 ? "La información cambió" : "Revisa la información ingresada"} message={error.status === 409 ? "Actualiza la información y revisa los cambios antes de continuar." : error.fieldErrors.length > 0 ? "Revisa los campos señalados e inténtalo nuevamente." : "No pudimos validar la información. Revísala e inténtalo nuevamente."} {...(error.correlationId === null ? {} : { correlationId: error.correlationId })} action={error.status === 409 ? { label: "Recargar y revisar", onClick: () => { clearError(); navigate(path, { replace: true }); } } : { label: "Cerrar aviso", onClick: clearError }} />}
+        {error && (
+          <InlineAlert
+            variant={error.status === 409 ? "warning" : "error"}
+            title={
+              error.status === 409
+                ? "La información cambió"
+                : "Revisa la información ingresada"
+            }
+            message={
+              error.status === 409
+                ? "Actualiza la información y revisa los cambios antes de continuar."
+                : error.fieldErrors.length > 0
+                  ? "Revisa los campos señalados e inténtalo nuevamente."
+                  : "No pudimos validar la información. Revísala e inténtalo nuevamente."
+            }
+            {...(error.correlationId === null
+              ? {}
+              : { correlationId: error.correlationId })}
+            action={
+              error.status === 409
+                ? {
+                    label: "Recargar y revisar",
+                    onClick: () => {
+                      clearError();
+                      navigate(path, { replace: true });
+                    },
+                  }
+                : { label: "Cerrar aviso", onClick: clearError }
+            }
+          />
+        )}
         <SessionStatusPage
           eyebrow="Sesión iniciada"
           title="Redirigiendo a tu panel"

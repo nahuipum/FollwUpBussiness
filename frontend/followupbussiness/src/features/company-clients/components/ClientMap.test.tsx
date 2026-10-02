@@ -2,19 +2,49 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import { afterEach, expect, test, vi } from "vitest";
 import { ClientMap } from "./ClientMap";
 
-const maps: Array<{ listeners: Record<string, () => void>; remove: ReturnType<typeof vi.fn> }> = [];
+const maplibreLoader = vi.hoisted(() => ({ deferred: false, resolve: undefined as (() => void) | undefined }));
+const maps: Array<{ style: string; setStyle: ReturnType<typeof vi.fn>; listeners: Record<string, () => void>; remove: ReturnType<typeof vi.fn> }> = [];
 const markers: HTMLElement[] = [];
 const popups: HTMLElement[] = [];
 const popupOptions: Array<Record<string, unknown>> = [];
 vi.mock("maplibre-gl", () => ({
   setWorkerUrl: vi.fn(),
-  Map: class { readonly listeners: Record<string, () => void> = {}; readonly remove = vi.fn(); constructor() { maps.push(this); } on(event: string, listener: () => void) { this.listeners[event] = listener; } setMissingStyleImageResolver() {} },
+  Map: class { readonly style: string; readonly setStyle = vi.fn(); readonly listeners: Record<string, () => void> = {}; readonly remove = vi.fn(); constructor({ style }: { style: string }) { this.style = style; maps.push(this); } on(event: string, listener: () => void) { this.listeners[event] = listener; } setMissingStyleImageResolver() {} },
   Marker: class { constructor({ element }: { element: HTMLElement }) { markers.push(element); } setLngLat() { return this; } addTo() { return this; } },
   Popup: class { constructor(options: Record<string, unknown>) { popupOptions.push(options); } setLngLat() { return this; } setDOMContent(content: HTMLElement) { popups.push(content); return this; } addTo() { return this; } },
 }));
 vi.mock("maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url", () => ({ default: "/assets/maplibre-worker.js" }));
+vi.mock("./maplibre-loader", async () => ({ loadMapLibre: async () => {
+  const maplibre = await import("maplibre-gl");
+  if (!maplibreLoader.deferred) return maplibre;
+  return new Promise<typeof maplibre>((resolve) => { maplibreLoader.resolve = () => resolve(maplibre); });
+} }));
 const clients = [{ id: "client-1", name: "Comercial Norte", segment: null, territoryId: null, assignedSellerIds: [], status: "ACTIVE" as const, location: { latitude: -12.04, longitude: -77.03 }, createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z", version: 1 }];
-afterEach(() => { cleanup(); maps.splice(0); markers.splice(0); popups.splice(0); popupOptions.splice(0); vi.unstubAllEnvs(); });
+afterEach(() => { cleanup(); maps.splice(0); markers.splice(0); popups.splice(0); popupOptions.splice(0); maplibreLoader.deferred = false; maplibreLoader.resolve = undefined; vi.unstubAllEnvs(); document.documentElement.dataset.theme = "light"; });
+
+test("usa el estilo oscuro y lo actualiza al cambiar el tema", async () => {
+  vi.stubEnv("VITE_GEOAPIFY_TILE_KEY", "test-key");
+  document.documentElement.dataset.theme = "dark";
+  render(<ClientMap clients={clients} selectedId={null} onSelect={() => undefined} />);
+  await waitFor(() => expect(maps).toHaveLength(1));
+  expect(maps[0]?.style).toContain("/styles/dark-matter/");
+
+  act(() => { document.documentElement.dataset.theme = "light"; });
+  await waitFor(() => expect(maps[0]?.setStyle).toHaveBeenCalledWith(expect.stringContaining("/styles/osm-bright/")));
+  expect(maps).toHaveLength(1);
+});
+
+test("usa el tema vigente si cambia antes de resolver la carga diferida", async () => {
+  vi.stubEnv("VITE_GEOAPIFY_TILE_KEY", "test-key");
+  maplibreLoader.deferred = true;
+  document.documentElement.dataset.theme = "dark";
+  render(<ClientMap clients={clients} selectedId={null} onSelect={() => undefined} />);
+  await waitFor(() => expect(maplibreLoader.resolve).toBeTypeOf("function"));
+  act(() => { document.documentElement.dataset.theme = "light"; });
+  act(() => maplibreLoader.resolve?.());
+  await waitFor(() => expect(maps).toHaveLength(1));
+  expect(maps[0]?.style).toContain("/styles/osm-bright/");
+});
 
 test("se degrada a la lista cuando falta la configuración de mosaicos", () => {
   vi.stubEnv("VITE_GEOAPIFY_TILE_KEY", "");

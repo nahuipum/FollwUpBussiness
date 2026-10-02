@@ -62,14 +62,28 @@ class ReorderRoutePointsServiceTest {
   assertThat(updated.status()).isEqualTo("PUBLISHED");
  }
 
+ @Test void repairsLegacyPublishedRouteUsingOnlyItsValidPreviousVersionSnapshot() {
+  UUID tenant=UUID.randomUUID(), actor=UUID.randomUUID(), routeId=UUID.randomUUID(), seller=UUID.randomUUID(), first=UUID.randomUUID(), second=UUID.randomUUID();
+  Route route=new Route(routeId,tenant,"r",LocalDate.of(2026,8,25),seller,new GeoPoint(0,0),List.of(new Route.Point(first,UUID.randomUUID(),1,new GeoPoint(1,1)),new Route.Point(second,UUID.randomUUID(),2,new GeoPoint(2,2))),Instant.EPOCH,Instant.EPOCH,2,"PUBLISHED");
+  RouteStore routes=mock(RouteStore.class); PlanningSnapshotStore snapshots=mock(PlanningSnapshotStore.class); PortfolioAccessScopeUseCase scopes=mock(PortfolioAccessScopeUseCase.class); RecordAuditEntryUseCase audit=mock(RecordAuditEntryUseCase.class); JourneyStartedStatusUseCase journeys=mock(JourneyStartedStatusUseCase.class); OutboxStore outbox=mock(OutboxStore.class);
+  when(routes.findForUpdate(tenant,routeId)).thenReturn(Optional.of(route)); when(scopes.resolve(any())).thenReturn(new PortfolioAccessScopeUseCase.Scope(tenant,true,Set.of())); when(audit.record(any())).thenReturn(true); when(journeys.stateForUpdate(any())).thenReturn(JourneyStartedStatusUseCase.State.NOT_STARTED);
+  var previousSnapshot=new PlanningSnapshot(UUID.randomUUID(),tenant,routeId,1,Instant.parse("2026-08-26T00:00:00Z"),Instant.parse("2026-08-25T08:00:00Z"),Instant.parse("2026-08-25T18:00:00Z"),List.of(new PlanningSnapshot.Visit(first,60,null,null),new PlanningSnapshot.Visit(second,60,null,null)),Map.of("START:"+second,new PlanningSnapshot.Leg(60,100),second+":"+first,new PlanningSnapshot.Leg(120,100)));
+  when(snapshots.findValidForUpdate(tenant,routeId,2)).thenReturn(Optional.empty()); when(snapshots.findValidForUpdate(tenant,routeId,1)).thenReturn(Optional.of(previousSnapshot));
+
+  Route updated=new ReorderRoutePointsService(routes,snapshots,scopes,audit,journeys,outbox,Clock.fixed(Instant.parse("2026-08-25T12:00:00Z"),ZoneOffset.UTC)).reorder(new ReorderRoutePointsUseCase.Command(routeId,2,List.of(second,first),UUID.randomUUID()),new AuthenticatedActor(actor,tenant,BaseRole.COMPANY_ADMIN));
+
+  assertThat(updated.status()).isEqualTo("PUBLISHED"); assertThat(updated.version()).isEqualTo(3); assertThat(updated.points()).extracting(Route.Point::id).containsExactly(second,first);
+  verify(snapshots).findValidForUpdate(tenant,routeId,2); verify(snapshots).findValidForUpdate(tenant,routeId,1); verify(snapshots).supersedeAndCopy(previousSnapshot,3);
+ }
+
  @Test void rejectsStartedOrUnavailableJourneyWithoutSnapshotWritesAuditOrOutbox() {
   UUID tenant=UUID.randomUUID(), routeId=UUID.randomUUID(), seller=UUID.randomUUID(), point=UUID.randomUUID(); Route route=new Route(routeId,tenant,"r",LocalDate.now(),seller,null,List.of(new Route.Point(point,UUID.randomUUID(),1,new GeoPoint(1,1))),Instant.EPOCH,Instant.EPOCH,1,"PUBLISHED");
   RouteStore routes=mock(RouteStore.class); PlanningSnapshotStore snapshots=mock(PlanningSnapshotStore.class); PortfolioAccessScopeUseCase scopes=mock(PortfolioAccessScopeUseCase.class); RecordAuditEntryUseCase audit=mock(RecordAuditEntryUseCase.class); JourneyStartedStatusUseCase journeys=mock(JourneyStartedStatusUseCase.class); OutboxStore outbox=mock(OutboxStore.class); AuthenticatedActor actor=new AuthenticatedActor(UUID.randomUUID(),tenant,BaseRole.COMPANY_ADMIN); ReorderRoutePointsUseCase.Command command=new ReorderRoutePointsUseCase.Command(routeId,1,List.of(point),UUID.randomUUID());
   when(routes.findForUpdate(tenant,routeId)).thenReturn(Optional.of(route)); when(scopes.resolve(actor)).thenReturn(new PortfolioAccessScopeUseCase.Scope(tenant,true,Set.of())); when(journeys.stateForUpdate(any())).thenReturn(JourneyStartedStatusUseCase.State.STARTED);
   var service=new ReorderRoutePointsService(routes,snapshots,scopes,audit,journeys,outbox,Clock.systemUTC());
-  assertThatThrownBy(()->service.reorder(command,actor)).isInstanceOf(ReorderRoutePointsUseCase.Conflict.class);
+  assertThatThrownBy(()->service.reorder(command,actor)).isInstanceOfSatisfying(ReorderRoutePointsUseCase.Conflict.class, conflict -> assertThat(conflict.code()).isEqualTo(ReorderRoutePointsUseCase.Conflict.Code.JOURNEY_ALREADY_STARTED));
   when(journeys.stateForUpdate(any())).thenThrow(new JourneyStartedStatusUseCase.Unavailable());
-  assertThatThrownBy(()->service.reorder(command,actor)).isInstanceOf(ReorderRoutePointsUseCase.Conflict.class);
+  assertThatThrownBy(()->service.reorder(command,actor)).isInstanceOfSatisfying(ReorderRoutePointsUseCase.Conflict.class, conflict -> assertThat(conflict.code()).isEqualTo(ReorderRoutePointsUseCase.Conflict.Code.JOURNEY_STATE_UNAVAILABLE));
   verifyNoInteractions(snapshots,audit,outbox); verify(routes,never()).replacePointsAndVersion(any(),anyLong());
  }
 

@@ -34,6 +34,23 @@ class GetRouteDirectionsServiceTest {
         verifyNoMoreInteractions(provider);
     }
 
+    @Test void previewsPublishedCompletePermutationBeforeTheOrderIsPersisted() {
+        var reads = mock(ReadRoutesUseCase.class); var provider = mock(RouteDirections.class); UUID routeId = UUID.randomUUID(), tenant = UUID.randomUUID();
+        var actor = new AuthenticatedActor(UUID.randomUUID(), tenant, BaseRole.COMPANY_ADMIN);
+        UUID first = UUID.randomUUID(), second = UUID.randomUUID();
+        Route route = new Route(routeId, tenant, "published", LocalDate.now(), UUID.randomUUID(), new GeoPoint(1, 1), List.of(
+                new Route.Point(first, UUID.randomUUID(), 1, new GeoPoint(1, 1)),
+                new Route.Point(second, UUID.randomUUID(), 2, new GeoPoint(2, 2))), Instant.EPOCH, Instant.EPOCH, 4, "PUBLISHED");
+        var expected = new RouteDirections.Directions(List.of(new GeoPoint(2, 2), new GeoPoint(1, 1)), List.of(), 1, 2);
+        when(reads.get(routeId, actor)).thenReturn(route); when(provider.calculate(anyList())).thenReturn(expected);
+
+        assertThat(new GetRouteDirectionsService(reads, provider).preview(
+                new com.nahui.followupbussiness.routing.application.port.in.GetRouteDirectionsUseCase.Preview(routeId, 4, List.of(second, first)), actor)).isEqualTo(expected);
+
+        verify(provider).calculate(List.of(new GeoPoint(2, 2), new GeoPoint(1, 1)));
+        verifyNoMoreInteractions(provider);
+    }
+
     @Test void rejectsStaleOrIncompletePreviewBeforeProviderCall() {
         var reads = mock(ReadRoutesUseCase.class); var provider = mock(RouteDirections.class); UUID routeId = UUID.randomUUID(), tenant = UUID.randomUUID();
         var actor = new AuthenticatedActor(UUID.randomUUID(), tenant, BaseRole.COMPANY_ADMIN);
@@ -50,13 +67,13 @@ class GetRouteDirectionsServiceTest {
         verifyNoInteractions(provider);
     }
 
-    @Test void rejectsPreviewForNonDraftOrUnauthorizedActorBeforeProviderCall() {
+    @Test void rejectsPreviewForNonEditableStatusOrUnauthorizedActorBeforeProviderCall() {
         var reads = mock(ReadRoutesUseCase.class); var provider = mock(RouteDirections.class); UUID routeId = UUID.randomUUID(), tenant = UUID.randomUUID();
         UUID first = UUID.randomUUID(), second = UUID.randomUUID();
-        Route published = new Route(routeId, tenant, "route", LocalDate.now(), UUID.randomUUID(), null, List.of(
-                new Route.Point(first, UUID.randomUUID(), 1, new GeoPoint(1, 1)), new Route.Point(second, UUID.randomUUID(), 2, new GeoPoint(2, 2))), Instant.EPOCH, Instant.EPOCH, 1, "PUBLISHED");
+        Route inProgress = new Route(routeId, tenant, "route", LocalDate.now(), UUID.randomUUID(), null, List.of(
+                new Route.Point(first, UUID.randomUUID(), 1, new GeoPoint(1, 1)), new Route.Point(second, UUID.randomUUID(), 2, new GeoPoint(2, 2))), Instant.EPOCH, Instant.EPOCH, 1, "IN_PROGRESS");
         var admin = new AuthenticatedActor(UUID.randomUUID(), tenant, BaseRole.COMPANY_ADMIN);
-        when(reads.get(routeId, admin)).thenReturn(published);
+        when(reads.get(routeId, admin)).thenReturn(inProgress);
         var service = new GetRouteDirectionsService(reads, provider);
 
         assertThatThrownBy(() -> service.preview(new com.nahui.followupbussiness.routing.application.port.in.GetRouteDirectionsUseCase.Preview(routeId, 1, List.of(first, second)), admin))
@@ -92,10 +109,35 @@ class GetRouteDirectionsServiceTest {
         verify(provider).calculate(List.of(new GeoPoint(1, 1), new GeoPoint(2, 2)));
     }
 
+    @Test void ignoresLegacyStartCopiedFromAVisitAfterTheRouteIsReordered() {
+        var reads = mock(ReadRoutesUseCase.class); var provider = mock(RouteDirections.class); UUID routeId = UUID.randomUUID(), tenant = UUID.randomUUID();
+        var actor = new AuthenticatedActor(UUID.randomUUID(), tenant, BaseRole.SUPERVISOR);
+        var oldFirstVisit = new GeoPoint(1, 1);
+        var route = route(routeId, tenant, 2, oldFirstVisit, List.of(new GeoPoint(2, 2), new GeoPoint(3, 3), oldFirstVisit));
+        var expected = new RouteDirections.Directions(List.of(new GeoPoint(2, 2), new GeoPoint(3, 3), oldFirstVisit), List.of(), 1, 2);
+        when(reads.get(routeId, actor)).thenReturn(route); when(provider.calculate(anyList())).thenReturn(expected);
+
+        assertThat(new GetRouteDirectionsService(reads, provider).get(routeId, actor)).isEqualTo(expected);
+
+        verify(provider).calculate(List.of(new GeoPoint(2, 2), new GeoPoint(3, 3), oldFirstVisit));
+    }
+
     @Test void singleVisitWithoutExplicitOriginDoesNotCallProviderForInventedNavigation() {
         var reads = mock(ReadRoutesUseCase.class); var provider = mock(RouteDirections.class); UUID routeId = UUID.randomUUID(), tenant = UUID.randomUUID();
         var actor = new AuthenticatedActor(UUID.randomUUID(), tenant, BaseRole.SUPERVISOR);
         when(reads.get(routeId, actor)).thenReturn(route(routeId, tenant, 1, null, List.of(new GeoPoint(1, 1))));
+
+        assertThatThrownBy(() -> new GetRouteDirectionsService(reads, provider).get(routeId, actor))
+                .isInstanceOf(com.nahui.followupbussiness.routing.application.port.in.GetRouteDirectionsUseCase.Invalid.class);
+
+        verifyNoInteractions(provider);
+    }
+
+    @Test void singleVisitWithLegacyDuplicatedStartDoesNotCallProvider() {
+        var reads = mock(ReadRoutesUseCase.class); var provider = mock(RouteDirections.class); UUID routeId = UUID.randomUUID(), tenant = UUID.randomUUID();
+        var actor = new AuthenticatedActor(UUID.randomUUID(), tenant, BaseRole.SUPERVISOR);
+        var visit = new GeoPoint(1, 1);
+        when(reads.get(routeId, actor)).thenReturn(route(routeId, tenant, 1, visit, List.of(visit)));
 
         assertThatThrownBy(() -> new GetRouteDirectionsService(reads, provider).get(routeId, actor))
                 .isInstanceOf(com.nahui.followupbussiness.routing.application.port.in.GetRouteDirectionsUseCase.Invalid.class);

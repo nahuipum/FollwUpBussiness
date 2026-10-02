@@ -12,14 +12,22 @@ import com.nahui.followupbussiness.customers.domain.GeoPoint;
 import com.nahui.followupbussiness.identityaccess.domain.model.AuthenticatedActor;
 import com.nahui.followupbussiness.identityaccess.domain.model.BaseRole;
 import com.nahui.followupbussiness.routing.application.port.in.CopyRouteUseCase;
+import com.nahui.followupbussiness.routing.application.port.out.PlanningSnapshotStore;
 import com.nahui.followupbussiness.routing.application.port.out.RouteStore;
+import com.nahui.followupbussiness.routing.application.port.out.TravelMatrix;
+import com.nahui.followupbussiness.routing.domain.PlanningSnapshot;
 import com.nahui.followupbussiness.routing.domain.Route;
+import com.nahui.followupbussiness.tenancy.application.port.in.CurrentCompanyQuery;
+import com.nahui.followupbussiness.tenancy.domain.model.Company;
+import com.nahui.followupbussiness.tenancy.domain.model.CompanySettings;
+import com.nahui.followupbussiness.tenancy.domain.model.CompanyStatus;
 import com.nahui.followupbussiness.workforce.application.port.in.PortfolioAccessScopeUseCase;
 import com.nahui.followupbussiness.workforce.application.port.in.SellerReferenceUseCase;
 import com.nahui.followupbussiness.workforce.application.port.in.TerritoryReferenceUseCase;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
@@ -53,6 +61,11 @@ class CopyRouteServiceTest {
         assertThat(result.warnings()).extracting(CopyRouteUseCase.Warning::code).containsExactly("SOURCE_SELLER_INACTIVE", "CUSTOMER_INACTIVE");
         assertThat(result.warnings().get(1).sourcePointId()).isEqualTo(f.inactivePoint.id());
         verify(f.routes).save(result.route());
+        verify(f.snapshots).saveValid(argThat(snapshot -> snapshot.routeId().equals(result.route().id())
+                && snapshot.baseRouteVersion() == 1L
+                && snapshot.visits().size() == 1
+                && snapshot.visits().getFirst().pointId().equals(result.route().points().getFirst().id())
+                && snapshot.visits().getFirst().serviceSeconds() == 900));
         verify(f.routes).completeCopyIdempotency(eq(f.tenant), eq(f.actor.accountId()), any(), eq(result.route().id()));
     }
 
@@ -69,6 +82,34 @@ class CopyRouteServiceTest {
 
         assertThat(result.route().points()).isEmpty();
         assertThat(result.warnings()).extracting(CopyRouteUseCase.Warning::code).containsOnly("CUSTOMER_OUTSIDE_TARGET_PORTFOLIO");
+        verify(f.snapshots).saveIncomplete(eq(f.tenant), eq(result.route().id()), eq(1L), any());
+    }
+
+    @Test void createsFreshPublishablePlanningForEveryCopiedVisit() {
+        Fixture f = fixture();
+        when(f.sellers.allActive(f.tenant, Set.of(f.targetSeller))).thenReturn(true);
+        when(f.sellers.allActive(f.tenant, Set.of(f.source.sellerId()))).thenReturn(true);
+        when(f.customers.activeAssignedToSellerAt(f.tenant, f.targetSeller,
+                List.of(f.activePoint.customerId(), f.inactivePoint.customerId()), f.targetDate)).thenReturn(List.of(
+                new CustomerPortfolioReadUseCase.RouteCustomer(f.activePoint.customerId(), new GeoPoint(-11, -76), f.territory),
+                new CustomerPortfolioReadUseCase.RouteCustomer(f.inactivePoint.customerId(), new GeoPoint(-11.1, -76.1), f.territory)));
+        when(f.customers.get(eq(f.activePoint.customerId()), any())).thenReturn(Optional.of(detail(f.tenant, f.activePoint.customerId(), "ACTIVE")));
+        when(f.customers.get(eq(f.inactivePoint.customerId()), any())).thenReturn(Optional.of(detail(f.tenant, f.inactivePoint.customerId(), "ACTIVE")));
+        when(f.territories.activeTerritory(f.tenant, f.territory)).thenReturn(true);
+        when(f.routes.reserveCopyIdempotency(eq(f.tenant), eq(f.actor.accountId()), any(), any(), any()))
+                .thenReturn(new RouteStore.Reservation(true, null, null));
+        when(f.matrix.calculate(any())).thenReturn(new TravelMatrix.Matrix(new long[][]{{0, 120}, {90, 0}},
+                new long[][]{{0, 1000}, {900, 0}}));
+        when(f.audit.record(any())).thenReturn(true);
+
+        var result = f.service.copy(command(f), f.actor);
+
+        assertThat(result.route().points()).hasSize(2);
+        verify(f.snapshots).saveValid(argThat(snapshot -> snapshot.routeId().equals(result.route().id())
+                && snapshot.validUntil().equals(Instant.parse("2026-09-04T05:00:00Z"))
+                && snapshot.visits().stream().map(PlanningSnapshot.Visit::serviceSeconds).toList().equals(List.of(900, 600))
+                && snapshot.legs().size() == 2));
+        verify(f.snapshots, never()).saveIncomplete(any(), any(), anyLong(), any());
     }
 
     @Test void deniesSupervisorOutsideEitherSellerScopeForMatchingAndDifferentSourceDatesWithoutEffects() {
@@ -97,8 +138,30 @@ class CopyRouteServiceTest {
         RouteStore routes = mock(RouteStore.class); when(routes.find(tenant, source.id())).thenReturn(Optional.of(source));
         var actor = new AuthenticatedActor(UUID.randomUUID(), tenant, BaseRole.COMPANY_ADMIN);
         CustomerPortfolioReadUseCase customers = mock(CustomerPortfolioReadUseCase.class); SellerReferenceUseCase sellers = mock(SellerReferenceUseCase.class); TerritoryReferenceUseCase territories = mock(TerritoryReferenceUseCase.class); PortfolioAccessScopeUseCase scopes = mock(PortfolioAccessScopeUseCase.class); when(scopes.resolve(actor)).thenReturn(new PortfolioAccessScopeUseCase.Scope(tenant, true, Set.of()));
+        PlanningSnapshotStore snapshots = mock(PlanningSnapshotStore.class);
+        when(snapshots.findLatestReusable(tenant, source.id())).thenReturn(Optional.of(new PlanningSnapshot(UUID.randomUUID(), tenant,
+                source.id(), source.version(), Instant.parse("2026-09-03T05:00:00Z"), Instant.parse("2026-09-02T13:00:00Z"),
+                Instant.parse("2026-09-02T23:00:00Z"), List.of(
+                new PlanningSnapshot.Visit(active.id(), 900, Instant.parse("2026-09-02T13:00:00Z"), Instant.parse("2026-09-02T23:00:00Z")),
+                new PlanningSnapshot.Visit(inactive.id(), 600, Instant.parse("2026-09-02T13:00:00Z"), Instant.parse("2026-09-02T23:00:00Z"))),
+                java.util.Map.of(active.id() + ":" + inactive.id(), new PlanningSnapshot.Leg(60, 100),
+                        inactive.id() + ":" + active.id(), new PlanningSnapshot.Leg(60, 100)))));
+        TravelMatrix matrix = mock(TravelMatrix.class);
+        CurrentCompanyQuery companies = mock(CurrentCompanyQuery.class);
+        Company company = new Company(tenant, "Company", null, "company", null, CompanyStatus.ACTIVE,
+                new CompanySettings("America/Lima", "PEN", 100, 60, 90, null, LocalTime.of(8, 0), LocalTime.of(18, 0)),
+                Instant.EPOCH, Instant.EPOCH, 1);
+        when(companies.findById(tenant)).thenReturn(Optional.of(company));
         RecordAuditEntryUseCase audit = mock(RecordAuditEntryUseCase.class);
-        return new Fixture(tenant, targetSeller, territory, source, active, inactive, actor, routes, customers, sellers, territories, scopes, audit, new CopyRouteService(routes, customers, sellers, territories, scopes, audit, Clock.fixed(Instant.parse("2026-09-01T12:00:00Z"), ZoneOffset.UTC)), LocalDate.of(2026, 9, 3));
+        return new Fixture(tenant, targetSeller, territory, source, active, inactive, actor, routes, snapshots, matrix,
+                companies, customers, sellers, territories, scopes, audit,
+                new CopyRouteService(routes, snapshots, matrix, companies, customers, sellers, territories, scopes, audit,
+                        Clock.fixed(Instant.parse("2026-09-01T12:00:00Z"), ZoneOffset.UTC)), LocalDate.of(2026, 9, 3));
     }
-    private record Fixture(UUID tenant, UUID targetSeller, UUID territory, Route source, Route.Point activePoint, Route.Point inactivePoint, AuthenticatedActor actor, RouteStore routes, CustomerPortfolioReadUseCase customers, SellerReferenceUseCase sellers, TerritoryReferenceUseCase territories, PortfolioAccessScopeUseCase scopes, RecordAuditEntryUseCase audit, CopyRouteService service, LocalDate targetDate) { }
+    private record Fixture(UUID tenant, UUID targetSeller, UUID territory, Route source, Route.Point activePoint,
+                           Route.Point inactivePoint, AuthenticatedActor actor, RouteStore routes,
+                           PlanningSnapshotStore snapshots, TravelMatrix matrix, CurrentCompanyQuery companies,
+                           CustomerPortfolioReadUseCase customers, SellerReferenceUseCase sellers,
+                           TerritoryReferenceUseCase territories, PortfolioAccessScopeUseCase scopes,
+                           RecordAuditEntryUseCase audit, CopyRouteService service, LocalDate targetDate) { }
 }

@@ -25,6 +25,7 @@ export function OperationDialog({
   onSecondary,
   appearance = "default",
   module,
+  showDismissButton = true,
 }: {
   titleId: string;
   tone: Tone;
@@ -37,17 +38,18 @@ export function OperationDialog({
   onSecondary?: () => void;
   appearance?: "default" | "golden";
   module?: string;
+  showDismissButton?: boolean;
 }) {
   const primaryRef = useRef<HTMLButtonElement>(null);
   const Icon = icons[tone];
   return (
     <ModalSurface titleId={titleId} onDismiss={onClose} appearance={appearance === "golden" ? "bottom-sheet" : "default"} dismissOnBackdrop={appearance === "golden"} className={`operation-dialog operation-dialog--${appearance}`} initialFocusRef={primaryRef}>
-      {appearance === "golden" && module ? <ModalHeader module={module} title={title} titleId={titleId} onClose={onClose} closeLabel="Cerrar mensaje" /> : <header className="operation-dialog__close">
+      {appearance === "golden" && module ? <ModalHeader module={module} title={title} titleId={titleId} onClose={onClose} closeLabel="Cerrar mensaje" /> : showDismissButton && <header className="operation-dialog__close">
         <button type="button" aria-label="Cerrar mensaje" onClick={onClose}><X aria-hidden="true" /></button>
       </header>}
       <section className="operation-dialog__content">
         <span className={`operation-dialog__icon operation-dialog__icon--${tone}`}><Icon aria-hidden="true" /></span>
-        {appearance === "default" && <h2 id={titleId}>{title}</h2>}
+        {(!module || appearance === "default") && <h2 id={titleId}>{title}</h2>}
         <p role={tone === "error" || tone === "warning" ? "alert" : "status"}>{message}</p>
       </section>
       <footer>

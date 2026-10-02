@@ -1,8 +1,10 @@
 import { apiRequest } from "../../lib/api";
 import { getSessionAuthorization, getSessionMutationAuthorization } from "../auth/auth";
-import type { CreateRouteInput, Route, RouteCustomerOption, RouteCustomerPage, RouteDirections, RouteFilters, RouteOptimizationInput, RoutePage, RoutePoint, RouteProposal, RouteSellerOption, RouteStatus } from "./types";
+import type { CopyRouteInput, CopyRouteResult, CopyRouteWarningCode, CreateRouteInput, Route, RouteCustomerOption, RouteCustomerPage, RouteDirections, RouteFilters, RouteOptimizationInput, RoutePage, RoutePoint, RouteProposal, RoutePublicationEligibilityReason, RouteSellerOption, RouteStatus } from "./types";
 
 const statuses = new Set<RouteStatus>(["DRAFT", "PUBLISHED", "IN_PROGRESS", "COMPLETED", "CANCELLED"]);
+const eligibilityReasons = new Set<RoutePublicationEligibilityReason>(["ELIGIBLE", "ROUTE_NOT_DRAFT", "OPERATIONAL_DATE_EXPIRED", "TENANT_TIMEZONE_UNAVAILABLE"]);
+const copyWarningCodes = new Set<CopyRouteWarningCode>(["SOURCE_SELLER_INACTIVE", "CUSTOMER_INACTIVE", "CUSTOMER_OUTSIDE_TARGET_PORTFOLIO", "TERRITORY_NOT_EFFECTIVE", "POINT_NOT_COPIED"]);
 const nonNegativeInteger = (value: unknown): value is number => typeof value === "number" && Number.isInteger(value) && value >= 0;
 const validDate = (value: unknown): value is string => typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
 const parseLocation = (value: unknown): Readonly<{ latitude: number; longitude: number }> | undefined => {
@@ -29,7 +31,11 @@ function parseRoute(value: unknown): Route | null {
   if (typeof route.id !== "string" || !validDate(route.date) || typeof route.sellerId !== "string" || !statuses.has(route.status as RouteStatus) || !Array.isArray(route.points) || typeof route.updatedAt !== "string" || !nonNegativeInteger(route.version) || route.version < 1) return null;
   const points = route.points.map(parsePoint);
   if (points.some((point) => point === null)) return null;
-  return { id: route.id, name: typeof route.name === "string" ? route.name : null, date: route.date, sellerId: route.sellerId, status: route.status as RouteStatus, points: points as RoutePoint[], updatedAt: route.updatedAt, version: route.version };
+  const rawEligibility = route.publicationEligibility;
+  const publicationEligibility = typeof rawEligibility === "object" && rawEligibility !== null && typeof (rawEligibility as Record<string, unknown>).eligible === "boolean" && eligibilityReasons.has((rawEligibility as Record<string, unknown>).reason as RoutePublicationEligibilityReason)
+    ? { eligible: (rawEligibility as Record<string, unknown>).eligible as boolean, reason: (rawEligibility as Record<string, unknown>).reason as RoutePublicationEligibilityReason }
+    : { eligible: false, reason: route.status === "DRAFT" ? "TENANT_TIMEZONE_UNAVAILABLE" as const : "ROUTE_NOT_DRAFT" as const };
+  return { id: route.id, name: typeof route.name === "string" ? route.name : null, date: route.date, sellerId: route.sellerId, status: route.status as RouteStatus, publicationEligibility, points: points as RoutePoint[], updatedAt: route.updatedAt, version: route.version };
 }
 
 function parseDirections(value: unknown): RouteDirections | null {
@@ -130,6 +136,21 @@ const mutationHeaders = (extra: HeadersInit = {}): HeadersInit => ({ "Content-Ty
 export async function createRoute(input: CreateRouteInput, idempotencyKey: string): Promise<{ response: Response; route: Route | null }> {
   const response = await apiRequest("/routes", { method: "POST", headers: mutationHeaders({ "Idempotency-Key": idempotencyKey }), body: JSON.stringify(input) }, { publishErrors: false });
   return { response, route: response.status === 201 ? parseRoute(await response.json().catch(() => null)) : null };
+}
+export async function copyRoute(routeId: string, input: CopyRouteInput, idempotencyKey: string): Promise<{ response: Response; result: CopyRouteResult | null }> {
+  const response = await apiRequest(`/routes/${encodeURIComponent(routeId)}/copy`, { method: "POST", headers: mutationHeaders({ "Idempotency-Key": idempotencyKey }), body: JSON.stringify(input) }, { publishErrors: false });
+  if (response.status !== 201) return { response, result: null };
+  const body: unknown = await response.json().catch(() => null);
+  if (typeof body !== "object" || body === null) return { response, result: null };
+  const value = body as Record<string, unknown>;
+  const route = parseRoute(value.route);
+  if (!route || !Array.isArray(value.warnings)) return { response, result: null };
+  const warnings = value.warnings.map((entry): CopyRouteResult["warnings"][number] | null => {
+    if (typeof entry !== "object" || entry === null) return null;
+    const warning = entry as Record<string, unknown>;
+    return copyWarningCodes.has(warning.code as CopyRouteWarningCode) && typeof warning.resourceType === "string" ? { code: warning.code as CopyRouteWarningCode, resourceType: warning.resourceType } : null;
+  });
+  return warnings.some((warning) => warning === null) ? { response, result: null } : { response, result: { route, warnings: warnings as CopyRouteResult["warnings"] } };
 }
 export async function reorderRoutePoints(route: Route, points: readonly RoutePoint[], proposalVersion?: number): Promise<{ response: Response; route: Route | null }> {
   const routePointIds = points.map((point) => point.routePointId);

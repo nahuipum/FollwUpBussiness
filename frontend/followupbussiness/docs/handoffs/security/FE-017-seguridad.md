@@ -1,21 +1,24 @@
 # FE-017 — Revisión de Seguridad
 
 **Estado:** `PASS`  
-**Candidate-ID:** `a189f4d+fe017-21f65e30d556`
+**Candidate-ID:** `359cc48+fe017-6cb5b17e4336`
 
 ## Superficie revisada
 
-Publicación administrativa `POST /routes/{routeId}/publish`: visibilidad por rol y elegibilidad, aislamiento de sesión/tenant, autorización y CSRF, concurrencia con `If-Match`, idempotencia/doble envío, cambio de tenant/logout y exposición de datos del vendedor. Se revisaron el paquete, los handoffs Dev/QA, el diff y el código/pruebas afectados; `HEAD` verificado en `a189f4d` y la firma declarada coincide.
+Publicación y reordenamiento de rutas, autorización Admin/Supervisor, alcance de vendedor, aislamiento tenant del snapshot y fallback N-1, atomicidad de publicación, códigos 409, sesión/CSRF/idempotencia y payloads de auditoría/outbox/logs.
 
 ## Resultado y evidencia
 
-- **PASS — roles, tenant y equipo:** la UI limita la acción a `COMPANY_ADMIN`/`SUPERVISOR`, `DRAFT` y vendedor `ACTIVE`; no presenta la acción a Seller. Es ocultamiento UX, no autorización: la petición conserva Bearer y el Backend sigue siendo responsable de tenant, rol, equipo y vigencia.
-- **PASS — mutación protegida:** `publishRoute` codifica `routeId`, envía `X-CSRF-Token`, `X-Correlation-Id`, `Idempotency-Key` e `If-Match` con la versión vigente; el body solo contiene `notifySeller`.
-- **PASS — repetición y cambio de contexto:** `busyRef` bloquea envíos concurrentes, la clave se conserva durante el intento lógico y se descarta al cerrarlo. El cambio de sesión/empresa invalida solicitud, selección y resultado; una respuesta obsoleta no actualiza el nuevo tenant.
-- **PASS — datos y errores:** se muestran solo nombre del vendedor, fecha, estado y disponibilidad necesarios; no se agregan logs, almacenamiento local ni exposición de coordenadas, clientes, tokens o secretos. Los errores no reflejan payloads sensibles.
+- **PASS — autorización y tenant:** `PublishRouteService` y `ReorderRoutePointsService` exigen `COMPANY_ADMIN`/`SUPERVISOR`, cargan la ruta con `actor.tenantId()` y validan la cartera antes de snapshots o escrituras. Las pruebas afectadas verifican que un Supervisor fuera de alcance no reserva idempotencia ni toca snapshot, auditoría u outbox.
+- **PASS — fallback controlado:** solo se consulta el snapshot `VALID` de la versión actual y, para una ruta `PUBLISHED` heredada, el predecesor exacto `N-1`, siempre con `tenantId` y `routeId`. Se revalidan vigencia y permutación completa antes de escribir; no existe selección de snapshot arbitrario.
+- **PASS — atomicidad:** `RoutingConfiguration` ejecuta publicación y reordenamiento en `TransactionTemplate` con aislamiento `SERIALIZABLE`; ruta, copia/supersesión del snapshot, auditoría, outbox e idempotencia participan en la misma operación.
+- **PASS — exposición mínima:** los 409 publican únicamente códigos enum permitidos y `correlationId`; los logs contienen código y correlación, no cuerpos, credenciales ni datos personales. Los eventos incluyen solo IDs técnicos, versión, fecha operativa y `notifySeller`.
+- **PASS — sesión y credenciales:** mutaciones usan Bearer en memoria, CSRF, `If-Match`, idempotencia y correlación. El cambio de sesión/tenant aborta o invalida respuestas pendientes y limpia selección y clave.
 
-**Abuso reproducido (PASS):** publicación en vuelo seguida de cambio `tenant-a → tenant-b`; la prueba focal `useRoutePublish.test.tsx -t "usa una única mutación..."` pasó y confirmó una sola llamada, limpieza del estado y ausencia de actualización tardía.
+## Abuso dirigido
 
-## Hallazgos y riesgos residuales
+`NOT_EXECUTED`: el intento de ejecutar `PublishRouteServiceTest#deniesSupervisorOutsideCurrentSellerScopeBeforeIdempotencyOrWrites` no inició por fallo del wrapper Maven (`Cannot start maven from wrapper`). Se reutiliza la evidencia Development/QA del mismo candidato.
 
-Sin hallazgos explotables. **No aplican:** WebSocket, cache/Redis, mensajería directa, archivos, dependencias e infraestructura (sin cambios). Riesgo residual: un cliente manipulado puede invocar el endpoint pese al ocultamiento; queda contenido únicamente si Backend mantiene los controles declarados de autorización, tenant/equipo, estado y versión.
+## Controles no aplicables y riesgo residual
+
+No se afectaron secretos persistidos, archivos, WebSocket, cache/Redis, pagos ni dependencias. Riesgo residual bajo: no se repitió una prueba de integración real de rollback transaccional; la conclusión se apoya en configuración y pruebas focales ya aprobadas.

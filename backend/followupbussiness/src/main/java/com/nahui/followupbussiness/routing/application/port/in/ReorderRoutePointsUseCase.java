@@ -13,7 +13,23 @@ public interface ReorderRoutePointsUseCase {
         }
     }
     final class Forbidden extends RuntimeException { }
-    final class Conflict extends RuntimeException { public Conflict() {} public Conflict(String message) { super(message); } }
+    final class Conflict extends RuntimeException {
+        public enum Code {
+            ROUTE_VERSION_CONFLICT,
+            PROPOSAL_VERSION_CONFLICT,
+            ROUTE_NOTIFICATION_UNAVAILABLE,
+            JOURNEY_STATE_UNAVAILABLE,
+            JOURNEY_ALREADY_STARTED,
+            SNAPSHOT_MISSING,
+            SNAPSHOT_EXPIRED,
+            SNAPSHOT_STALE,
+            SNAPSHOT_INCOMPLETE
+        }
+        private final Code code;
+        public Conflict() { this(Code.ROUTE_VERSION_CONFLICT); }
+        public Conflict(Code code) { super(code.name()); this.code = code; }
+        public Code code() { return code; }
+    }
     final class Invalid extends RuntimeException {
         public Invalid() { super("INVALID_REORDER_REQUEST"); }
         public Invalid(String code) { super(code); }

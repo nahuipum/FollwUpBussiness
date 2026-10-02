@@ -1,8 +1,9 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { expect, test, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, expect, test, vi } from "vitest";
 import { RouteDetailDialog } from "./RouteDetailDialog";
 
 vi.mock("../hooks/useRouteDirections", () => ({ useRouteDirections: () => ({ directions: null, loading: false, error: null, stale: false, retry: vi.fn() }) }));
+afterEach(cleanup);
 
 const route = { id: "route-1", name: "Norte", date: "2026-08-26", sellerId: "seller-1", status: "PUBLISHED" as const, points: [{ sequence: 2, customerName: null }, { sequence: 1, customerName: "Comercial Norte" }], updatedAt: "2026-08-26T11:00:00Z", version: 1 };
 test("muestra la secuencia y la vista de mapa en modo solo lectura", () => {
@@ -26,4 +27,14 @@ test("ofrece publicar solo al administrador autorizado cuando el vendedor está 
   render(<RouteDetailDialog target={{ ...route, status: "DRAFT" }} route={{ ...route, status: "DRAFT" }} sellerLabel="Ana" sellerAvailable canPublish canGenerateProposal={false} onPublish={publish} onGenerateProposal={() => undefined} loading={false} error={null} onRetry={() => undefined} onClose={() => undefined} />);
   fireEvent.click(screen.getByRole("button", { name: "Publicar ruta" }));
   expect(publish).toHaveBeenCalledWith(expect.objectContaining({ status: "DRAFT" }));
+});
+test("explica el borrador vencido, no permite publicarlo y ofrece copiarlo", () => {
+  const expired = { ...route, status: "DRAFT" as const, publicationEligibility: { eligible: false, reason: "OPERATIONAL_DATE_EXPIRED" as const } };
+  const copy = vi.fn();
+  render(<RouteDetailDialog target={expired} route={expired} sellerLabel="Ana" sellerAvailable canManage onCopy={copy} onPublish={() => undefined} onGenerateProposal={() => undefined} loading={false} error={null} onRetry={() => undefined} onClose={() => undefined} />);
+  expect(screen.getAllByText("Borrador vencido").length).toBeGreaterThan(0);
+  expect(screen.getByText(/conserva su estado DRAFT/)).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Publicar ruta" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Copiar ruta" }));
+  expect(copy).toHaveBeenCalledWith(expired);
 });

@@ -1,11 +1,12 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { useState } from "react";
 import { afterEach, expect, test, vi } from "vitest";
 import { RoutePlanningWorkflow } from "./RoutePlanningWorkflow";
 
 vi.mock("../hooks/useRouteDirections", () => ({ useRouteDirections: () => ({ directions: null, loading: false, error: null, stale: false, retry: vi.fn() }) }));
 vi.mock("./RouteSequenceMap", () => ({ RouteSequenceMap: () => <div aria-label="Mapa de la ruta" /> }));
 
-const base = { mode: "manual" as const, sellers: [{ id: "seller-1", label: "Ana", status: "ACTIVE" as const, territoryIds: ["territory-1"] }], date: "2026-08-26", sellerId: "seller-1", customers: [{ id: "customer-1", label: "Comercial Norte", territoryId: "territory-1", suggested: false, location: { latitude: -12.04, longitude: -77.03 } }], selected: ["customer-1"], serviceDurations: { "customer-1": "1800" }, hasInvalidDurations: false, loadingCustomers: false, moreCustomers: false, suggestionError: null, saving: false, error: null, conflict: false, availabilityStart: "08:00", availabilityEnd: "17:00", proposalVisits: [{ customerId: "customer-1", included: true, serviceDurationMinutes: "30", priority: "2", windowStart: "", windowEnd: "" }], proposalValidation: { windows: {} }, onDate: vi.fn(), onSeller: vi.fn(), onSelected: vi.fn(), onServiceDuration: vi.fn(), onAvailabilityStart: vi.fn(), onAvailabilityEnd: vi.fn(), onProposalVisit: vi.fn(), onSubmit: vi.fn(), onGenerateAutomatic: vi.fn(), onLoadMore: vi.fn(), onRetrySuggestions: vi.fn(), onRetryCustomers: vi.fn(), onClose: vi.fn(), onChangeMode: vi.fn() };
+const base = { mode: "manual" as const, sellers: [{ id: "seller-1", label: "Ana", status: "ACTIVE" as const, territoryIds: ["territory-1"] }], date: "2026-08-26", sellerId: "seller-1", customers: [{ id: "customer-1", label: "Comercial Norte", territoryId: "territory-1", suggested: false, location: { latitude: -12.04, longitude: -77.03 } }], selected: ["customer-1"], serviceDurations: { "customer-1": "1800" }, hasInvalidDurations: false, loadingCustomers: false, moreCustomers: false, suggestionError: null, saving: false, error: null, conflict: false, availabilityStart: "08:00", availabilityEnd: "17:00", planningWindowLoading: false, planningWindowError: null, proposalVisits: [{ customerId: "customer-1", included: true, serviceDurationMinutes: "30", priority: "2", windowStart: "", windowEnd: "" }], proposalValidation: { windows: {} }, onDate: vi.fn(), onSeller: vi.fn(), onSelected: vi.fn(), onServiceDuration: vi.fn(), onProposalVisit: vi.fn(), onSubmit: vi.fn(), onGenerateAutomatic: vi.fn(), onLoadMore: vi.fn(), onRetrySuggestions: vi.fn(), onRetryCustomers: vi.fn(), onRetryPlanningWindow: vi.fn(), onClose: vi.fn(), onChangeMode: vi.fn() };
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
 function goToCustomers() { fireEvent.click(screen.getByRole("button", { name: "Continuar a clientes" })); }
@@ -69,12 +70,27 @@ test("el flujo automático mantiene cinco pasos y no permite ordenar antes de op
   expect(screen.getByText("Revisar y guardar", { selector: ".route-stepper span" })).toBeTruthy();
   goToCustomers();
   expect(screen.getByText("1 de 9 candidatos")).toBeTruthy();
+  expect((screen.getByLabelText("Duración estimada de Comercial Norte (minutos)") as HTMLInputElement).type).toBe("number");
   expect(screen.queryByRole("button", { name: /Subir/ })).toBeNull();
   expect(screen.queryByText("Inicio", { exact: true })).toBeNull();
   expect(screen.queryByText("Final", { exact: true })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Continuar a restricciones" }));
-  expect((screen.getByLabelText(/Duración estimada de la visita/) as HTMLInputElement).type).toBe("number");
+  expect(screen.getByRole("heading", { name: "Jornada configurada" })).toBeTruthy();
+  expect(screen.queryByText("Inicio de jornada")).toBeNull();
+  expect(screen.getByRole("heading", { name: "Comercial Norte" })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: /^Generar propuesta$/ }));
   expect(base.onGenerateAutomatic).toHaveBeenCalledOnce();
   expect(base.onSubmit).not.toHaveBeenCalled();
+});
+
+test("cambia a orden manual conservando la planificación actual", () => {
+  function StatefulPlanning() {
+    const [mode, setMode] = useState<"manual" | "automatic">("automatic");
+    return <RoutePlanningWorkflow {...base} mode={mode} onChangeMode={() => setMode("manual")} />;
+  }
+  render(<StatefulPlanning />);
+  fireEvent.click(screen.getByRole("button", { name: "Ordenar manualmente" }));
+  expect(screen.getByRole("heading", { name: "Crear ruta manual" })).toBeTruthy();
+  expect(screen.getByText("Secuencia actual")).toBeTruthy();
+  expect(screen.getByText("Comercial Norte")).toBeTruthy();
 });

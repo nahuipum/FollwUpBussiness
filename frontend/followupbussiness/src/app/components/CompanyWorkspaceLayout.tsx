@@ -2,7 +2,7 @@ import { BriefcaseBusiness, ClipboardList, ContactRound, LayoutDashboard, ListFi
 import type { ReactNode } from "react";
 import { DashboardLayout, type DashboardNavigationItem } from "../../shared/layout/DashboardLayout";
 import { getSessionCompanyLabel, getSessionIdentity, logout } from "../../features/auth/auth";
-import followUpLogo from "../../features/auth/assets/followup-logo.png";
+import { AuthLogo } from "../../features/auth/components/AuthLogo";
 import { navigate } from "../navigation";
 
 type CompanySection = "dashboard" | "administrators-supervisors" | "sellers" | "territories" | "clients" | "routes" | "customer-assignments" | "settings";
@@ -50,7 +50,7 @@ export function CompanyWorkspaceLayout({ activeSection, workspace, children, pag
     : [companyName, pageLabel ?? (isSeller ? "Configuración" : isSupervisor ? supervisorSections[activeSection as SupervisorSection] : companySections[activeSection as CompanySection])];
   return (
     <DashboardLayout
-      brand={<img className="dashboard-brand-logo" src={followUpLogo} alt="followUp Business" />}
+      brand={<AuthLogo className="dashboard-brand-logo" />}
       contextLabel={companyName}
       navigationLabel={isSeller ? "Vendedor" : isSupervisor ? "Supervisor" : "Empresa"}
       profile={{

@@ -12,7 +12,7 @@
 :is(.modal-surface, .drawer-surface) .shared-modal-header__module {
   display: block;
   margin-bottom: 8px;
-  color: var(--theme-accent, #176d77);
+  color: var(--visual-brand, #2563eb);
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -22,14 +22,14 @@
 
 :is(.modal-surface, .drawer-surface) .shared-modal-header h2 {
   margin: 0;
-  color: var(--theme-text-strong, #14213d);
+  color: var(--visual-text-strong, #101828);
   font-size: 22px;
   line-height: 1.2;
 }
 
 :is(.modal-surface, .drawer-surface) .shared-modal-header__description {
   margin: 7px 0 0;
-  color: var(--theme-text-muted, #67778a);
+  color: var(--visual-text-muted, #667085);
   line-height: 1.45;
 }
 
@@ -42,14 +42,14 @@
   place-items: center;
   border: 0;
   border-radius: 10px;
-  color: var(--theme-text-muted, #67778a);
+  color: var(--visual-text-muted, #667085);
   background: transparent;
   cursor: pointer;
 }
 
 :is(.modal-surface, .drawer-surface) .shared-modal-header__close:hover:not(:disabled) {
-  color: var(--theme-accent, #176d77);
-  background: var(--theme-surface-muted, #f2f6f8);
+  color: var(--visual-brand, #2563eb);
+  background: var(--visual-surface-muted, #f2f4f7);
 }
 
 :is(.modal-surface, .drawer-surface) .shared-modal-header__close:focus-visible {

@@ -22,10 +22,25 @@ test("usa una única mutación y limpia publicación pendiente al cambiar el ten
 
 test("conserva el diálogo tras el conflicto y solicita recarga", async () => {
   const conflict = vi.fn();
-  state.publish.mockResolvedValue({ response: new Response(null, { status: 409 }), route: null });
+  state.publish.mockResolvedValue({ response: new Response(JSON.stringify({ code: "SNAPSHOT_EXPIRED" }), { status: 409, headers: { "Content-Type": "application/problem+json" } }), route: null });
   const { result } = renderHook(() => useRoutePublish("tenant-a", () => undefined, conflict));
   act(() => result.current.open(route));
   await act(async () => { await result.current.submit(); });
   await waitFor(() => expect(result.current.error?.status).toBe(409));
+  expect(result.current.error?.code).toBe("SNAPSHOT_EXPIRED");
   expect(result.current.route).toEqual(route); expect(conflict).toHaveBeenCalledOnce();
+});
+
+test.each([422, 500])("limpia el error %s al iniciar un reintento sin duplicar la mutación", async (status) => {
+  let resolve: (value: { response: Response; route: null }) => void = () => undefined;
+  state.publish.mockResolvedValueOnce({ response: new Response(null, { status }), route: null });
+  state.publish.mockReturnValueOnce(new Promise((done) => { resolve = done; }));
+  const { result } = renderHook(() => useRoutePublish("tenant-a", () => undefined, () => undefined));
+  act(() => result.current.open(route));
+  await act(async () => { await result.current.submit(); });
+  await waitFor(() => expect(result.current.error?.status).toBe(status));
+  act(() => { void result.current.submit(); void result.current.submit(); });
+  expect(result.current.error).toBeNull();
+  expect(state.publish).toHaveBeenCalledTimes(2);
+  await act(async () => { resolve({ response: new Response(null, { status: 500 }), route: null }); await Promise.resolve(); });
 });

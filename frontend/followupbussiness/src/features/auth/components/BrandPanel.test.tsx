@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, test } from "vitest";
 import { BrandPanel } from "./BrandPanel";
 
@@ -9,7 +9,26 @@ function setViewportWidth(width: number) {
 }
 
 afterEach(() => {
+  cleanup();
   setViewportWidth(initialInnerWidth);
+  delete document.documentElement.dataset.theme;
+});
+
+test("uses the dark logo without a white plate and updates with the theme", async () => {
+  setViewportWidth(621);
+  document.documentElement.dataset.theme = "dark";
+  render(<BrandPanel />);
+
+  const logo = screen.getByRole("img", { name: "followUp Business" });
+  expect(logo.getAttribute("src")).toContain("followup-logo-obscure-v2.png");
+
+  act(() => {
+    document.documentElement.dataset.theme = "light";
+  });
+
+  await waitFor(() => {
+    expect(logo.getAttribute("src")).toContain("followup-logo.png");
+  });
 });
 
 test("does not render the approved brand panel at widths of 620px or less", () => {

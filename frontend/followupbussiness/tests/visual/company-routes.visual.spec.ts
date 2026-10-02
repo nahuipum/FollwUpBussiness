@@ -69,6 +69,7 @@ const draft = {
   date: "2026-09-10",
   sellerId: sellerNorth.id,
   status: "DRAFT",
+  publicationEligibility: { eligible: true, reason: "ELIGIBLE" },
   points: points(customers.slice(0, 4)),
   updatedAt: "2026-09-10T12:00:00Z",
   version: 3,
@@ -79,6 +80,7 @@ const published = {
   date: "2026-09-10",
   sellerId: sellerCenter.id,
   status: "PUBLISHED",
+  publicationEligibility: { eligible: false, reason: "ROUTE_NOT_DRAFT" },
   points: points(customers.slice(2, 6)),
   updatedAt: "2026-09-10T12:15:00Z",
   version: 1,
@@ -89,12 +91,13 @@ const inProgress = {
   date: "2026-09-10",
   sellerId: sellerEast.id,
   status: "IN_PROGRESS",
+  publicationEligibility: { eligible: false, reason: "ROUTE_NOT_DRAFT" },
   points: points(customers.slice(0, 3)),
   updatedAt: "2026-09-10T12:30:00Z",
   version: 2,
 };
-const completed = { id: "route-south", name: "Ruta Sur 06", date: "2026-09-10", sellerId: sellerSouth.id, status: "COMPLETED", points: points(customers.slice(0, 4)), updatedAt: "2026-09-10T12:45:00Z", version: 2 };
-const cancelled = { id: "route-west", name: "Ruta Oeste 03", date: "2026-09-10", sellerId: sellerWest.id, status: "CANCELLED", points: points(customers.slice(1, 4)), updatedAt: "2026-09-10T13:00:00Z", version: 1 };
+const completed = { id: "route-south", name: "Ruta Sur 06", date: "2026-09-10", sellerId: sellerSouth.id, status: "COMPLETED", publicationEligibility: { eligible: false, reason: "ROUTE_NOT_DRAFT" }, points: points(customers.slice(0, 4)), updatedAt: "2026-09-10T12:45:00Z", version: 2 };
+const cancelled = { id: "route-west", name: "Ruta Oeste 03", date: "2026-09-10", sellerId: sellerWest.id, status: "CANCELLED", publicationEligibility: { eligible: false, reason: "ROUTE_NOT_DRAFT" }, points: points(customers.slice(1, 4)), updatedAt: "2026-09-10T13:00:00Z", version: 1 };
 const routeItems = [draft, published, inProgress, completed, cancelled];
 const pageInfo = { page: 0, pageSize: 20, totalElements: 100, totalPages: 5 };
 const directions = {
@@ -126,7 +129,7 @@ type RouteVisualOverrides = Readonly<{ optimize?: (input: OptimizeInput) => Rout
 
 async function openRoutes(page: Page, routesOverride?: RoutesResponseOverride, overrides?: RouteVisualOverrides) {
   const current = identity();
-  const telemetry = { publishRequests: 0, optimizeRequests: 0, optimizeInputs: [] as OptimizeInput[] };
+  const telemetry = { createRequests: 0, publishRequests: 0, optimizeRequests: 0, optimizeInputs: [] as OptimizeInput[] };
   let createdRoute = { ...draft, id: "route-created", name: "Ruta planificada", version: 1 };
   await page.route("https://maps.geoapify.com/**", async (route) => {
     await route.fulfill({
@@ -141,7 +144,12 @@ async function openRoutes(page: Page, routesOverride?: RoutesResponseOverride, o
     const path = url.pathname;
     let status = 200;
     let body: unknown = current;
+    let headers: Record<string, string> | undefined;
     if (path.endsWith("/me")) body = current.user;
+    else if (path === "/api/company/settings") {
+      body = { timezone: "America/Lima", currency: "PEN", geofenceRadiusMeters: 100, trackingIntervalSeconds: 60, locationRetentionDays: 90, saleEditWindowMinutes: 30, planningDayStart: "08:00:00", planningDayEnd: "17:00:00" };
+      headers = { ETag: '"1"' };
+    }
     else if (path === "/api/routes" && request.method() === "GET") {
       if (routesOverride) {
         status = routesOverride.status;
@@ -159,7 +167,7 @@ async function openRoutes(page: Page, routesOverride?: RoutesResponseOverride, o
       body = { ...currentRoute, version: (currentRoute?.version ?? 0) + 1, points: input.routePointIds.flatMap((id, index) => { const point = byId.get(id); return point ? [{ ...point, sequence: index + 1 }] : []; }) };
       if (path.includes(createdRoute.id)) createdRoute = body as typeof createdRoute;
     }
-    else if (path.endsWith("/publish")) { telemetry.publishRequests += 1; body = { ...draft, status: "PUBLISHED", version: 4 }; }
+    else if (path.endsWith("/publish")) { telemetry.publishRequests += 1; body = { ...draft, status: "PUBLISHED", publicationEligibility: { eligible: false, reason: "ROUTE_NOT_DRAFT" }, version: 4 }; }
     else if (path === "/api/routes/optimize") {
       telemetry.optimizeRequests += 1;
       const input = request.postDataJSON() as OptimizeInput;
@@ -169,6 +177,7 @@ async function openRoutes(page: Page, routesOverride?: RoutesResponseOverride, o
       else body = { routeId: input.routeId, proposalVersion: 1, baseRouteVersion: input.baseRouteVersion, published: false, orderedVisits: [...input.visits].reverse().map((visit, index) => ({ customerId: visit.customerId, sequence: index + 1 })), unassignedVisits: [], totalTravelSeconds: 2_880, totalServiceSeconds: input.visits.reduce((total, visit) => total + visit.serviceDurationSeconds, 0), totalDistanceMeters: 18_400, optimality: "OPTIMAL" };
     }
     else if (path === "/api/routes" && request.method() === "POST") {
+      telemetry.createRequests += 1;
       const input = request.postDataJSON() as { date: string; sellerId: string; visits: { customerId: string }[] };
       const customerById = new Map(customers.map((customer) => [customer[0], customer]));
       createdRoute = { ...draft, id: "route-created", name: "Ruta planificada", date: input.date, sellerId: input.sellerId, version: 1, points: input.visits.flatMap((visit, index) => { const customer = customerById.get(visit.customerId); return customer ? [{ id: `point-${customer[0]}`, customerId: customer[0], customerName: customer[1], sequence: index + 1, status: "PENDING", location: { latitude: customer[2], longitude: customer[3] } }] : []; }) };
@@ -179,7 +188,7 @@ async function openRoutes(page: Page, routesOverride?: RoutesResponseOverride, o
       const detail = [...routeItems, createdRoute].find((item) => path.endsWith(`/routes/${item.id}`));
       if (detail) body = detail;
     }
-    await route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
+    await route.fulfill({ status, contentType: "application/json", headers, body: JSON.stringify(body) });
   });
   await page.goto("/");
   await page.getByLabel("Correo o nombre de usuario").fill(current.user.email);
@@ -221,18 +230,19 @@ async function addVisit(page: Page, customer: string, duration?: string) {
 }
 
 async function fillGoldenConstraints(page: Page) {
-  await page.getByLabel("Inicio de jornada").fill("0800");
-  await page.getByLabel("Fin de jornada").fill("1700");
   for (const [customer, minutes, priority] of [
     ["Mercado Brisa", "15", "Alta"],
     ["Librería Sendero", "20", "Media"],
     ["Distribuidora Cauce", "25", "Alta"],
     ["Comercial Pinar", "25", "Media"],
   ] as const) {
-    const card = page.locator(".route-proposal-dialog__visit").filter({ hasText: customer });
-    await card.getByLabel(/Duración estimada de la visita/).fill(minutes);
-    await card.getByRole("button", { name: new RegExp(`Prioridad de ${customer}`) }).click();
+    const duration = page.getByLabel(`Duración estimada de la visita de ${customer} (minutos)`);
+    if (await duration.count()) await duration.fill(minutes);
+    await page.getByRole("button", { name: "Cliente que se quiere priorizar" }).click();
+    await page.getByRole("option", { name: customer, exact: true }).click();
+    await page.getByRole("button", { name: "Nivel de prioridad" }).click();
     await page.getByRole("option", { name: priority }).click();
+    await page.getByRole("button", { name: "Agregar prioridad" }).click();
   }
   const first = page.locator(".route-proposal-dialog__visit").filter({ hasText: "Mercado Brisa" });
   await first.getByLabel("Inicio de ventana").fill("0900");
@@ -494,13 +504,14 @@ test("FE-014 listado y flujos principales comparados con los mockups", async ({ 
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await fillGoldenConstraints(page);
   await compare(page, info, "fe-016-automatic-constraints", "automatic", "automatic-constraints");
-  const changeMode = page.locator(".route-page-workflow > header").getByRole("button", { name: "Cambiar modo" });
+  const changeMode = page.locator(".route-page-workflow > header").getByRole("button", { name: "Ordenar manualmente" });
   await expect(changeMode).toBeVisible();
   await expect(page.locator(".route-proposal-dialog__form > footer").getByRole("button", { name: "Guardar y salir" })).toBeVisible();
   await changeMode.click();
-  const modeDialog = page.getByRole("dialog", { name: "Planificar ruta" });
-  await expect(modeDialog).toBeVisible();
-  await modeDialog.getByRole("button", { name: "Cerrar" }).click();
+  await expect(page.getByRole("heading", { name: "Editar orden del borrador" })).toBeVisible();
+  await expect(page.getByText("Mercado Brisa").first()).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Planificar ruta" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Volver a rutas" }).click();
 
   await page.getByRole("button", { name: "Acciones de Ruta Norte 04" }).click();
   await page.getByRole("menuitem", { name: "Publicar ruta" }).click();
@@ -511,13 +522,41 @@ test("FE-014 listado y flujos principales comparados con los mockups", async ({ 
 
 test("FE-015 orden publicado conserva advertencia y acciones contractuales", async ({ page }, info) => {
   await page.setViewportSize(desktop);
+  const previewRequests: Array<{ path: string; body: unknown }> = [];
+  page.on("request", (request) => {
+    const path = new URL(request.url()).pathname;
+    if (path.endsWith("/directions/preview")) previewRequests.push({ path, body: request.postDataJSON() });
+  });
   await openRoutes(page);
   await page.locator(".route-card").filter({ hasText: "Ruta Centro 02" }).locator(".route-card__select").click();
   await page.getByRole("button", { name: "Editar orden" }).click();
   await expect(page.getByText("La modificación notificará al vendedor")).toBeVisible();
+  const warning = page.locator(".route-inline-notice--warning").filter({ hasText: "La modificación notificará al vendedor" });
+  const warningTitle = warning.locator("strong");
+  const warningDescription = warning.locator("p");
+  const warningBoxBeforeMap = await warning.boundingBox();
+  const [titleBox, descriptionBox] = await Promise.all([warningTitle.boundingBox(), warningDescription.boundingBox()]);
+  expect(warningBoxBeforeMap).not.toBeNull();
+  expect(titleBox).not.toBeNull();
+  expect(descriptionBox).not.toBeNull();
+  expect(descriptionBox!.y).toBeGreaterThan(titleBox!.y);
+  await expect(warningTitle).toHaveCSS("font-weight", "700");
+  await expect(warningDescription).toHaveCSS("font-weight", "400");
   await expect(page.getByRole("button", { name: "Guardar orden y notificar" })).toBeVisible();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.locator(".route-page-workflow").getByText("Detalle vial disponible.")).toBeVisible({ timeout: 10_000 });
+  await page.getByRole("button", { name: "Bajar Distribuidora Cauce" }).click();
+  await expect.poll(() => previewRequests.length).toBe(1);
+  expect(previewRequests[0]).toMatchObject({
+    path: "/api/routes/route-center/directions/preview",
+    body: { baseRouteVersion: published.version, routePointIds: ["point-customer-pinar", "point-customer-cauce", "point-customer-plaza", "point-customer-sol"] },
+  });
+  await expect(page.locator(".route-page-workflow").getByText("Detalle vial disponible.")).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText("No pudimos cargar el detalle vial")).toHaveCount(0);
+  const warningBoxAfterMap = await warning.boundingBox();
+  expect(warningBoxAfterMap).not.toBeNull();
+  expect(warningBoxAfterMap!.x).toBe(warningBoxBeforeMap!.x);
+  expect(warningBoxAfterMap!.y).toBe(warningBoxBeforeMap!.y);
   await compare(page, info, "fe-015-published-order-warning", "manual", "published-order-warning");
 });
 
@@ -622,6 +661,26 @@ test("FE-014 muestra detalle publicado editable y solo lectura", async ({ page }
   await readonlyGolden.close();
   await compare(page, info, "fe-014-detail-readonly", "list", "detail-readonly");
   await capture(page, info, "fe-014-detail-readonly");
+});
+
+test("FE-014 recupera el recorrido correcto al cambiar de ruta y volver", async ({ page }) => {
+  await page.setViewportSize(desktop);
+  const directionRequests: string[] = [];
+  page.on("request", (request) => {
+    const path = new URL(request.url()).pathname;
+    if (path.includes("/api/routes/") && path.includes("/directions")) directionRequests.push(path);
+  });
+  await openRoutes(page);
+  await expect.poll(() => directionRequests.filter((path) => path === "/api/routes/route-north/directions").length).toBe(1);
+
+  await page.locator(".route-card").filter({ hasText: "Ruta Centro 02" }).locator(".route-card__select").click();
+  await expect.poll(() => directionRequests.filter((path) => path === "/api/routes/route-center/directions").length).toBe(1);
+  await page.locator(".route-card").filter({ hasText: "Ruta Norte 04" }).locator(".route-card__select").click();
+  await expect.poll(() => directionRequests.filter((path) => path === "/api/routes/route-north/directions").length).toBe(2);
+
+  expect(directionRequests.filter((path) => path.endsWith("/preview"))).toEqual([]);
+  await expect(page.getByText("Propuesta ajustada manualmente", { exact: true })).toHaveCount(0);
+  await expect(page.locator(".route-map-region").getByText("Detalle vial disponible.")).toBeVisible();
 });
 
 test("FE-015 recorre creación manual completa y conserva el orden en DRAFT", async ({ page }, info) => {
@@ -734,7 +793,7 @@ test("FE-015 conserva la intención local ante conflicto de orden", async ({ pag
   await page.setViewportSize(desktop);
   await openRoutes(page);
   await page.route("**/points/order", async (route) => {
-    await route.fulfill({ status: 409, contentType: "application/json", body: JSON.stringify({ code: "VERSION_CONFLICT" }) });
+    await route.fulfill({ status: 409, contentType: "application/json", body: JSON.stringify({ code: "ROUTE_VERSION_CONFLICT" }) });
   });
   await page.locator(".route-card").filter({ hasText: "Ruta Norte 04" }).locator(".route-card__select").click();
   await page.getByRole("button", { name: "Editar orden" }).click();
@@ -750,7 +809,10 @@ test("FE-017 confirma, mantiene ocupado y muestra éxito de publicación", async
   let release: (() => void) | undefined;
   await page.route("**/publish", async (route) => { await new Promise<void>((resolve) => { release = resolve; }); await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ...draft, status: "PUBLISHED", version: 4 }) }); });
   await page.getByRole("button", { name: "Acciones de Ruta Norte 04" }).click(); await page.getByRole("menuitem", { name: "Publicar ruta" }).click();
-  await expect(page.getByText("Orden final de visitas")).toBeVisible(); await capture(page, info, "fe-017-publish-review");
+  await expect(page.getByText("Orden final de visitas")).toBeVisible();
+  await expect(page.getByText("Todo listo para confirmar")).toBeVisible();
+  await expect(page.getByText("Lista para publicar")).toHaveCount(0);
+  await capture(page, info, "fe-017-publish-review");
   await page.getByRole("button", { name: "Continuar a confirmación" }).click(); await expect(page.getByRole("alertdialog", { name: "Confirmar publicación" })).toBeVisible(); await capture(page, info, "fe-017-publish-confirmation");
   await page.getByRole("button", { name: "Confirmar publicación" }).click(); await expect(page.getByRole("button", { name: "Publicando…" })).toBeDisabled(); await capture(page, info, "fe-017-publishing");
   release?.(); await expect(page.getByRole("heading", { name: "Ruta publicada" })).toBeVisible(); await capture(page, info, "fe-017-publish-success");
@@ -759,10 +821,10 @@ test("FE-017 confirma, mantiene ocupado y muestra éxito de publicación", async
 test("FE-017 conserva la revisión ante conflicto de publicación", async ({ page }, info) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openRoutes(page);
-  await page.route("**/publish", async (route) => { await route.fulfill({ status: 409, contentType: "application/json", body: JSON.stringify({ code: "VERSION_CONFLICT" }) }); });
+  await page.route("**/publish", async (route) => { await route.fulfill({ status: 409, contentType: "application/json", body: JSON.stringify({ code: "ROUTE_VERSION_CONFLICT" }) }); });
   await page.getByRole("button", { name: "Acciones de Ruta Norte 04" }).click(); await page.getByRole("menuitem", { name: "Publicar ruta" }).click();
   await page.getByRole("button", { name: "Continuar a confirmación" }).click(); await page.getByRole("button", { name: "Confirmar publicación" }).click();
-  await expect(page.getByText("La versión de la ruta cambió")).toBeVisible(); await expect(page.getByRole("button", { name: "Cargar versión actual" })).toBeVisible();
+  await expect(page.getByText("La versión de la ruta cambió")).toBeVisible(); await expect(page.getByRole("button", { name: "Cargar estado actual" })).toBeVisible();
   await expect(page.locator("html").evaluate((element) => element.scrollWidth <= element.clientWidth)).resolves.toBe(true);
   await capture(page, info, "fe-017-publish-conflict-mobile");
 });
@@ -781,17 +843,16 @@ test("FE-016 recorre propuesta, ajuste manual y guardado sin publicar", async ({
   await page.setViewportSize(desktop);
   const telemetry = await openRoutes(page);
   await configureBase(page, "Generar automáticamente");
-  await addVisit(page, "Mercado Brisa");
-  await addVisit(page, "Librería Sendero");
+  await addVisit(page, "Mercado Brisa", "30");
+  await addVisit(page, "Librería Sendero", "30");
   await page.getByRole("button", { name: "Continuar a restricciones" }).click();
-  await expect(page.getByRole("heading", { name: "Restricciones para la propuesta" })).toBeVisible();
-  await page.getByLabel("Inicio de jornada").fill("0800");
-  await page.getByLabel("Fin de jornada").fill("1700");
+  await expect(page.getByRole("heading", { name: "Preferencias para la propuesta" })).toBeVisible();
   for (const visit of ["Mercado Brisa", "Librería Sendero"]) {
-    const card = page.locator(".route-proposal-dialog__visit").filter({ hasText: visit });
-    await card.getByLabel(/Duración estimada de la visita/).fill("30");
-    await card.getByRole("button", { name: new RegExp(`Prioridad de ${visit}`) }).click();
+    await page.getByRole("button", { name: "Cliente que se quiere priorizar" }).click();
+    await page.getByRole("option", { name: visit, exact: true }).click();
+    await page.getByRole("button", { name: "Nivel de prioridad" }).click();
     await page.getByRole("option", { name: "Media" }).click();
+    await page.getByRole("button", { name: "Agregar prioridad" }).click();
   }
   await page.getByRole("button", { name: "Generar propuesta", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Revisar propuesta automática" })).toBeVisible();
@@ -812,30 +873,20 @@ test("FE-016 muestra el 503 del optimizador y conserva el DRAFT", async ({ page 
   await page.setViewportSize(desktop);
   const telemetry = await openRoutes(page, undefined, { optimize: () => ({ status: 503, body: {} }) });
   await configureBase(page, "Generar automáticamente");
-  await addVisit(page, "Mercado Brisa");
+  await addVisit(page, "Mercado Brisa", "30");
   await page.getByRole("button", { name: "Continuar a restricciones" }).click();
-  await page.getByLabel("Inicio de jornada").fill("0800"); await page.getByLabel("Fin de jornada").fill("1700");
-  const card = page.locator(".route-proposal-dialog__visit").filter({ hasText: "Mercado Brisa" });
-  const priority = card.getByRole("button", { name: /Prioridad de Mercado Brisa/ });
-  await expect(priority).toHaveText("Sin prioridad especial");
-  await priority.click(); await page.getByRole("option", { name: "Alta" }).click();
-  await priority.click(); await page.getByRole("option", { name: "Sin prioridad especial" }).click();
-  await expect(priority).toHaveText("Sin prioridad especial");
-  await card.getByLabel(/Duración estimada de la visita/).fill("30");
   await page.getByRole("button", { name: "Generar propuesta", exact: true }).click();
   await expect.poll(() => telemetry.optimizeRequests).toBe(1);
   expect(telemetry.optimizeInputs[0]?.visits).toEqual([expect.objectContaining({ customerId: "customer-brisa", priority: 1 })]);
   await expect(page.getByRole("alert")).toBeVisible();
-  await expect(page.getByLabel("Inicio de jornada")).toHaveValue("08:00");
+  await expect(page.getByText("08:00", { exact: true })).toBeVisible();
   await capture(page, info, "fe-016-automatic-provider-error");
 });
 
 test("FE-016 presenta una propuesta factible del contrato", async ({ page }, info) => {
   await page.setViewportSize(desktop);
   await openRoutes(page, undefined, { optimize: () => ({ status: 200, body: { routeId: "route-created", published: false, proposalVersion: 6, baseRouteVersion: 1, orderedVisits: [{ customerId: "customer-brisa", sequence: 1 }], unassignedVisits: [], totalTravelSeconds: 1200, totalServiceSeconds: 1800, totalDistanceMeters: 6400, optimality: "FEASIBLE" } }) });
-  await configureBase(page, "Generar automáticamente"); await addVisit(page, "Mercado Brisa"); await page.getByRole("button", { name: "Continuar a restricciones" }).click();
-  await page.getByLabel("Inicio de jornada").fill("0800"); await page.getByLabel("Fin de jornada").fill("1700");
-  const card = page.locator(".route-proposal-dialog__visit").filter({ hasText: "Mercado Brisa" }); await card.getByLabel(/Duración estimada de la visita/).fill("30");
+  await configureBase(page, "Generar automáticamente"); await addVisit(page, "Mercado Brisa", "30"); await page.getByRole("button", { name: "Continuar a restricciones" }).click();
   await page.getByRole("button", { name: "Generar propuesta", exact: true }).click(); await expect(page.getByText("Factible")).toBeVisible(); await capture(page, info, "fe-016-proposal-feasible");
 });
 
@@ -844,12 +895,42 @@ test("FE-016 expone conflicto, ocupado y resultado limitado del optimizador", as
   let status = 409;
   await page.setViewportSize(desktop);
   await openRoutes(page, undefined, { optimize: async () => { if (status === 409) return { status, body: {} }; await new Promise<void>((resolve) => { resolveOptimize = resolve; }); return { status: 200, body: { routeId: "route-created", published: false, proposalVersion: 5, baseRouteVersion: 1, orderedVisits: [{ customerId: "customer-brisa", sequence: 1 }], unassignedVisits: [{ customerId: "customer-brisa", reason: "LIMIT_EXCEEDED" }], totalTravelSeconds: 2880, totalServiceSeconds: 1800, totalDistanceMeters: 18400, optimality: "TIME_LIMIT" } }; } });
-  await configureBase(page, "Generar automáticamente"); await addVisit(page, "Mercado Brisa"); await page.getByRole("button", { name: "Continuar a restricciones" }).click();
-  await page.getByLabel("Inicio de jornada").fill("0800"); await page.getByLabel("Fin de jornada").fill("1700");
-  const card = page.locator(".route-proposal-dialog__visit").filter({ hasText: "Mercado Brisa" }); await card.getByLabel(/Duración estimada de la visita/).fill("30"); await card.getByRole("button", { name: /Prioridad de Mercado Brisa/ }).click(); await page.getByRole("option", { name: "Media" }).click();
+  await configureBase(page, "Generar automáticamente"); await addVisit(page, "Mercado Brisa", "30"); await page.getByRole("button", { name: "Continuar a restricciones" }).click();
+  await page.getByRole("button", { name: "Cliente que se quiere priorizar" }).click(); await page.getByRole("option", { name: "Mercado Brisa", exact: true }).click(); await page.getByRole("button", { name: "Nivel de prioridad" }).click(); await page.getByRole("option", { name: "Media" }).click(); await page.getByRole("button", { name: "Agregar prioridad" }).click();
   await page.getByRole("button", { name: "Generar propuesta", exact: true }).click(); await expect(page.getByText("La operación entró en conflicto")).toBeVisible(); await capture(page, info, "fe-016-automatic-conflict");
   status = 200; await page.getByRole("button", { name: "Generar propuesta", exact: true }).click(); await expect(page.getByRole("button", { name: "Generando propuesta…" })).toBeDisabled(); await capture(page, info, "fe-016-automatic-generating"); resolveOptimize?.();
   await expect(page.getByRole("heading", { name: "Revisar propuesta automática" })).toBeVisible(); await expect(page.getByText("Límite de tiempo")).toBeVisible(); await expect(page.getByText("Visitas no asignadas")).toBeVisible(); await capture(page, info, "fe-016-proposal-time-limit-unassigned");
+});
+
+test("FE-016 conserva la duración completa y evita contadores blancos en oscuro", async ({ page }, info) => {
+  await page.setViewportSize(desktop);
+  await openRoutes(page);
+  await page.getByRole("switch", { name: "Modo oscuro" }).click();
+  await page.getByRole("button", { name: "Acciones de Ruta Norte 04" }).click();
+  await page.getByRole("menuitem", { name: "Generar propuesta" }).click();
+  const duration = page.getByLabel("Duración estimada de la visita de Mercado Brisa (minutos)");
+  await duration.fill("1");
+  await expect(duration).toBeVisible();
+  await duration.fill("30");
+  await expect(duration).toHaveValue("30");
+  await expect(page.locator(".route-proposal-controls__count")).toHaveCSS("background-color", "rgb(23, 37, 84)");
+  await expect(page.locator(".route-priority-builder__heading > span")).toHaveCSS("background-color", "rgb(23, 37, 84)");
+  await capture(page, info, "fe-016-duration-and-dark-counters");
+});
+
+test("FE-016 cambia a orden manual sobre la misma planificación", async ({ page }) => {
+  await page.setViewportSize(desktop);
+  const telemetry = await openRoutes(page);
+  await configureBase(page, "Generar automáticamente");
+  await addVisit(page, "Mercado Brisa", "15");
+
+  await page.getByRole("button", { name: "Ordenar manualmente" }).click();
+
+  await expect(page.getByRole("heading", { name: "Crear ruta manual" })).toBeVisible();
+  await expect(page.getByText("Secuencia actual")).toBeVisible();
+  await expect(page.getByText("Mercado Brisa").first()).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Planificar ruta" })).toHaveCount(0);
+  expect(telemetry.createRequests).toBe(0);
 });
 
 for (const [name, size] of [
@@ -878,6 +959,28 @@ test("FE-014 modo oscuro", async ({ page }, info) => {
   await openRoutes(page);
   await page.getByRole("switch", { name: "Modo oscuro" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+
+  const selectedRoute = page.locator(".route-card--selected");
+  const availableRoute = page.locator(".route-card:not(.route-card--selected)").first();
+  const routeCount = page.locator(".route-rail > header > strong");
+  await expect(selectedRoute).toHaveCSS("background-color", "rgb(23, 37, 84)");
+  await expect(selectedRoute.locator("strong")).toHaveCSS("color", "rgb(248, 250, 252)");
+  await expect(routeCount).toHaveCSS("background-color", "rgb(23, 37, 84)");
+  await expect(routeCount).toHaveCSS("color", "rgb(132, 173, 255)");
+  await availableRoute.hover();
+  await expect(availableRoute).toHaveCSS("background-color", "rgb(27, 38, 56)");
+
+  const mapStatus = page.locator('.route-sequence-map--embedded > p[role="status"]');
+  const mapAttribution = page.locator(".route-map-region .maplibregl-ctrl-attrib");
+  await expect(mapStatus).toBeVisible();
+  await expect(mapAttribution).toBeVisible();
+  await expect(mapAttribution).toHaveCSS("background-color", "rgb(23, 32, 51)");
+  await expect(mapAttribution.locator("a").first()).toHaveCSS("color", "rgb(132, 173, 255)");
+  const [statusBox, attributionBox] = await Promise.all([mapStatus.boundingBox(), mapAttribution.boundingBox()]);
+  expect(statusBox).not.toBeNull();
+  expect(attributionBox).not.toBeNull();
+  expect(statusBox!.y + statusBox!.height).toBeLessThan(attributionBox!.y);
+
   await compare(page, info, "fe-014-dark", "list", "dark-ready", true);
 });
 
@@ -895,6 +998,25 @@ test("FE-014 detalle móvil ocupa el viewport sin cortar cabecera ni acciones", 
   expect(footer!.y + footer!.height).toBeLessThanOrEqual(845);
   expect(await drawer.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
   await compare(page, info, "fe-014-detail-mobile", "list", "detail-draft");
+});
+
+test("FE-014 distingue el borrador vencido y permite abrir la copia en escritorio y móvil", async ({ page }, info) => {
+  const expired = { ...draft, id: "route-expired", date: "2026-09-01", publicationEligibility: { eligible: false, reason: "OPERATIONAL_DATE_EXPIRED" } };
+  for (const [label, viewport] of [["desktop", desktop], ["mobile", { width: 390, height: 844 }]] as const) {
+    await page.setViewportSize(viewport);
+    await openRoutes(page, { status: 200, body: { items: [expired], page: { page: 0, pageSize: 20, totalElements: 1, totalPages: 1 } } });
+    await expect(page.getByText("Borrador vencido", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: /Acciones de Ruta Norte 04/ }).press("Enter");
+    await expect(page.getByRole("menuitem", { name: "Publicar ruta" })).toHaveCount(0);
+    await page.getByRole("menuitem", { name: "Copiar ruta" }).click();
+    await expect(page.getByRole("heading", { name: "Copiar ruta" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Cerrar formulario" })).toBeFocused();
+    await page.getByRole("button", { name: "Cerrar formulario" }).press("Tab");
+    await expect(page.getByRole("button", { name: "Fecha nueva" })).toBeFocused();
+    await capture(page, info, `expired-copy-${label}`);
+    await page.getByRole("button", { name: "Fecha nueva" }).press("Escape");
+    await expect(page.getByRole("heading", { name: "Copiar ruta" })).toHaveCount(0);
+  }
 });
 
 for (const [viewportName, size] of [
@@ -916,6 +1038,12 @@ for (const [viewportName, size] of [
       await addVisit(page, "Distribuidora Cauce", "900");
       await addVisit(page, "Comercial Pinar", "1200");
       await page.getByRole("button", { name: "Continuar a orden y mapa" }).click();
+      if (dark) {
+        const endpointRoles = page.locator(".route-order-editor__visit-role");
+        await expect(endpointRoles).toHaveCount(2);
+        await expect(endpointRoles.first()).toHaveCSS("background-color", "rgb(23, 37, 84)");
+        await expect(endpointRoles.first()).toHaveCSS("color", "rgb(132, 173, 255)");
+      }
       if (size.width <= 760) {
         await expect(page.getByText("Secuencia actual")).toBeVisible();
       } else {
@@ -926,7 +1054,7 @@ for (const [viewportName, size] of [
       await page.locator(".route-workflow-heading__actions .shared-button").click();
 
       await configureBase(page, "Generar automáticamente");
-      for (const customer of ["Mercado Brisa", "Librería Sendero", "Distribuidora Cauce", "Comercial Pinar"]) await addVisit(page, customer);
+      for (const customer of ["Mercado Brisa", "Librería Sendero", "Distribuidora Cauce", "Comercial Pinar"]) await addVisit(page, customer, "30");
       await page.getByRole("button", { name: "Continuar a restricciones" }).click();
       await expect(page.getByRole("heading", { name: "Generar propuesta automática" })).toBeVisible();
       const headerActionArrow = page.locator(".route-workflow-heading .shared-button svg");
@@ -946,12 +1074,11 @@ for (const [viewportName, size] of [
       expect(await page.locator(".route-stepper__connector").evaluateAll((connectors) => connectors.every((connector) => connector.getBoundingClientRect().width > 0))).toBe(true);
       await fillGoldenConstraints(page);
       const firstCard = page.locator(".route-proposal-dialog__visit").first();
-      const durationBox = await firstCard.getByLabel(/Duración estimada de la visita/).boundingBox();
+      await expect(firstCard.getByText(/Duración estimada:/)).toBeVisible();
       const priorityBox = await firstCard.getByRole("button", { name: /Prioridad de Mercado Brisa/ }).boundingBox();
       const windowStartBox = await firstCard.getByLabel("Inicio de ventana").boundingBox();
       const windowEndBox = await firstCard.getByLabel("Fin de ventana").boundingBox();
-      expect(durationBox).not.toBeNull(); expect(priorityBox).not.toBeNull(); expect(windowStartBox).not.toBeNull(); expect(windowEndBox).not.toBeNull();
-      expect(durationBox!.height).toBeLessThanOrEqual(48);
+      expect(priorityBox).not.toBeNull(); expect(windowStartBox).not.toBeNull(); expect(windowEndBox).not.toBeNull();
       expect(priorityBox!.height).toBeLessThanOrEqual(48);
       await expect(page.locator(".route-proposal-dialog__availability .time-field__clock")).toHaveCount(0);
       await expect(firstCard.locator(".time-field__clock")).toHaveCount(2);
@@ -959,7 +1086,6 @@ for (const [viewportName, size] of [
       expect(firstClock).not.toBeNull();
       expect(firstClock!.width).toBeGreaterThan(0);
       if (size.width > 760) {
-        expect(Math.abs(durationBox!.y - priorityBox!.y)).toBeLessThanOrEqual(4);
         expect(Math.abs(windowStartBox!.y - windowEndBox!.y)).toBeLessThanOrEqual(4);
       } else {
         expect(priorityBox!.y).toBeGreaterThan(durationBox!.y + durationBox!.height);

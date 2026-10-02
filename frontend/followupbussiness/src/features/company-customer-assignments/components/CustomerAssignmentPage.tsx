@@ -190,7 +190,7 @@ export function CustomerAssignmentPage() {
       <AssignmentPersistentSummary sellerNames={sellerNames} effectiveFrom={flow.effectiveFrom} reason={flow.reason} clients={selectedClients} currentOwners={currentOwners} onRemove={removeClient} onViewAll={() => dispatch({ type: "go-to", step: "review" })} onClear={requestClear} />
     </div>
     {confirming && <AssignmentConfirmationDialog clients={selectedClients} sellerNames={sellerNames} effectiveFrom={flow.effectiveFrom} reason={flow.reason} busy={busy} returnFocusRef={confirmTriggerRef} onCancel={() => { if (!busy) setConfirming(false); }} onConfirm={() => void submit()} />}
-    {clearConfirming && <ConfirmationDialog appearance="golden" titleId="assignment-clear-title" descriptionId="assignment-clear-description" title="Vaciar clientes seleccionados" message={`Quitarás ${flow.selectedCustomerIds.length} clientes de esta operación. La configuración de responsables y vigencia se conservará.`} confirmLabel="Vaciar selección" cancelLabel="Seguir revisando" onCancel={() => setClearConfirming(false)} onConfirm={clearClients} />}
+    {clearConfirming && <ConfirmationDialog titleId="assignment-clear-title" descriptionId="assignment-clear-description" title="Vaciar clientes seleccionados" message={`Quitarás ${flow.selectedCustomerIds.length} clientes de esta operación. La configuración de responsables y vigencia se conservará.`} confirmLabel="Vaciar selección" cancelLabel="Seguir revisando" onCancel={() => setClearConfirming(false)} onConfirm={clearClients} />}
     {data.results.length > 0 && <AssignmentResultsDialog results={data.results} customerNames={new Map(data.clients.map((client) => [client.id, client.name]))} onClose={closeResults} />}
   </section>;
 }

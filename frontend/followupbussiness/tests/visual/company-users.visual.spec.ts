@@ -479,6 +479,10 @@ test("FE-004 invite mobile reference", async ({ page }) => {
 test("FE-004 invite dark reference", async ({ page }) => {
   await openActions(page, { dark: true });
   await page.getByRole("button", { name: /Invitar administrador/ }).click();
+  const selectedRole = page.getByRole("radio", { checked: true });
+  await expect(selectedRole).toHaveAttribute("aria-checked", "true");
+  await expect(selectedRole).toHaveCSS("background-color", "rgb(16, 47, 54)");
+  await expect(selectedRole).toHaveCSS("color", "rgb(198, 207, 221)");
   await overlaySnapshot(
     page,
     "fe-004-invite-dark",

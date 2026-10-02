@@ -59,7 +59,7 @@ test("FE-037 refresco fallido conserva filas y usa la alerta golden", async ({ p
   await page.getByRole("button", { name: "Página siguiente" }).click();
   const alert = page.locator(".territory-list__stale-error");
   await expect(alert).toBeVisible();
-  await expect(alert).toHaveClass(/error-ui-inline-alert--golden/);
+  await expect(alert).toHaveClass(/error-ui-inline-alert--error/);
   await expect(page.locator("[data-ui='data-table'] tbody tr")).toHaveCount(5);
   const golden = await page.context().newPage();
   await golden.setViewportSize(desktop);

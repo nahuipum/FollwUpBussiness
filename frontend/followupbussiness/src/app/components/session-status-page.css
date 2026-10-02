@@ -3,15 +3,16 @@
   min-height: 100vh;
   place-items: center;
   padding: 24px;
-  background: #f7f9fc;
+  background: var(--visual-canvas);
 }
 
 .status-page section {
   width: min(100%, 448px);
   padding: 32px;
-  border-radius: 16px;
-  background: #fff;
-  box-shadow: 0 16px 40px rgb(16 42 67 / 10%);
+  border: 1px solid var(--visual-border);
+  border-radius: var(--visual-radius-lg);
+  background: var(--visual-surface-raised);
+  box-shadow: var(--visual-shadow-md);
 }
 
 .status-page h1 {
@@ -19,12 +20,12 @@
   letter-spacing: -1.1px;
 }
 .status-page p:not(.status-eyebrow) {
-  color: #556779;
+  color: var(--visual-text-soft);
   line-height: 1.6;
 }
 .status-eyebrow {
   margin: 0 0 20px;
-  color: #176d77;
+  color: var(--visual-brand-strong);
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -35,10 +36,10 @@
   height: 52px;
   margin-top: 16px;
   border: 0;
-  border-radius: 12px;
-  color: #fff;
-  background: #176d77;
-  box-shadow: 0 9px 20px rgb(23 109 119 / 20%);
+  border-radius: var(--visual-radius-md);
+  color: var(--visual-on-brand);
+  background: var(--visual-brand);
+  box-shadow: var(--visual-shadow-sm);
   cursor: pointer;
   font-size: 15px;
   font-weight: 730;

@@ -101,7 +101,6 @@ export function CompanySellersPage() {
         )}
         {sellers.error && items.length > 0 && (
           <InlineAlert
-            visual="golden"
             variant="error"
             title="Ocurrió un problema temporal"
             message="No pudimos actualizar los vendedores. Los datos mostrados pueden no estar vigentes."

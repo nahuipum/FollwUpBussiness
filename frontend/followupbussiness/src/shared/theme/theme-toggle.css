@@ -1,0 +1,29 @@
+.theme-toggle {
+  display: flex;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--visual-control);
+  border-radius: 10px;
+  color: var(--visual-text-soft);
+  background: var(--visual-surface);
+  cursor: pointer;
+}
+
+.theme-toggle:hover {
+  color: var(--visual-text-strong);
+  background: var(--visual-surface-subtle);
+}
+
+.theme-toggle:focus-visible {
+  outline: 0;
+  box-shadow: var(--visual-focus-ring);
+}
+
+.theme-toggle svg {
+  width: 20px;
+  height: 20px;
+}

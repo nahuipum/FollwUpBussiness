@@ -28,6 +28,8 @@ import com.nahui.followupbussiness.routing.application.ListSuggestedCustomersSer
 import com.nahui.followupbussiness.routing.application.port.in.ListSuggestedCustomersUseCase;
 import com.nahui.followupbussiness.routing.application.port.in.ReadRoutesUseCase;
 import com.nahui.followupbussiness.routing.application.ReadRoutesService;
+import com.nahui.followupbussiness.routing.application.RoutePublicationEligibilityService;
+import com.nahui.followupbussiness.routing.application.port.in.RoutePublicationEligibilityUseCase;
 import com.nahui.followupbussiness.routing.application.GetRouteDirectionsService;
 import com.nahui.followupbussiness.routing.application.port.in.GetRouteDirectionsUseCase;
 import com.nahui.followupbussiness.routing.adapter.out.directions.MapboxDirectionsAdapter;
@@ -61,6 +63,10 @@ public class RoutingConfiguration {
     @Bean
     ReadRoutesUseCase readRoutesUseCase(JdbcTemplate jdbc, PortfolioAccessScopeUseCase scopes, SellerReferenceUseCase sellers) {
         return new ReadRoutesService(new JdbcRouteStore(jdbc), scopes, sellers);
+    }
+    @Bean
+    RoutePublicationEligibilityUseCase routePublicationEligibilityUseCase(CurrentCompanyQuery companies) {
+        return new RoutePublicationEligibilityService(companies, Clock.systemUTC());
     }
     @Bean
     RouteDirections routeDirections(tools.jackson.databind.ObjectMapper json, Environment environment) {
@@ -129,11 +135,14 @@ public class RoutingConfiguration {
     }
 
     @Bean
-    CopyRouteUseCase copyRouteUseCase(JdbcTemplate jdbc, CustomerPortfolioReadUseCase customers, SellerReferenceUseCase sellers,
+    CopyRouteUseCase copyRouteUseCase(JdbcTemplate jdbc, tools.jackson.databind.ObjectMapper json,
+                                      CustomerPortfolioReadUseCase customers, SellerReferenceUseCase sellers,
                                       TerritoryReferenceUseCase territories, PortfolioAccessScopeUseCase scopes,
+                                      CurrentCompanyQuery companies, TravelMatrix matrix,
                                       @Qualifier("transactionalAuditEntryUseCase") RecordAuditEntryUseCase audit,
                                       PlatformTransactionManager transactions) {
-        var service = new CopyRouteService(new JdbcRouteStore(jdbc), customers, sellers, territories, scopes, audit, Clock.systemUTC());
+        var service = new CopyRouteService(new JdbcRouteStore(jdbc), new JdbcPlanningSnapshotStore(jdbc, json), matrix,
+                companies, customers, sellers, territories, scopes, audit, Clock.systemUTC());
         var transaction = new TransactionTemplate(transactions);
         transaction.setIsolationLevel(org.springframework.transaction.TransactionDefinition.ISOLATION_SERIALIZABLE);
         return (command, actor) -> transaction.execute(status -> service.copy(command, actor));

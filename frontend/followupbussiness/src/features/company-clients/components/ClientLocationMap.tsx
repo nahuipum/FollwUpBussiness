@@ -4,6 +4,7 @@ import { FormAlert } from "../../../shared/ui/FormAlert";
 import { handleMissingStyleImages } from "./map-style";
 import { loadMapLibre } from "./maplibre-loader";
 import { createMapMarker } from "./map-marker";
+import { currentGeoapifyMapStyleUrl, useGeoapifyMapStyleUrl } from "../../../shared/maps/geoapify-map-theme";
 
 type MapState = "LOADING" | "ACTIVE" | "LIMITED" | "DISABLED";
 const DEFAULT_LIMA_POINT = { latitude: -12.0464, longitude: -77.0428 } as const;
@@ -22,20 +23,25 @@ export function ClientLocationMap({
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<import("maplibre-gl").Map | null>(null);
   const marker = useRef<import("maplibre-gl").Marker | null>(null);
+  const mapStyleUrlRef = useRef<string | null>(null);
   const confirmRef = useRef(onConfirm);
   const pointRef = useRef({ latitude: latitude ?? DEFAULT_LIMA_POINT.latitude, longitude: longitude ?? DEFAULT_LIMA_POINT.longitude });
   const [state, setState] = useState<MapState>("DISABLED");
   const [retry, setRetry] = useState(0);
+  const key = import.meta.env.VITE_GEOAPIFY_TILE_KEY;
+  const mapStyleUrl = useGeoapifyMapStyleUrl(key);
 
   useEffect(() => {
     confirmRef.current = onConfirm;
   }, [onConfirm]);
 
-  const configured = Boolean(import.meta.env.VITE_GEOAPIFY_TILE_KEY);
+  useEffect(() => { mapStyleUrlRef.current = mapStyleUrl; if (mapStyleUrl) map.current?.setStyle(mapStyleUrl); }, [mapStyleUrl]);
+
+  const configured = Boolean(key);
   const selected = latitude !== null && longitude !== null;
   useEffect(() => {
-    const key = import.meta.env.VITE_GEOAPIFY_TILE_KEY;
-    if (!key || !container.current) {
+    const initialMapStyleUrl = mapStyleUrlRef.current;
+    if (!initialMapStyleUrl || !container.current) {
       setState("DISABLED");
       return;
     }
@@ -44,13 +50,15 @@ export function ClientLocationMap({
     setState("LOADING");
     void loadMapLibre()
       .then(({ Map, Marker }) => {
-        if (disposed || !container.current) return;
+        const latestMapStyleUrl = currentGeoapifyMapStyleUrl(key);
+        mapStyleUrlRef.current = latestMapStyleUrl;
+        if (disposed || !container.current || !latestMapStyleUrl) return;
         const initialPoint = pointRef.current;
         const instance = new Map({
           container: container.current,
           center: [initialPoint.longitude, initialPoint.latitude],
           zoom: 13,
-          style: `https://maps.geoapify.com/v1/styles/osm-bright/style.json?apiKey=${encodeURIComponent(key)}`,
+          style: latestMapStyleUrl,
         });
         map.current = instance;
         handleMissingStyleImages(instance);

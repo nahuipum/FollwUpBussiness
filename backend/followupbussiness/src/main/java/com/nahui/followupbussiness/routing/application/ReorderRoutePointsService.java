@@ -60,35 +60,41 @@ public class ReorderRoutePointsService implements ReorderRoutePointsUseCase {
         authorize(actor, route);
         boolean published = "PUBLISHED".equals(route.status());
         if ((!"DRAFT".equals(route.status()) && !published) || route.version() != command.baseRouteVersion())
-            throw new Conflict("ROUTE_VERSION_CONFLICT");
+            throw new Conflict(Conflict.Code.ROUTE_VERSION_CONFLICT);
         if (command.proposalVersion() != null && (published || proposalRevisions == null ||
                 !proposalRevisions.isCurrentProposalForUpdate(actor.tenantId(), route.id(), command.proposalVersion(), route.version())) )
-            throw new Conflict("PROPOSAL_VERSION_CONFLICT");
+            throw new Conflict(Conflict.Code.PROPOSAL_VERSION_CONFLICT);
         if (published) {
-            if (outbox == null) throw new Conflict("ROUTE_NOTIFICATION_UNAVAILABLE");
+            if (outbox == null) throw new Conflict(Conflict.Code.ROUTE_NOTIFICATION_UNAVAILABLE);
             JourneyStartedStatusUseCase.State journeyState;
             try {
                 journeyState = journeys.stateForUpdate(new JourneyStartedStatusUseCase.Query(actor.tenantId(), route.sellerId(), route.date()));
             } catch (JourneyStartedStatusUseCase.Unavailable exception) {
-                throw new Conflict("JOURNEY_STATE_UNAVAILABLE");
+                throw new Conflict(Conflict.Code.JOURNEY_STATE_UNAVAILABLE);
             }
             if (journeyState != JourneyStartedStatusUseCase.State.NOT_STARTED) {
-                throw new Conflict("JOURNEY_ALREADY_STARTED");
+                throw new Conflict(Conflict.Code.JOURNEY_ALREADY_STARTED);
             }
         }
         if (!samePermutation(route.points(), command.routePointIds())) throw new Invalid("ROUTE_POINT_IDS_MISMATCH");
         PlanningSnapshot snapshot = snapshots.findValidForUpdate(actor.tenantId(), route.id(), route.version()).orElse(null);
+        // Publications created before the snapshot-version fix kept the last valid
+        // plan at N-1. Accept only that exact predecessor; the permutation and
+        // validity checks below still protect the current route before any write.
+        if (snapshot == null && published && route.version() > 1) {
+            snapshot = snapshots.findValidForUpdate(actor.tenantId(), route.id(), route.version() - 1).orElse(null);
+        }
         // A manually created draft has no planning snapshot: it can still be safely
         // resequenced, but must not acquire invented arrival/departure times.
         if (snapshot == null) {
-            if (published) throw new Conflict("SNAPSHOT_MISSING");
+            if (published) throw new Conflict(Conflict.Code.SNAPSHOT_MISSING);
             return persistDraftReorder(route, command, actor);
         }
-        if (!snapshot.validUntil().isAfter(clock.instant())) throw new Conflict("SNAPSHOT_EXPIRED");
+        if (!snapshot.validUntil().isAfter(clock.instant())) throw new Conflict(Conflict.Code.SNAPSHOT_EXPIRED);
         Map<UUID, PlanningSnapshot.Visit> visits = new HashMap<>();
-        snapshot.visits().forEach(v -> visits.put(v.pointId(), v));
+        for (PlanningSnapshot.Visit visit : snapshot.visits()) visits.put(visit.pointId(), visit);
         if (visits.size() != route.points().size() || !visits.keySet().equals(new HashSet<>(command.routePointIds())))
-            throw new Conflict("SNAPSHOT_STALE");
+            throw new Conflict(Conflict.Code.SNAPSHOT_STALE);
         Instant current = snapshot.shiftStart();
         UUID previous = null;
         List<Route.Point> reordered = new ArrayList<>();
@@ -99,9 +105,9 @@ public class ReorderRoutePointsService implements ReorderRoutePointsUseCase {
             Instant arrival = current;
             if (visit.windowStart() != null && current.isBefore(visit.windowStart())) current = visit.windowStart();
             if (visit.windowEnd() != null && current.isAfter(visit.windowEnd()))
-                throw new Conflict("SNAPSHOT_INCOMPLETE");
+                throw new Conflict(Conflict.Code.SNAPSHOT_INCOMPLETE);
             Instant departure = current.plusSeconds(visit.serviceSeconds());
-            if (departure.isAfter(snapshot.shiftEnd())) throw new Conflict("SNAPSHOT_INCOMPLETE");
+            if (departure.isAfter(snapshot.shiftEnd())) throw new Conflict(Conflict.Code.SNAPSHOT_INCOMPLETE);
             Route.Point old = route.points().stream().filter(p -> p.id().equals(pointId)).findFirst().orElseThrow(Invalid::new);
             reordered.add(new Route.Point(old.id(), old.customerId(), index + 1, old.location(), arrival, departure));
             current = departure;

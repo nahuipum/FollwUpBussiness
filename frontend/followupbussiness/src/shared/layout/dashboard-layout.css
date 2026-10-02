@@ -54,6 +54,11 @@
   font: 400 14px/20px "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
 }
 
+:root[data-theme="dark"] .dashboard-shell {
+  --shell-color-accent: var(--visual-info);
+  --shell-color-accent-soft: var(--visual-info-background);
+}
+
 .dashboard-sidebar {
   position: sticky;
   top: 0;
@@ -81,7 +86,11 @@
 .dashboard-nav__item { min-height: 42px; padding: 9px 11px; border-radius: 9px; }
 .dashboard-nav__item:hover:not(:disabled) { color: var(--visual-text-strong); background: var(--visual-surface-subtle); }
 .dashboard-nav__item--active,
-.dashboard-nav__item--group[aria-expanded="true"] { color: var(--visual-brand-strong); background: var(--visual-brand-soft); }
+.dashboard-nav__item--group[aria-expanded="true"] { color: var(--shell-color-accent); background: var(--shell-color-accent-soft); }
+:root[data-theme="dark"] .dashboard-nav__item--active,
+:root[data-theme="dark"] .dashboard-nav__item--group[aria-expanded="true"] { box-shadow: inset 3px 0 0 var(--visual-brand); }
+.dashboard-nav__item--active:hover:not(:disabled),
+.dashboard-nav__item--group[aria-expanded="true"]:hover:not(:disabled) { color: var(--shell-color-accent); background: var(--shell-color-accent-soft); }
 .dashboard-nav__item svg { width: 18px; height: 18px; }
 .dashboard-nav__item > span:nth-child(2),
 .dashboard-nav__child > span:last-child { min-width: 0; flex: 1; }
@@ -101,7 +110,8 @@
 .dashboard-nav__child { min-height: 40px; padding: 8px 10px; border-radius: 8px; font-size: 13px; }
 .dashboard-nav__child svg { width: 18px; height: 18px; }
 .dashboard-nav__child:hover:not(:disabled),
-.dashboard-nav__child--active { color: var(--visual-brand-strong); background: var(--visual-brand-soft); }
+.dashboard-nav__child--active { color: var(--shell-color-accent); background: var(--shell-color-accent-soft); }
+.dashboard-nav__child--active:hover:not(:disabled) { color: var(--shell-color-accent); background: var(--shell-color-accent-soft); }
 .dashboard-nav__item:disabled,
 .dashboard-nav__child:disabled { color: var(--visual-text-muted); cursor: not-allowed; opacity: .6; }
 .dashboard-nav__item:focus-visible,
@@ -120,7 +130,8 @@
 .dashboard-profile small { color: var(--visual-text-muted); font-size: 12px; }
 .dashboard-profile p { grid-column: 1 / -1; margin: 8px 0 0; padding-top: 9px; border-top: 1px solid var(--visual-border); color: var(--visual-text-muted); font-size: 12px; }
 .dashboard-sidebar__logout { display: inline-flex; min-height: 36px; grid-column: 1 / -1; align-items: center; justify-content: center; gap: 8px; margin-top: 5px; padding-inline: 12px; border: 1px solid var(--visual-control); border-radius: 12px; color: var(--visual-text-strong); background: var(--visual-surface); cursor: pointer; font: inherit; font-weight: 700; }
-.dashboard-sidebar__logout:hover { color: var(--visual-brand-strong); background: var(--visual-brand-soft); }
+.dashboard-sidebar__logout:hover,
+.dashboard-sidebar__logout:focus-visible { border-color: var(--visual-brand-border); color: var(--shell-color-accent); background: var(--shell-color-accent-soft); }
 .dashboard-sidebar__logout svg { width: 16px; height: 16px; }
 .dashboard-workspace { min-width: 0; background: var(--visual-canvas); }
 
@@ -152,7 +163,8 @@
 .dashboard-profile-menu__identity strong { color: var(--visual-text-strong); font-size: 13px; }
 .dashboard-profile-menu__identity span { margin-top: 3px; color: var(--visual-text-muted); font-size: 12px; }
 .dashboard-profile-menu button { display: flex; width: 100%; min-height: 36px; align-items: center; gap: 8px; margin-top: 6px; padding: 0 9px; border: 0; border-radius: 8px; color: var(--visual-text); background: transparent; cursor: pointer; font: inherit; font-weight: 700; text-align: left; }
-.dashboard-profile-menu button:hover { color: var(--visual-brand-strong); background: var(--visual-brand-soft); }
+.dashboard-profile-menu button:hover,
+.dashboard-profile-menu button:focus-visible { color: var(--shell-color-accent); background: var(--shell-color-accent-soft); }
 .dashboard-profile-menu svg { width: 16px; height: 16px; }
 .dashboard-content { width: 100%; max-width: 1240px; box-sizing: border-box; margin: 0 auto; padding: 30px 28px 40px; }
 

@@ -1,4 +1,5 @@
 export type RouteStatus = "DRAFT" | "PUBLISHED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+export type RoutePublicationEligibilityReason = "ELIGIBLE" | "ROUTE_NOT_DRAFT" | "OPERATIONAL_DATE_EXPIRED" | "TENANT_TIMEZONE_UNAVAILABLE";
 
 export type RoutePoint = Readonly<{
   /** Opaque, memory-only identifier used to submit an order. Never render or persist it. */
@@ -18,6 +19,7 @@ export type Route = Readonly<{
   date: string;
   sellerId: string;
   status: RouteStatus;
+  publicationEligibility?: Readonly<{ eligible: boolean; reason: RoutePublicationEligibilityReason }>;
   points: readonly RoutePoint[];
   updatedAt: string;
   version: number;
@@ -45,6 +47,9 @@ export type RouteCustomerOption = Readonly<{ id: string; label: string; territor
 export type RouteCustomerPage = Readonly<{ items: readonly RouteCustomerOption[]; page: RoutePage["page"] }>;
 export type CreateRouteVisit = Readonly<{ customerId: string; serviceDurationSeconds: number }>;
 export type CreateRouteInput = Readonly<{ date: string; sellerId: string; visits: readonly CreateRouteVisit[] }>;
+export type CopyRouteInput = Readonly<{ date: string; sellerId: string; name?: string }>;
+export type CopyRouteWarningCode = "SOURCE_SELLER_INACTIVE" | "CUSTOMER_INACTIVE" | "CUSTOMER_OUTSIDE_TARGET_PORTFOLIO" | "TERRITORY_NOT_EFFECTIVE" | "POINT_NOT_COPIED";
+export type CopyRouteResult = Readonly<{ route: Route; warnings: readonly Readonly<{ code: CopyRouteWarningCode; resourceType: string }>[] }>;
 
 /** Server-calculated road geometry. It stays in memory and is never rendered as text. */
 export type RouteDirections = Readonly<{

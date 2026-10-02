@@ -1,5 +1,6 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
+import { themeStorageKey } from "../shared/theme/theme";
 
 const { loginMock } = vi.hoisted(() => ({ loginMock: vi.fn() }));
 
@@ -18,6 +19,24 @@ afterEach(() => {
   cleanup();
   vi.clearAllMocks();
   window.history.replaceState({}, "", "/");
+  window.localStorage.removeItem(themeStorageKey);
+  delete document.documentElement.dataset.theme;
+  document.documentElement.style.removeProperty("color-scheme");
+});
+
+test("permite cambiar el tema antes de iniciar sesión y conserva la preferencia", () => {
+  window.localStorage.setItem(themeStorageKey, "dark");
+  render(<LoginScreen />);
+
+  const themeOption = screen.getByRole("switch", { name: "Modo oscuro" });
+  expect(themeOption.getAttribute("aria-checked")).toBe("true");
+  expect(document.documentElement.dataset.theme).toBe("dark");
+
+  fireEvent.click(themeOption);
+
+  expect(themeOption.getAttribute("aria-checked")).toBe("false");
+  expect(document.documentElement.dataset.theme).toBe("light");
+  expect(window.localStorage.getItem(themeStorageKey)).toBe("light");
 });
 
 test("submits valid credentials through the login client and processes its redirect", async () => {

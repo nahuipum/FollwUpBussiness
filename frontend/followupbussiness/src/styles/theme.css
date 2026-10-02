@@ -3,6 +3,7 @@
   --visual-brand-hover: #1d4ed8;
   --visual-brand-strong: #175cd3;
   --visual-brand-soft: #eff6ff;
+  --visual-accent-soft: #f2fbfc;
   --visual-brand-border: #b2ccff;
   --visual-on-brand: #ffffff;
   --visual-canvas: #f6f8fc;
@@ -10,12 +11,15 @@
   --visual-surface-raised: #ffffff;
   --visual-surface-subtle: #f9fafb;
   --visual-surface-muted: #f2f4f7;
+  --visual-surface-hover: #f2fbfc;
   --visual-text-strong: #101828;
   --visual-text: #182230;
   --visual-text-soft: #475467;
   --visual-text-muted: #667085;
   --visual-border: #e4e7ec;
   --visual-control: #d0d5dd;
+  --visual-border-soft: rgb(20 33 61 / 8%);
+  --visual-focus-outline: #7dd3d7;
   --visual-overlay: rgb(15 23 42 / 42%);
   --visual-success: #067647;
   --visual-success-background: #ecfdf3;
@@ -47,17 +51,21 @@
 }
 
 :root[data-theme="dark"] {
+  --visual-accent-soft: #102f36;
   --visual-canvas: #0b1220;
   --visual-surface: #111827;
   --visual-surface-raised: #172033;
   --visual-surface-subtle: #0f172a;
   --visual-surface-muted: #1b2638;
+  --visual-surface-hover: #153541;
   --visual-text-strong: #f8fafc;
   --visual-text: #e5eaf2;
   --visual-text-soft: #c6cfdd;
   --visual-text-muted: #a7b1c2;
   --visual-border: #293548;
   --visual-control: #3a475b;
+  --visual-border-soft: rgb(177 201 224 / 13%);
+  --visual-focus-outline: #55c2c7;
   --visual-overlay: rgb(2 6 23 / 68%);
   --visual-success: #6ce9a6;
   --visual-success-background: #113526;
@@ -69,29 +77,15 @@
   --visual-danger-action: #b42318;
   --visual-on-danger: #ffffff;
   --visual-danger-background: #3b171d;
-  --theme-background: #08111f;
-  --theme-surface: #101d2d;
-  --theme-surface-raised: #152438;
-  --theme-surface-muted: #0c1827;
-  --theme-surface-hover: #153541;
-  --theme-text: #e7eef6;
-  --theme-text-strong: #f5f8fb;
-  --theme-text-form: #dbe7f2;
-  --theme-text-muted: #9fb0c2;
-  --theme-border: #34465a;
-  --theme-border-soft: rgb(177 201 224 / 13%);
-  --theme-shadow: rgb(0 0 0 / 38%);
-  --theme-accent: #55c2c7;
-  --theme-accent-soft: #102f36;
-  color: var(--theme-text);
-  background: var(--theme-background);
+  color: var(--visual-text);
+  background: var(--visual-canvas);
   color-scheme: dark;
 }
 
 :root[data-theme="dark"] body,
 :root[data-theme="dark"] #root {
-  color: var(--theme-text);
-  background: var(--theme-background);
+  color: var(--visual-text);
+  background: var(--visual-canvas);
 }
 
 :root[data-theme="dark"] button:focus-visible,
@@ -99,41 +93,33 @@
 :root[data-theme="dark"] input:focus-visible,
 :root[data-theme="dark"] select:focus-visible,
 :root[data-theme="dark"] textarea:focus-visible {
-  outline-color: #55c2c7;
+  outline-color: var(--visual-focus-outline);
 }
 
 /* Shared error surfaces that still use the legacy component family. */
 :root[data-theme="dark"] .error-ui-state {
-  color: var(--theme-text);
-  background: var(--theme-background);
+  color: var(--visual-text);
+  background: var(--visual-canvas);
 }
 
 :root[data-theme="dark"] :is(.error-ui-dialog h2, .error-ui-state h1) {
-  color: var(--theme-text-strong);
+  color: var(--visual-text-strong);
 }
 
 :root[data-theme="dark"] :is(.error-ui-dialog p, .error-ui-state > section > p) {
-  color: var(--theme-text-muted);
+  color: var(--visual-text-muted);
 }
 
 :root[data-theme="dark"] :is(.error-ui-dialog, .error-ui-state__card) {
-  border-color: var(--theme-border);
-  color: var(--theme-text-form);
-  background: var(--theme-surface-raised);
-  box-shadow: 0 18px 48px var(--theme-shadow);
+  border-color: var(--visual-control);
+  color: var(--visual-text-soft);
+  background: var(--visual-surface-raised);
+  box-shadow: var(--visual-shadow-lg);
 }
 
 :root[data-theme="dark"] :is(.error-ui-dialog__icon, .error-ui-state__illustration) {
   color: #75d4d7;
   background: radial-gradient(circle at 35% 30%, #173644, #102735);
-}
-
-/* The approved PNG keeps a white plate in dark mode. */
-:root[data-theme="dark"] .dashboard-sidebar__brand {
-  padding: 8px;
-  border-radius: 12px;
-  background: var(--visual-on-brand);
-  box-shadow: var(--visual-shadow-sm);
 }
 
 /* Shared content surfaces */
@@ -151,10 +137,10 @@
   .table-action-menu:where(:not(.table-action-menu--golden)),
   .visual-select__menu:where(:not(.visual-select__menu--golden))
 ) {
-  border-color: var(--theme-border-soft);
-  color: var(--theme-text);
-  background: var(--theme-surface);
-  box-shadow: 0 14px 34px var(--theme-shadow);
+  border-color: var(--visual-border-soft);
+  color: var(--visual-text);
+  background: var(--visual-surface);
+  box-shadow: var(--visual-shadow-md);
 }
 
 :root[data-theme="dark"] :is(
@@ -174,7 +160,7 @@
   .modal h2,
   .company-action-dialog--loading h2,
   .company-action-dialog--success h2
-) { color: var(--theme-text-strong); }
+) { color: var(--visual-text-strong); }
 
 :root[data-theme="dark"] :is(
   .company-page-head p,
@@ -201,7 +187,7 @@
   .company-action-dialog__notice,
   .company-action-dialog--loading p,
   .company-action-dialog--success p
-) { color: var(--theme-text-muted); }
+) { color: var(--visual-text-muted); }
 
 :root[data-theme="dark"] :is(
   .company-search,
@@ -227,13 +213,13 @@
   .error-ui-button--secondary,
   .error-ui-correlation__copy
 ) {
-  border-color: var(--theme-border);
-  color: var(--theme-text-form);
-  background: var(--theme-surface-raised);
+  border-color: var(--visual-control);
+  color: var(--visual-text-soft);
+  background: var(--visual-surface-raised);
 }
 
 :root[data-theme="dark"] .company-form-grid select {
-  background: var(--theme-surface-raised)
+  background: var(--visual-surface-raised)
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239fb0c2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
     no-repeat right 13px center;
 }
@@ -242,20 +228,20 @@
   .company-search input,
   .territory-list__search input,
   .client-list__search input
-) { color: var(--theme-text); }
+) { color: var(--visual-text); }
 
 :root[data-theme="dark"] :is(
   .data-table:where(:not(.data-table--golden)) th,
   .company-table th
 ) {
-  border-color: var(--theme-border-soft);
-  color: var(--theme-text-form);
-  background: var(--theme-surface-muted);
+  border-color: var(--visual-border-soft);
+  color: var(--visual-text-soft);
+  background: var(--visual-surface-muted);
 }
 
 :root[data-theme="dark"] :is(.data-table:where(:not(.data-table--golden)) td, .company-table td) {
-  border-color: var(--theme-border-soft);
-  color: var(--theme-text-form);
+  border-color: var(--visual-border-soft);
+  color: var(--visual-text-soft);
 }
 
 :root[data-theme="dark"] :is(
@@ -272,14 +258,14 @@
   .company-users__role-picker legend,
   .company-users__role-option,
   .territory-list__dialog label
-) { color: var(--theme-text-form); }
+) { color: var(--visual-text-soft); }
 
 :root[data-theme="dark"] :is(
   .data-table:where(:not(.data-table--golden)) .data-table__identity small,
   .data-table__pagination:where(:not(.data-table__pagination--golden)),
   .data-table__pagination:where(:not(.data-table__pagination--golden)) .data-table__page-size,
   .company-copy span
-) { color: var(--theme-text-muted); }
+) { color: var(--visual-text-muted); }
 
 :root[data-theme="dark"] :is(.data-table:where(:not(.data-table--golden)) .data-table__identity-mark, .company-mark) {
   color: #74d2d5;
@@ -287,42 +273,55 @@
 }
 
 :root[data-theme="dark"] :is(.company-information, .company-locked-role, .company-action-dialog__company, .company-action-dialog__details div) {
-  border-color: var(--theme-border);
-  color: var(--theme-text-form);
-  background: var(--theme-surface-muted);
+  border-color: var(--visual-control);
+  color: var(--visual-text-soft);
+  background: var(--visual-surface-muted);
 }
 
 :root[data-theme="dark"] :is(.company-invitations li, .company-success dl) {
-  border-color: var(--theme-border);
-  background: var(--theme-surface-muted);
+  border-color: var(--visual-control);
+  background: var(--visual-surface-muted);
 }
 
 :root[data-theme="dark"] :is(.company-modal__header, .company-modal__footer, .company-invitations) {
-  border-color: var(--theme-border-soft);
+  border-color: var(--visual-border-soft);
 }
 
 :root[data-theme="dark"] .company-users__role-option {
-  border-color: var(--theme-border);
-  background: var(--theme-surface-muted);
+  border-color: var(--visual-control);
+  background: var(--visual-surface-muted);
 }
 
 :root[data-theme="dark"] :is(.company-users__role-option:hover, .company-users__role-option--selected) {
   border-color: #55c2c7;
-  background: var(--theme-accent-soft);
+  background: var(--visual-accent-soft);
 }
 
 :root[data-theme="dark"] :is(.table-action-menu:where(:not(.table-action-menu--golden)) button, .visual-select__menu:where(:not(.visual-select__menu--golden)) button) {
-  color: var(--theme-text-form);
-  background: var(--theme-surface-raised);
+  color: var(--visual-text-soft);
+  background: var(--visual-surface-raised);
 }
 
-:root[data-theme="dark"] :is(.table-action-menu:where(:not(.table-action-menu--golden)) button:hover, .visual-select__menu:where(:not(.visual-select__menu--golden)) button:hover, .visual-select__menu:where(:not(.visual-select__menu--golden)) button[aria-selected="true"], .data-table__icon-button:where(:not(.data-table__icon-button--golden)):hover) {
+:root[data-theme="dark"] :is(.table-action-menu:where(:not(.table-action-menu--golden)) button:hover, .data-table__icon-button:where(:not(.data-table__icon-button--golden)):hover) {
   color: #75d4d7;
-  background: var(--theme-surface-hover);
+  background: var(--visual-surface-hover);
+}
+
+:root[data-theme="dark"] :is(
+  .visual-select__menu button:hover,
+  .visual-select__menu button[data-active="true"],
+  .visual-select__menu button[aria-selected="true"],
+  .multi-select__menu--golden .multi-select__options > button[aria-selected="true"],
+  .multi-select--golden .multi-select__chips > span,
+  .date-filter__popover--golden .date-filter__header button:hover,
+  .date-filter__popover--golden .date-filter__days button:hover
+) {
+  color: var(--visual-info);
+  background: var(--visual-info-background);
 }
 
 :root[data-theme="dark"] :is(.company-toolbar, .territory-list__toolbar, .client-list__toolbar, .data-table__pagination:where(:not(.data-table__pagination--golden))) {
-  border-color: var(--theme-border-soft);
+  border-color: var(--visual-border-soft);
 }
 
 /* Semantic feedback keeps its meaning while reducing glare. */
@@ -332,13 +331,13 @@
   background: #102c24;
 }
 
-:root[data-theme="dark"] :is(.data-table:where(:not(.data-table--golden)) .data-table__status--warning, .error-ui-inline-alert--warning:where(:not(.error-ui-inline-alert--golden))) {
+:root[data-theme="dark"] :is(.data-table:where(:not(.data-table--golden)) .data-table__status--warning) {
   border-color: #765a2c;
   color: #efc16f;
   background: #302513;
 }
 
-:root[data-theme="dark"] :is(.data-table:where(:not(.data-table--golden)) .data-table__status--danger, .company-status--suspended, .form-alert, .error-ui-inline-alert--error:where(:not(.error-ui-inline-alert--golden))) {
+:root[data-theme="dark"] :is(.data-table:where(:not(.data-table--golden)) .data-table__status--danger, .company-status--suspended, .form-alert) {
   border-color: #7b4050;
   color: #ff91a7;
   background: #321b25;
@@ -350,15 +349,28 @@
   background: #102f36;
 }
 
-:root[data-theme="dark"] .company-empty { color: var(--theme-text); background: var(--theme-surface); }
-:root[data-theme="dark"] .company-empty h2 { color: var(--theme-text-strong); }
-:root[data-theme="dark"] .company-empty p { color: var(--theme-text-muted); }
+:root[data-theme="dark"] .company-empty { color: var(--visual-text); background: var(--visual-surface); }
+:root[data-theme="dark"] .company-empty h2 { color: var(--visual-text-strong); }
+:root[data-theme="dark"] .company-empty p { color: var(--visual-text-muted); }
 
-:root[data-theme="dark"] .error-ui-inline-alert:where(:not(.error-ui-inline-alert--golden)) :is(.error-ui-inline-alert__icon, .error-ui-inline-alert__action) {
-  background: rgb(255 255 255 / 7%);
+/* MapLibre attribution remains visible without introducing a light-only plate in dark maps. */
+:root[data-theme="dark"] .maplibregl-ctrl-attrib {
+  border: 1px solid var(--visual-border);
+  color: var(--visual-text-soft);
+  background-color: var(--visual-surface-raised);
+  box-shadow: var(--visual-shadow-sm);
 }
 
-:root[data-theme="dark"] .error-ui-inline-alert:where(:not(.error-ui-inline-alert--golden)) .error-ui-inline-alert__action:hover { background: rgb(255 255 255 / 12%); }
-:root[data-theme="dark"] .error-ui-dialog__dismiss:hover { background: var(--theme-surface-hover); }
+:root[data-theme="dark"] .maplibregl-ctrl-attrib a {
+  color: var(--visual-info);
+}
+
+:root[data-theme="dark"] .maplibregl-ctrl-attrib-button {
+  background-color: transparent;
+  filter: invert(1) grayscale(1) brightness(1.7);
+  opacity: .82;
+}
+
+:root[data-theme="dark"] .error-ui-dialog__dismiss:hover { background: var(--visual-surface-hover); }
 :root[data-theme="dark"] .data-table__icon-button:where(:not(.data-table__icon-button--golden)):disabled,
 :root[data-theme="dark"] .visual-select:where(:not(.visual-select--golden)) .visual-select__trigger:disabled { color: #6d7f92; background: #152131; }

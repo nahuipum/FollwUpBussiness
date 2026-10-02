@@ -1,7 +1,8 @@
 import { type ReactNode } from "react";
 import { BrandPanel } from "./BrandPanel";
 import { AuthSecureFooter } from "./AuthSecureFooter";
-import followUpLogo from "../assets/followup-logo.png";
+import { ThemeToggle } from "../../../shared/theme/ThemeToggle";
+import { AuthLogo } from "./AuthLogo";
 
 type PasswordRecoveryLayoutProps = {
   children: ReactNode;
@@ -36,16 +37,15 @@ export function PasswordRecoveryLayout({
           className={`login-golden__form recovery-golden__view${status ? " recovery-golden__status" : ""}`}
           aria-hidden={hiddenFromAssistiveTechnology || undefined}
         >
-          <img
+          <AuthLogo
             className="login-golden__mobile-logo"
-            src={followUpLogo}
-            alt="followUp Business"
           />
           {children}
           <AuthSecureFooter />
         </div>
         {overlay}
       </section>
+      <ThemeToggle className="login-golden__theme-toggle" />
     </main>
   );
 }

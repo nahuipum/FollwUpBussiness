@@ -14,7 +14,6 @@ export function ClientStatusDialog({ client, busy, error, onClose, onConfirm }: 
   const action = inactivate ? "Inactivar" : "Activar";
   const sellerCount = client.assignedSellerIds.length;
   return <ConfirmationDialog
-    appearance="golden"
     module="Clientes"
     className={`client-status${inactivate ? "" : " confirmation-dialog--reactivate"}`}
     titleId="client-status-title"

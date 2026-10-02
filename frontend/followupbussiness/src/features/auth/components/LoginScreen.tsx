@@ -1,5 +1,6 @@
 import { BrandPanel } from "./BrandPanel";
 import { LoginForm } from "./LoginForm";
+import { ThemeToggle } from "../../../shared/theme/ThemeToggle";
 import "../styles/login.css";
 
 export function LoginScreen() {
@@ -7,6 +8,7 @@ export function LoginScreen() {
     <main className="login-golden">
       <BrandPanel />
       <LoginForm />
+      <ThemeToggle className="login-golden__theme-toggle" />
     </main>
   );
 }

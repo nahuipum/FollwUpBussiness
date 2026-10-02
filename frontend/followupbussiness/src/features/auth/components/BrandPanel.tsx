@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { LockKeyhole } from "lucide-react";
-import followUpLogo from "../assets/followup-logo.png";
+import { AuthLogo } from "./AuthLogo";
 
 type BrandPanelProps = {
   eyebrow?: string;
@@ -41,10 +41,8 @@ export function BrandPanel({
       aria-label="Presentación de followUp Business"
     >
       <div className="login-golden__brand-plate">
-        <img
+        <AuthLogo
           className="login-golden__brand-logo"
-          src={followUpLogo}
-          alt="followUp Business"
         />
       </div>
       <div className="login-golden__brand-copy">

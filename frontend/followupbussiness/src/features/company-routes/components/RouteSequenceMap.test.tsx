@@ -2,15 +2,21 @@ import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { RouteSequenceMap } from "./RouteSequenceMap";
 
-const maps: Array<{ style: string; listeners: Record<string, () => void>; addSource: ReturnType<typeof vi.fn>; addLayer: ReturnType<typeof vi.fn>; fitBounds: ReturnType<typeof vi.fn>; resize: ReturnType<typeof vi.fn>; remove: ReturnType<typeof vi.fn> }> = [];
+const maplibreLoader = vi.hoisted(() => ({ deferred: false, resolve: undefined as (() => void) | undefined }));
+const maps: Array<{ style: string; setStyle: ReturnType<typeof vi.fn>; listeners: Record<string, () => void>; getSource: ReturnType<typeof vi.fn>; addSource: ReturnType<typeof vi.fn>; addLayer: ReturnType<typeof vi.fn>; fitBounds: ReturnType<typeof vi.fn>; resize: ReturnType<typeof vi.fn>; remove: ReturnType<typeof vi.fn> }> = [];
 const markers: HTMLElement[] = [];
 vi.mock("maplibre-gl", () => ({
   setWorkerUrl: vi.fn(),
-  Map: class { readonly style: string; readonly listeners: Record<string, () => void> = {}; readonly addSource = vi.fn(); readonly addLayer = vi.fn(); readonly fitBounds = vi.fn(); readonly resize = vi.fn(); readonly remove = vi.fn(); constructor({ style }: { style: string }) { this.style = style; maps.push(this); } on(event: string, listener: () => void) { this.listeners[event] = listener; } setMissingStyleImageResolver() {} hasImage() { return false; } addImage() {} },
+  Map: class { readonly style: string; readonly sources = new Set<string>(); readonly setStyle = vi.fn(() => this.sources.clear()); readonly listeners: Record<string, () => void> = {}; readonly getSource = vi.fn((id: string) => this.sources.has(id) ? {} : undefined); readonly addSource = vi.fn((id: string) => this.sources.add(id)); readonly addLayer = vi.fn(); readonly fitBounds = vi.fn(); readonly resize = vi.fn(); readonly remove = vi.fn(); constructor({ style }: { style: string }) { this.style = style; maps.push(this); } on(event: string, listener: () => void) { this.listeners[event] = listener; } setMissingStyleImageResolver() {} hasImage() { return false; } addImage() {} },
   Marker: class { constructor({ element }: { element: HTMLElement }) { markers.push(element); } setLngLat() { return this; } addTo() { return this; } },
 }));
 vi.mock("maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url", () => ({ default: "/assets/maplibre-worker.js" }));
-afterEach(() => { cleanup(); maps.splice(0); markers.splice(0); vi.unstubAllEnvs(); document.documentElement.dataset.theme = "light"; });
+vi.mock("../../company-clients/components/maplibre-loader", async () => ({ loadMapLibre: async () => {
+  const maplibre = await import("maplibre-gl");
+  if (!maplibreLoader.deferred) return maplibre;
+  return new Promise<typeof maplibre>((resolve) => { maplibreLoader.resolve = () => resolve(maplibre); });
+} }));
+afterEach(() => { cleanup(); maps.splice(0); markers.splice(0); maplibreLoader.deferred = false; maplibreLoader.resolve = undefined; vi.unstubAllEnvs(); document.documentElement.dataset.theme = "light"; });
 
 test("usa el estilo vial oscuro del proveedor y vuelve al claro al cambiar de tema", async () => {
   vi.stubEnv("VITE_GEOAPIFY_TILE_KEY", "test-key");
@@ -18,9 +24,27 @@ test("usa el estilo vial oscuro del proveedor y vuelve al claro al cambiar de te
   render(<RouteSequenceMap points={[{ sequence: 1, customerName: "Norte", location: { latitude: -12.04, longitude: -77.03 } }]} />);
   await waitFor(() => expect(maps).toHaveLength(1));
   expect(maps[0]?.style).toContain("/styles/dark-matter/");
+  act(() => maps[0]?.listeners.load?.());
   act(() => { document.documentElement.dataset.theme = "light"; });
-  await waitFor(() => expect(maps).toHaveLength(2));
-  expect(maps[1]?.style).toContain("/styles/osm-bright/");
+  await waitFor(() => expect(maps[0]?.setStyle).toHaveBeenCalledWith(expect.stringContaining("/styles/osm-bright/")));
+  expect(maps).toHaveLength(1);
+  expect(markers.map((marker) => marker.textContent)).toEqual(["1"]);
+});
+
+test("usa el tema vigente y prepara la capa vial si cambia durante la carga diferida", async () => {
+  vi.stubEnv("VITE_GEOAPIFY_TILE_KEY", "test-key");
+  maplibreLoader.deferred = true;
+  document.documentElement.dataset.theme = "dark";
+  render(<RouteSequenceMap points={[{ sequence: 1, customerName: "Norte", location: { latitude: -12.04, longitude: -77.03 } }, { sequence: 2, customerName: "Sur", location: { latitude: -12.05, longitude: -77.04 } }]} directions={{ geometry: [{ latitude: -12.01, longitude: -77.01 }, { latitude: -12.02, longitude: -77.02 }], legs: [], distanceMeters: 1200, durationSeconds: 300 }} />);
+  await waitFor(() => expect(maplibreLoader.resolve).toBeTypeOf("function"));
+  act(() => { document.documentElement.dataset.theme = "light"; });
+  act(() => maplibreLoader.resolve?.());
+  await waitFor(() => expect(maps).toHaveLength(1));
+  expect(maps[0]?.style).toContain("/styles/osm-bright/");
+  act(() => maps[0]?.listeners["style.load"]?.());
+  act(() => maps[0]?.listeners.load?.());
+  expect(maps[0]?.addSource).toHaveBeenCalledOnce();
+  expect(markers.map((marker) => marker.textContent)).toEqual(["1", "2"]);
 });
 
 test("explica que faltan ubicaciones y mantiene la lista como alternativa", () => {
@@ -63,8 +87,26 @@ test("renderiza la geometría vial recibida en lugar de la línea aproximada", a
   await waitFor(() => expect(maps).toHaveLength(1));
   act(() => maps[0]?.listeners.load?.());
   expect(maps[0]?.addSource).toHaveBeenCalledWith("route-sequence", expect.objectContaining({ data: expect.objectContaining({ geometry: expect.objectContaining({ coordinates: [[-77.01, -12.01], [-77.02, -12.02], [-77.03, -12.03]] }) }) }));
+  expect(maps[0]?.addLayer).toHaveBeenCalledWith(expect.objectContaining({ id: "route-sequence-line-casing", type: "line" }));
+  expect(maps[0]?.addLayer).toHaveBeenCalledWith(expect.objectContaining({ id: "route-sequence-direction", type: "symbol", layout: expect.objectContaining({ "symbol-placement": "line", "text-field": "▶" }) }));
+  expect(markers[0]?.classList.contains("route-sequence-map__marker--start")).toBe(true);
+  expect(markers[1]?.classList.contains("route-sequence-map__marker--end")).toBe(true);
   expect(screen.getByRole("heading", { name: "Mapa de ubicaciones" })).toBeTruthy();
-  expect(screen.getByText("Recorrido vial disponible: la geometría corresponde a una respuesta real del proveedor.")).toBeTruthy();
+  expect(screen.getByText("Sigue las flechas sobre la línea azul: empieza en el punto 1 y termina en el 2.")).toBeTruthy();
+  expect(screen.getByRole("note", { name: "Sentido del recorrido: comienza en el punto 1 y termina en el punto 2." })).toBeTruthy();
+});
+
+test("restaura la geometría vial cuando el nuevo estilo termina de cargar", async () => {
+  vi.stubEnv("VITE_GEOAPIFY_TILE_KEY", "test-key");
+  document.documentElement.dataset.theme = "dark";
+  render(<RouteSequenceMap points={[{ sequence: 1, customerName: "Norte", location: { latitude: -12.04, longitude: -77.03 } }, { sequence: 2, customerName: "Sur", location: { latitude: -12.05, longitude: -77.04 } }]} directions={{ geometry: [{ latitude: -12.01, longitude: -77.01 }, { latitude: -12.02, longitude: -77.02 }], legs: [], distanceMeters: 1200, durationSeconds: 300 }} />);
+  await waitFor(() => expect(maps).toHaveLength(1));
+  act(() => maps[0]?.listeners.load?.());
+  act(() => { document.documentElement.dataset.theme = "light"; });
+  await waitFor(() => expect(maps[0]?.setStyle).toHaveBeenCalled());
+  act(() => maps[0]?.listeners["style.load"]?.());
+  expect(maps[0]?.addSource).toHaveBeenCalledTimes(2);
+  expect(markers.map((marker) => marker.textContent)).toEqual(["1", "2"]);
 });
 
 test("recalcula el mapa cuando el modal termina de asignar su tamaño", async () => {

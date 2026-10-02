@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { handleMissingStyleImages } from "../../company-clients/components/map-style";
+import { loadMapLibre } from "../../company-clients/components/maplibre-loader";
+import { currentGeoapifyMapStyleUrl, useGeoapifyMapStyleUrl } from "../../../shared/maps/geoapify-map-theme";
 import type { ApiError } from "../../../lib/api";
 import { FormAlert } from "../../../shared/ui/FormAlert";
 import { ModalAsyncState } from "../../../shared/ui/ModalAsyncState";
@@ -35,37 +37,39 @@ function directionsErrorState(error: ApiError) {
 export function RouteSequenceMap({ points, directions = null, loading = false, error = null, stale = false, retry: retryDirections, previewUnavailable = false, variant = "card" }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<import("maplibre-gl").Map | null>(null);
+  const mapStyleUrlRef = useRef<string | null>(null);
   const markers = useRef<import("maplibre-gl").Marker[]>([]);
   const [state, setState] = useState<MapState>("DISABLED");
   const [retry, setRetry] = useState(0);
-  const [darkTheme, setDarkTheme] = useState(() => document.documentElement.dataset.theme === "dark");
-  const located = useMemo(() => points.filter((point): point is RoutePoint & { location: NonNullable<RoutePoint["location"]> } => Boolean(point.location)), [points]);
-  const missingLocationNames = useMemo(() => points.filter((point) => !point.location).map((point) => point.customerName ?? "Cliente no disponible"), [points]);
+  const orderedPoints = useMemo(() => [...points].sort((left, right) => left.sequence - right.sequence), [points]);
+  const located = useMemo(() => orderedPoints.filter((point): point is RoutePoint & { location: NonNullable<RoutePoint["location"]> } => Boolean(point.location)), [orderedPoints]);
+  const missingLocationNames = useMemo(() => orderedPoints.filter((point) => !point.location).map((point) => point.customerName ?? "Cliente no disponible"), [orderedPoints]);
+  const firstSequence = orderedPoints[0]?.sequence;
+  const lastSequence = orderedPoints.at(-1)?.sequence;
+  const intermediateStops = Math.max(0, orderedPoints.length - 2);
   // Never draw straight-line vectors as though they were a navigable route.
   // While an order preview is loading, markers remain visible behind the overlay.
   const roadGeometry = !stale && directions !== null && directions.geometry.length > 1 ? directions.geometry : null;
   const viewport = useMemo(() => roadGeometry ?? located.map((point) => point.location), [located, roadGeometry]);
-  const configured = Boolean(import.meta.env.VITE_GEOAPIFY_TILE_KEY);
+  const key = import.meta.env.VITE_GEOAPIFY_TILE_KEY;
+  const configured = Boolean(key);
+  const mapStyleUrl = useGeoapifyMapStyleUrl(key);
+
+  useEffect(() => { mapStyleUrlRef.current = mapStyleUrl; if (mapStyleUrl) map.current?.setStyle(mapStyleUrl); }, [mapStyleUrl]);
 
   useEffect(() => {
-    const observer = new MutationObserver(() => setDarkTheme(document.documentElement.dataset.theme === "dark"));
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    const key = import.meta.env.VITE_GEOAPIFY_TILE_KEY;
-    if (!key || !container.current || viewport.length === 0) { setState("DISABLED"); return; }
+    const initialMapStyleUrl = mapStyleUrlRef.current;
+    if (!initialMapStyleUrl || !container.current || viewport.length === 0) { setState("DISABLED"); return; }
     let disposed = false;
     let observer: ResizeObserver | null = null;
     setState("LOADING");
-    void Promise.all([import("maplibre-gl"), import("maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url")])
-      .then(([{ Map, Marker, setWorkerUrl }, { default: workerUrl }]) => {
-        if (disposed || !container.current) return;
-        setWorkerUrl(workerUrl);
+    void loadMapLibre()
+      .then(({ Map, Marker }) => {
+        const latestMapStyleUrl = currentGeoapifyMapStyleUrl(key);
+        mapStyleUrlRef.current = latestMapStyleUrl;
+        if (disposed || !container.current || !latestMapStyleUrl) return;
         const first = viewport[0]!;
-        const style = darkTheme ? "dark-matter" : "osm-bright";
-        const instance = new Map({ container: container.current, center: [first.longitude, first.latitude], zoom: 12, style: `https://maps.geoapify.com/v1/styles/${style}/style.json?apiKey=${encodeURIComponent(key)}` });
+        const instance = new Map({ container: container.current, center: [first.longitude, first.latitude], zoom: 12, style: latestMapStyleUrl });
         map.current = instance;
         handleMissingStyleImages(instance);
         // The modal and responsive grid may settle after MapLibre has initialized.
@@ -74,16 +78,23 @@ export function RouteSequenceMap({ points, directions = null, loading = false, e
           observer = new ResizeObserver(() => { if (!disposed) instance.resize?.(); });
           observer.observe(container.current);
         }
+        const addRoadGeometry = () => {
+          if (disposed || !roadGeometry || instance.getSource("route-sequence")) return;
+          instance.addSource("route-sequence", { type: "geojson", data: { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: roadGeometry.map((point) => [point.longitude, point.latitude]) } } });
+          const routeColor = getComputedStyle(document.documentElement).getPropertyValue("--visual-brand").trim() || "#2563eb";
+          instance.addLayer({ id: "route-sequence-line-casing", type: "line", source: "route-sequence", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#ffffff", "line-width": 7, "line-opacity": .55 } });
+          instance.addLayer({ id: "route-sequence-line", type: "line", source: "route-sequence", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": routeColor, "line-width": 4, "line-opacity": .95 } });
+          instance.addLayer({ id: "route-sequence-direction", type: "symbol", source: "route-sequence", layout: { "symbol-placement": "line", "symbol-spacing": 100, "text-field": "▶", "text-size": 11, "text-rotation-alignment": "map", "text-keep-upright": false }, paint: { "text-color": "#ffffff", "text-halo-color": routeColor, "text-halo-width": 1.5 } });
+        };
+        instance.on("style.load", addRoadGeometry);
         instance.on("load", () => {
           if (disposed) return;
-          if (roadGeometry) {
-            instance.addSource("route-sequence", { type: "geojson", data: { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: roadGeometry.map((point) => [point.longitude, point.latitude]) } } });
-            const routeColor = getComputedStyle(document.documentElement).getPropertyValue("--visual-brand").trim() || "#2563eb";
-            instance.addLayer({ id: "route-sequence-line", type: "line", source: "route-sequence", paint: { "line-color": routeColor, "line-width": 4, "line-opacity": .8 } });
-          }
+          addRoadGeometry();
           located.forEach((point) => {
             const element = document.createElement("span");
             element.className = "route-sequence-map__marker";
+            if (point.sequence === firstSequence) element.classList.add("route-sequence-map__marker--start");
+            if (point.sequence === lastSequence) element.classList.add("route-sequence-map__marker--end");
             element.textContent = String(point.sequence);
             element.setAttribute("aria-hidden", "true");
             markers.current.push(new Marker({ element }).setLngLat([point.location.longitude, point.location.latitude]).addTo(instance));
@@ -100,7 +111,7 @@ export function RouteSequenceMap({ points, directions = null, loading = false, e
         instance.on("error", () => !disposed && setState("LIMITED"));
       }).catch(() => !disposed && setState("LIMITED"));
     return () => { disposed = true; observer?.disconnect(); markers.current = []; map.current?.remove(); map.current = null; };
-  }, [darkTheme, located, retry, roadGeometry, viewport]);
+  }, [firstSequence, lastSequence, located, retry, roadGeometry, viewport]);
 
   const unavailableMessage = previewUnavailable
     ? "El recorrido vial estará disponible cuando exista una respuesta real del backend. La secuencia textual conserva el orden."
@@ -112,7 +123,8 @@ export function RouteSequenceMap({ points, directions = null, loading = false, e
   const mapLoading = hasMapCanvas && state === "LOADING";
   const showLoadingOverlay = hasMapCanvas && (loading || mapLoading);
   return <section className={`route-sequence-map route-sequence-map--${variant}`} aria-label="Detalle vial de la ruta">
-    {variant === "card" && <><h3>Mapa de ubicaciones</h3><p>{roadGeometry ? "Recorrido vial disponible: la geometría corresponde a una respuesta real del proveedor." : loading ? "Los marcadores permanecen visibles mientras el backend recalcula el recorrido vial." : "Los marcadores siguen el orden actual. No se dibujan líneas rectas ni estimaciones inventadas."}</p></>}
+    {variant === "card" && <><h3>Mapa de ubicaciones</h3><p>{roadGeometry ? `Sigue las flechas sobre la línea azul: empieza en el punto ${firstSequence} y termina en el ${lastSequence}.` : loading ? "Los marcadores permanecen visibles mientras se recalcula el recorrido vial." : "Los marcadores siguen el orden actual. La línea aparecerá cuando el recorrido vial esté disponible."}</p></>}
+    {roadGeometry && firstSequence !== undefined && lastSequence !== undefined && firstSequence !== lastSequence && <div className="route-sequence-map__direction-guide" role="note" aria-label={`Sentido del recorrido: comienza en el punto ${firstSequence} y termina en el punto ${lastSequence}.`}><div aria-hidden="true"><span className="route-sequence-map__direction-endpoint route-sequence-map__direction-endpoint--start"><i>{firstSequence}</i><strong>Inicio</strong></span><span className="route-sequence-map__direction-flow"><b>→ → →</b><small>{intermediateStops === 0 ? "Sin paradas intermedias" : `${intermediateStops} ${intermediateStops === 1 ? "parada intermedia" : "paradas intermedias"}`}</small></span><span className="route-sequence-map__direction-endpoint route-sequence-map__direction-endpoint--end"><i>{lastSequence}</i><strong>Final</strong></span></div></div>}
     {hasMapCanvas && <div className="route-sequence-map__canvas-wrapper" aria-busy={showLoadingOverlay}>
       <div ref={container} className="route-sequence-map__canvas" aria-label={roadGeometry ? "Mapa con recorrido vial de la ruta" : "Mapa de ubicaciones seleccionadas sin recorrido vial"} />
       {showLoadingOverlay && <ModalAsyncState className="route-sequence-map__loading-overlay" state="loading" title={loading ? "Cargando detalle vial" : "Cargando mapa"} message={loading ? "Estamos preparando el recorrido vial para el orden guardado." : "Estamos preparando la vista del mapa."} />}

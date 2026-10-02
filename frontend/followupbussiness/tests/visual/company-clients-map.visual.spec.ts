@@ -8,14 +8,17 @@ const client = {
   createdAt: "2026-09-01T10:00:00Z", updatedAt: "2026-09-12T15:11:00Z", version: 3,
 };
 
-async function openMap(page: Page, viewport: { width: number; height: number }, scenario: { role?: "SUPERVISOR"; status?: number; empty?: boolean; delay?: boolean; stale?: boolean; provider?: "failed"; clients?: readonly typeof client[] } = {}) {
+async function openMap(page: Page, viewport: { width: number; height: number }, scenario: { role?: "SUPERVISOR"; status?: number; empty?: boolean; delay?: boolean; stale?: boolean; provider?: "failed"; clients?: readonly typeof client[]; mapStyleRequests?: string[] } = {}) {
   await page.clock.setFixedTime(new Date("2026-09-12T15:11:00-05:00"));
   await page.setViewportSize(viewport);
   const role = scenario.role ?? "COMPANY_ADMIN";
   const user = { id: "user-1", displayName: "Administradora visual", email: "visual@example.test", status: "ACTIVE", roles: [role], company: { id: "company-1", legalName: "Comercial Andina" } };
   await page.route("https://maps.geoapify.com/**", async (route) => {
     if (scenario.provider === "failed") return route.abort("failed");
-    return route.fulfill({ contentType: "application/json", body: JSON.stringify({ version: 8, sources: {}, layers: [{ id: "background", type: "background", paint: { "background-color": "#f5f7fb" } }] }) });
+    const styleUrl = route.request().url();
+    scenario.mapStyleRequests?.push(styleUrl);
+    const backgroundColor = /\/styles\/dark-matter\//.test(styleUrl) ? "#0f172a" : "#f5f7fb";
+    return route.fulfill({ contentType: "application/json", body: JSON.stringify({ version: 8, sources: {}, layers: [{ id: "background", type: "background", paint: { "background-color": backgroundColor } }] }) });
   });
   await page.route("**/api/**", async (route) => {
     const path = new URL(route.request().url()).pathname;
@@ -65,8 +68,17 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
 });
 
 test("mapa de clientes oscuro", async ({ page }) => {
-  await openMap(page, { width: 1440, height: 900 });
+  const mapStyleRequests: string[] = [];
+  await openMap(page, { width: 1440, height: 900 }, { mapStyleRequests });
   await page.getByRole("switch", { name: "Modo oscuro" }).click();
+  await expect.poll(() => mapStyleRequests.some((url) => /\/styles\/dark-matter\//.test(url))).toBe(true);
+  const clientItem = page.getByRole("button", { name: /Mercado Aurora Activo/ });
+  await clientItem.hover();
+  await expect(clientItem).toHaveCSS("color", "rgb(248, 250, 252)");
+  await expect(clientItem).toHaveCSS("background-color", "rgb(27, 38, 56)");
+  const attribution = page.locator(".maplibregl-ctrl-attrib");
+  await expect(attribution).toHaveCSS("background-color", "rgb(23, 32, 51)");
+  await expect(attribution.locator("a").first()).toHaveCSS("color", "rgb(132, 173, 255)");
   await expect(page.locator("#main-content")).toHaveScreenshot("company-clients-map-dark.png", { animations: "disabled" });
 });
 

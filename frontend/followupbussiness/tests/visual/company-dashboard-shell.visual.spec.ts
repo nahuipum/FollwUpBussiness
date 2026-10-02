@@ -104,6 +104,22 @@ test("dashboard empresa oscuro", async ({ page }) => {
   await openWorkspace(page, "COMPANY_ADMIN", "/company/dashboard");
   await page.getByRole("switch", { name: "Modo oscuro" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(page.locator(".dashboard-brand-logo")).toHaveAttribute(
+    "src",
+    /followup-logo-obscure-v2\.png/,
+  );
+  await expect(page.locator(".dashboard-sidebar__brand")).toHaveCSS(
+    "background-color",
+    "rgba(0, 0, 0, 0)",
+  );
+  const activeNavigation = page.locator(".dashboard-nav__item--active");
+  await expect(activeNavigation).toHaveCSS("background-color", "rgb(23, 37, 84)");
+  await expect(activeNavigation).toHaveCSS("color", "rgb(132, 173, 255)");
+  const logout = page.locator(".dashboard-sidebar__logout");
+  await logout.hover();
+  await expect(logout).toHaveCSS("background-color", "rgb(23, 37, 84)");
+  await expect(logout).toHaveCSS("color", "rgb(132, 173, 255)");
+  await page.locator(".dashboard-content").hover({ position: { x: 4, y: 4 } });
   await expect(page).toHaveScreenshot("company-dashboard-dark.png", {
     animations: "disabled",
   });

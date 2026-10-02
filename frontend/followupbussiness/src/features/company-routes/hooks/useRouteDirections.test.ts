@@ -37,6 +37,25 @@ test("previsualiza el detalle vial para el orden local sin esperar a guardarlo",
   await waitFor(() => expect(state.get).toHaveBeenCalledTimes(2));
 });
 
+test("carga el recorrido persistido al cambiar de ruta y al volver sin tratarlo como un reordenamiento", async () => {
+  state.get.mockImplementation(async (routeId: string) => ({
+    response: new Response("", { status: 200 }),
+    directions: { geometry: [{ latitude: routeId === "route-1" ? -12.04 : -12.08, longitude: -77.03 }], legs: [], distanceMeters: 1200, durationSeconds: 300 },
+  }));
+  const anotherRoute: Route = { ...route, id: "route-2", points: route.points.map((point, index) => ({ ...point, routePointId: `other-${index + 1}` })) };
+  const { result, rerender } = renderHook(({ value }) => useRouteDirections(value), { initialProps: { value: route } });
+
+  await waitFor(() => expect(result.current.directions?.geometry[0]?.latitude).toBe(-12.04));
+  rerender({ value: anotherRoute });
+  await waitFor(() => expect(result.current.directions?.geometry[0]?.latitude).toBe(-12.08));
+  rerender({ value: route });
+  await waitFor(() => expect(result.current.directions?.geometry[0]?.latitude).toBe(-12.04));
+
+  expect(state.get.mock.calls.map(([routeId]) => routeId)).toEqual(["route-1", "route-2", "route-1"]);
+  expect(state.preview).not.toHaveBeenCalled();
+  expect(result.current.stale).toBe(false);
+});
+
 test("descarta Directions pendiente tras logout o cambio de tenant", async () => {
   let resolve: ((value: { response: Response; directions: { geometry: readonly { latitude: number; longitude: number }[]; legs: readonly []; distanceMeters: number; durationSeconds: number } }) => void) | undefined;
   state.get.mockImplementation(() => new Promise((next) => { resolve = next; }));

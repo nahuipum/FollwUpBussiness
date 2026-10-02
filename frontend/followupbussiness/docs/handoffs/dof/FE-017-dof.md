@@ -1,10 +1,8 @@
 # FE-017 — Definition of Finished
 
-**Estado:** `PASS`  
-**Candidate-ID:** `a189f4d+fe017-99dadf74e342`
+**Estado:** `PASS`
+**Candidate-ID:** `359cc48+fe017-6cb5b17e4336`
 
-Los estados y la identidad del candidato coinciden en el paquete y handoffs: Desarrollo `READY_FOR_HANDOFF` y QA `PASS`. Seguridad previa `PASS` permanece aplicable: el delta declarado es solo ancho/estilo accesible, sin cambio de datos, permisos ni contrato.
+Los estados requeridos son trazables y coinciden en el mismo candidato: Desarrollo `READY_FOR_HANDOFF`, QA `PASS` y Seguridad `PASS`. La evidencia declarada aplicable cubre validación focal de rutas, regresión visual, type-check, lint y empaquetado Backend; Seguridad reutiliza la evidencia del mismo candidato tras no poder iniciar su abuso dirigido.
 
-**Delta y evidencia aplicable:** QA registra 2 pruebas focales del diálogo compacto y `typecheck` exitosos para este candidato. Se conserva la evidencia funcional y de abuso de Seguridad del candidato anterior, por ser un cambio visual no sensible. `git diff --check` ejecutado en esta compuerta sin errores (solo avisos de conversión LF/CRLF).
-
-**Pendientes:** ninguno.
+El árbol de trabajo contiene cambios ajenos declarados en el paquete de contexto. `git diff --check` finalizó sin errores (solo avisos de conversión LF/CRLF). No hay hallazgos pendientes que bloqueen este candidato.

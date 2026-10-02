@@ -1,5 +1,5 @@
 import { beforeEach, expect, test, vi } from "vitest";
-import { createRoute, getRoute, getRouteDirections, listRouteCustomers, listRouteSellerOptions, listRoutes, listSuggestedRouteCustomers, optimizeRoute, previewRouteDirections, publishRoute, reorderRoutePoints } from "./api";
+import { copyRoute, createRoute, getRoute, getRouteDirections, listRouteCustomers, listRouteSellerOptions, listRoutes, listSuggestedRouteCustomers, optimizeRoute, previewRouteDirections, publishRoute, reorderRoutePoints } from "./api";
 
 const state = vi.hoisted(() => ({ request: vi.fn() }));
 vi.mock("../../lib/api", () => ({ apiRequest: state.request }));
@@ -77,4 +77,12 @@ test("publica con correlación, idempotencia y la versión vigente", async () =>
   state.request.mockResolvedValue(new Response(JSON.stringify({ ...route, status: "PUBLISHED", version: 2 }), { status: 200 }));
   await expect(publishRoute({ ...route, status: "DRAFT" }, false, "00000000-0000-4000-8000-000000000001", "00000000-0000-4000-8000-000000000002")).resolves.toMatchObject({ route: { status: "PUBLISHED", version: 2 } });
   expect(state.request).toHaveBeenCalledWith("/routes/route-1/publish", expect.objectContaining({ method: "POST", headers: expect.objectContaining({ "X-Correlation-Id": "00000000-0000-4000-8000-000000000002", "Idempotency-Key": "00000000-0000-4000-8000-000000000001", "If-Match": "\"1\"", "X-CSRF-Token": "csrf" }), body: JSON.stringify({ notifySeller: false }) }), { publishErrors: false });
+});
+
+test("copia una ruta con CSRF e idempotencia y descarta identificadores internos de advertencias", async () => {
+  state.request.mockResolvedValue(new Response(JSON.stringify({ route: { ...route, status: "DRAFT", publicationEligibility: { eligible: true, reason: "ELIGIBLE" } }, warnings: [{ code: "CUSTOMER_INACTIVE", resourceType: "CUSTOMER", sourcePointId: "opaque-point" }] }), { status: 201 }));
+  const result = await copyRoute("route/1", { date: "2026-09-30", sellerId: "seller-2", name: "Copia norte" }, "00000000-0000-4000-8000-000000000003");
+  expect(state.request).toHaveBeenCalledWith("/routes/route%2F1/copy", expect.objectContaining({ method: "POST", headers: expect.objectContaining({ "Idempotency-Key": "00000000-0000-4000-8000-000000000003", "X-CSRF-Token": "csrf" }), body: JSON.stringify({ date: "2026-09-30", sellerId: "seller-2", name: "Copia norte" }) }), { publishErrors: false });
+  expect(result.result).toMatchObject({ route: { status: "DRAFT", publicationEligibility: { eligible: true } }, warnings: [{ code: "CUSTOMER_INACTIVE", resourceType: "CUSTOMER" }] });
+  expect(result.result?.warnings[0]).not.toHaveProperty("sourcePointId");
 });

@@ -47,17 +47,21 @@ public class PublishRouteService implements PublishRouteUseCase {
         String fingerprint = fingerprint(command);
         var reservation = routes.reservePublicationIdempotency(actor.tenantId(), actor.accountId(), command.idempotencyKey(), fingerprint, clock.instant());
         if (!reservation.owner()) {
-            if (!fingerprint.equals(reservation.fingerprint()) || !route.id().equals(reservation.routeId())) throw new Conflict();
+            if (!fingerprint.equals(reservation.fingerprint()) || !route.id().equals(reservation.routeId()))
+                throw new Conflict(Conflict.Code.ROUTE_PUBLICATION_CONFLICT);
             return route;
         }
-        if (!"DRAFT".equals(route.status()) || route.version() != command.expectedVersion()) throw new Conflict();
-        var snapshot = snapshots.findValidForUpdate(actor.tenantId(), route.id(), route.version()).orElseThrow(Conflict::new);
-        if (!snapshot.validUntil().isAfter(clock.instant())) throw new Conflict();
+        if (!"DRAFT".equals(route.status())) throw new Conflict(Conflict.Code.ROUTE_STATE_CONFLICT);
+        if (route.version() != command.expectedVersion()) throw new Conflict(Conflict.Code.ROUTE_VERSION_CONFLICT);
+        var snapshot = snapshots.findValidForUpdate(actor.tenantId(), route.id(), route.version())
+                .orElseThrow(() -> new Conflict(Conflict.Code.SNAPSHOT_MISSING));
+        if (!snapshot.validUntil().isAfter(clock.instant())) throw new Conflict(Conflict.Code.SNAPSHOT_EXPIRED);
         Instant now = clock.instant();
         Route published = new Route(route.id(), route.tenantId(), route.name(), route.date(), route.sellerId(), route.startLocation(),
                 route.points(), route.createdAt(), now, route.version() + 1, "PUBLISHED");
         try { routes.publish(published, route.version()); }
-        catch (RouteStore.Conflict ex) { throw new Conflict(); }
+        catch (RouteStore.Conflict ex) { throw new Conflict(Conflict.Code.ROUTE_PUBLICATION_CONFLICT); }
+        snapshots.supersedeAndCopy(snapshot, published.version());
         if (!audit.record(new RecordAuditEntryCommand(AuditAction.CRITICAL_MUTATION, AuditResourceType.ROUTE, route.id(), AuditResult.SUCCESS,
                 Map.of("status", route.status(), "version", Long.toString(route.version())),
                 Map.of("status", published.status(), "version", Long.toString(published.version())))))

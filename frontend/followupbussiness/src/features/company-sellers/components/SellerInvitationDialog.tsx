@@ -46,7 +46,6 @@ export function SellerInvitationDialog({
 
   return (
     <ConfirmationDialog
-      appearance="golden"
       className="confirmation-dialog--info"
       titleId="seller-invitation-title"
       descriptionId="seller-invitation-description"

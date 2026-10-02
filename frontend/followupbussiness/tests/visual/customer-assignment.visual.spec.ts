@@ -163,7 +163,18 @@ test("FE-036 dropdowns permanecen en viewport y el tema oscuro conserva el flujo
   await page.setViewportSize({ width: 1280, height: 720 });
   await openAssignment(page);
   await page.getByRole("switch", { name: "Modo oscuro" }).click();
+  await expect(page.locator(".customer-assignment__step--active")).toHaveCSS("background-color", "rgb(23, 37, 84)");
+  await expect(page.locator(".customer-assignment__step-aside")).toHaveCSS("background-color", "rgb(23, 37, 84)");
   await page.getByRole("button", { name: "Nuevos responsables" }).click();
+  await page.getByRole("option", { name: "Lucía Calderón" }).click();
+  const selectedSeller = page.getByRole("option", { name: "Lucía Calderón" });
+  await expect(selectedSeller).toHaveCSS("background-color", "rgb(23, 37, 84)");
+  const checkBounds = await selectedSeller.locator(".multi-select__check").boundingBox();
+  const copyBounds = await selectedSeller.locator(".multi-select__option-copy").boundingBox();
+  expect(checkBounds).not.toBeNull();
+  expect(copyBounds).not.toBeNull();
+  expect(checkBounds!.x).toBeLessThan(copyBounds!.x);
+  expect([checkBounds!.width, checkBounds!.height]).toEqual([20, 20]);
   const sellerMenu = page.getByRole("listbox", { name: "Nuevos responsables" });
   const bounds = await sellerMenu.boundingBox();
   expect(bounds).not.toBeNull();

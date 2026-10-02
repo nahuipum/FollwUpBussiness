@@ -1,9 +1,9 @@
-:is(.modal-surface, .modal, .modal-surface-layer, .modal-layer) {
+:is(.modal-surface, .modal-surface-layer) {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
 
-:is(.modal-surface, .modal, .modal-surface-layer, .modal-layer)::-webkit-scrollbar {
+:is(.modal-surface, .modal-surface-layer)::-webkit-scrollbar {
   display: none !important;
   width: 0 !important;
   height: 0 !important;

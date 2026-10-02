@@ -1,10 +1,10 @@
 .form-alert {
-  margin-top: 13px;
-  padding: 10px 12px;
-  border: 1px solid #f1c8d0;
-  border-radius: 10px;
-  color: #a51d3d;
-  background: #fff3f5;
+  margin-top: var(--visual-space-3, 13px);
+  padding: var(--visual-space-3, 10px) var(--visual-space-4, 12px);
+  border: 1px solid color-mix(in srgb, var(--visual-danger, #b42318) 35%, var(--visual-surface, #fff));
+  border-radius: var(--visual-radius-md, 10px);
+  color: var(--visual-danger, #a51d3d);
+  background: var(--visual-danger-background, #fff3f5);
   font: inherit;
   font-size: 13px;
   font-weight: 600;

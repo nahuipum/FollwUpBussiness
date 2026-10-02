@@ -11,7 +11,21 @@ public interface PublishRouteUseCase {
     record Command(UUID routeId, long expectedVersion, UUID idempotencyKey, boolean notifySeller, UUID correlationId) { }
 
     final class Forbidden extends RuntimeException { }
-    final class Conflict extends RuntimeException { }
+    final class Conflict extends RuntimeException {
+        public enum Code {
+            ROUTE_STATE_CONFLICT,
+            ROUTE_VERSION_CONFLICT,
+            SNAPSHOT_MISSING,
+            SNAPSHOT_EXPIRED,
+            ROUTE_PUBLICATION_CONFLICT
+        }
+
+        private final Code code;
+
+        public Conflict() { this(Code.ROUTE_PUBLICATION_CONFLICT); }
+        public Conflict(Code code) { this.code = code; }
+        public Code code() { return code; }
+    }
     final class Invalid extends RuntimeException { }
     final class Unavailable extends RuntimeException { }
 }

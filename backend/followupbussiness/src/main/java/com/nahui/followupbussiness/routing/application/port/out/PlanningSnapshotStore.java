@@ -6,6 +6,7 @@ import java.util.UUID;
 
 public interface PlanningSnapshotStore {
     Optional<PlanningSnapshot> findValidForUpdate(UUID tenantId, UUID routeId, long baseRouteVersion);
+    Optional<PlanningSnapshot> findLatestReusable(UUID tenantId, UUID routeId);
     void saveValid(PlanningSnapshot snapshot);
     void saveIncomplete(UUID tenantId, UUID routeId, long baseRouteVersion, java.time.Instant validUntil);
     void invalidateValidForTenant(UUID tenantId);

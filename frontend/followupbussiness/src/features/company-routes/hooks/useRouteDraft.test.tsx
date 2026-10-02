@@ -2,13 +2,14 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, expect, test, vi } from "vitest";
 import { useRouteDraft } from "./useRouteDraft";
 
-const state = vi.hoisted(() => ({ portfolio: vi.fn(), suggestions: vi.fn(), create: vi.fn(), optimize: vi.fn(), reorder: vi.fn(), get: vi.fn() }));
+const state = vi.hoisted(() => ({ portfolio: vi.fn(), suggestions: vi.fn(), create: vi.fn(), optimize: vi.fn(), reorder: vi.fn(), get: vi.fn(), settings: vi.fn() }));
 const seller = [{ id: "seller-1", label: "Ana", territoryIds: ["territory-1"] }] as const;
 vi.mock("../../../lib/api", () => ({ ApiRequestObsoleteError: class extends Error {}, normalizeApiError: async (response: Response) => ({ status: response.status, code: response.headers.get("X-Test-Code") ?? undefined, correlationId: null, fieldErrors: [] }) }));
 vi.mock("../../auth/auth", () => ({ getSessionGeneration: () => 1, getSessionIdentity: () => ({ id: "admin", company: { id: "company" } }), subscribeToSession: () => () => undefined }));
+vi.mock("../../company-settings/api", () => ({ getCompanySettings: state.settings }));
 vi.mock("../api", () => ({ createRoute: state.create, getRoute: state.get, optimizeRoute: state.optimize, reorderRoutePoints: state.reorder, listRouteCustomers: state.portfolio, listSuggestedRouteCustomers: state.suggestions }));
 
-beforeEach(() => { state.portfolio.mockReset(); state.suggestions.mockReset(); state.create.mockReset(); state.optimize.mockReset(); state.reorder.mockReset(); state.get.mockReset(); });
+beforeEach(() => { state.portfolio.mockReset(); state.suggestions.mockReset(); state.create.mockReset(); state.optimize.mockReset(); state.reorder.mockReset(); state.get.mockReset(); state.settings.mockReset(); state.settings.mockResolvedValue({ response: new Response("", { status: 200 }), snapshot: { etag: '"1"', settings: { timezone: "America/Lima", currency: "PEN", geofenceRadiusMeters: 100, trackingIntervalSeconds: 60, locationRetentionDays: 90, saleEditWindowMinutes: 30, planningDayStart: "08:00", planningDayEnd: "17:00" } } }); });
 test("no ofrece clientes fuera de los territorios asignados al vendedor seleccionado", async () => {
   state.portfolio.mockResolvedValue({ response: new Response("", { status: 200 }), page: { items: [{ id: "customer-in", label: "Dentro", territoryId: "territory-1", suggested: false }, { id: "customer-out", label: "Fuera", territoryId: "territory-2", suggested: false }, { id: "customer-without", label: "Sin territorio", territoryId: null, suggested: false }], page: { page: 0, pageSize: 100, totalElements: 3, totalPages: 1 } } });
   state.suggestions.mockResolvedValue({ response: new Response("", { status: 200 }), page: { items: [{ id: "customer-suggested", label: "Sugerido dentro", territoryId: "territory-1", suggested: true }, { id: "customer-suggested-out", label: "Sugerido fuera", territoryId: "territory-2", suggested: true }], page: { page: 0, pageSize: 100, totalElements: 2, totalPages: 1 } } });
@@ -61,6 +62,19 @@ test("una ruta publicada vuelve a solo lectura cuando la jornada ya inició", as
   expect(result.current.announcement).toContain("jornada ya inició");
   expect(state.get).not.toHaveBeenCalled();
 });
+test("distingue un snapshot faltante de un conflicto de versión al editar una ruta publicada", async () => {
+  const published = { id: "route-1", name: null, date: "2026-08-26", sellerId: "seller-1", status: "PUBLISHED" as const, points: [{ routePointId: "opaque-1", sequence: 1, customerName: "Norte" }, { routePointId: "opaque-2", sequence: 2, customerName: "Sur" }], updatedAt: "2026-08-26T12:00:00Z", version: 2 };
+  state.reorder.mockResolvedValue({ response: new Response(null, { status: 409, headers: { "X-Test-Code": "SNAPSHOT_MISSING" } }), route: null });
+  const { result } = renderHook(() => useRouteDraft(vi.fn()));
+  act(() => result.current.openOrder(published));
+  act(() => result.current.moveTo(0, 1));
+  await act(async () => { await result.current.saveOrder(); });
+  expect(result.current.conflict).toBe(false);
+  expect(result.current.error?.code).toBe("SNAPSHOT_MISSING");
+  expect(result.current.locked).toBe(true);
+  expect(result.current.announcement).toContain("planificación vigente");
+  expect(state.get).not.toHaveBeenCalled();
+});
 test("aplica la propuesta sólo en memoria y envía proposalVersion al guardar el orden", async () => {
   const draft = { id: "route-1", name: null, date: "2026-08-26", sellerId: "seller-1", status: "DRAFT" as const, points: [{ routePointId: "opaque-1", customerId: "customer-1", sequence: 1, customerName: "Norte" }, { routePointId: "opaque-2", customerId: "customer-2", sequence: 2, customerName: "Sur" }], updatedAt: "2026-08-26T12:00:00Z", version: 1 };
   state.portfolio.mockResolvedValue({ response: new Response("", { status: 200 }), page: { items: [{ id: "customer-1", label: "Norte", suggested: false }], page: { page: 0, pageSize: 100, totalElements: 1, totalPages: 1 } } }); state.suggestions.mockResolvedValue({ response: new Response("", { status: 200 }), page: { items: [], page: { page: 0, pageSize: 100, totalElements: 0, totalPages: 0 } } }); state.create.mockResolvedValue({ response: new Response("", { status: 201 }), route: draft }); state.optimize.mockResolvedValue({ response: new Response("", { status: 200 }), proposal: { proposalVersion: 7, baseRouteVersion: 1, orderedVisits: [{ customerId: "customer-2", sequence: 1 }, { customerId: "customer-1", sequence: 2 }], unassignedVisits: [], optimality: "OPTIMAL" } }); state.reorder.mockResolvedValue({ response: new Response("", { status: 200 }), route: draft });
@@ -111,7 +125,8 @@ test("el flujo automático crea el DRAFT internamente, optimiza y nunca publica"
   const { result } = renderHook(() => useRouteDraft(vi.fn(), seller));
   act(() => { result.current.openForm("automatic"); result.current.setDate("2026-08-26"); result.current.setSellerId("seller-1"); });
   await waitFor(() => expect(result.current.customers).toHaveLength(1));
-  act(() => { result.current.setSelected(["customer-1"]); result.current.setAvailabilityStart("08:00"); result.current.setAvailabilityEnd("17:00"); result.current.updateProposalVisit("customer-1", { serviceDurationMinutes: "30", priority: "2" }); });
+  await waitFor(() => expect(result.current.availabilityStart).toBe("08:00"));
+  act(() => { result.current.setSelected(["customer-1"]); result.current.updateProposalVisit("customer-1", { serviceDurationMinutes: "30", priority: "2" }); });
   await act(async () => { await result.current.generateAutomatic(); });
   expect(state.create).toHaveBeenCalledWith(expect.objectContaining({ visits: [{ customerId: "customer-1", serviceDurationSeconds: 1800 }] }), expect.any(String));
   expect(state.optimize).toHaveBeenCalledOnce();
@@ -119,6 +134,37 @@ test("el flujo automático crea el DRAFT internamente, optimiza y nunca publica"
   expect(result.current.orderOpen).toBe(true);
   expect(result.current.draft?.status).toBe("DRAFT");
   expect(result.current.proposal).toMatchObject({ proposalVersion: 2 });
+});
+
+test("bloquea la propuesta automática si Configuración no tiene una jornada válida", async () => {
+  state.settings.mockResolvedValue({ response: new Response("", { status: 200 }), snapshot: { etag: '"2"', settings: { timezone: "America/Lima", currency: "PEN", geofenceRadiusMeters: 100, trackingIntervalSeconds: 60, locationRetentionDays: 90, saleEditWindowMinutes: 30, planningDayStart: null, planningDayEnd: null } } });
+  const { result } = renderHook(() => useRouteDraft(vi.fn(), seller));
+  act(() => result.current.openForm("automatic"));
+  await waitFor(() => expect(result.current.planningWindowLoading).toBe(false));
+  expect(result.current.planningWindowError?.status).toBe(422);
+  expect(result.current.availabilityStart).toBe("");
+  expect(result.current.availabilityEnd).toBe("");
+});
+
+test("cambia la misma planificación automática a manual sin crear otra ruta", () => {
+  const { result } = renderHook(() => useRouteDraft(vi.fn(), seller));
+  act(() => {
+    result.current.openForm("automatic");
+    result.current.setDate("2026-08-26");
+    result.current.setSellerId("seller-1");
+    result.current.setSelected(["customer-1"]);
+    result.current.setServiceDuration("customer-1", "15");
+  });
+
+  act(() => result.current.switchPlanningToManual());
+
+  expect(result.current.mode).toBe("manual");
+  expect(result.current.formOpen).toBe(true);
+  expect(result.current.date).toBe("2026-08-26");
+  expect(result.current.sellerId).toBe("seller-1");
+  expect(result.current.selected).toEqual(["customer-1"]);
+  expect(result.current.serviceDurations["customer-1"]).toBe("900");
+  expect(state.create).not.toHaveBeenCalled();
 });
 
 test("si falla el optimizador conserva el DRAFT y todas las restricciones", async () => {

@@ -152,7 +152,6 @@ export function CompanyUsersPage() {
           ) : <>
           {users.error && items.length > 0 && (
             <InlineAlert
-              visual="golden"
               variant="error"
               className="company-users__stale-notice"
               title="Ocurrió un problema temporal"
@@ -320,5 +319,5 @@ function CompanyUserStatusConfirmation({
   const title = reactivate ? "Reactivar usuario" : "Bloquear usuario";
   const returnFocusRef = useRef<HTMLElement | null>(returnFocusTarget);
   const role = user.role === "COMPANY_ADMIN" ? "Administrador" : "Supervisor";
-  return <ConfirmationDialog appearance="golden" {...(reactivate ? { className: "confirmation-dialog--reactivate" } : {})} titleId="status-dialog-title" descriptionId="status-dialog-description" module="Usuarios" title={title} headerDescription="Confirma el cambio de acceso para este usuario." bodyTitle={reactivate ? `¿Reactivar a ${user.displayName}?` : `¿Bloquear a ${user.displayName}?`} message={reactivate ? `${user.displayName} recuperará el acceso correspondiente a su rol de ${role}.` : `${user.displayName} perderá acceso a la empresa mientras permanezca bloqueado.`} icon={reactivate ? <ArrowRight aria-hidden="true" /> : <LockKeyhole aria-hidden="true" />} tone={reactivate ? "info" : "error"} {...(!reactivate ? { note: <><Shield aria-hidden="true" />Sus sesiones activas se revocarán cuando se confirme el bloqueo.</> } : {})} busy={busy} busyLabel={reactivate ? "Reactivando…" : "Bloqueando…"} error={error ? mutationErrorMessage(error.status) : null} errorTitle="No pudimos actualizar al usuario" correlationId={error?.correlationId} cancelLabel="Cancelar" confirmLabel={title} onCancel={onClose} onConfirm={onConfirm} returnFocusRef={returnFocusRef} />;
+  return <ConfirmationDialog {...(reactivate ? { className: "confirmation-dialog--reactivate" } : {})} titleId="status-dialog-title" descriptionId="status-dialog-description" module="Usuarios" title={title} headerDescription="Confirma el cambio de acceso para este usuario." bodyTitle={reactivate ? `¿Reactivar a ${user.displayName}?` : `¿Bloquear a ${user.displayName}?`} message={reactivate ? `${user.displayName} recuperará el acceso correspondiente a su rol de ${role}.` : `${user.displayName} perderá acceso a la empresa mientras permanezca bloqueado.`} icon={reactivate ? <ArrowRight aria-hidden="true" /> : <LockKeyhole aria-hidden="true" />} tone={reactivate ? "info" : "error"} {...(!reactivate ? { note: <><Shield aria-hidden="true" />Sus sesiones activas se revocarán cuando se confirme el bloqueo.</> } : {})} busy={busy} busyLabel={reactivate ? "Reactivando…" : "Bloqueando…"} error={error ? mutationErrorMessage(error.status) : null} errorTitle="No pudimos actualizar al usuario" correlationId={error?.correlationId} cancelLabel="Cancelar" confirmLabel={title} onCancel={onClose} onConfirm={onConfirm} returnFocusRef={returnFocusRef} />;
 }

@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest";
 import { ClientLocationMap } from "./ClientLocationMap";
 
+const maplibreLoader = vi.hoisted(() => ({ deferred: false, resolve: undefined as (() => void) | undefined }));
 type Listener = (event?: { lngLat: { lat: number; lng: number } }) => void;
 type MarkerInstance = {
   listeners: Record<string, () => void>;
@@ -11,7 +12,7 @@ type MarkerInstance = {
   anchor: "bottom";
   element: HTMLElement;
 };
-const maps: Array<{ listeners: Record<string, Listener>; remove: ReturnType<typeof vi.fn>; center: [number, number]; zoom: number }> = [];
+const maps: Array<{ style: string; setStyle: ReturnType<typeof vi.fn>; listeners: Record<string, Listener>; remove: ReturnType<typeof vi.fn>; center: [number, number]; zoom: number }> = [];
 const markers: MarkerInstance[] = [];
 const state = vi.hoisted(() => ({ setWorkerUrl: vi.fn() }));
 
@@ -20,9 +21,11 @@ vi.mock("maplibre-gl", () => ({
   Map: class {
     readonly listeners: Record<string, Listener> = {};
     readonly remove = vi.fn();
+    readonly setStyle = vi.fn();
+    readonly style: string;
     readonly center: [number, number];
     readonly zoom: number;
-    constructor(options: { center: [number, number]; zoom: number }) { this.center = options.center; this.zoom = options.zoom; maps.push(this); }
+    constructor(options: { center: [number, number]; zoom: number; style: string }) { this.center = options.center; this.zoom = options.zoom; this.style = options.style; maps.push(this); }
     on(event: string, listener: Listener) { this.listeners[event] = listener; }
     setMissingStyleImageResolver() {}
   },
@@ -39,8 +42,41 @@ vi.mock("maplibre-gl", () => ({
   },
 }));
 vi.mock("maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url", () => ({ default: "/assets/maplibre-worker.js" }));
+vi.mock("./maplibre-loader", async () => ({ loadMapLibre: async () => {
+  const maplibre = await import("maplibre-gl");
+  if (!maplibreLoader.deferred) { maplibre.setWorkerUrl("/assets/maplibre-worker.js"); return maplibre; }
+  return new Promise<typeof maplibre>((resolve) => { maplibreLoader.resolve = () => { maplibre.setWorkerUrl("/assets/maplibre-worker.js"); resolve(maplibre); }; });
+} }));
 
-afterEach(() => { document.body.replaceChildren(); maps.splice(0); markers.splice(0); state.setWorkerUrl.mockReset(); vi.unstubAllEnvs(); });
+afterEach(() => { document.body.replaceChildren(); maps.splice(0); markers.splice(0); state.setWorkerUrl.mockReset(); maplibreLoader.deferred = false; maplibreLoader.resolve = undefined; vi.unstubAllEnvs(); document.documentElement.dataset.theme = "light"; });
+
+test("usa el estilo oscuro y lo actualiza al cambiar el tema", async () => {
+  vi.stubEnv("VITE_GEOAPIFY_TILE_KEY", "test-key");
+  document.documentElement.dataset.theme = "dark";
+  render(<ClientLocationMap latitude={-12.04} longitude={-77.03} onConfirm={() => undefined} />);
+  await waitFor(() => expect(maps).toHaveLength(1));
+  expect(maps[0]?.style).toContain("/styles/dark-matter/");
+  const initialCenter = maps[0]?.center;
+
+  act(() => { document.documentElement.dataset.theme = "light"; });
+  await waitFor(() => expect(maps[0]?.setStyle).toHaveBeenCalledWith(expect.stringContaining("/styles/osm-bright/")));
+  expect(maps).toHaveLength(1);
+  expect(maps[0]?.center).toEqual(initialCenter);
+  expect(markers).toHaveLength(1);
+});
+
+test("usa el tema vigente si cambia antes de resolver la carga diferida", async () => {
+  vi.stubEnv("VITE_GEOAPIFY_TILE_KEY", "test-key");
+  maplibreLoader.deferred = true;
+  document.documentElement.dataset.theme = "dark";
+  render(<ClientLocationMap latitude={-12.04} longitude={-77.03} onConfirm={() => undefined} />);
+  await waitFor(() => expect(maplibreLoader.resolve).toBeTypeOf("function"));
+  act(() => { document.documentElement.dataset.theme = "light"; });
+  act(() => maplibreLoader.resolve?.());
+  await waitFor(() => expect(maps).toHaveLength(1));
+  expect(maps[0]?.style).toContain("/styles/osm-bright/");
+  expect(markers).toHaveLength(1);
+});
 
 test("activa el mapa tras load, limita tras error y permite reintentar sin red", async () => {
   vi.stubEnv("VITE_GEOAPIFY_TILE_KEY", "test-key");

@@ -10,7 +10,7 @@ import { useLoginForm } from "../hooks/useLoginForm";
 import { AuthErrorDialog } from "./AuthErrorDialog";
 import { AuthSecureFooter } from "./AuthSecureFooter";
 import { navigate } from "../../../app/navigation";
-import followUpLogo from "../assets/followup-logo.png";
+import { AuthLogo } from "./AuthLogo";
 
 export function LoginForm() {
   const form = useLoginForm();
@@ -18,10 +18,8 @@ export function LoginForm() {
   return (
     <section className="login-golden__main" aria-labelledby="login-title">
       <div className="login-golden__form">
-        <img
+        <AuthLogo
           className="login-golden__mobile-logo"
-          src={followUpLogo}
-          alt="followUp Business"
         />
         <span className="login-golden__eyebrow">Acceso seguro</span>
         <h1 id="login-title">Inicia sesión</h1>

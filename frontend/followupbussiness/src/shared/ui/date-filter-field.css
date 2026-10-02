@@ -7,10 +7,10 @@
   justify-content: space-between;
   gap: 10px;
   padding: 0 12px;
-  border: 1px solid var(--theme-border, #cfd9e4);
+  border: 1px solid var(--visual-control, #d0d5dd);
   border-radius: 10px;
-  color: var(--theme-text-form, #26384a);
-  background: var(--theme-surface-raised, #fff);
+  color: var(--visual-text, #182230);
+  background: var(--visual-surface-raised, #fff);
   font: inherit;
   font-size: 13px;
   font-weight: 400;
@@ -40,11 +40,11 @@
   z-index: 70;
   width: min(304px, calc(100vw - 24px));
   padding: 14px;
-  border: 1px solid var(--theme-border-soft, rgb(20 33 61 / 10%));
+  border: 1px solid var(--visual-border, #e4e7ec);
   border-radius: 14px;
-  color: var(--theme-text-form, #26384a);
-  background: var(--theme-surface-raised, #fff);
-  box-shadow: 0 16px 34px var(--theme-shadow, rgb(16 42 67 / 16%));
+  color: var(--visual-text, #182230);
+  background: var(--visual-surface-raised, #fff);
+  box-shadow: var(--visual-shadow-lg, 0 16px 44px rgb(16 24 40 / 14%));
 }
 .date-filter__header,
 .date-filter__header > div,
@@ -54,7 +54,7 @@
 }
 .date-filter__header { justify-content: space-between; gap: 12px; }
 .date-filter__header strong {
-  color: var(--theme-text-strong, #102a43);
+  color: var(--visual-text-strong, #101828);
   font-size: 14px;
 }
 .date-filter__header > div { gap: 4px; }
@@ -75,7 +75,7 @@
   border-radius: 9px;
 }
 .date-filter__header button:hover,
-.date-filter__days button:hover { color: var(--theme-accent, #176d77); background: var(--theme-accent-soft, #f2fbfc); }
+.date-filter__days button:hover { color: var(--visual-brand-strong, #175cd3); background: var(--visual-brand-soft, #eff6ff); }
 .date-filter__header svg { width: 18px; }
 .date-filter__weekdays,
 .date-filter__days {
@@ -85,7 +85,7 @@
 }
 .date-filter__weekdays { margin: 12px 0 6px; }
 .date-filter__weekdays span {
-  color: var(--theme-text-muted, #67778a);
+  color: var(--visual-text-muted, #667085);
   font-size: 11px;
   font-weight: 700;
   text-align: center;
@@ -97,12 +97,12 @@
 }
 .date-filter__days button[aria-pressed="true"] {
   color: #fff;
-  background: var(--theme-accent, #176d77);
+  background: var(--visual-brand, #2563eb);
   box-shadow: 0 5px 12px rgb(23 109 119 / 20%);
 }
 .date-filter__days:not(.date-filter__days--has-selection) button[aria-current="date"] {
-  border: 1px solid var(--theme-accent, #176d77);
-  color: var(--theme-accent, #176d77);
+  border: 1px solid var(--visual-brand, #2563eb);
+  color: var(--visual-brand, #2563eb);
   font-weight: 700;
 }
 .date-filter__days button:focus-visible,
@@ -116,23 +116,23 @@
   justify-content: space-between;
   margin-top: 10px;
   padding-top: 10px;
-  border-top: 1px solid var(--theme-border-soft, rgb(20 33 61 / 8%));
+  border-top: 1px solid var(--visual-border, #e4e7ec);
 }
 .date-filter__footer button {
   min-height: 32px;
   padding: 0 9px;
   border-radius: 8px;
-  color: var(--theme-accent, #176d77);
+  color: var(--visual-brand, #2563eb);
   font-size: 12px;
   font-weight: 700;
 }
-.date-filter__footer button:hover { background: var(--theme-accent-soft, #f2fbfc); }
-.date-filter__footer button:disabled { color: var(--theme-text-muted, #67778a); opacity: 0.45; cursor: not-allowed; }
+.date-filter__footer button:hover { background: var(--visual-brand-soft, #eff6ff); }
+.date-filter__footer button:disabled { color: var(--visual-text-muted, #667085); opacity: 0.45; cursor: not-allowed; }
 .date-filter--with-time .date-filter__trigger { min-height: 43px; }
-.date-filter__time-picker { display: grid; grid-template-columns: 1fr minmax(104px, 128px); align-items: center; gap: 12px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--theme-border-soft, rgb(20 33 61 / 8%)); color: var(--theme-text, #26384a); font-size: 13px; font-weight: 700; }
-.date-filter__time-picker input { box-sizing: border-box; width: 100%; height: 43px; min-height: 0; border: 1px solid var(--theme-border, #cfd9e4); border-radius: 10px; padding: 0 12px; color: var(--theme-text, #26384a); background: #fff; font: inherit; font-size: 13px; }
-.date-filter__time-picker input:focus-visible { outline: 0; border-color: var(--theme-accent, #176d77); box-shadow: 0 0 0 3px rgb(56 178 172 / 20%); }
-.date-filter__apply { color: #fff !important; background: var(--theme-accent, #176d77) !important; }
+.date-filter__time-picker { display: grid; grid-template-columns: 1fr minmax(104px, 128px); align-items: center; gap: 12px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--visual-border, #e4e7ec); color: var(--visual-text, #182230); font-size: 13px; font-weight: 700; }
+.date-filter__time-picker input { box-sizing: border-box; width: 100%; height: 43px; min-height: 0; border: 1px solid var(--visual-control, #d0d5dd); border-radius: 10px; padding: 0 12px; color: var(--visual-text, #182230); background: var(--visual-surface, #fff); font: inherit; font-size: 13px; }
+.date-filter__time-picker input:focus-visible { outline: 0; border-color: var(--visual-brand, #2563eb); box-shadow: var(--visual-focus-ring, 0 0 0 3px rgb(37 99 235 / 24%)); }
+.date-filter__apply { color: var(--visual-on-brand, #fff) !important; background: var(--visual-brand, #2563eb) !important; }
 
 .date-filter--golden .date-filter__trigger {
   min-height: 44px;

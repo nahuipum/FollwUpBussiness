@@ -10,6 +10,7 @@ import com.nahui.followupbussiness.routing.application.port.in.ReassignRouteUseC
 import com.nahui.followupbussiness.routing.application.port.in.ListSuggestedCustomersUseCase;
 import com.nahui.followupbussiness.routing.application.port.in.ReadRoutesUseCase;
 import com.nahui.followupbussiness.routing.application.port.in.GetRouteDirectionsUseCase;
+import com.nahui.followupbussiness.routing.application.port.in.RoutePublicationEligibilityUseCase;
 import com.nahui.followupbussiness.routing.application.port.out.RouteDirections;
 import com.nahui.followupbussiness.customers.domain.Customer;
 import com.nahui.followupbussiness.customers.application.port.in.CustomerPortfolioReadUseCase;
@@ -41,9 +42,10 @@ public final class RouteController {
     private final ReadRoutesUseCase reads;
     private final GetRouteDirectionsUseCase directions;
     private final CustomerPortfolioReadUseCase customers;
+    private final RoutePublicationEligibilityUseCase publicationEligibility;
     private final MeterRegistry meters;
 
-    public RouteController(CreateRouteUseCase create, CopyRouteUseCase copy, ReorderRoutePointsUseCase reorder, PublishRouteUseCase publish, ReassignRouteUseCase reassign, ListSuggestedCustomersUseCase suggestions, ReadRoutesUseCase reads, GetRouteDirectionsUseCase directions, CustomerPortfolioReadUseCase customers, MeterRegistry meters) {
+    public RouteController(CreateRouteUseCase create, CopyRouteUseCase copy, ReorderRoutePointsUseCase reorder, PublishRouteUseCase publish, ReassignRouteUseCase reassign, ListSuggestedCustomersUseCase suggestions, ReadRoutesUseCase reads, GetRouteDirectionsUseCase directions, CustomerPortfolioReadUseCase customers, RoutePublicationEligibilityUseCase publicationEligibility, MeterRegistry meters) {
         this.create = create;
         this.copy = copy;
         this.reorder = reorder;
@@ -53,6 +55,7 @@ public final class RouteController {
         this.reads = reads;
         this.directions = directions;
         this.customers = customers;
+        this.publicationEligibility = publicationEligibility;
         this.meters = meters;
     }
 
@@ -168,7 +171,7 @@ public final class RouteController {
             meters.counter("routes.published").increment();
             return ResponseEntity.ok().eTag("\"" + route.version() + "\"").header("X-Correlation-Id", correlation.toString()).body(view(route, actor));
         } catch (PublishRouteUseCase.Forbidden ex) { return problem(HttpStatus.FORBIDDEN, correlation); }
-        catch (PublishRouteUseCase.Conflict ex) { return problem(HttpStatus.CONFLICT, correlation); }
+        catch (PublishRouteUseCase.Conflict ex) { return publishConflict(ex.code(), correlation); }
         catch (PublishRouteUseCase.Unavailable ex) { return problem(HttpStatus.SERVICE_UNAVAILABLE, correlation); }
         catch (PublishRouteUseCase.Invalid | IllegalArgumentException ex) { return problem(HttpStatus.UNPROCESSABLE_CONTENT, correlation); }
     }
@@ -188,7 +191,7 @@ public final class RouteController {
             meters.counter("routes.reordered").increment();
             return ResponseEntity.ok().eTag("\""+route.version()+"\"").header("X-Correlation-Id",correlation.toString()).body(view(route, actor));
         } catch (ReorderRoutePointsUseCase.Forbidden e) { return problem(HttpStatus.FORBIDDEN,correlation); }
-        catch (ReorderRoutePointsUseCase.Conflict e) { return problem(HttpStatus.CONFLICT,correlation); }
+        catch (ReorderRoutePointsUseCase.Conflict e) { return reorderConflict(e.code(), correlation); }
         catch (ReorderRoutePointsUseCase.Invalid e) { return reorderProblem(e.getMessage(), correlation); }
     }
 
@@ -215,6 +218,13 @@ public final class RouteController {
         detail.setProperty("correlationId", correlation.toString());
         return ResponseEntity.status(status).header("X-Correlation-Id", correlation.toString()).body(detail);
     }
+    private static ResponseEntity<?> publishConflict(PublishRouteUseCase.Conflict.Code code, UUID correlation) {
+        LOG.warn("Route publication rejected: code={}, correlationId={}", code, correlation);
+        ProblemDetail detail = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "Route publication conflict");
+        detail.setProperty("code", code.name());
+        detail.setProperty("correlationId", correlation.toString());
+        return ResponseEntity.status(HttpStatus.CONFLICT).header("X-Correlation-Id", correlation.toString()).body(detail);
+    }
     private static ResponseEntity<?> reorderProblem(String code, UUID correlation) {
         String safeCode = code == null || code.isBlank() ? "INVALID_REORDER_REQUEST" : code;
         LOG.warn("Route reorder rejected: code={}, correlationId={}", safeCode, correlation);
@@ -222,6 +232,13 @@ public final class RouteController {
         detail.setProperty("code", safeCode);
         detail.setProperty("correlationId", correlation.toString());
         return ResponseEntity.unprocessableContent().header("X-Correlation-Id", correlation.toString()).body(detail);
+    }
+    private static ResponseEntity<?> reorderConflict(ReorderRoutePointsUseCase.Conflict.Code code, UUID correlation) {
+        LOG.warn("Route reorder rejected: code={}, correlationId={}", code, correlation);
+        ProblemDetail detail = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "Route reorder conflict");
+        detail.setProperty("code", code.name());
+        detail.setProperty("correlationId", correlation.toString());
+        return ResponseEntity.status(HttpStatus.CONFLICT).header("X-Correlation-Id", correlation.toString()).body(detail);
     }
     private static ResponseEntity<?> directionsUnavailable(UUID correlation) {
         ProblemDetail detail = ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, "Road details are temporarily unavailable");
@@ -246,11 +263,13 @@ public final class RouteController {
 
     private List<View> views(List<Route> routes, AuthenticatedActor actor) {
         Map<UUID, String> names = customerNames(routes, actor);
-        return routes.stream().map(route -> View.from(route, names)).toList();
+        Map<UUID, RoutePublicationEligibilityUseCase.Eligibility> eligibility = publicationEligibility.evaluate(routes);
+        return routes.stream().map(route -> View.from(route, names, eligibility.get(route.id()))).toList();
     }
 
     private View view(Route route, AuthenticatedActor actor) {
-        return View.from(route, customerNames(List.of(route), actor));
+        Map<UUID, RoutePublicationEligibilityUseCase.Eligibility> eligibility = publicationEligibility.evaluate(List.of(route));
+        return View.from(route, customerNames(List.of(route), actor), eligibility.get(route.id()));
     }
 
     private Map<UUID, String> customerNames(List<Route> routes, AuthenticatedActor actor) {
@@ -279,12 +298,17 @@ public final class RouteController {
         static CustomerResponse from(Customer c) { return new CustomerResponse(c.id(), c.name(), c.documentType(), c.documentNumber(), c.phone(), c.email(), c.segment(), c.address(), c.location(), c.visitFrequencyDays(), c.territoryId(), List.of(), c.status(), c.createdAt(), c.updatedAt(), c.version()); }
     }
 
-    record View(UUID id, String name, LocalDate date, UUID sellerId, GeoPoint startLocation, String status,
+    record View(UUID id, String name, LocalDate date, UUID sellerId, GeoPoint startLocation, String status, PublicationEligibility publicationEligibility,
                 List<Point> points, java.time.Instant createdAt, java.time.Instant updatedAt, long version) {
-        static View from(Route r, Map<UUID, String> customerNames) {
-            return new View(r.id(), r.name(), r.date(), r.sellerId(), r.startLocation(), r.status(), r.points().stream().map(p -> new Point(p.id(), p.customerId(), customerNames.get(p.customerId()), p.sequence(), "PENDING", p.location())).toList(), r.createdAt(), r.updatedAt(), r.version());
+        static View from(Route r, Map<UUID, String> customerNames, RoutePublicationEligibilityUseCase.Eligibility eligibility) {
+            RoutePublicationEligibilityUseCase.Eligibility safe = eligibility == null
+                    ? new RoutePublicationEligibilityUseCase.Eligibility(false, RoutePublicationEligibilityUseCase.Reason.TENANT_TIMEZONE_UNAVAILABLE)
+                    : eligibility;
+            return new View(r.id(), r.name(), r.date(), r.sellerId(), r.startLocation(), r.status(), new PublicationEligibility(safe.eligible(), safe.reason().name()), r.points().stream().map(p -> new Point(p.id(), p.customerId(), customerNames.get(p.customerId()), p.sequence(), "PENDING", p.location())).toList(), r.createdAt(), r.updatedAt(), r.version());
         }
     }
+
+    record PublicationEligibility(boolean eligible, String reason) { }
 
     record Point(UUID id, UUID customerId, String customerName, int sequence, String status,
                  com.nahui.followupbussiness.customers.domain.GeoPoint location) {

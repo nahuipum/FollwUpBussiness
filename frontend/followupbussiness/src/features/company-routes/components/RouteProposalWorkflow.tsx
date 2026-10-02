@@ -19,14 +19,15 @@ export function RouteProposalWorkflow({
   route,
   availabilityStart,
   availabilityEnd,
+  planningWindowLoading,
+  planningWindowError,
   visits,
   proposal,
   validation,
   saving,
   error,
   conflict,
-  onAvailabilityStart,
-  onAvailabilityEnd,
+  onRetryPlanningWindow,
   onVisit,
   onOptimize,
   onClose,
@@ -35,14 +36,15 @@ export function RouteProposalWorkflow({
   route: Route;
   availabilityStart: string;
   availabilityEnd: string;
+  planningWindowLoading: boolean;
+  planningWindowError: ApiError | null;
   visits: readonly Visit[];
   proposal: RouteProposal | null;
   validation: RouteProposalValidation;
   saving: boolean;
   error: ApiError | null;
   conflict: boolean;
-  onAvailabilityStart: (value: string) => void;
-  onAvailabilityEnd: (value: string) => void;
+  onRetryPlanningWindow: () => void;
   onVisit: (customerId: string, patch: Partial<Visit>) => void;
   onOptimize: () => void;
   onClose: () => void;
@@ -54,7 +56,7 @@ export function RouteProposalWorkflow({
   };
   return (
     <section className="route-page-workflow" aria-labelledby="route-proposal-title">
-      <header className="routes-page__heading route-workflow-heading"><div><span className="route-eyebrow">Planificación operativa</span><h1 id="route-proposal-title">Generar propuesta automática</h1><p>Configura un borrador base y recibe una propuesta editable. Generar no guarda el orden ni publica la ruta.</p></div><Button onClick={onChangeMode} disabled={saving} leadingIcon={<ArrowRight aria-hidden="true" />}>Cambiar modo</Button></header>
+      <header className="routes-page__heading route-workflow-heading"><div><span className="route-eyebrow">Planificación operativa</span><h1 id="route-proposal-title">Generar propuesta automática</h1><p>Configura un borrador base y recibe una propuesta editable. Generar no guarda el orden ni publica la ruta.</p></div><Button onClick={onChangeMode} disabled={saving} leadingIcon={<ArrowRight aria-hidden="true" />}>Ordenar manualmente</Button></header>
       <div className="route-workflow-card route-detail--proposal">
       <WorkflowStepper label="Progreso de propuesta automática" steps={[{ label: "Datos base", state: "complete" }, { label: "Clientes", state: "complete" }, { label: "Restricciones", state: "current" }, { label: "Generar propuesta" }, { label: "Revisar y guardar" }]} />
       <form className="route-proposal-dialog__form" onSubmit={submit}>
@@ -104,12 +106,13 @@ export function RouteProposalWorkflow({
           showCandidateSelection={route.points.length > 9}
           availabilityStart={availabilityStart}
           availabilityEnd={availabilityEnd}
+          planningWindowLoading={planningWindowLoading}
+          planningWindowError={planningWindowError}
           visits={visits}
           proposal={proposal}
           validation={validation}
           saving={saving}
-          onAvailabilityStart={onAvailabilityStart}
-          onAvailabilityEnd={onAvailabilityEnd}
+          onRetryPlanningWindow={onRetryPlanningWindow}
           onVisit={onVisit}
         />
         <footer>
@@ -124,6 +127,8 @@ export function RouteProposalWorkflow({
             type="submit"
             disabled={
               saving ||
+              planningWindowLoading ||
+              Boolean(planningWindowError) ||
               !availabilityStart ||
               !availabilityEnd ||
               !visits.some((visit) => visit.included)

@@ -25,6 +25,7 @@ import com.nahui.followupbussiness.routing.application.port.in.GetRouteDirection
 import com.nahui.followupbussiness.routing.application.port.out.RouteDirections;
 import com.nahui.followupbussiness.routing.application.port.in.ReassignRouteUseCase;
 import com.nahui.followupbussiness.routing.application.port.in.ReorderRoutePointsUseCase;
+import com.nahui.followupbussiness.routing.application.port.in.RoutePublicationEligibilityUseCase;
 import com.nahui.followupbussiness.routing.domain.Route;
 
 import java.time.Instant;
@@ -65,6 +66,8 @@ class RouteControllerTest {
                 .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver()).build();
 
         mvc.perform(get("/routes/{routeId}", routeId)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.publicationEligibility.eligible").value(true))
+                .andExpect(jsonPath("$.publicationEligibility.reason").value("ELIGIBLE"))
                 .andExpect(jsonPath("$.points[0].customerName").value("Cliente uno"))
                 .andExpect(jsonPath("$.points[1].customerName").value("Cliente dos"));
 
@@ -141,6 +144,47 @@ class RouteControllerTest {
                 && command.correlationId() != null), eq(actor));
     }
 
+    @Test
+    void exposesTheSafePublicationConflictCode() throws Exception {
+        UUID tenant = UUID.randomUUID(), account = UUID.randomUUID(), routeId = UUID.randomUUID();
+        AuthenticatedActor actor = new AuthenticatedActor(account, tenant, BaseRole.COMPANY_ADMIN);
+        PublishRouteUseCase publish = mock(PublishRouteUseCase.class);
+        when(publish.publish(any(), eq(actor))).thenThrow(new PublishRouteUseCase.Conflict(PublishRouteUseCase.Conflict.Code.SNAPSHOT_EXPIRED));
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(actor, null));
+        var mvc = MockMvcBuilders.standaloneSetup(controller(mock(ReadRoutesUseCase.class), mock(GetRouteDirectionsUseCase.class),
+                        mock(CustomerPortfolioReadUseCase.class), mock(ReorderRoutePointsUseCase.class), publish))
+                .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver()).build();
+
+        mvc.perform(post("/routes/{routeId}/publish", routeId)
+                        .header("If-Match", "\"1\"")
+                        .header("Idempotency-Key", UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("SNAPSHOT_EXPIRED"))
+                .andExpect(jsonPath("$.detail").value("Route publication conflict"));
+    }
+
+    @Test
+    void exposesTheSafeReorderConflictCode() throws Exception {
+        UUID tenant = UUID.randomUUID(), account = UUID.randomUUID(), routeId = UUID.randomUUID();
+        AuthenticatedActor actor = new AuthenticatedActor(account, tenant, BaseRole.COMPANY_ADMIN);
+        ReorderRoutePointsUseCase reorder = mock(ReorderRoutePointsUseCase.class);
+        when(reorder.reorder(any(), eq(actor))).thenThrow(new ReorderRoutePointsUseCase.Conflict(ReorderRoutePointsUseCase.Conflict.Code.SNAPSHOT_MISSING));
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(actor, null));
+        var mvc = MockMvcBuilders.standaloneSetup(controller(mock(ReadRoutesUseCase.class), mock(GetRouteDirectionsUseCase.class),
+                        mock(CustomerPortfolioReadUseCase.class), reorder))
+                .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver()).build();
+
+        mvc.perform(put("/routes/{routeId}/points/order", routeId)
+                        .header("If-Match", "\"2\"")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"routePointIds\":[\"" + UUID.randomUUID() + "\"]}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("SNAPSHOT_MISSING"))
+                .andExpect(jsonPath("$.detail").value("Route reorder conflict"));
+    }
+
     private RouteController controller(ReadRoutesUseCase reads, CustomerPortfolioReadUseCase customers) {
         return controller(reads, mock(GetRouteDirectionsUseCase.class), customers);
     }
@@ -149,8 +193,15 @@ class RouteControllerTest {
     }
     private RouteController controller(ReadRoutesUseCase reads, GetRouteDirectionsUseCase directions, CustomerPortfolioReadUseCase customers,
                                       ReorderRoutePointsUseCase reorder) {
+        return controller(reads, directions, customers, reorder, mock(PublishRouteUseCase.class));
+    }
+    private RouteController controller(ReadRoutesUseCase reads, GetRouteDirectionsUseCase directions, CustomerPortfolioReadUseCase customers,
+                                      ReorderRoutePointsUseCase reorder, PublishRouteUseCase publish) {
+        RoutePublicationEligibilityUseCase eligibility = routes -> routes.stream().collect(java.util.stream.Collectors.toMap(Route::id,
+                route -> new RoutePublicationEligibilityUseCase.Eligibility("DRAFT".equals(route.status()), "DRAFT".equals(route.status())
+                        ? RoutePublicationEligibilityUseCase.Reason.ELIGIBLE : RoutePublicationEligibilityUseCase.Reason.ROUTE_NOT_DRAFT)));
         return new RouteController(mock(CreateRouteUseCase.class), mock(CopyRouteUseCase.class), reorder,
-                mock(PublishRouteUseCase.class), mock(ReassignRouteUseCase.class), mock(ListSuggestedCustomersUseCase.class), reads, directions, customers,
+                publish, mock(ReassignRouteUseCase.class), mock(ListSuggestedCustomersUseCase.class), reads, directions, customers, eligibility,
                 new io.micrometer.core.instrument.simple.SimpleMeterRegistry());
     }
 }

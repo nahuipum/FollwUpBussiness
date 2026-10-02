@@ -72,7 +72,7 @@ test("la confirmación golden conserva descripción, orden de acciones y foco in
   fireEvent.click(screen.getByRole("button", { name: "Más acciones para Ana Gómez" }));
   fireEvent.click(screen.getByRole("menuitem", { name: "Bloquear usuario" }));
   const dialog = screen.getByRole("alertdialog");
-  expect(dialog.className).toContain("confirmation-dialog--golden");
+  expect(dialog.className).toContain("confirmation-dialog");
   expect(dialog.getAttribute("aria-describedby")).toBe("status-dialog-description");
   expect(dialog.querySelector("footer")?.children.item(0)?.textContent).toBe("Cancelar");
   expect(document.activeElement).toBe(screen.getByRole("button", { name: "Cancelar" }));

@@ -40,7 +40,7 @@ public final class GetRouteDirectionsService implements GetRouteDirectionsUseCas
         validatePreview(command, actor);
         Route route = routes.get(command.routeId(), actor);
         if (route.version() != command.baseRouteVersion()) throw new Conflict();
-        if (!"DRAFT".equals(route.status())) throw new Conflict();
+        if (!"DRAFT".equals(route.status()) && !"PUBLISHED".equals(route.status())) throw new Conflict();
         if (!samePermutation(route.points(), command.routePointIds())) throw new Invalid();
         Map<UUID, Route.Point> points = new HashMap<>();
         route.points().forEach(point -> points.put(point.id(), point));
@@ -61,10 +61,15 @@ public final class GetRouteDirectionsService implements GetRouteDirectionsUseCas
     private List<GeoPoint> coordinatesFor(Route route, List<Route.Point> points) {
         if (points.isEmpty() || points.size() > MAX_CUSTOMERS) throw new Invalid();
         if (points.stream().anyMatch(point -> point == null || point.location() == null)) throw new Invalid();
-        if (route.startLocation() == null && points.size() < 2) throw new Invalid();
+        // Older manually-created routes stored their original first visit as startLocation.
+        // After reordering, prepending that stale visit closes the path back toward the old
+        // start. A start that duplicates any visit adds no origin information and is omitted.
+        boolean hasExplicitOrigin = route.startLocation() != null
+                && points.stream().noneMatch(point -> route.startLocation().equals(point.location()));
+        if (!hasExplicitOrigin && points.size() < 2) throw new Invalid();
 
-        List<GeoPoint> coordinates = new ArrayList<>(points.size() + (route.startLocation() == null ? 0 : 1));
-        if (route.startLocation() != null) coordinates.add(route.startLocation());
+        List<GeoPoint> coordinates = new ArrayList<>(points.size() + (hasExplicitOrigin ? 1 : 0));
+        if (hasExplicitOrigin) coordinates.add(route.startLocation());
         points.forEach(point -> coordinates.add(point.location()));
         return List.copyOf(coordinates);
     }

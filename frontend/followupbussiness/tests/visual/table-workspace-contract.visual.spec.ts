@@ -206,7 +206,7 @@ for (const viewport of [
   });
 }
 
-test("los tokens de tabla y selector golden coinciden con el design system en oscuro", async ({ page }) => {
+test("la base golden y el acento de selectores coinciden con el tema oscuro", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await bootstrap(page);
   await openWorkspace(page, "/company/administrators-supervisors");
@@ -230,11 +230,22 @@ test("los tokens de tabla y selector golden coinciden con el design system en os
   expect(appSelect).toEqual(goldenSelect);
 
   await page.locator(".data-table-toolbar .visual-select--golden .visual-select__trigger").first().click();
-  const goldenOption = await golden.locator(".select-demo .select-option[aria-selected='true']").first().evaluate(styles);
   const appOption = await page.locator(".visual-select__menu--golden button[aria-selected='true']").first().evaluate(styles);
-  expect(appOption.color).toBe(goldenOption.color);
-  expect(appOption["background-color"]).toBe(goldenOption["background-color"]);
+  expect(appOption.color).toBe("rgb(132, 173, 255)");
+  expect(appOption["background-color"]).toBe("rgb(23, 37, 84)");
   await golden.close();
+});
+
+test("el acento compartido de las tablas evita superficies blancas en oscuro", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await bootstrap(page);
+  await openWorkspace(page, "/company/administrators-supervisors");
+  await page.getByRole("switch", { name: "Modo oscuro" }).click();
+
+  await expect(page.locator(".data-table__identity-mark").first()).toHaveCSS("background-color", "rgb(23, 37, 84)");
+  await expect(page.locator(".data-table__identity-mark").first()).toHaveCSS("color", "rgb(132, 173, 255)");
+  await expect(page.locator(".data-table__pagination [aria-current]")).toHaveCSS("background-color", "rgb(23, 37, 84)");
+  await expect(page.getByRole("button", { name: "Registros por página" })).toHaveCSS("background-color", "rgb(17, 24, 39)");
 });
 
 test("encabezados y acciones compartidas conservan contraste legible en ambos temas", async ({ page }) => {

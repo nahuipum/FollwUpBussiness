@@ -39,7 +39,9 @@ class PublishRouteServiceTest {
         when(f.snapshots.findValidForUpdate(f.tenant, f.route.id(), 1)).thenReturn(Optional.of(snapshot(f)));
         doThrow(new RouteStore.Conflict()).when(f.routes).publish(any(), anyLong());
 
-        assertThatThrownBy(() -> f.service.publish(command(f, true), f.actor)).isInstanceOf(PublishRouteUseCase.Conflict.class);
+        assertThatThrownBy(() -> f.service.publish(command(f, true), f.actor))
+                .isInstanceOfSatisfying(PublishRouteUseCase.Conflict.class,
+                        conflict -> assertThat(conflict.code()).isEqualTo(PublishRouteUseCase.Conflict.Code.ROUTE_PUBLICATION_CONFLICT));
 
         verifyNoInteractions(f.outbox, f.audit); verify(f.routes, never()).completePublicationIdempotency(any(), any(), any(), any());
     }
@@ -49,7 +51,8 @@ class PublishRouteServiceTest {
         when(f.scopes.resolve(any())).thenReturn(new PortfolioAccessScopeUseCase.Scope(f.tenant, true, Set.of()));
         when(f.sellers.allActive(f.tenant, Set.of(f.route.sellerId()))).thenReturn(true);
         when(f.routes.reservePublicationIdempotency(eq(f.tenant), eq(f.actor.accountId()), any(), any(), any())).thenReturn(new RouteStore.Reservation(true, null, null));
-        when(f.snapshots.findValidForUpdate(f.tenant, f.route.id(), 1)).thenReturn(Optional.of(snapshot(f)));
+        PlanningSnapshot sourceSnapshot = snapshot(f);
+        when(f.snapshots.findValidForUpdate(f.tenant, f.route.id(), 1)).thenReturn(Optional.of(sourceSnapshot));
         when(f.audit.record(any())).thenReturn(true);
 
         Route result = f.service.publish(command(f, false), f.actor);
@@ -57,6 +60,7 @@ class PublishRouteServiceTest {
         assertThat(result.status()).isEqualTo("PUBLISHED");
         assertThat(result.version()).isEqualTo(2);
         verify(f.routes).publish(result, 1);
+        verify(f.snapshots).supersedeAndCopy(sourceSnapshot, 2);
         verify(f.audit).record(argThat(a -> a.before().get("status").equals("DRAFT") && a.after().get("status").equals("PUBLISHED")));
         verify(f.outbox).append(argThat(event -> event.eventType().equals("route.published") && event.version() == 1
                 && event.tenantId().equals(f.tenant) && event.causationId().equals(f.route.id())
@@ -97,7 +101,9 @@ class PublishRouteServiceTest {
         when(f.routes.reservePublicationIdempotency(any(), any(), any(), any(), any())).thenReturn(new RouteStore.Reservation(true, null, null));
         when(f.snapshots.findValidForUpdate(f.tenant, f.route.id(), 1)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> f.service.publish(command(f, true), f.actor)).isInstanceOf(PublishRouteUseCase.Conflict.class);
+        assertThatThrownBy(() -> f.service.publish(command(f, true), f.actor))
+                .isInstanceOfSatisfying(PublishRouteUseCase.Conflict.class,
+                        conflict -> assertThat(conflict.code()).isEqualTo(PublishRouteUseCase.Conflict.Code.SNAPSHOT_MISSING));
         verifyNoInteractions(f.outbox, f.audit);
         verify(f.routes, never()).publish(any(), anyLong());
     }
@@ -110,7 +116,9 @@ class PublishRouteServiceTest {
         when(f.routes.reservePublicationIdempotency(any(), any(), any(), any(), any())).thenReturn(new RouteStore.Reservation(true, null, null));
         PlanningSnapshot expired = new PlanningSnapshot(UUID.randomUUID(), f.tenant, f.route.id(), 1, Instant.parse("2026-09-01T11:59:59Z"), Instant.parse("2026-09-01T08:00:00Z"), Instant.parse("2026-09-01T18:00:00Z"), List.of(new PlanningSnapshot.Visit(f.route.points().getFirst().id(), 60, null, null)), Map.of());
         when(f.snapshots.findValidForUpdate(f.tenant, f.route.id(), 1)).thenReturn(Optional.of(expired));
-        assertThatThrownBy(() -> f.service.publish(command(f, true), f.actor)).isInstanceOf(PublishRouteUseCase.Conflict.class);
+        assertThatThrownBy(() -> f.service.publish(command(f, true), f.actor))
+                .isInstanceOfSatisfying(PublishRouteUseCase.Conflict.class,
+                        conflict -> assertThat(conflict.code()).isEqualTo(PublishRouteUseCase.Conflict.Code.SNAPSHOT_EXPIRED));
         verify(f.routes, never()).publish(any(), anyLong()); verifyNoInteractions(f.outbox, f.audit);
     }
 

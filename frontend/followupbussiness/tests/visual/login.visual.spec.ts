@@ -23,6 +23,7 @@ async function openLogin(page: Page, viewport: { width: number; height: number }
   await page.setViewportSize(viewport);
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Inicia sesión" })).toBeVisible();
+  await expect(page.getByRole("switch", { name: "Modo oscuro" })).toBeVisible();
 }
 
 async function fillCredentials(page: Page) {
@@ -63,6 +64,44 @@ async function mockPendingLogin(page: Page) {
 test("ready desktop", async ({ page }) => {
   await openLogin(page, desktop);
   await expectStableLogin(page, "login-ready-desktop.png");
+});
+
+test("dark theme remains usable after logout and can be changed publicly", async ({ page }) => {
+  await page.setViewportSize(desktop);
+  await page.addInitScript(() => {
+    window.localStorage.setItem("followupbusiness.theme", "dark");
+  });
+  await page.goto("/");
+
+  const themeOption = page.getByRole("switch", { name: "Modo oscuro" });
+  await expect(themeOption).toHaveAttribute("aria-checked", "true");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(page.locator(".login-golden__brand-logo")).toHaveAttribute(
+    "src",
+    /followup-logo-obscure-v2\.png/,
+  );
+  await expect(page.locator(".login-golden__brand-plate")).toHaveCSS(
+    "background-color",
+    "rgba(0, 0, 0, 0)",
+  );
+  await expect(page.locator(".login-golden__brand")).toHaveCSS(
+    "color",
+    "rgb(229, 234, 242)",
+  );
+  await expect(page).toHaveScreenshot("login-ready-dark-desktop.png", {
+    animations: "disabled",
+    fullPage: true,
+  });
+
+  await themeOption.click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await expect(page.locator(".login-golden__brand-logo")).toHaveAttribute(
+    "src",
+    /\/followup-logo\.png/,
+  );
+  await expect
+    .poll(() => page.evaluate(() => window.localStorage.getItem("followupbusiness.theme")))
+    .toBe("light");
 });
 
 test("focus ring belongs only to the field control", async ({ page }) => {

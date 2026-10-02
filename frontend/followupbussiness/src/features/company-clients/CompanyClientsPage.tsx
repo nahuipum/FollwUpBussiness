@@ -217,7 +217,6 @@ export function CompanyClientsPage() {
       )}
       {form.notice && (
         <OperationDialog
-          appearance="golden"
           module="Clientes"
           titleId="client-operation-title"
           tone="success"

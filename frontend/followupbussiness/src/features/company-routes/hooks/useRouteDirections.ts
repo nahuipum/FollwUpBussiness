@@ -9,6 +9,7 @@ const signature = (route: Route) => orderedPoints(route).map((point) => point.ro
 
 export function useRouteDirections(route: Route, enabled = true, preferPreview = false) {
   const [directions, setDirections] = useState<RouteDirections | null>(null);
+  const [loadedRouteId, setLoadedRouteId] = useState<string | null>(null);
   const [loadedSignature, setLoadedSignature] = useState<string | null>(null);
   const [loading, setLoading] = useState(enabled);
   const [error, setError] = useState<ApiError | null>(null);
@@ -19,12 +20,13 @@ export function useRouteDirections(route: Route, enabled = true, preferPreview =
   const hasPersistedPointIds = persistedPointIds.length === route.points.length && route.points.length > 0;
   const signatureRef = useRef(currentSignature);
   const requestRef = useRef(0);
+  const loadedRouteIdRef = useRef<string | null>(null);
   const loadedSignatureRef = useRef<string | null>(null);
   const hasDirectionsRef = useRef(false);
   const routeId = route.id;
   const routeVersion = route.version;
 
-  useEffect(() => subscribeToSession(() => { requestRef.current += 1; loadedSignatureRef.current = null; hasDirectionsRef.current = false; setDirections(null); setLoadedSignature(null); setError(null); setLoading(false); }), []);
+  useEffect(() => subscribeToSession(() => { requestRef.current += 1; loadedRouteIdRef.current = null; loadedSignatureRef.current = null; hasDirectionsRef.current = false; setDirections(null); setLoadedRouteId(null); setLoadedSignature(null); setError(null); setLoading(false); }), []);
   useEffect(() => { signatureRef.current = currentSignature; }, [currentSignature]);
   useEffect(() => {
     if (!enabled) {
@@ -36,7 +38,17 @@ export function useRouteDirections(route: Route, enabled = true, preferPreview =
     let active = true;
     const request = ++requestRef.current;
     const routeSignature = signatureRef.current;
-    const orderChanged = hasDirectionsRef.current && loadedSignatureRef.current !== routeSignature;
+    const routeChanged = loadedRouteIdRef.current !== null && loadedRouteIdRef.current !== routeId;
+    if (routeChanged) {
+      loadedRouteIdRef.current = null;
+      loadedSignatureRef.current = null;
+      hasDirectionsRef.current = false;
+      setDirections(null);
+      setLoadedRouteId(null);
+      setLoadedSignature(null);
+      setError(null);
+    }
+    const orderChanged = !routeChanged && hasDirectionsRef.current && loadedSignatureRef.current !== routeSignature;
     const preview = hasPersistedPointIds && (preferPreview || orderChanged);
     const abort = new AbortController();
     const isCurrent = () => active && request === requestRef.current;
@@ -54,7 +66,7 @@ export function useRouteDirections(route: Route, enabled = true, preferPreview =
           ? await previewRouteDirections(routeId, routeVersion, persistedPointIds, abort.signal)
           : await getRouteDirections(routeId, abort.signal);
         if (!isCurrent()) return;
-        if (result.response.status === 200 && result.directions) { hasDirectionsRef.current = true; loadedSignatureRef.current = routeSignature; setDirections(result.directions); setLoadedSignature(routeSignature); }
+        if (result.response.status === 200 && result.directions) { hasDirectionsRef.current = true; loadedRouteIdRef.current = routeId; loadedSignatureRef.current = routeSignature; setDirections(result.directions); setLoadedRouteId(routeId); setLoadedSignature(routeSignature); }
         else { const error = await normalizeApiError(result.response); if (isCurrent()) setError(error ?? { status: 500, correlationId: null, fieldErrors: [] }); }
       } catch (reason) { if (isCurrent() && !abort.signal.aborted && !(reason instanceof ApiRequestObsoleteError)) setError({ status: 500, correlationId: null, fieldErrors: [] }); }
       finally { if (isCurrent()) setLoading(false); }
@@ -62,5 +74,6 @@ export function useRouteDirections(route: Route, enabled = true, preferPreview =
     return () => { active = false; window.clearTimeout(loadingTimeout); window.clearTimeout(timeout); abort.abort(); };
   }, [currentSignature, enabled, hasPersistedPointIds, persistedPointIds, preferPreview, retry, routeId, routeVersion]);
 
-  return { directions: enabled ? directions : null, loading: enabled ? loading : false, error: enabled ? error : null, stale: enabled && directions !== null && loadedSignature !== currentSignature, retry: () => setRetry((value) => value + 1) };
+  const currentDirections = loadedRouteId === routeId ? directions : null;
+  return { directions: enabled ? currentDirections : null, loading: enabled ? loading : false, error: enabled ? error : null, stale: enabled && currentDirections !== null && loadedSignature !== currentSignature, retry: () => setRetry((value) => value + 1) };
 }
